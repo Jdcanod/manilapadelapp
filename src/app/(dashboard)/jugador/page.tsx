@@ -23,6 +23,10 @@ export default async function JugadorDashboard() {
         .eq('auth_id', user.id)
         .single();
 
+    if (userData?.rol === 'admin_club') {
+        redirect("/club");
+    }
+
     const nombreReal = userData?.nombre || "Jugador";
     const iniciales = nombreReal.substring(0, 2).toUpperCase();
 

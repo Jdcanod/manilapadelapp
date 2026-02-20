@@ -29,11 +29,19 @@ export async function createManualReservationAction(formData: FormData) {
     const resultadoMock = `${nombre} | ${tipo}`;
 
     const { error } = await supabase.from('partidos').insert({
-        club_id: club_id,
+        creador_id: user.id,
+        club_id: club_id || null, // Allow null if club_id isn't strictly required
         cancha_id: cancha_id,
         fecha: fecha,
         resultado: resultadoMock,
-        estado: 'pendiente'
+        estado: 'pendiente',
+        lugar: "Reserva Manual en Club",
+        tipo_partido: tipo,
+        nivel: "no_especificado",
+        sexo: "mixto",
+        cupos_totales: 4,
+        cupos_disponibles: 0,
+        precio_por_persona: 0
     });
 
     if (error) {
