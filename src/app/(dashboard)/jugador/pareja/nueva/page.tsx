@@ -63,7 +63,7 @@ export default async function NuevaParejaPage() {
                                     <SelectValue placeholder="Busca un jugador..." />
                                 </SelectTrigger>
                                 <SelectContent className="bg-neutral-900 border-neutral-800 text-neutral-200 max-h-60">
-                                    {jugadores?.map((j: { id: string, nombre: string, nivel: string }) => (
+                                    {(jugadores || []).map((j: { id: string, nombre: string, nivel: string }) => (
                                         <SelectItem key={j.id} value={j.id}>
                                             <div className="flex items-center gap-2">
                                                 <span>{j.nombre}</span>
