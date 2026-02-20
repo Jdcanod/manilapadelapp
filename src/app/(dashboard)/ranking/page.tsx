@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Trophy, ArrowUp, ArrowDown, ArrowRight, Medal, Shield, User } from "lucide-react";
+import { Trophy, ArrowUp, ArrowDown, ArrowRight, Medal, Shield } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/utils/supabase/server";
 import { RankingFilter } from "@/components/RankingFilter";
