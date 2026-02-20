@@ -1,12 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
-import { CheckCircle, Plus, CalendarRange, Clock, User, MoreVertical, Trophy } from "lucide-react";
+import { ReservaManualDialog } from "@/components/ReservaManualDialog";
+import { CheckCircle, CalendarRange, Clock, User, MoreVertical, Trophy } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { createManualReservationAction } from "./actions";
 
 export default async function ClubDashboard() {
     const supabase = createClient();
@@ -94,95 +93,12 @@ export default async function ClubDashboard() {
                         <Button variant="outline" className="flex-1 sm:flex-none bg-neutral-950 border-neutral-700 text-white">
                             <Clock className="w-4 h-4 mr-2" /> {date}
                         </Button>
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg">
-                                    <Plus className="w-4 h-4" /> Reserva Manual
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="bg-neutral-900 border-neutral-800 text-white">
-                                <DialogHeader>
-                                    <DialogTitle>Añadir Reserva Manual</DialogTitle>
-                                    <DialogDescription className="text-neutral-400">
-                                        Reserva telefónica o presencial. Bloquea el turno en el sistema.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <form action={createManualReservationAction} className="space-y-4 pt-4">
-                                    <input type="hidden" name="club_id" value={userData?.auth_id || ""} />
-                                    <input type="hidden" name="club_nombre" value={nombreClub} />
-                                    <input type="hidden" name="tipo" value="manual" />
-                                    <div className="space-y-2">
-                                        <label htmlFor="nombre" className="text-sm font-medium text-neutral-300">Nombre del Jugador</label>
-                                        <input
-                                            id="nombre"
-                                            name="nombre"
-                                            type="text"
-                                            required
-                                            placeholder="Ej. Juan Pérez"
-                                            className="flex h-10 w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-200 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label htmlFor="cancha_id" className="text-sm font-medium text-neutral-300">Cancha</label>
-                                        <select
-                                            id="cancha_id"
-                                            name="cancha_id"
-                                            required
-                                            className="flex h-10 w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                        >
-                                            {courts.map((court, i) => (
-                                                <option key={i} value={`cancha_${i + 1}`}>
-                                                    {court}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label htmlFor="dia" className="text-sm font-medium text-neutral-300">Día</label>
-                                            <input
-                                                id="dia"
-                                                name="dia"
-                                                type="date"
-                                                required
-                                                className="flex h-10 w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 [color-scheme:dark]"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label htmlFor="hora" className="text-sm font-medium text-neutral-300">Horario</label>
-                                            <select
-                                                id="hora"
-                                                name="hora"
-                                                required
-                                                className="flex h-10 w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                            >
-                                                {timeSlots.map((time, i) => (
-                                                    <option key={i} value={time}>
-                                                        {time}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-start space-x-3 pt-2 pb-2">
-                                        <input
-                                            type="checkbox"
-                                            id="abrir_partido"
-                                            name="abrir_partido"
-                                            className="w-5 h-5 mt-0.5 rounded border border-neutral-700 bg-neutral-900 checked:bg-emerald-500 appearance-none shrink-0 relative
-                                            after:content-[''] after:absolute after:top-[3px] after:left-[7px] after:w-1.5 after:h-2.5 after:border-r-2 after:border-b-2 after:border-white after:rotate-45 after:opacity-0 checked:after:opacity-100 cursor-pointer"
-                                        />
-                                        <label htmlFor="abrir_partido" className="text-sm font-medium text-neutral-300 cursor-pointer">
-                                            <span className="block text-white mb-0.5">Abrir partido a la comunidad</span>
-                                            <span className="text-xs text-neutral-500 font-normal">Permite que 4 jugadores puedan unirse desde sus celulares y tomar la reserva.</span>
-                                        </label>
-                                    </div>
-                                    <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">
-                                        Confirmar Reserva
-                                    </Button>
-                                </form>
-                            </DialogContent>
-                        </Dialog>
+                        <ReservaManualDialog
+                            userId={user.id}
+                            clubNombre={nombreClub}
+                            courts={courts}
+                            timeSlots={timeSlots}
+                        />
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
