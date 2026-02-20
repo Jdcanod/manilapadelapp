@@ -13,7 +13,7 @@ export async function createManualReservationAction(formData: FormData) {
     const cancha_id = formData.get("cancha_id") as string;
     const hora = formData.get("hora") as string;
     const nombre = formData.get("nombre") as string;
-    const tipo = formData.get("tipo") as string || "manual";
+
 
     if (!club_id || !cancha_id || !hora || !nombre) {
         throw new Error("Faltan datos para crear la reserva.");
