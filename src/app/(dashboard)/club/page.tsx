@@ -1,9 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ReservaManualDialog } from "@/components/ReservaManualDialog";
-import { CheckCircle, CalendarRange, Clock, User, MoreVertical, Trophy } from "lucide-react";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ClubReservationsGrid } from "@/components/ClubReservationsGrid";
+import { CheckCircle, CalendarRange, Clock } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -32,16 +31,46 @@ export default async function ClubDashboard() {
 
     const date = "Hoy";
 
-    // Mock data for the reservation grid
+    // Data for the reservation grid
     const courts = ["Cancha 1 (Panorámica)", "Cancha 2", "Cancha 3", "Cancha 4"];
     const timeSlots = ["16:00", "17:30", "19:00", "20:30", "22:00"];
 
-    const reservations = [
-        { id: 1, courtIndex: 0, timeIndex: 1, player: "Andrés", type: "partido_app", status: "confirmado" },
-        { id: 2, courtIndex: 0, timeIndex: 2, player: "Torneo", type: "torneo", status: "bloqueado" },
-        { id: 3, courtIndex: 2, timeIndex: 0, player: "Carlos", type: "partido_app", status: "pendiente" },
-        { id: 4, courtIndex: 3, timeIndex: 3, player: "Externo", type: "manual", status: "confirmado" },
-    ];
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    const tomorrowDate = new Date(todayDate);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+
+    const { data: partidosData } = await supabase
+        .from('partidos')
+        .select('*')
+        .like('lugar', `${nombreClub}%`)
+        .gte('fecha', todayDate.toISOString())
+        .lt('fecha', tomorrowDate.toISOString());
+
+    const reservations = (partidosData || []).map(p => {
+        const dt = new Date(p.fecha);
+        const timeStr = `${dt.getHours().toString().padStart(2, '0')}:${dt.getMinutes().toString().padStart(2, '0')}`;
+        const timeIndex = timeSlots.indexOf(timeStr);
+
+        const matches = p.lugar.match(/cancha_(\d+)/);
+        const courtIndex = matches ? parseInt(matches[1]) - 1 : -1;
+
+        let playerName = "Reservado";
+        if (p.lugar.includes("a nombre de ")) {
+            playerName = p.lugar.split("a nombre de ")[1];
+        } else if (p.estado === 'abierto') {
+            playerName = "Partido Abierto";
+        }
+
+        return {
+            id: p.id,
+            courtIndex,
+            timeIndex,
+            player: playerName,
+            type: p.tipo_partido?.toLowerCase().includes('amistoso') ? 'partido_app' : 'manual',
+            status: p.estado
+        };
+    }).filter(r => r.courtIndex >= 0 && r.timeIndex >= 0);
 
     return (
         <div className="space-y-6">
@@ -102,70 +131,13 @@ export default async function ClubDashboard() {
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <ScrollArea className="w-full whitespace-nowrap rounded-b-xl">
-                        <div className="flex w-max min-w-full p-6 pb-8">
-                            {/* Timeline Column */}
-                            <div className="flex flex-col w-[80px] shrink-0 border-r border-neutral-800 pr-4 mr-4 mt-[40px]">
-                                {timeSlots.map((time, idx) => (
-                                    <div key={idx} className="h-[80px] flex items-start justify-end pr-2 text-xs font-medium text-neutral-500 transform -translate-y-2">
-                                        {time}
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Courts Columns */}
-                            <div className="flex flex-1 gap-4">
-                                {courts.map((court, cIdx) => (
-                                    <div key={cIdx} className="w-[180px] sm:w-[220px] flex flex-col">
-                                        <div className="h-[40px] bg-neutral-950/50 border border-neutral-800 rounded-lg flex items-center justify-center font-bold text-sm text-neutral-300 mb-4 sticky top-0 z-10">
-                                            {court}
-                                        </div>
-                                        <div className="flex flex-col relative w-full border-l border-neutral-800/30 pl-2">
-                                            {timeSlots.map((_, tIdx) => {
-                                                const reservation = reservations.find(r => r.courtIndex === cIdx && r.timeIndex === tIdx);
-                                                return (
-                                                    <div key={tIdx} className="h-[80px] relative w-full mb-2 group">
-                                                        {/* Empty slot background */}
-                                                        <div className="absolute inset-0 bg-neutral-950/30 border border-neutral-800/50 border-dashed rounded-lg opacity-20 transition-opacity hover:opacity-100 flex items-center justify-center cursor-pointer">
-                                                            <span className="text-xs text-neutral-500">+ Reservar</span>
-                                                        </div>
-
-                                                        {/* Actual Reservation Card */}
-                                                        {reservation && (
-                                                            <div className={`absolute inset-0 rounded-lg p-3 z-10 flex flex-col justify-between shadow-md transition-transform hover:scale-[1.02] cursor-pointer ${reservation.type === 'torneo' ? 'bg-amber-500/10 border border-amber-500/50' :
-                                                                reservation.type === 'manual' ? 'bg-blue-500/10 border border-blue-500/50' :
-                                                                    reservation.status === 'pendiente' ? 'bg-neutral-800 border border-neutral-600' :
-                                                                        'bg-emerald-500/10 border border-emerald-500/50'
-                                                                }`}>
-                                                                <div className="flex justify-between items-start">
-                                                                    <div className="font-bold text-sm text-white line-clamp-1 flex items-center gap-1.5">
-                                                                        {reservation.type === 'torneo' && <Trophy className="w-3 h-3 text-amber-500" />}
-                                                                        {reservation.type === 'manual' && <User className="w-3 h-3 text-blue-500" />}
-                                                                        {reservation.player}
-                                                                    </div>
-                                                                    <MoreVertical className="w-3 h-3 text-neutral-500" />
-                                                                </div>
-                                                                <div className="flex justify-between items-end">
-                                                                    <Badge variant="outline" className={`text-[9px] px-1 py-0 h-4 border-0 ${reservation.type === 'torneo' ? 'text-amber-500 bg-amber-500/20' :
-                                                                        reservation.type === 'manual' ? 'text-blue-400 bg-blue-500/20' :
-                                                                            reservation.status === 'pendiente' ? 'text-neutral-400 bg-neutral-700' :
-                                                                                'text-emerald-400 bg-emerald-500/20'
-                                                                        }`}>
-                                                                        {reservation.type.toUpperCase().replace('_', ' ')}
-                                                                    </Badge>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        <ScrollBar orientation="horizontal" className="bg-neutral-900" />
-                    </ScrollArea>
+                    <ClubReservationsGrid
+                        userId={user.id}
+                        clubNombre={nombreClub}
+                        courts={courts}
+                        timeSlots={timeSlots}
+                        reservations={reservations}
+                    />
                 </CardContent>
             </Card>
 

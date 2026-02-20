@@ -16,10 +16,25 @@ interface Props {
     clubNombre: string;
     courts: string[];
     timeSlots: string[];
+    trigger?: React.ReactNode;
+    openState?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    defaultCourt?: string;
+    defaultTime?: string;
 }
 
-export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots }: Props) {
-    const [open, setOpen] = useState(false);
+export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, trigger, openState, onOpenChange, defaultCourt, defaultTime }: Props) {
+    const [internalOpen, setInternalOpen] = useState(false);
+
+    const open = openState !== undefined ? openState : internalOpen;
+    const setOpen = (newOpen: boolean) => {
+        if (onOpenChange) {
+            onOpenChange(newOpen);
+        } else {
+            setInternalOpen(newOpen);
+        }
+    };
+
     const [loading, setLoading] = useState(false);
     const [abrirPartido, setAbrirPartido] = useState(false);
     const [users, setUsers] = useState<{ id: string, nombre: string }[]>([]);
@@ -56,15 +71,11 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots }: P
             categoria = formData.get("categoria") as string || "mixto";
             nivel = formData.get("nivel") as string || "intermedio";
         } else {
-            playerName = formData.get("nombre") as string;
             // Si el nombre viene del select, tratamos de sacar el texto
             const isSelect = formData.get("nombre_select");
             if (isSelect) {
                 const userObj = users.find(u => u.id === isSelect);
                 if (userObj) playerName = userObj.nombre;
-            }
-            if (!playerName) {
-                playerName = formData.get("nombre_input") as string;
             }
         }
 
@@ -121,9 +132,11 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots }: P
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg">
-                    <Plus className="w-4 h-4 mr-2" /> Reserva Manual
-                </Button>
+                {trigger || (
+                    <Button className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg">
+                        <Plus className="w-4 h-4 mr-2" /> Reserva Manual
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] bg-neutral-900 border-neutral-800 text-neutral-100">
                 <DialogHeader>
@@ -154,7 +167,7 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots }: P
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <Label className="text-neutral-300">Seleccionar Jugador Registrado</Label>
-                                <Select name="nombre_select">
+                                <Select name="nombre_select" required>
                                     <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white w-full">
                                         <SelectValue placeholder="O elige un jugador..." />
                                     </SelectTrigger>
@@ -164,18 +177,6 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots }: P
                                         ))}
                                     </SelectContent>
                                 </Select>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="h-[1px] flex-1 bg-neutral-800"></div>
-                                <span className="text-xs text-neutral-500 font-medium uppercase">O ingresa un nombre</span>
-                                <div className="h-[1px] flex-1 bg-neutral-800"></div>
-                            </div>
-                            <div className="space-y-2">
-                                <Input
-                                    name="nombre_input"
-                                    placeholder="Ej. Juan Pérez (Invitado)"
-                                    className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
-                                />
                             </div>
                         </div>
                     ) : (
@@ -212,7 +213,7 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots }: P
 
                     <div className="space-y-2">
                         <Label className="text-neutral-300">Cancha</Label>
-                        <Select name="cancha_id" defaultValue={courts[0] ? `cancha_1` : undefined} required>
+                        <Select name="cancha_id" defaultValue={defaultCourt || (courts[0] ? `cancha_1` : undefined)} required key={defaultCourt || "court"}>
                             <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
                                 <SelectValue placeholder="Elige la cancha" />
                             </SelectTrigger>
@@ -239,7 +240,7 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots }: P
                         </div>
                         <div className="space-y-2">
                             <Label className="text-neutral-300">Horario</Label>
-                            <Select name="hora" defaultValue={timeSlots[0]} required>
+                            <Select name="hora" defaultValue={defaultTime || timeSlots[0]} required key={defaultTime || "time"}>
                                 <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
                                     <SelectValue placeholder="Horario" />
                                 </SelectTrigger>
