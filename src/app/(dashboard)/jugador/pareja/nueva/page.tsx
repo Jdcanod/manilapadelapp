@@ -17,11 +17,24 @@ export default async function NuevaParejaPage() {
         redirect("/login");
     }
 
-    // Obtener jugadores disponibles para hacer pareja (que no sean el usuario actual)
-    const { data: jugadores } = await supabase
-        .from('users')
-        .select('id, auth_id, nombre, nivel')
-        .neq('auth_id', user.id);
+    let errorDebug = "";
+    let jugadores: any[] = [];
+
+    try {
+        // Obtener jugadores disponibles para hacer pareja (que no sean el usuario actual)
+        const { data, error } = await supabase
+            .from('users')
+            .select('id, auth_id, nombre, nivel')
+            .neq('auth_id', user.id);
+
+        if (error) {
+            errorDebug = "Supabase Query Error: " + error.message;
+        } else {
+            jugadores = data || [];
+        }
+    } catch (e: any) {
+        errorDebug = "Server Catch Error: " + (e?.message || JSON.stringify(e));
+    }
 
     return (
         <div className="max-w-2xl mx-auto space-y-6">
@@ -42,6 +55,11 @@ export default async function NuevaParejaPage() {
                         <CardDescription className="text-neutral-400">
                             Completa los datos para registrar tu nueva pareja en el sistema ELO.
                         </CardDescription>
+                        {errorDebug && (
+                            <div className="bg-red-500/20 text-red-500 p-3 rounded-md text-xs font-mono break-all mt-4 border border-red-500/30">
+                                {errorDebug}
+                            </div>
+                        )}
                     </CardHeader>
                     <CardContent className="space-y-6">
 
