@@ -7,27 +7,104 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { Trophy, ArrowLeft } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { createClient } from "@/utils/supabase/client";
 
 export default function RegistroPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [role, setRole] = useState("jugador");
+    const { toast } = useToast();
+    const supabase = createClient();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
-        // Aquí irá la lógica de registro con Supabase
-        setTimeout(() => {
+
+        const formData = new FormData(e.currentTarget);
+        const name = formData.get("name") as string;
+        const email = formData.get("email") as string;
+        const password = formData.get("password") as string;
+
+        try {
+            console.log("Iniciando registro con supabase: ", { email, role, url: process.env.NEXT_PUBLIC_SUPABASE_URL });
+
+            if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+                throw new Error("Las variables de entorno de Supabase no están cargadas. Reinicia el servidor.");
+            }
+
+            // 1. Crear el usuario en Authentication de Supabase
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        nombre: name,
+                        rol: role,
+                    }
+                }
+            });
+
+            console.log("Respuesta Auth Supabase:", { authData, authError });
+
+            if (authError) {
+                toast({
+                    title: "Error de registro",
+                    description: authError.message,
+                    variant: "destructive"
+                });
+                setLoading(false);
+                return;
+            }
+
+            if (authData?.user) {
+                // 2. Guardar su perfil en la tabla pública "users"
+                const { error: dbError } = await supabase.from('users').insert({
+                    auth_id: authData.user.id,
+                    nombre: name,
+                    email: email,
+                    rol: role,
+                });
+
+                if (dbError) {
+                    console.error("Profile saving error:", dbError);
+                    toast({
+                        title: "Aviso",
+                        description: "Cuenta creada pero hubo un problema configurando tu perfil: " + dbError.message,
+                        variant: "destructive"
+                    });
+                } else {
+                    toast({
+                        title: "¡Bienvenido a ManilaPadel!",
+                        description: "Tu cuenta fue creada con éxito.",
+                    });
+                }
+
+                if (role === 'admin_club') {
+                    router.push("/club");
+                } else {
+                    router.push("/jugador");
+                }
+            } else {
+                toast({
+                    title: "Aviso",
+                    description: "No se retornó ningún usuario después del registro. Revisa Supabase.",
+                    variant: "destructive"
+                });
+                setLoading(false);
+            }
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
+            console.error("Excepción inesperada en registro:", err);
+            toast({
+                title: "Error Inesperado",
+                description: err?.message || "Ocurrió un error en el cliente o la conexión a la base de datos.",
+                variant: "destructive"
+            });
             setLoading(false);
-            router.push("/login?registered=true");
-        }, 1500);
+        }
     };
 
     return (
@@ -50,23 +127,33 @@ export default function RegistroPage() {
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="base-role" className="text-neutral-300">¿Qué buscas?</Label>
-                            <Select defaultValue="jugador" name="role">
-                                <SelectTrigger id="base-role" className="bg-neutral-950 border-neutral-800 text-neutral-100">
-                                    <SelectValue placeholder="Selecciona un rol" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-neutral-900 border-neutral-800 text-neutral-100">
-                                    <SelectItem value="jugador">Soy Jugador (Quiero competir)</SelectItem>
-                                    <SelectItem value="admin_club">Soy Administrador de Club</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <div className="space-y-3 pb-2">
+                            <Label className="text-neutral-300">¿Qué tipo de cuenta quieres?</Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setRole("jugador")}
+                                    className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${role === "jugador" ? "border-green-500 bg-green-500/10 text-white" : "border-neutral-800 bg-neutral-900/50 text-neutral-400 hover:border-neutral-700 hover:text-neutral-300"}`}
+                                >
+                                    <span className="font-semibold text-lg">Jugador</span>
+                                    <span className="text-xs opacity-70 mt-1">Quiero competir y jugar</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setRole("admin_club")}
+                                    className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${role === "admin_club" ? "border-blue-500 bg-blue-500/10 text-white" : "border-neutral-800 bg-neutral-900/50 text-neutral-400 hover:border-neutral-700 hover:text-neutral-300"}`}
+                                >
+                                    <span className="font-semibold text-lg">Admin Club</span>
+                                    <span className="text-xs opacity-70 mt-1">Gestionar instalaciones</span>
+                                </button>
+                            </div>
                         </div>
 
                         <div className="space-y-2">
                             <Label htmlFor="name" className="text-neutral-300">Nombre Completo</Label>
                             <Input
                                 id="name"
+                                name="name"
                                 placeholder="Ej. Juan Pérez"
                                 required
                                 className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
@@ -76,6 +163,7 @@ export default function RegistroPage() {
                             <Label htmlFor="email" className="text-neutral-300">Correo Electrónico</Label>
                             <Input
                                 id="email"
+                                name="email"
                                 type="email"
                                 placeholder="juan@ejemplo.com"
                                 required
@@ -86,6 +174,7 @@ export default function RegistroPage() {
                             <Label htmlFor="password" className="text-neutral-300">Contraseña</Label>
                             <Input
                                 id="password"
+                                name="password"
                                 type="password"
                                 required
                                 className="bg-neutral-950 border-neutral-800 text-neutral-100"

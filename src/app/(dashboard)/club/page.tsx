@@ -1,15 +1,36 @@
-"use client";
-
-import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { CheckCircle, Plus, CalendarRange, Clock, User, MoreVertical, Trophy } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
 
-export default function ClubDashboard() {
-    const [date] = useState("Hoy, 19 Feb");
+export default async function ClubDashboard() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        redirect("/login");
+    }
+
+    // Obtener los datos del club administrador
+    const { data: userData } = await supabase
+        .from('users')
+        .select('*')
+        .eq('auth_id', user.id)
+        .single();
+
+    const nombreClub = userData?.nombre || "Mi Club de Padel";
+
+    // Contar los partidos organizados actuales
+    const { count: partidosCount } = await supabase
+        .from('partidos')
+        .select('*', { count: 'exact', head: true })
+        .eq('estado', 'abierto');
+
+    const date = "Hoy";
 
     // Mock data for the reservation grid
     const courts = ["Cancha 1 (Panorámica)", "Cancha 2", "Cancha 3", "Cancha 4"];
@@ -35,9 +56,9 @@ export default function ClubDashboard() {
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2 text-emerald-400 font-medium">
                             <CheckCircle className="w-4 h-4" />
-                            <span className="text-sm tracking-wide uppercase">Club Verificado</span>
+                            <span className="text-sm tracking-wide uppercase">Club Verificado (Partner)</span>
                         </div>
-                        <h1 className="text-4xl font-black text-white mb-2 truncate">Manizales Padel Central</h1>
+                        <h1 className="text-4xl font-black text-white mb-2 truncate">{nombreClub}</h1>
                     </div>
                 </div>
             </div>
@@ -46,7 +67,7 @@ export default function ClubDashboard() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                     { label: "Canchas", value: "4", badge: "Activas" },
-                    { label: "Reservas Hoy", value: "18", badge: "80% Ocupación" },
+                    { label: "Partidos de App", value: (partidosCount || 0).toString(), badge: "Abiertos Hoy" },
                     { label: "Nuevos Jugadores", value: "+12", badge: "Esta semana" },
                     { label: "Ingresos (Mock)", value: "$2.5M", badge: "Este Mes" },
                 ].map((stat, i) => (

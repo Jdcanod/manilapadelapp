@@ -1,12 +1,32 @@
 import Link from "next/link";
 import { Trophy, Home, User, Calendar } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { createClient } from "@/utils/supabase/server";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    let nombreReal = "Jugador";
+    let iniciales = "JU";
+
+    if (user) {
+        const { data: userData } = await supabase
+            .from('users')
+            .select('nombre')
+            .eq('auth_id', user.id)
+            .single();
+
+        if (userData?.nombre) {
+            nombreReal = userData.nombre;
+            // Get first word or up to two characters for the avatar fallback
+            iniciales = nombreReal.substring(0, 2).toUpperCase();
+        }
+    }
     return (
         <div className="min-h-screen bg-neutral-950 text-neutral-50 pb-20 md:pb-0 md:flex flex-col">
             {/* Mobile Top Header */}
@@ -32,12 +52,11 @@ export default function DashboardLayout({
                         </div>
 
                         <div className="flex flex-col text-right">
-                            <span className="text-sm font-medium text-white">Andrés</span>
+                            <span className="text-sm font-medium text-white line-clamp-1 max-w-[120px]">{nombreReal}</span>
                             <span className="text-xs text-green-400 font-semibold">1450 pts</span>
                         </div>
                         <Avatar className="h-9 w-9 border border-neutral-800">
-                            <AvatarImage src="https://ui.shadcn.com/avatars/02.png" alt="@andres" />
-                            <AvatarFallback className="bg-neutral-800 text-neutral-300">AN</AvatarFallback>
+                            <AvatarFallback className="bg-neutral-800 text-neutral-300">{iniciales}</AvatarFallback>
                         </Avatar>
                     </div>
                 </div>

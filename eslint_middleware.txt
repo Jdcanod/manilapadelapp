@@ -1,0 +1,6 @@
+﻿
+C:\Users\jdcan\.gemini\antigravity\scratch\manilapadelapp\src\utils\supabase\middleware.ts
+  18:58  error  'options' is defined but never used  @typescript-eslint/no-unused-vars
+
+Γ£û 1 problem (1 error, 0 warnings)
+

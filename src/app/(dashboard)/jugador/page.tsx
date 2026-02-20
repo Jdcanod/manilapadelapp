@@ -1,23 +1,66 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trophy, TrendingUp, Calendar, MapPin, Activity, Star } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Trophy, TrendingUp, Calendar, MapPin, Activity, Star, UserPlus } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
+import { OrganizarPartidoDialog } from "@/components/OrganizarPartidoDialog";
 
-export default function JugadorDashboard() {
+export default async function JugadorDashboard() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        redirect("/login");
+    }
+
+    const { data: userData } = await supabase
+        .from('users')
+        .select('*')
+        .eq('auth_id', user.id)
+        .single();
+
+    const nombreReal = userData?.nombre || "Jugador";
+    const iniciales = nombreReal.substring(0, 2).toUpperCase();
+
+    // Obtener las inscripciones del usuario actual
+    const { data: misInscripciones } = await supabase
+        .from('partido_jugadores')
+        .select('partido_id')
+        .eq('jugador_id', user.id);
+
+    const misPartidosIds = misInscripciones?.map(i => i.partido_id) || [];
+
+    let queryPartidos = supabase
+        .from('partidos')
+        .select('*')
+        .gte('fecha', new Date().toISOString())
+        .order('fecha', { ascending: true })
+        .limit(1);
+
+    if (misPartidosIds.length > 0) {
+        queryPartidos = queryPartidos.or(`creador_id.eq.${user.id},id.in.(${misPartidosIds.join(',')})`);
+    } else {
+        queryPartidos = queryPartidos.eq('creador_id', user.id);
+    }
+
+    const { data: misProximosPartidos } = await queryPartidos;
+    const proximoPartido = misProximosPartidos?.[0];
+
     return (
         <div className="space-y-6">
             {/* Header Profile Summary */}
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6 bg-neutral-900/50 p-6 rounded-3xl border border-neutral-800">
                 <Avatar className="w-24 h-24 border-4 border-neutral-800 shadow-xl">
-                    <AvatarImage src="https://ui.shadcn.com/avatars/02.png" />
-                    <AvatarFallback className="text-2xl bg-gradient-to-tr from-emerald-600 to-green-400 text-white">AN</AvatarFallback>
+                    <AvatarFallback className="text-2xl bg-gradient-to-tr from-emerald-600 to-green-400 text-white">{iniciales}</AvatarFallback>
                 </Avatar>
                 <div className="text-center md:text-left flex-1">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                            <h1 className="text-3xl font-bold tracking-tight text-white mb-1">Andrés Jugador</h1>
+                            <h1 className="text-3xl font-bold tracking-tight text-white mb-1">{nombreReal}</h1>
                             <p className="text-neutral-400 font-medium">Jugador de revés agresivo.</p>
                         </div>
                         <div className="flex items-center gap-3">
@@ -29,6 +72,12 @@ export default function JugadorDashboard() {
                                 <span className="font-bold text-white">#4</span>
                             </div>
                         </div>
+                    </div>
+
+                    <div className="mt-4 flex gap-3">
+                        <Link href="/jugador/pareja/nueva" className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors shadow-lg shadow-emerald-900/20">
+                            <UserPlus className="w-4 h-4" /> Formar Pareja
+                        </Link>
                     </div>
 
                     <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -56,59 +105,62 @@ export default function JugadorDashboard() {
 
                 {/* Next Matches */}
                 <div className="lg:col-span-2 space-y-6">
-                    <Card className="bg-neutral-900 border-neutral-800 shadow-lg">
-                        <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                            <div>
-                                <CardTitle className="text-xl text-white">Próximo Partido</CardTitle>
-                                <CardDescription className="text-neutral-400 mt-1 text-xs uppercase tracking-wider">Confirmado</CardDescription>
-                            </div>
-                            <Button size="sm" variant="secondary" className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-0">
-                                Ver Detalle
-                            </Button>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="bg-gradient-to-r from-neutral-950 to-neutral-900 p-5 rounded-2xl border border-neutral-800 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
-                                <div className="absolute -right-4 -top-8 w-24 h-24 bg-emerald-500/5 blur-2xl rounded-full pointer-events-none" />
+                    {proximoPartido ? (
+                        <Card className="bg-neutral-900 border-neutral-800 shadow-lg">
+                            <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                                <div>
+                                    <CardTitle className="text-xl text-white">Próximo Partido</CardTitle>
+                                    <CardDescription className="text-neutral-400 mt-1 text-xs uppercase tracking-wider">{proximoPartido.tipo_partido}</CardDescription>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="bg-gradient-to-r from-neutral-950 to-neutral-900 p-5 rounded-2xl border border-neutral-800 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+                                    <div className="absolute -right-4 -top-8 w-24 h-24 bg-emerald-500/5 blur-2xl rounded-full pointer-events-none" />
 
-                                <div className="flex items-center gap-4 flex-1">
-                                    <div className="text-center w-24 shrink-0 border-r border-neutral-800 pr-4">
-                                        <div className="text-sm font-medium text-emerald-500">Hoy</div>
-                                        <div className="text-2xl font-black text-white tracking-tighter">19:30</div>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-lg text-white mb-1">vs Team Montaña</h3>
-                                        <div className="flex items-center text-sm text-neutral-400">
-                                            <MapPin className="w-3 h-3 mr-1" /> Manizales Padel Central (Cancha 2)
+                                    <div className="flex items-center gap-4 flex-1">
+                                        <div className="text-center w-24 shrink-0 border-r border-neutral-800 pr-4">
+                                            <div className="text-sm font-medium text-emerald-500">
+                                                {new Date(proximoPartido.fecha).toLocaleDateString('es-CO', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                            </div>
+                                            <div className="text-2xl font-black text-white tracking-tighter">
+                                                {new Date(proximoPartido.fecha).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-lg text-white mb-1">{proximoPartido.lugar}</h3>
+                                            <div className="flex items-center text-sm text-neutral-400">
+                                                <MapPin className="w-3 h-3 mr-1" /> Nivel {proximoPartido.nivel} • Faltan {proximoPartido.cupos_disponibles}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="flex -space-x-2 shrink-0">
-                                    <Avatar className="border-2 border-neutral-900 w-10 h-10">
-                                        <AvatarImage src="https://ui.shadcn.com/avatars/03.png" />
-                                    </Avatar>
-                                    <Avatar className="border-2 border-neutral-900 w-10 h-10">
-                                        <AvatarImage src="https://ui.shadcn.com/avatars/04.png" />
-                                    </Avatar>
+                                    <div className="flex -space-x-2 shrink-0">
+                                        <Avatar className="border-2 border-neutral-900 w-10 h-10">
+                                            <AvatarFallback className="bg-emerald-900 text-white font-bold text-xs">Tú</AvatarFallback>
+                                        </Avatar>
+                                    </div>
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="bg-neutral-900 border-neutral-800 shadow-lg border-dashed">
-                        <CardContent className="flex flex-col items-center justify-center p-8 text-center h-48">
-                            <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center mb-4 text-emerald-500">
-                                <Calendar className="w-6 h-6" />
-                            </div>
-                            <h3 className="text-lg font-semibold text-white mb-2">No tienes más partidos programados</h3>
-                            <p className="text-sm text-neutral-400 max-w-[250px] mb-4">
-                                ¿Listo para tu próximo desafío? Organiza un nuevo partido.
-                            </p>
-                            <Button className="bg-white text-neutral-950 hover:bg-neutral-200 shadow-lg active:scale-95 transition-all">
-                                Organizar Partido
-                            </Button>
-                        </CardContent>
-                    </Card>
+                                <div className="mt-4 flex justify-end">
+                                    <Button size="sm" variant="secondary" className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-0">
+                                        Ver Detalles
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card className="bg-neutral-900 border-neutral-800 shadow-lg border-dashed">
+                            <CardContent className="flex flex-col items-center justify-center p-8 text-center h-48">
+                                <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center mb-4 text-emerald-500">
+                                    <Calendar className="w-6 h-6" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-white mb-2">No tienes partidos programados</h3>
+                                <p className="text-sm text-neutral-400 max-w-[250px] mb-4">
+                                    ¿Listo para tu próximo desafío? Organiza o únete a un nuevo partido.
+                                </p>
+                                <OrganizarPartidoDialog userId={user.id} />
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
 
                 {/* Activity Feed */}

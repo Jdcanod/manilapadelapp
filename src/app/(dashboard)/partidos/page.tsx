@@ -2,31 +2,40 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, MapPin, Plus, Swords, UserPlus } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Calendar, MapPin, Swords, UserPlus } from "lucide-react";
 import Link from "next/link";
+import { createClient } from "@/utils/supabase/server";
+import { OrganizarPartidoDialog } from "@/components/OrganizarPartidoDialog";
+import { BotonUnirsePartido } from "@/components/BotonUnirsePartido";
+import { BotonCancelarPartido } from "@/components/BotonCancelarPartido";
+import { redirect } from "next/navigation";
 
-export default function PartidosPage() {
-    const openMatches = [
-        {
-            id: "1",
-            club: "Manizales Padel Central",
-            time: "Hoy, 20:00",
-            type: "Dobles Mixtos",
-            spotsLeft: 2,
-            level: "Avanzado / Intermedio",
-            players: ["Andrés", "Luisa"]
-        },
-        {
-            id: "2",
-            club: "Bosque Padel",
-            time: "Mañana, 18:00",
-            type: "Amistoso",
-            spotsLeft: 1,
-            level: "Cualquier nivel",
-            players: ["Carlos", "Esteban", "Diego"]
-        }
-    ];
+export default async function PartidosPage() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        redirect("/login");
+    }
+
+    // Obtener los partidos reales de la BD, ordenados por fecha
+    const { data: partidosReales } = await supabase
+        .from('partidos')
+        .select(`
+            *,
+            creador:users(nombre)
+        `)
+        .eq('estado', 'abierto')
+        .order('fecha', { ascending: true });
+
+    // Obtener las inscripciones del usuario actual
+    const { data: misInscripciones } = await supabase
+        .from('partido_jugadores')
+        .select('partido_id')
+        .eq('jugador_id', user.id);
+
+    const inscritosSet = new Set(misInscripciones?.map(i => i.partido_id) || []);
 
     const myMatches = [
         {
@@ -46,12 +55,9 @@ export default function PartidosPage() {
                     <h1 className="text-3xl font-bold tracking-tight text-white mb-1">Partidos</h1>
                     <p className="text-neutral-400">Encuentra y organiza tus encuentros en Manizales.</p>
                 </div>
-                <Link href="/partidos/nuevo">
-                    <Button className="bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-lg shadow-emerald-900/30 w-full sm:w-auto">
-                        <Plus className="w-5 h-5 mr-2" />
-                        Organizar Partido
-                    </Button>
-                </Link>
+                <div className="w-full sm:w-auto">
+                    <OrganizarPartidoDialog userId={user.id} />
+                </div>
             </div>
 
             <Tabs defaultValue="buscar" className="w-full">
@@ -68,44 +74,75 @@ export default function PartidosPage() {
                 </TabsList>
 
                 <TabsContent value="buscar" className="space-y-4">
-                    {openMatches.length === 0 ? (
+                    {!partidosReales || partidosReales.length === 0 ? (
                         <div className="text-center py-12 text-neutral-500 border border-neutral-800 border-dashed rounded-xl bg-neutral-900/30">
                             No hay partidos abiertos en este momento. ¡Sé el primero en organizar uno!
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {openMatches.map((match) => (
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                            {partidosReales.map((match) => (
                                 <Card key={match.id} className="bg-neutral-900 border-neutral-800 hover:border-neutral-700 transition-colors">
                                     <CardContent className="p-5">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div>
+                                        <div className="flex justify-between items-start mb-4 gap-4">
+                                            <div className="flex-1">
                                                 <Badge variant="outline" className="text-blue-400 border-blue-400/30 bg-blue-400/10 mb-2">
-                                                    {match.type}
+                                                    {match.tipo_partido} - {match.sexo}
                                                 </Badge>
-                                                <h3 className="text-lg font-bold text-white mb-1">{match.club}</h3>
-                                                <div className="flex items-center text-sm text-neutral-400 font-medium">
+                                                <Badge variant="outline" className="ml-2 text-emerald-400 border-emerald-400/30 bg-emerald-400/10 mb-2">
+                                                    Nivel: {match.nivel}
+                                                </Badge>
+                                                <h3 className="text-lg font-bold text-white mb-1 leading-tight">{match.lugar}</h3>
+                                                <div className="flex items-center text-sm text-neutral-400 font-medium mt-2">
                                                     <Calendar className="w-4 h-4 mr-2 text-emerald-500" />
-                                                    {match.time}
+                                                    {new Date(match.fecha).toLocaleString('es-CO', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             </div>
-                                            <div className="text-right">
-                                                <div className="text-xs text-neutral-500 uppercase tracking-wider mb-1">Faltan</div>
-                                                <div className="text-2xl font-black text-amber-500">{match.spotsLeft}</div>
+                                            <div className="text-right shrink-0 bg-neutral-950 px-4 py-2 rounded-xl border border-neutral-800">
+                                                <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-0.5">Faltan</div>
+                                                <div className="text-3xl font-black text-amber-500 leading-none">{match.cupos_disponibles}</div>
+                                                <div className="text-[10px] text-neutral-600 mt-1 uppercase">Jugadores</div>
                                             </div>
                                         </div>
 
                                         <div className="flex items-center justify-between mt-6 pt-4 border-t border-neutral-800">
-                                            <div className="flex -space-x-2">
-                                                {match.players.map((_, i) => (
-                                                    <Avatar key={i} className="border-2 border-neutral-900 w-8 h-8">
-                                                        <AvatarImage src={`https://ui.shadcn.com/avatars/0${i + 1}.png`} />
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex -space-x-2">
+                                                    <Avatar className="border-2 border-neutral-900 w-8 h-8">
+                                                        <AvatarFallback className="bg-neutral-800 text-xs text-white">
+                                                            {match.creador?.nombre ? match.creador.nombre.substring(0, 2).toUpperCase() : "CR"}
+                                                        </AvatarFallback>
                                                     </Avatar>
-                                                ))}
+                                                </div>
+                                                <span className="text-xs text-neutral-400 hidden sm:inline-block">
+                                                    Creado por {match.creador?.nombre || 'Jugador'}
+                                                </span>
                                             </div>
-                                            <Button size="sm" className="bg-white text-neutral-950 hover:bg-neutral-200">
-                                                <UserPlus className="w-4 h-4 mr-2" />
-                                                Unirse
-                                            </Button>
+
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-sm font-bold text-neutral-300">
+                                                    {match.precio_por_persona > 0 ? `$${match.precio_por_persona}` : 'Gratis'}
+                                                </span>
+                                                {match.creador_id === user.id ? (
+                                                    <div className="flex items-center gap-2 bg-neutral-900 border border-neutral-800 rounded-md p-1">
+                                                        <Badge variant="outline" className="border-0 text-emerald-500 font-semibold bg-transparent shadow-none hover:bg-transparent cursor-default">
+                                                            <UserPlus className="w-4 h-4 mr-1.5" />
+                                                            Organizador
+                                                        </Badge>
+                                                        <BotonCancelarPartido
+                                                            partidoId={match.id}
+                                                            partidoFecha={match.fecha}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <BotonUnirsePartido
+                                                        partidoId={match.id}
+                                                        userId={user.id}
+                                                        yaInscrito={inscritosSet.has(match.id)}
+                                                        cuposDisponibles={match.cupos_disponibles}
+                                                        partidoFecha={match.fecha}
+                                                    />
+                                                )}
+                                            </div>
                                         </div>
                                     </CardContent>
                                 </Card>

@@ -8,20 +8,77 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Trophy, ArrowLeft } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { createClient } from "@/utils/supabase/client";
 
 export default function LoginPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const { toast } = useToast();
+    const supabase = createClient();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
-        // Aquí irá la lógica de autenticación con Supabase
-        setTimeout(() => {
+
+        const formData = new FormData(e.currentTarget);
+        const email = formData.get("email") as string;
+        const password = formData.get("password") as string;
+
+        try {
+            const { error: authError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (authError) {
+                toast({
+                    title: "Error al entrar",
+                    description: authError.message,
+                    variant: "destructive"
+                });
+                setLoading(false);
+                return;
+            }
+
+            // Obtain user role to redirect properly
+            const { data: userData, error: dbError } = await supabase
+                .from('users')
+                .select('rol')
+                .eq('email', email)
+                .single();
+
+            if (dbError) {
+                console.error("Error fetching user role:", dbError);
+                // Si por alguna razón no se puede traer el rol, redirigir al jugador por defecto
+                toast({
+                    title: "¡Hola de nuevo!",
+                    description: "Entrando como jugador.",
+                });
+                router.push("/jugador");
+            } else {
+                toast({
+                    title: "¡Hola de nuevo!",
+                    description: "Es hora de jugar.",
+                });
+
+                if (userData?.rol === 'admin_club') {
+                    router.push("/club");
+                } else {
+                    router.push("/jugador");
+                }
+            }
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
+            console.error("Excepción inesperada en login:", err);
+            toast({
+                title: "Error Inesperado",
+                description: err?.message || "Ocurrió un error de conexión.",
+                variant: "destructive"
+            });
             setLoading(false);
-            // Redirigir según el rol del usuario (mockeado)
-            router.push("/dashboard");
-        }, 1500);
+        }
     };
 
     return (
@@ -48,6 +105,7 @@ export default function LoginPage() {
                             <Label htmlFor="email" className="text-neutral-300">Correo Electrónico</Label>
                             <Input
                                 id="email"
+                                name="email"
                                 type="email"
                                 placeholder="juan@ejemplo.com"
                                 required
@@ -63,6 +121,7 @@ export default function LoginPage() {
                             </div>
                             <Input
                                 id="password"
+                                name="password"
                                 type="password"
                                 required
                                 className="bg-neutral-950 border-neutral-800 text-neutral-100"
