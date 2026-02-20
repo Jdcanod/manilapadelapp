@@ -1,0 +1,5 @@
+4629d40 feat: Add player profile page with logout action
+ea1f2bf fix(build): remove any types from catch block and empty array declaration
+a75eb63 chore: add error boundary to catch exact error causing 500 on Vercel
+6cf051e fix(pair): ensure user mapping safe and db user query fix
+0ae967e fix(build): resolve unused var in ranking and any type in pair mapping

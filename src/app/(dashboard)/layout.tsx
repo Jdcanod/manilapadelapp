@@ -11,13 +11,14 @@ export default async function DashboardLayout({
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    let nombreReal = "Jugador";
-    let iniciales = "JU";
+    let nombreReal = "Usuario";
+    let iniciales = "US";
+    let rolUsuario = "jugador";
 
     if (user) {
         const { data: userData } = await supabase
             .from('users')
-            .select('nombre')
+            .select('nombre, rol')
             .eq('auth_id', user.id)
             .single();
 
@@ -25,6 +26,9 @@ export default async function DashboardLayout({
             nombreReal = userData.nombre;
             // Get first word or up to two characters for the avatar fallback
             iniciales = nombreReal.substring(0, 2).toUpperCase();
+        }
+        if (userData?.rol) {
+            rolUsuario = userData.rol;
         }
     }
     return (
@@ -53,9 +57,11 @@ export default async function DashboardLayout({
 
                         <div className="flex flex-col text-right">
                             <span className="text-sm font-medium text-white line-clamp-1 max-w-[120px]">{nombreReal}</span>
-                            <span className="text-xs text-green-400 font-semibold">1450 pts</span>
+                            {rolUsuario !== "admin_club" && (
+                                <span className="text-xs text-green-400 font-semibold">1450 pts</span>
+                            )}
                         </div>
-                        <Link href="/jugador/perfil">
+                        <Link href={rolUsuario === "admin_club" ? "/club" : "/jugador/perfil"}>
                             <Avatar className="h-9 w-9 border border-neutral-800 hover:border-emerald-500/50 transition-colors cursor-pointer">
                                 <AvatarFallback className="bg-neutral-800 text-neutral-300">{iniciales}</AvatarFallback>
                             </Avatar>

@@ -20,8 +20,9 @@ export default async function PerfilJugadorPage() {
         .eq('auth_id', user.id)
         .single();
 
-    const nombreReal = userData?.nombre || "Jugador";
+    const nombreReal = userData?.nombre || "Usuario";
     const iniciales = nombreReal.substring(0, 2).toUpperCase();
+    const esClub = userData?.rol === "admin_club";
 
     return (
         <div className="max-w-2xl mx-auto space-y-6">
@@ -41,9 +42,11 @@ export default async function PerfilJugadorPage() {
                         <AvatarFallback className="text-3xl bg-gradient-to-tr from-emerald-600 to-green-400 text-white font-bold">{iniciales}</AvatarFallback>
                     </Avatar>
                     <CardTitle className="text-2xl font-bold text-white">{nombreReal}</CardTitle>
-                    <CardDescription className="text-neutral-400 flex items-center gap-1 justify-center mt-1">
-                        <Shield className="w-3 h-3 text-emerald-500" /> Nivel {userData?.nivel || 'Amateur'}
-                    </CardDescription>
+                    {!esClub && (
+                        <CardDescription className="text-neutral-400 flex items-center gap-1 justify-center mt-1">
+                            <Shield className="w-3 h-3 text-emerald-500" /> Nivel {userData?.nivel || 'Amateur'}
+                        </CardDescription>
+                    )}
                 </CardHeader>
 
                 <CardContent className="space-y-6">

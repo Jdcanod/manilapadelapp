@@ -1,11 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { CheckCircle, Plus, CalendarRange, Clock, User, MoreVertical, Trophy } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { createManualReservationAction } from "./actions";
 
 export default async function ClubDashboard() {
     const supabase = createClient();
@@ -102,10 +103,58 @@ export default async function ClubDashboard() {
                             <DialogContent className="bg-neutral-900 border-neutral-800 text-white">
                                 <DialogHeader>
                                     <DialogTitle>Añadir Reserva Manual</DialogTitle>
+                                    <DialogDescription className="text-neutral-400">
+                                        Reserva telefónica o presencial. Bloquea el turno en el sistema.
+                                    </DialogDescription>
                                 </DialogHeader>
-                                <div className="p-4 text-center text-neutral-400">
-                                    Reserva telefónica o presencial. Bloquea el turno en el sistema. (Mock)
-                                </div>
+                                <form action={createManualReservationAction} className="space-y-4 pt-4">
+                                    <input type="hidden" name="club_id" value={userData?.auth_id || ""} />
+                                    <input type="hidden" name="tipo" value="manual" />
+                                    <div className="space-y-2">
+                                        <label htmlFor="nombre" className="text-sm font-medium text-neutral-300">Nombre del Jugador</label>
+                                        <input
+                                            id="nombre"
+                                            name="nombre"
+                                            type="text"
+                                            required
+                                            placeholder="Ej. Juan Pérez"
+                                            className="flex h-10 w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-200 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label htmlFor="cancha_id" className="text-sm font-medium text-neutral-300">Cancha</label>
+                                        <select
+                                            id="cancha_id"
+                                            name="cancha_id"
+                                            required
+                                            className="flex h-10 w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        >
+                                            {courts.map((court, i) => (
+                                                <option key={i} value={`cancha_${i + 1}`}>
+                                                    {court}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label htmlFor="hora" className="text-sm font-medium text-neutral-300">Horario</label>
+                                        <select
+                                            id="hora"
+                                            name="hora"
+                                            required
+                                            className="flex h-10 w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        >
+                                            {timeSlots.map((time, i) => (
+                                                <option key={i} value={time}>
+                                                    {time}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">
+                                        Confirmar Reserva
+                                    </Button>
+                                </form>
                             </DialogContent>
                         </Dialog>
                     </div>
