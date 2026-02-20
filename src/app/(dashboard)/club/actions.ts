@@ -19,28 +19,35 @@ export async function createManualReservationAction(formData: FormData) {
         throw new Error("Faltan datos para crear la reserva.");
     }
 
-    // Calcular fecha y hora de la reserva (hoy a esa hora)
-    const today = new Date();
-    const [h, m] = hora.split(":");
-    today.setHours(parseInt(h), parseInt(m), 0, 0);
-    const fecha = today.toISOString();
+    const club_nombre = formData.get("club_nombre") as string || "Mi Club";
+    const dia = formData.get("dia") as string;
+    const abrir_partido = formData.get("abrir_partido") === "on";
 
-    // Guardar el nombre y tipo en el resultado (solución temporal sin alterar schema)
-    const resultadoMock = `${nombre} | ${tipo}`;
+    // Calcular fecha y hora de la reserva
+    let fechaDate = new Date();
+    if (dia) {
+        const [y, mm, d] = dia.split("-");
+        const [h, min] = hora.split(":");
+        fechaDate = new Date(parseInt(y), parseInt(mm) - 1, parseInt(d), parseInt(h), parseInt(min), 0);
+    } else {
+        const [h, m] = hora.split(":");
+        fechaDate.setHours(parseInt(h), parseInt(m), 0, 0);
+    }
+    const fecha = fechaDate.toISOString();
+
+    const lugar_formateado = `${club_nombre} - ${cancha_id} - a nombre de ${nombre}`;
 
     const { error } = await supabase.from('partidos').insert({
         creador_id: user.id,
-        club_id: club_id || null, // Allow null if club_id isn't strictly required
-        cancha_id: cancha_id,
+        // Eliminados club_id y cancha_id para prevenir errores de schema en Supabase
         fecha: fecha,
-        resultado: resultadoMock,
-        estado: 'pendiente',
-        lugar: "Reserva Manual en Club",
-        tipo_partido: tipo,
-        nivel: "no_especificado",
+        estado: abrir_partido ? 'abierto' : 'pendiente',
+        lugar: lugar_formateado,
+        tipo_partido: abrir_partido ? 'Amistoso' : 'Reserva Manual',
+        nivel: "intermedio",
         sexo: "mixto",
         cupos_totales: 4,
-        cupos_disponibles: 0,
+        cupos_disponibles: abrir_partido ? 4 : 0,
         precio_por_persona: 0
     });
 
