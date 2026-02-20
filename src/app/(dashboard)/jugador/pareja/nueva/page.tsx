@@ -18,7 +18,7 @@ export default async function NuevaParejaPage() {
     }
 
     let errorDebug = "";
-    let jugadores: any[] = [];
+    let jugadores: { id: string, nombre: string, nivel: string }[] = [];
 
     try {
         // Obtener jugadores disponibles para hacer pareja (que no sean el usuario actual)
@@ -32,8 +32,8 @@ export default async function NuevaParejaPage() {
         } else {
             jugadores = data || [];
         }
-    } catch (e: any) {
-        errorDebug = "Server Catch Error: " + (e?.message || JSON.stringify(e));
+    } catch (e: unknown) {
+        errorDebug = "Server Catch Error: " + (e instanceof Error ? e.message : JSON.stringify(e));
     }
 
     return (
