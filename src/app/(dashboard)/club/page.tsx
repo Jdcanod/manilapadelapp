@@ -5,13 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MapPin, CheckCircle, Plus, CalendarRange, Clock, Lock, User, MoreVertical, Trophy } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CheckCircle, Plus, CalendarRange, Clock, User, MoreVertical, Trophy } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 export default function ClubDashboard() {
-    const [date, setDate] = useState("Hoy, 19 Feb");
+    const [date] = useState("Hoy, 19 Feb");
 
     // Mock data for the reservation grid
     const courts = ["Cancha 1 (Panorámica)", "Cancha 2", "Cancha 3", "Cancha 4"];

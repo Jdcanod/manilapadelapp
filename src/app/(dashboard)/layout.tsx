@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Trophy, Home, User, Calendar, Menu } from "lucide-react";
+import { Trophy, Home, User, Calendar } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function DashboardLayout({

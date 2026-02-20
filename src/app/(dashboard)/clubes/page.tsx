@@ -1,10 +1,10 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapPin, Search, Star, Navigation, Clock } from "lucide-react";
+import { MapPin, Search, Star, Navigation } from "lucide-react";
 
 export default function ClubesMapPage() {
     const clubesMock = [
@@ -96,7 +96,7 @@ export default function ClubesMapPage() {
                             </div>
                         </div>
                     ))}
-                </CardCard>
+                </Card>
 
                 {/* List of Clubs Sidebar */}
                 <div className="w-full md:w-[350px] flex flex-col gap-4 overflow-y-auto pr-2">

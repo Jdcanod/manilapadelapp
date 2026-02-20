@@ -1,0 +1,30 @@
+﻿
+C:\Users\jdcan\.gemini\antigravity\scratch\manilapadelapp\src\app\(dashboard)\club\page.tsx
+   8:10  error  'Avatar' is defined but never used            @typescript-eslint/no-unused-vars
+   8:18  error  'AvatarFallback' is defined but never used    @typescript-eslint/no-unused-vars
+   8:34  error  'AvatarImage' is defined but never used       @typescript-eslint/no-unused-vars
+   9:10  error  'MapPin' is defined but never used            @typescript-eslint/no-unused-vars
+   9:59  error  'Lock' is defined but never used              @typescript-eslint/no-unused-vars
+  10:10  error  'Tabs' is defined but never used              @typescript-eslint/no-unused-vars
+  10:16  error  'TabsContent' is defined but never used       @typescript-eslint/no-unused-vars
+  10:29  error  'TabsList' is defined but never used          @typescript-eslint/no-unused-vars
+  10:39  error  'TabsTrigger' is defined but never used       @typescript-eslint/no-unused-vars
+  14:18  error  'setDate' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\jdcan\.gemini\antigravity\scratch\manilapadelapp\src\app\(dashboard)\clubes\page.tsx
+  3:29  error  'CardDescription' is defined but never used  @typescript-eslint/no-unused-vars
+  3:46  error  'CardHeader' is defined but never used       @typescript-eslint/no-unused-vars
+  3:58  error  'CardTitle' is defined but never used        @typescript-eslint/no-unused-vars
+  7:44  error  'Clock' is defined but never used            @typescript-eslint/no-unused-vars
+
+C:\Users\jdcan\.gemini\antigravity\scratch\manilapadelapp\src\app\(dashboard)\layout.tsx
+  2:40  error  'Menu' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\jdcan\.gemini\antigravity\scratch\manilapadelapp\src\app\(dashboard)\partidos\page.tsx
+  5:18  error  'AvatarFallback' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\jdcan\.gemini\antigravity\scratch\manilapadelapp\src\hooks\use-toast.ts
+  21:7  error  'actionTypes' is assigned a value but only used as a type  @typescript-eslint/no-unused-vars
+
+Γ£û 17 problems (17 errors, 0 warnings)
+
