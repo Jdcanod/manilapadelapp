@@ -55,9 +55,11 @@ export default async function DashboardLayout({
                             <span className="text-sm font-medium text-white line-clamp-1 max-w-[120px]">{nombreReal}</span>
                             <span className="text-xs text-green-400 font-semibold">1450 pts</span>
                         </div>
-                        <Avatar className="h-9 w-9 border border-neutral-800">
-                            <AvatarFallback className="bg-neutral-800 text-neutral-300">{iniciales}</AvatarFallback>
-                        </Avatar>
+                        <Link href="/jugador/perfil">
+                            <Avatar className="h-9 w-9 border border-neutral-800 hover:border-emerald-500/50 transition-colors cursor-pointer">
+                                <AvatarFallback className="bg-neutral-800 text-neutral-300">{iniciales}</AvatarFallback>
+                            </Avatar>
+                        </Link>
                     </div>
                 </div>
             </header>
