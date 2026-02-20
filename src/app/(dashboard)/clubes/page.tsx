@@ -15,7 +15,7 @@ export default function ClubesMapPage() {
             courts: 4,
             rating: 4.8,
             status: "Abierto",
-            coors: { x: 50, y: 30 } // % of map
+            coors: { x: 50, y: 30 }
         },
         {
             id: "2",

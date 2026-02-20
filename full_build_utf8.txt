@@ -1,0 +1,38 @@
+﻿
+> manilapadelapp@0.1.0 build
+> next build
+
+  Γû▓ Next.js 14.2.35
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/14) ...
+   Generating static pages (3/14) 
+   Generating static pages (6/14) 
+   Generating static pages (10/14) 
+ Γ£ô Generating static pages (14/14)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+Γöî Γùï /                                    174 B          96.1 kB
+Γö£ Γùï /_not-found                          873 B          88.1 kB
+Γö£ Γùï /club                                7.62 kB         119 kB
+Γö£ Γùï /clubes                              5.1 kB          101 kB
+Γö£ Γùï /jugador                             2.73 kB         104 kB
+Γö£ Γùï /login                               4.83 kB         109 kB
+Γö£ Γùï /partidos                            6.99 kB         113 kB
+Γö£ Γùï /partidos/nuevo                      5.19 kB         138 kB
+Γö£ Γùï /ranking                             3.29 kB         132 kB
+Γö£ Γùï /registro                            4.79 kB         137 kB
+Γöö Γùï /superadmin                          1.37 kB         125 kB
++ First Load JS shared by all            87.3 kB
+  Γö£ chunks/117-c5f79dd8daee37b2.js       31.7 kB
+  Γö£ chunks/fd9d1056-9e191f0896c1d560.js  53.6 kB
+  Γöö other shared chunks (total)          1.89 kB
+
+
+Γùï  (Static)  prerendered as static content
+
