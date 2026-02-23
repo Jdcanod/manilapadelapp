@@ -33,32 +33,41 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
 
     // Data for the reservation grid
     const courts = ["Cancha 1 (Panorámica)", "Cancha 2", "Cancha 3", "Cancha 4"];
-    const timeSlots = ["16:00", "17:30", "19:00", "20:30", "22:00"];
+    const timeSlots = [
+        "07:00", "08:30", "10:00", "11:30", "13:00",
+        "14:30", "16:00", "17:30", "19:00", "20:30", "22:00", "23:30"
+    ];
 
-    let targetDate = new Date();
+    const targetDate = new Date();
+    let y = targetDate.getFullYear();
+    let m = targetDate.getMonth() + 1;
+    let d = targetDate.getDate();
+
     if (searchParams?.date) {
-        const [y, m, d] = searchParams.date.split('-');
-        if (y && m && d) {
-            targetDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        const parts = searchParams.date.split('-');
+        if (parts.length === 3) {
+            y = parseInt(parts[0]);
+            m = parseInt(parts[1]);
+            d = parseInt(parts[2]);
         }
     }
 
-    // Ensure we start exactly at midnight of target date
-    targetDate.setHours(0, 0, 0, 0);
+    // Ensure we start exactly at midnight UTC of target date
+    const targetDateUTC = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
 
-    const tomorrowDate = new Date(targetDate);
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowDateUTC = new Date(targetDateUTC);
+    tomorrowDateUTC.setUTCDate(tomorrowDateUTC.getUTCDate() + 1);
 
     const { data: partidosData } = await supabase
         .from('partidos')
         .select('*')
         .like('lugar', `${nombreClub}%`)
-        .gte('fecha', targetDate.toISOString())
-        .lt('fecha', tomorrowDate.toISOString());
+        .gte('fecha', targetDateUTC.toISOString())
+        .lt('fecha', tomorrowDateUTC.toISOString());
 
     const reservations = (partidosData || []).map(p => {
         const dt = new Date(p.fecha);
-        const timeStr = `${dt.getHours().toString().padStart(2, '0')}:${dt.getMinutes().toString().padStart(2, '0')}`;
+        const timeStr = `${dt.getUTCHours().toString().padStart(2, '0')}:${dt.getUTCMinutes().toString().padStart(2, '0')}`;
         const timeIndex = timeSlots.indexOf(timeStr);
 
         const matches = p.lugar.match(/cancha_(\d+)/);
@@ -83,8 +92,8 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
 
     // Format display strings
     const actualToday = new Date();
-    actualToday.setHours(0, 0, 0, 0);
-    const diffTime = targetDate.getTime() - actualToday.getTime();
+    const actualTodayUTC = new Date(Date.UTC(actualToday.getFullYear(), actualToday.getMonth(), actualToday.getDate()));
+    const diffTime = targetDateUTC.getTime() - actualTodayUTC.getTime();
     const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
 
     let displayDate = "Hoy";
@@ -92,15 +101,15 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
     else if (diffDays === -1) displayDate = "Ayer";
     else if (diffDays !== 0) {
         // Formato: "Mié, 15 may"
-        const formatter = new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
-        const parts = formatter.formatToParts(targetDate);
+        const formatter = new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+        const parts = formatter.formatToParts(targetDateUTC);
         const weekStr = parts.find(p => p.type === 'weekday')?.value || '';
         const dayStr = parts.find(p => p.type === 'day')?.value || '';
         const monthStr = parts.find(p => p.type === 'month')?.value || '';
         displayDate = `${weekStr.charAt(0).toUpperCase() + weekStr.slice(1)}, ${dayStr} ${monthStr}`;
     }
 
-    const currentDateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
+    const currentDateStr = `${targetDateUTC.getUTCFullYear()}-${String(targetDateUTC.getUTCMonth() + 1).padStart(2, '0')}-${String(targetDateUTC.getUTCDate()).padStart(2, '0')}`;
 
     return (
         <div className="space-y-6">

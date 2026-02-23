@@ -81,15 +81,15 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
         }
 
         try {
-            // Calcular fecha y hora de la reserva
+            // Calcular fecha y hora de la reserva en UTC "flotante"
             let fechaDate = new Date();
             if (dia) {
                 const [y, mm, d] = dia.split("-");
                 const [h, min] = hora.split(":");
-                fechaDate = new Date(parseInt(y), parseInt(mm) - 1, parseInt(d), parseInt(h), parseInt(min), 0);
+                fechaDate = new Date(Date.UTC(parseInt(y), parseInt(mm) - 1, parseInt(d), parseInt(h), parseInt(min), 0));
             } else {
                 const [h, m] = hora.split(":");
-                fechaDate.setHours(parseInt(h), parseInt(m), 0, 0);
+                fechaDate = new Date(Date.UTC(fechaDate.getUTCFullYear(), fechaDate.getUTCMonth(), fechaDate.getUTCDate(), parseInt(h), parseInt(m), 0));
             }
             const fecha = fechaDate.toISOString();
 
