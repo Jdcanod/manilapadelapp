@@ -254,7 +254,7 @@ export default async function ClubDetailPage({ params }: { params: { id: string 
                     <div className="mt-4 flex gap-4 bg-emerald-950/20 border border-emerald-900/50 rounded-xl p-4 items-center">
                         <Info className="w-6 h-6 text-emerald-500 shrink-0" />
                         <p className="text-sm text-emerald-50 font-medium">
-                            ¿Encontraste una hora libre? ¡Comienza a <strong className="text-emerald-400 cursor-pointer" onClick={() => document.getElementById('btn-organizar-partido')?.click()}>Organizar un Partido</strong> y selecciona este club en las opciones!
+                            ¿Encontraste una hora libre? ¡Comienza a <strong className="text-emerald-400">Organizar un Partido</strong> y selecciona este club en las opciones!
                         </p>
                     </div>
                 </TabsContent>
