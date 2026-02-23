@@ -18,9 +18,10 @@ interface Props {
     trigger?: React.ReactNode;
     defaultLugar?: string;
     defaultFecha?: string;
+    defaultCourt?: string;
 }
 
-export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigger, defaultLugar, defaultFecha }: Props) {
+export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigger, defaultLugar, defaultFecha, defaultCourt }: Props) {
     const [internalOpen, setInternalOpen] = useState(false);
 
     const isControlled = openState !== undefined;
@@ -45,6 +46,9 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
         let lugar = formData.get("lugar") as string;
         if (lugar === "Otro") {
             lugar = formData.get("lugar_custom") as string || "Cancha externa";
+        } else if (defaultCourt && lugar === defaultLugar) {
+            // Append court number if user hasn't changed the default club
+            lugar = `${lugar} - cancha_${defaultCourt}`;
         }
 
         const nivel = formData.get("nivel") as string;

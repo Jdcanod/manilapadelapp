@@ -2,9 +2,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MapPin, Star, Calendar, Info } from "lucide-react";
+import { MapPin, Star, Calendar, Info, ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { BotonUnirsePartido } from "@/components/BotonUnirsePartido";
 import { OrganizarPartidoDialog } from "@/components/OrganizarPartidoDialog";
 import { PlayerReservationsGrid } from "@/components/PlayerReservationsGrid";
@@ -12,7 +13,7 @@ import { NovedadesList } from "@/app/(dashboard)/novedades/NovedadesList";
 
 export const dynamic = 'force-dynamic';
 
-export default async function ClubDetailPage({ params }: { params: { id: string } }) {
+export default async function ClubDetailPage({ params, searchParams }: { params: { id: string }, searchParams: { date?: string } }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -43,10 +44,32 @@ export default async function ClubDetailPage({ params }: { params: { id: string 
         "14:30", "16:00", "17:30", "19:00", "20:30", "22:00", "23:30"
     ];
 
-    const todayDate = new Date();
+    let todayDate = new Date();
+    if (searchParams?.date) {
+        const parts = searchParams.date.split('-');
+        if (parts.length === 3) {
+            todayDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        }
+    }
+
     const targetDateUTC = new Date(Date.UTC(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), 0, 0, 0));
     const tomorrowDateUTC = new Date(targetDateUTC);
     tomorrowDateUTC.setUTCDate(tomorrowDateUTC.getUTCDate() + 1);
+
+    const prevDate = new Date(todayDate);
+    prevDate.setDate(prevDate.getDate() - 1);
+    const nextDate = new Date(todayDate);
+    nextDate.setDate(nextDate.getDate() + 1);
+
+    const formatDateURL = (d: Date) => {
+        const y = d.getFullYear();
+        const m = (d.getMonth() + 1).toString().padStart(2, '0');
+        const day = d.getDate().toString().padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    };
+
+    const prevDateStr = formatDateURL(prevDate);
+    const nextDateStr = formatDateURL(nextDate);
 
     // Obtener reservas y partidos del dia (Para la grilla)
     const { data: partidosHoy } = await supabase
@@ -241,9 +264,23 @@ export default async function ClubDetailPage({ params }: { params: { id: string 
                 </TabsContent>
 
                 <TabsContent value="reservas" className="space-y-4">
-                    <div className="mb-4">
-                        <h2 className="text-2xl font-bold text-white mb-1">Disponibilidad de Canchas ({todayDate.toLocaleDateString('es-CO')})</h2>
-                        <p className="text-neutral-400">Verifica qué canchas están libres para que reserves contactando al club o armando tu partido.</p>
+                    <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 className="text-2xl font-bold text-white mb-1">Disponibilidad de Canchas</h2>
+                            <p className="text-neutral-400">Verifica qué canchas están libres para reservar o armar tu partido.</p>
+                        </div>
+                        <div className="flex items-center gap-4 bg-neutral-900 border border-neutral-800 rounded-xl p-1 shrink-0">
+                            <Link href={`?date=${prevDateStr}`} className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-400 hover:text-white">
+                                <ChevronLeft className="w-5 h-5" />
+                            </Link>
+                            <div className="flex items-center gap-2 px-2 text-sm font-bold text-white min-w-[120px] justify-center">
+                                <Calendar className="w-4 h-4 text-emerald-500" />
+                                {todayDate.toLocaleDateString('es-CO', { weekday: 'short', month: 'short', day: 'numeric' })}
+                            </div>
+                            <Link href={`?date=${nextDateStr}`} className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-400 hover:text-white">
+                                <ChevronRight className="w-5 h-5" />
+                            </Link>
+                        </div>
                     </div>
                     <PlayerReservationsGrid
                         userId={user.id}

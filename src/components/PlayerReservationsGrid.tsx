@@ -26,11 +26,16 @@ interface Props {
 export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, courts, timeSlots, reservations }: Props) {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedFecha, setSelectedFecha] = useState("");
+    const [selectedCourt, setSelectedCourt] = useState("");
 
     const handleSlotClick = (court: string, timeStr: string) => {
         // Construct datetime-local string assuming currentDateStr is YYYY-MM-DD
         const defaultFecha = `${currentDateStr}T${timeStr}`;
         setSelectedFecha(defaultFecha);
+        const matchDigits = court.match(/\d+/);
+        if (matchDigits) {
+            setSelectedCourt(matchDigits[0]);
+        }
         setDialogOpen(true);
     };
 
@@ -42,6 +47,7 @@ export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, cou
                 onOpenChange={setDialogOpen}
                 defaultLugar={clubNombre}
                 defaultFecha={selectedFecha}
+                defaultCourt={selectedCourt}
                 trigger={<div className="hidden"></div>}
             />
             <ScrollArea className="w-full whitespace-nowrap rounded-b-xl border border-neutral-800 bg-neutral-900/50">
