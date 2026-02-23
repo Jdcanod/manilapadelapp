@@ -54,6 +54,30 @@ export default async function JugadorDashboard() {
     const { data: misProximosPartidos } = await queryPartidos;
     const proximoPartido = misProximosPartidos?.[0];
 
+    const { data: partidosAbiertos } = await supabase
+        .from('partidos')
+        .select('*')
+        .eq('estado', 'abierto')
+        .gt('cupos_disponibles', 0)
+        .gte('fecha', new Date().toISOString())
+        .order('fecha', { ascending: true })
+        .limit(2);
+
+    const { data: newsData } = await supabase
+        .from('club_news')
+        .select('*, users:club_id(nombre)')
+        .order('created_at', { ascending: false })
+        .limit(4);
+
+    const clubNews = (newsData || []).map((item) => ({
+        id: item.id,
+        tipo: item.tipo,
+        titulo: item.titulo,
+        contenido: item.contenido,
+        created_at: item.created_at,
+        club_nombre: typeof item.users === 'object' && item.users ? ((item.users as { nombre?: string }).nombre || 'Club') : 'Club'
+    }));
+
     return (
         <div className="space-y-6">
             {/* Header Profile Summary */}
@@ -165,49 +189,95 @@ export default async function JugadorDashboard() {
                             </CardContent>
                         </Card>
                     )}
+
+                    {/* Partidos Abiertos Cerca */}
+                    <div className="mt-8 flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                            <Activity className="w-5 h-5 text-emerald-500" />
+                            Partidos Abiertos Recientes
+                        </h2>
+                        <Link href="/partidos" className="text-sm font-medium text-emerald-500 hover:text-emerald-400 transition-colors flex items-center">
+                            Ver todos &rarr;
+                        </Link>
+                    </div>
+                    {partidosAbiertos && partidosAbiertos.length > 0 ? (
+                        <div className="space-y-4">
+                            {partidosAbiertos.map((partido) => (
+                                <Card key={partido.id} className="bg-neutral-900 border-neutral-800 shadow-sm hover:border-neutral-700 transition-colors">
+                                    <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                        <div className="flex items-center gap-4 flex-1">
+                                            <div className="text-center w-20 shrink-0 border-r border-neutral-800 pr-4">
+                                                <div className="text-xs font-medium text-emerald-500">
+                                                    {new Date(partido.fecha).toLocaleDateString('es-CO', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                                </div>
+                                                <div className="text-xl font-black text-white tracking-tighter">
+                                                    {new Date(partido.fecha).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-base text-white line-clamp-1">{partido.lugar}</h3>
+                                                <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-neutral-400">
+                                                    <span className="flex items-center"><MapPin className="w-3 h-3 mr-1" /> {partido.nivel}</span>
+                                                    <span>•</span>
+                                                    <span className="text-amber-400 font-medium">Faltan {partido.cupos_disponibles} p.</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <Button size="sm" asChild className="w-full sm:w-auto bg-neutral-100 text-neutral-950 hover:bg-white font-semibold">
+                                            <Link href="/partidos">Inscribirme</Link>
+                                        </Button>
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+                    ) : (
+                        <Card className="bg-neutral-900 border-neutral-800/50 shadow-sm border-dashed">
+                            <CardContent className="flex flex-col items-center justify-center p-6 text-center h-32">
+                                <p className="text-sm text-neutral-400">No hay partidos abiertos disponibles por ahora.</p>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
 
                 {/* Activity Feed */}
                 <div className="space-y-6">
                     <Card className="bg-neutral-900 border-neutral-800 shadow-lg h-full">
-                        <CardHeader className="pb-4">
-                            <CardTitle className="text-xl text-white">Feed de Actividad</CardTitle>
-                            <CardDescription className="text-neutral-400">Lo último en la comunidad</CardDescription>
+                        <CardHeader className="pb-4 flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle className="text-xl text-white">Novedades</CardTitle>
+                                <CardDescription className="text-neutral-400">Lo último en la comunidad</CardDescription>
+                            </div>
+                            <Link href="/novedades" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">Ver Muro</Link>
                         </CardHeader>
                         <CardContent className="px-1">
                             <ScrollArea className="h-[400px] px-5">
                                 <div className="space-y-5">
-                                    {/* Feed Item 1 */}
-                                    <div className="relative pl-6 pb-2">
-                                        <div className="absolute left-[3px] top-6 bottom-0 w-[2px] bg-neutral-800 rounded-full" />
-                                        <div className="absolute left-0 top-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-neutral-900" />
-                                        <p className="text-xs text-neutral-500 mb-1">Hace 2 horas</p>
-                                        <p className="text-sm text-neutral-200 font-medium">
-                                            Ganaste tu partido contra <span className="text-emerald-400">Team Montaña</span> (6-2, 6-4).
-                                        </p>
-                                        <div className="mt-2 inline-flex items-center text-xs font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md">
-                                            +24 Puntos ELO ↑
-                                        </div>
-                                    </div>
-
-                                    {/* Feed Item 2 */}
-                                    <div className="relative pl-6 pb-2">
-                                        <div className="absolute left-[3px] top-6 bottom-0 w-[2px] bg-neutral-800 rounded-full" />
-                                        <div className="absolute left-[-1px] top-1.5 w-2.5 h-2.5 rounded-full bg-blue-500 ring-4 ring-neutral-900" />
-                                        <p className="text-xs text-neutral-500 mb-1">Ayer</p>
-                                        <p className="text-sm text-neutral-200 font-medium">
-                                            Nuevo torneo disponible: <span className="text-blue-400">Torneo de Verano</span> en Bosque Padel.
-                                        </p>
-                                    </div>
-
-                                    {/* Feed Item 3 */}
-                                    <div className="relative pl-6">
-                                        <div className="absolute left-0 top-1.5 w-2 h-2 rounded-full bg-neutral-600 ring-4 ring-neutral-900" />
-                                        <p className="text-xs text-neutral-500 mb-1">Hace 3 días</p>
-                                        <p className="text-sm text-neutral-200">
-                                            Confirmaste asistencia para jugar con Carlos.
-                                        </p>
-                                    </div>
+                                    {clubNews.length === 0 ? (
+                                        <p className="text-sm text-neutral-500 text-center mt-10">No hay noticias locales.</p>
+                                    ) : (
+                                        clubNews.map((news: { id: string, created_at: string, tipo: string, titulo: string, contenido: string, club_nombre: string }, idx: number) => {
+                                            const isLast = idx === clubNews.length - 1;
+                                            return (
+                                                <div key={news.id} className={`relative pl-6 ${!isLast ? 'pb-2' : ''}`}>
+                                                    {!isLast && <div className="absolute left-[3px] top-6 bottom-0 w-[2px] bg-neutral-800 rounded-full" />}
+                                                    <div className="absolute left-[-1px] top-1.5 w-2.5 h-2.5 rounded-full bg-blue-500 ring-4 ring-neutral-900" />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs text-neutral-500 mb-1">
+                                                            {new Date(news.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
+                                                        </span>
+                                                        <h4 className="text-sm text-white font-bold leading-tight line-clamp-2 mb-1">
+                                                            <span className="text-blue-400 capitalize mr-1">[{news.tipo}]</span>
+                                                            {news.titulo}
+                                                        </h4>
+                                                        <p className="text-xs text-neutral-400 line-clamp-2">
+                                                            {news.contenido}
+                                                        </p>
+                                                        <span className="text-[10px] font-bold text-neutral-600 uppercase mt-2">{news.club_nombre}</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
                                 </div>
                             </ScrollArea>
                         </CardContent>

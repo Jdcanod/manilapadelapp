@@ -36,7 +36,7 @@ export default async function DashboardLayout({
             {/* Mobile Top Header */}
             <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-neutral-950/80 border-b border-neutral-800">
                 <div className="flex h-16 items-center justify-between px-4 md:px-6">
-                    <Link href="/dashboard" className="flex items-center gap-2">
+                    <Link href={rolUsuario === "admin_club" ? "/club" : "/jugador"} className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-green-400 to-emerald-600 flex items-center justify-center shadow-sm">
                             <Trophy className="w-4 h-4 text-white" />
                         </div>
