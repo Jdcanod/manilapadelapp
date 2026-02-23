@@ -70,7 +70,7 @@ export default async function DashboardLayout({
                                 <span className="text-xs text-green-400 font-semibold">1450 pts</span>
                             )}
                         </div>
-                        <Link href={rolUsuario === "admin_club" ? "/club" : "/jugador/perfil"}>
+                        <Link href={rolUsuario === "admin_club" ? "/club/configuracion" : "/jugador/perfil"}>
                             <Avatar className="h-9 w-9 border border-neutral-800 hover:border-emerald-500/50 transition-colors cursor-pointer">
                                 <AvatarFallback className="bg-neutral-800 text-neutral-300">{iniciales}</AvatarFallback>
                             </Avatar>
