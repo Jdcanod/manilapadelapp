@@ -13,10 +13,22 @@ import { Calendar as CalendarIcon, MapPin, Users, Coins } from "lucide-react";
 
 interface Props {
     userId: string;
+    openState?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    trigger?: React.ReactNode;
+    defaultLugar?: string;
+    defaultFecha?: string;
 }
 
-export function OrganizarPartidoDialog({ userId }: Props) {
-    const [open, setOpen] = useState(false);
+export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigger, defaultLugar, defaultFecha }: Props) {
+    const [internalOpen, setInternalOpen] = useState(false);
+
+    const isControlled = openState !== undefined;
+    const open = isControlled ? openState : internalOpen;
+    const setOpen = (newOpen: boolean) => {
+        if (!isControlled) setInternalOpen(newOpen);
+        if (onOpenChange) onOpenChange(newOpen);
+    };
     const [loading, setLoading] = useState(false);
     const [isCustomClub, setIsCustomClub] = useState(false);
     const router = useRouter();
@@ -81,9 +93,11 @@ export function OrganizarPartidoDialog({ userId }: Props) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button className="bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
-                    Organizar Partido
-                </Button>
+                {trigger !== undefined ? trigger : (
+                    <Button className="bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
+                        Organizar Partido
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] bg-neutral-900 border-neutral-800 text-neutral-100">
                 <DialogHeader>
@@ -100,17 +114,21 @@ export function OrganizarPartidoDialog({ userId }: Props) {
                                 name="fecha"
                                 type="datetime-local"
                                 required
+                                defaultValue={defaultFecha}
                                 className="bg-neutral-950 border-neutral-800 [color-scheme:dark]"
                             />
                         </div>
 
                         <div className="space-y-2 col-span-2">
                             <Label className="text-neutral-300 flex items-center gap-2"><MapPin className="w-4 h-4" /> Club o Lugar</Label>
-                            <Select name="lugar" onValueChange={(val) => setIsCustomClub(val === "Otro")}>
+                            <Select name="lugar" defaultValue={defaultLugar} onValueChange={(val) => setIsCustomClub(val === "Otro")}>
                                 <SelectTrigger className="bg-neutral-950 border-neutral-800">
                                     <SelectValue placeholder="Selecciona un club..." />
                                 </SelectTrigger>
                                 <SelectContent className="bg-neutral-900 border-neutral-800">
+                                    {defaultLugar && defaultLugar !== "Manila Padel Central" && defaultLugar !== "Bosque Padel" && defaultLugar !== "La Nubia Padel" && defaultLugar !== "Cerro de Oro Padel" && (
+                                        <SelectItem value={defaultLugar}>{defaultLugar}</SelectItem>
+                                    )}
                                     <SelectItem value="Manila Padel Central">Manila Padel Central</SelectItem>
                                     <SelectItem value="Bosque Padel">Bosque Padel</SelectItem>
                                     <SelectItem value="La Nubia Padel">La Nubia Padel</SelectItem>

@@ -246,6 +246,8 @@ export default async function ClubDetailPage({ params }: { params: { id: string 
                         <p className="text-neutral-400">Verifica qué canchas están libres para que reserves contactando al club o armando tu partido.</p>
                     </div>
                     <PlayerReservationsGrid
+                        userId={user.id}
+                        currentDateStr={todayDate.toISOString().split('T')[0]}
                         clubNombre={clubNombre}
                         courts={courts}
                         timeSlots={timeSlots}
