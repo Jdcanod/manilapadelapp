@@ -47,16 +47,33 @@ export default async function PartidosPage() {
 
     const inscritosSet = new Set(misInscripciones?.map(i => i.partido_id) || []);
 
-    const myMatches = [
-        {
-            id: "3",
-            club: "Manizales Padel Central",
-            time: "Hoy, 19:30",
-            type: "Competitivo (Rankeado)",
-            status: "Confirmado",
-            opponents: "Team Montaña"
-        }
-    ];
+    let orQuery = `creador_id.eq.${user.id}`;
+    if (misInscripciones && misInscripciones.length > 0) {
+        // Envolver IDs en comillas para UUID si es necesario o unirlos directamente
+        const idsJoin = misInscripciones.map(i => i.partido_id).join(',');
+        orQuery += `,id.in.(${idsJoin})`;
+    }
+
+    const { data: misPartidosReales } = await supabase
+        .from('partidos')
+        .select(`*, creador:users(nombre)`)
+        .or(orQuery)
+        .order('fecha', { ascending: true });
+
+    const myMatches = (misPartidosReales || []).map(p => {
+        const dt = new Date(p.fecha);
+        const timeStr = dt.toLocaleString('es-CO', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+        return {
+            id: p.id,
+            club: p.lugar,
+            time: timeStr,
+            type: `${p.tipo_partido} - ${p.sexo} (Lvl ${p.nivel})`,
+            status: p.estado === 'abierto' ? 'Buscando Jugadores' : 'Cerrado',
+            opponents: p.creador?.nombre || 'Jugadores',
+            estado_original: p.estado
+        };
+    });
 
     return (
         <div className="space-y-6">
@@ -77,9 +94,11 @@ export default async function PartidosPage() {
                     </TabsTrigger>
                     <TabsTrigger value="mis-partidos" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
                         Mis Partidos
-                        <Badge variant="secondary" className="ml-2 bg-emerald-500 text-white hover:bg-emerald-600">
-                            1
-                        </Badge>
+                        {myMatches.length > 0 && (
+                            <Badge variant="secondary" className="ml-2 bg-emerald-500 text-white hover:bg-emerald-600">
+                                {myMatches.length}
+                            </Badge>
+                        )}
                     </TabsTrigger>
                 </TabsList>
 
