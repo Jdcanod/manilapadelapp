@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Calendar, MapPin, Users, Coins, Trophy, Clock, Swords } from "lucide-react";
+import { MapPin, Users, Coins, Trophy, Clock } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
 interface Partido {
@@ -54,12 +53,14 @@ export function DetallePartidoDialog({ partido, trigger }: Props) {
                     .eq('partido_id', partido.id);
 
                 if (data) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     setJugadores(data as any[]);
                 }
                 setLoading(false);
             };
             fetchJugadores();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, partido.id]);
 
     const isPast = new Date(partido.fecha) < new Date();

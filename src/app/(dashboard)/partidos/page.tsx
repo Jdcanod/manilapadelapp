@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Calendar, MapPin, Swords, UserPlus } from "lucide-react";
-import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { OrganizarPartidoDialog } from "@/components/OrganizarPartidoDialog";
 import { BotonUnirsePartido } from "@/components/BotonUnirsePartido";
