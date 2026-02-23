@@ -86,12 +86,11 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
         try {
             let fechaDate = new Date();
             if (dia) {
-                const [y, mm, d] = dia.split("-");
-                const [h, min] = horaForm.split(":");
-                fechaDate = new Date(Date.UTC(parseInt(y), parseInt(mm) - 1, parseInt(d), parseInt(h), parseInt(min), 0));
+                // Generar fecha indicando la zona horaria explícitamente usando el formato local UTC-5
+                fechaDate = new Date(`${dia}T${horaForm}:00-05:00`);
             } else {
-                const [h, m] = horaForm.split(":");
-                fechaDate = new Date(Date.UTC(fechaDate.getUTCFullYear(), fechaDate.getUTCMonth(), fechaDate.getUTCDate(), parseInt(h), parseInt(m), 0));
+                const nowBogotaStr = new Date().toLocaleString("en-CA", { timeZone: "America/Bogota" }).split(',')[0];
+                fechaDate = new Date(`${nowBogotaStr}T${horaForm}:00-05:00`);
             }
             const fecha = fechaDate.toISOString();
 

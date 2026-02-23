@@ -3,7 +3,7 @@
 > next lint
 
 
-./src/app/(dashboard)/torneos/InscribirParejaDialog.tsx
-48:18  Error: 'e' is defined but never used.  @typescript-eslint/no-unused-vars
+./src/app/(dashboard)/partidos/page.tsx
+75:27  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
 
 info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules

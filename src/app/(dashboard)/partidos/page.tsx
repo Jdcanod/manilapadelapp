@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Calendar, MapPin, Swords, UserPlus } from "lucide-react";
+import { Calendar, MapPin, Swords, UserPlus, Trophy } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { OrganizarPartidoDialog } from "@/components/OrganizarPartidoDialog";
 import { BotonUnirsePartido } from "@/components/BotonUnirsePartido";
@@ -65,6 +65,54 @@ export default async function PartidosPage() {
         .or(orQuery)
         .order('fecha', { ascending: true });
 
+    // --- NUEVO: Buscar inscripciones a Torneos ---
+    const { data: misParejas } = await supabase
+        .from('parejas')
+        .select('id')
+        .or(`jugador1_id.eq.${user.id},jugador2_id.eq.${user.id}`);
+
+    const misParejasIds = misParejas?.map(p => p.id) || [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let torneosInscritos: any[] = [];
+
+    if (misParejasIds.length > 0) {
+        const { data: inscripcionesTorneo } = await supabase
+            .from('torneo_parejas')
+            .select(`
+                *,
+                torneo:torneos(*, club:users(nombre)),
+                pareja:parejas(nombre_pareja)
+            `)
+            .in('pareja_id', misParejasIds);
+
+        torneosInscritos = inscripcionesTorneo || [];
+    }
+
+    const misTorneosMap = torneosInscritos.map(t => {
+        const dt = new Date(t.torneo.fecha_inicio);
+        const timeStr = dt.toLocaleString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const isPast = new Date(t.torneo.fecha_fin) < new Date();
+        const isUpcoming = dt > new Date();
+
+        let statusDisplay = "Torneo En Curso";
+        if (isUpcoming) statusDisplay = "Próximo (Torneo)";
+        if (isPast) statusDisplay = "Finalizado (Torneo)";
+
+        return {
+            id: t.id, // This is the torneo_pareja id, we use it just for key react map
+            isTournament: true,
+            isPast,
+            status: statusDisplay,
+            type: `Torneo ${t.torneo.formato} - Cat. ${t.categoria}`,
+            opponents: `${t.pareja?.nombre_pareja || "Pareja"}`,
+            time: timeStr,
+            club: t.torneo.club?.nombre || "Club Organizador",
+            estado_pago: t.estado_pago,
+            torneo_nombre: t.torneo.nombre
+        };
+    });
+    // ---------------------------------------------
+
     const myMatches = (misPartidosReales || []).map(p => {
         const dt = new Date(p.fecha);
         const timeStr = dt.toLocaleString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -83,9 +131,13 @@ export default async function PartidosPage() {
             status: statusDisplay,
             opponents: p.creador?.nombre || 'Jugadores',
             estado_original: p.estado,
-            isPast
+            isPast,
+            isTournament: false
         };
     });
+
+    // Unimos los partidos estándar con los torneos para renderizarlos en la misma lista
+    const allMyEntries = [...myMatches, ...misTorneosMap];
 
     return (
         <div className="space-y-6">
@@ -106,9 +158,9 @@ export default async function PartidosPage() {
                     </TabsTrigger>
                     <TabsTrigger value="mis-partidos" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
                         Mis Partidos
-                        {myMatches.length > 0 && (
+                        {allMyEntries.length > 0 && (
                             <Badge variant="secondary" className="ml-2 bg-emerald-500 text-white hover:bg-emerald-600">
-                                {myMatches.length}
+                                {allMyEntries.length}
                             </Badge>
                         )}
                     </TabsTrigger>
@@ -201,66 +253,103 @@ export default async function PartidosPage() {
                 </TabsContent>
 
                 <TabsContent value="mis-partidos" className="space-y-4">
-                    {myMatches.map((match) => (
-                        <Card key={match.id} className="bg-neutral-900/80 border-neutral-800 relative overflow-hidden group hover:bg-neutral-900 transition-colors">
-                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
-                            <CardContent className="p-6 flex flex-col md:flex-row justify-between items-center gap-6">
-                                <div className="flex-1 w-full text-center md:text-left">
-                                    <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-                                        <Badge className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-0">{match.status}</Badge>
-                                        <Badge variant="outline" className="border-neutral-700 text-neutral-400">{match.type}</Badge>
+                    {allMyEntries.map((match) => {
+                        // REnder alternativo para Torneos
+                        if (match.isTournament) {
+                            return (
+                                <Card key={match.id} className="bg-neutral-900/80 border-amber-900/50 relative overflow-hidden group hover:bg-neutral-900 transition-colors">
+                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
+                                    <CardContent className="p-6 flex flex-col md:flex-row justify-between items-center gap-6">
+                                        <div className="flex-1 w-full text-center md:text-left">
+                                            <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+                                                <Badge className="bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 border-0">{match.status}</Badge>
+                                                <Badge variant="outline" className="border-neutral-700 text-neutral-400">{match.type}</Badge>
+                                            </div>
+                                            <h3 className="text-xl font-bold text-white mb-1">
+                                                <Trophy className="inline w-5 h-5 mr-1.5 text-amber-500 mb-0.5" />
+                                                {match.torneo_nombre}
+                                            </h3>
+                                            <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 sm:gap-6 text-sm text-neutral-400">
+                                                <span className="flex items-center"><Calendar className="w-4 h-4 mr-1.5 text-neutral-500" /> {match.time}</span>
+                                                <span className="flex items-center"><MapPin className="w-4 h-4 mr-1.5 text-neutral-500" /> {match.club}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col gap-3 w-full md:w-auto text-center shrink-0">
+                                            <div className="bg-neutral-950 px-4 py-2 rounded-lg border border-neutral-800">
+                                                <div className="text-[10px] text-neutral-500 uppercase">Pareja Inscrita</div>
+                                                <div className="text-sm font-bold text-white leading-tight mt-0.5 mb-1">{match.opponents}</div>
+                                                <div className={`text-[10px] uppercase font-bold mt-1 ${match.estado_pago === 'pagado' ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                                    Pago: {match.estado_pago}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )
+                        }
+
+                        // Render normal para Partidos Estándar
+                        return (
+                            <Card key={match.id} className="bg-neutral-900/80 border-neutral-800 relative overflow-hidden group hover:bg-neutral-900 transition-colors">
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
+                                <CardContent className="p-6 flex flex-col md:flex-row justify-between items-center gap-6">
+                                    <div className="flex-1 w-full text-center md:text-left">
+                                        <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+                                            <Badge className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-0">{match.status}</Badge>
+                                            <Badge variant="outline" className="border-neutral-700 text-neutral-400">{match.type}</Badge>
+                                        </div>
+                                        <h3 className="text-xl font-bold text-white mb-1">vs {match.opponents}</h3>
+                                        <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 sm:gap-6 text-sm text-neutral-400">
+                                            <span className="flex items-center"><Calendar className="w-4 h-4 mr-1.5" /> {match.time}</span>
+                                            <span className="flex items-center"><MapPin className="w-4 h-4 mr-1.5" /> {match.club}</span>
+                                        </div>
                                     </div>
-                                    <h3 className="text-xl font-bold text-white mb-1">vs {match.opponents}</h3>
-                                    <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 sm:gap-6 text-sm text-neutral-400">
-                                        <span className="flex items-center"><Calendar className="w-4 h-4 mr-1.5" /> {match.time}</span>
-                                        <span className="flex items-center"><MapPin className="w-4 h-4 mr-1.5" /> {match.club}</span>
+                                    <div className="flex flex-col gap-3 w-full md:w-auto">
+                                        <DetallePartidoDialog
+                                            partido={{
+                                                ...match,
+                                                fecha: match.fecha,
+                                                lugar: match.lugar,
+                                                nivel: match.nivel,
+                                                sexo: match.sexo,
+                                                tipo_partido: match.tipo_partido,
+                                                estado: match.estado_original,
+                                                cupos_disponibles: match.cupos_disponibles,
+                                                precio_por_persona: match.precio_por_persona,
+                                                creador: { nombre: match.creador?.nombre || 'Organizador' }
+                                            }}
+                                            trigger={
+                                                <Button variant="secondary" className="w-full bg-neutral-800 hover:bg-neutral-700 text-white">Detalles</Button>
+                                            }
+                                        />
+                                        {match.isPast && match.creador_id === user.id && (
+                                            <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20 hidden group-hover:flex">
+                                                <Swords className="w-4 h-4 mr-2" />
+                                                Confirmar Resultado
+                                            </Button>
+                                        )}
+                                        {!match.isPast && match.creador_id === user.id && (
+                                            <BotonCancelarPartido
+                                                partidoId={match.id}
+                                                partidoFecha={match.fecha}
+                                                fullWidth={true}
+                                            />
+                                        )}
+                                        {!match.isPast && match.creador_id !== user.id && (
+                                            <BotonUnirsePartido
+                                                partidoId={match.id}
+                                                userId={user.id}
+                                                yaInscrito={true}
+                                                cuposDisponibles={match.cupos_disponibles}
+                                                partidoFecha={match.fecha}
+                                                fullWidth={true}
+                                            />
+                                        )}
                                     </div>
-                                </div>
-                                <div className="flex flex-col gap-3 w-full md:w-auto">
-                                    <DetallePartidoDialog
-                                        partido={{
-                                            ...match,
-                                            fecha: match.fecha,
-                                            lugar: match.lugar,
-                                            nivel: match.nivel,
-                                            sexo: match.sexo,
-                                            tipo_partido: match.tipo_partido,
-                                            estado: match.estado_original,
-                                            cupos_disponibles: match.cupos_disponibles,
-                                            precio_por_persona: match.precio_por_persona,
-                                            creador: { nombre: match.creador?.nombre || 'Organizador' }
-                                        }}
-                                        trigger={
-                                            <Button variant="secondary" className="w-full bg-neutral-800 hover:bg-neutral-700 text-white">Detalles</Button>
-                                        }
-                                    />
-                                    {match.isPast && match.creador_id === user.id && (
-                                        <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20 hidden group-hover:flex">
-                                            <Swords className="w-4 h-4 mr-2" />
-                                            Confirmar Resultado
-                                        </Button>
-                                    )}
-                                    {!match.isPast && match.creador_id === user.id && (
-                                        <BotonCancelarPartido
-                                            partidoId={match.id}
-                                            partidoFecha={match.fecha}
-                                            fullWidth={true}
-                                        />
-                                    )}
-                                    {!match.isPast && match.creador_id !== user.id && (
-                                        <BotonUnirsePartido
-                                            partidoId={match.id}
-                                            userId={user.id}
-                                            yaInscrito={true}
-                                            cuposDisponibles={match.cupos_disponibles}
-                                            partidoFecha={match.fecha}
-                                            fullWidth={true}
-                                        />
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                                </CardContent>
+                            </Card>
+                        )
+                    })}
                 </TabsContent>
             </Tabs>
         </div>
