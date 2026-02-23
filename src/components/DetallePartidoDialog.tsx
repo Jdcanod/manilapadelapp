@@ -110,7 +110,7 @@ export function DetallePartidoDialog({ partido, trigger }: Props) {
                             <div>
                                 <div className="text-xs text-neutral-500 font-medium">Fecha y Hora</div>
                                 <div className="text-sm font-bold text-neutral-200">
-                                    {new Date(partido.fecha).toLocaleString('es-CO', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                    {new Date(partido.fecha).toLocaleString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                 </div>
                             </div>
                         </div>

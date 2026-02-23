@@ -251,7 +251,7 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
                                                 <h3 className="text-md font-bold text-white mb-1 line-clamp-1">{match.lugar}</h3>
                                                 <div className="flex items-center text-xs text-neutral-400 font-medium mt-1">
                                                     <Calendar className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
-                                                    {new Date(match.fecha).toLocaleString('es-CO', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                    {new Date(match.fecha).toLocaleString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             </div>
                                             <div className="text-center shrink-0 bg-neutral-950 px-3 py-1.5 rounded-xl border border-neutral-800">
@@ -326,7 +326,7 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
                                                 <h3 className="text-md font-bold text-neutral-300 mb-1 line-clamp-1">{match.lugar}</h3>
                                                 <div className="flex items-center text-xs text-neutral-500 font-medium mt-1">
                                                     <Calendar className="w-3.5 h-3.5 mr-1.5 text-neutral-600" />
-                                                    {new Date(match.fecha).toLocaleString('es-CO', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                                    {new Date(match.fecha).toLocaleString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', month: 'short', day: 'numeric' })}
                                                 </div>
                                             </div>
                                         </div>

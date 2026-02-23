@@ -67,7 +67,7 @@ export default async function PartidosPage() {
 
     const myMatches = (misPartidosReales || []).map(p => {
         const dt = new Date(p.fecha);
-        const timeStr = dt.toLocaleString('es-CO', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const timeStr = dt.toLocaleString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         const isPast = dt < new Date();
 
         let statusDisplay = p.estado === 'abierto' ? 'Buscando Jugadores' : 'Cerrado';
@@ -135,7 +135,7 @@ export default async function PartidosPage() {
                                                 <h3 className="text-lg font-bold text-white mb-1 leading-tight">{match.lugar}</h3>
                                                 <div className="flex items-center text-sm text-neutral-400 font-medium mt-2">
                                                     <Calendar className="w-4 h-4 mr-2 text-emerald-500" />
-                                                    {new Date(match.fecha).toLocaleString('es-CO', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                    {new Date(match.fecha).toLocaleString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             </div>
                                             <div className="text-right shrink-0 bg-neutral-950 px-4 py-2 rounded-xl border border-neutral-800">
