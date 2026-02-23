@@ -28,6 +28,7 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
     }
 
     const nombreClub = userData?.nombre || "Mi Club de Padel";
+    const horariosPrime = userData?.horarios_solo_90_min_json || [];
 
     // Contar los partidos organizados actuales
     const { count: partidosCount } = await supabase
@@ -169,6 +170,7 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                             courts={courts}
                             timeSlots={timeSlots}
                             defaultDate={currentDateStr}
+                            horariosPrime={horariosPrime}
                         />
                     </div>
                 </CardHeader>
@@ -180,6 +182,7 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                         timeSlots={timeSlots}
                         currentDateStr={currentDateStr}
                         reservations={reservations}
+                        horariosPrime={horariosPrime}
                     />
                 </CardContent>
             </Card>

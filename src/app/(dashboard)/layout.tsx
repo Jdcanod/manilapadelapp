@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Trophy, Home, User, Calendar } from "lucide-react";
+import { Trophy, Home, User, Calendar, Megaphone } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createClient } from "@/utils/supabase/server";
 
@@ -49,10 +49,12 @@ export default async function DashboardLayout({
                                 <Link href="/partidos" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">Partidos</Link>
                                 <Link href="/clubes" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">Clubes</Link>
                                 <Link href="/ranking" className="text-sm font-medium text-amber-500/80 hover:text-amber-400 transition-colors">Ranking ELO</Link>
+                                <Link href="/novedades" className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors">Novedades</Link>
                             </>
                         ) : (
                             <>
                                 <Link href="/club" className="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors">Dashboard</Link>
+                                <Link href="/novedades" className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors">Novedades</Link>
                             </>
                         )}
                     </nav>
@@ -97,9 +99,9 @@ export default async function DashboardLayout({
                                 <Calendar className="w-5 h-5 mb-1" />
                                 <span className="text-[10px] font-medium">Partidos</span>
                             </Link>
-                            <Link href="/ranking" className="flex flex-col items-center justify-center w-full h-full text-neutral-400 hover:text-neutral-200 transition-colors">
-                                <Trophy className="w-5 h-5 mb-1" />
-                                <span className="text-[10px] font-medium">Ranking</span>
+                            <Link href="/novedades" className="flex flex-col items-center justify-center w-full h-full text-blue-400 hover:text-blue-300 transition-colors">
+                                <Megaphone className="w-5 h-5 mb-1" />
+                                <span className="text-[10px] font-medium">Novedades</span>
                             </Link>
                             <Link href="/jugador/perfil" className="flex flex-col items-center justify-center w-full h-full text-neutral-400 hover:text-neutral-200 transition-colors">
                                 <User className="w-5 h-5 mb-1" />
@@ -111,6 +113,10 @@ export default async function DashboardLayout({
                             <Link href="/club" className="flex flex-col items-center justify-center w-full h-full text-emerald-500">
                                 <Home className="w-5 h-5 mb-1" />
                                 <span className="text-[10px] font-medium">Dashboard</span>
+                            </Link>
+                            <Link href="/novedades" className="flex flex-col items-center justify-center w-full h-full text-blue-400 hover:text-blue-300 transition-colors">
+                                <Megaphone className="w-5 h-5 mb-1" />
+                                <span className="text-[10px] font-medium">Novedades</span>
                             </Link>
                         </>
                     )}

@@ -16,7 +16,7 @@ import { saveClubSettings, postClubNews } from "./actions";
 interface ConfigData {
     precio_hora_base: number;
     precio_fin_semana: number;
-    bloque_tiempo_minutos: number;
+    horarios_solo_90_min_json: string[];
     canchas_activas_json: Record<string, boolean>;
     userId: string;
 }
@@ -131,21 +131,27 @@ export function ConfigClubForm({ initialData }: { initialData: ConfigData }) {
                                     </div>
                                 </div>
 
-                                {/* Duración */}
+                                {/* Horarios Prime (Obliga 90 mins) */}
                                 <div className="space-y-4">
-                                    <h3 className="text-sm font-medium text-emerald-400">Bloques de Reserva</h3>
-                                    <div className="w-full sm:w-1/2 space-y-2">
-                                        <Label className="text-neutral-300">Duración por Turno</Label>
-                                        <Select name="duracion" defaultValue={String(initialData.bloque_tiempo_minutos)}>
-                                            <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
-                                                <SelectValue placeholder="Selecciona la duración" />
-                                            </SelectTrigger>
-                                            <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
-                                                <SelectItem value="60">1 Hora (60 min)</SelectItem>
-                                                <SelectItem value="90">1 Hora y Media (90 min)</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <p className="text-xs text-neutral-500 pt-1">Esta opción reestructurará la grilla principal de reservas de tu club.</p>
+                                    <h3 className="text-sm font-medium text-emerald-400">Horarios Prime (Exigir 1 hora y media)</h3>
+                                    <p className="text-xs text-neutral-400">Selecciona en qué horas los jugadores y tú solo podrán elegir reservas de 90 minutos (para evitar huecos en la grilla).</p>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        {["17:30", "19:00", "20:30", "22:00"].map((hora) => {
+                                            const isChecked = initialData.horarios_solo_90_min_json?.includes(hora);
+                                            return (
+                                                <div key={hora} className="flex items-center space-x-2 bg-neutral-950 p-2 rounded-lg border border-neutral-800">
+                                                    <input
+                                                        type="checkbox"
+                                                        id={`prime-${hora}`}
+                                                        name="prime_times"
+                                                        value={hora}
+                                                        defaultChecked={isChecked}
+                                                        className="w-4 h-4 accent-emerald-500 rounded border-neutral-700 bg-neutral-900"
+                                                    />
+                                                    <Label htmlFor={`prime-${hora}`} className="text-white cursor-pointer select-none">{hora}</Label>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 

@@ -14,8 +14,6 @@ export async function saveClubSettings(userId: string, formData: FormData) {
 
     const basePrice = parseInt(formData.get("precio_base") as string) || 80000;
     const weekendPrice = parseInt(formData.get("precio_fin") as string) || 100000;
-    const duration = parseInt(formData.get("duracion") as string) || 90;
-
     const canchasActivas = {
         "1": formData.get("cancha-1") === "on",
         "2": formData.get("cancha-2") === "on",
@@ -23,11 +21,13 @@ export async function saveClubSettings(userId: string, formData: FormData) {
         "4": formData.get("cancha-4") === "on",
     };
 
+    const primeTimes = formData.getAll("prime_times") as string[];
+
     const { error } = await supabase.from('users').update({
         precio_hora_base: basePrice,
         precio_fin_semana: weekendPrice,
-        bloque_tiempo_minutos: duration,
-        canchas_activas_json: canchasActivas
+        canchas_activas_json: canchasActivas,
+        horarios_solo_90_min_json: primeTimes
     }).eq('id', userRow.id);
 
     if (error) {

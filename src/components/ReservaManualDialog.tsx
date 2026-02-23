@@ -22,9 +22,10 @@ interface Props {
     defaultCourt?: string;
     defaultTime?: string;
     defaultDate?: string;
+    horariosPrime?: string[];
 }
 
-export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, trigger, openState, onOpenChange, defaultCourt, defaultTime, defaultDate }: Props) {
+export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, trigger, openState, onOpenChange, defaultCourt, defaultTime, defaultDate, horariosPrime }: Props) {
     const [internalOpen, setInternalOpen] = useState(false);
 
     const open = openState !== undefined ? openState : internalOpen;
@@ -38,6 +39,7 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
 
     const [loading, setLoading] = useState(false);
     const [abrirPartido, setAbrirPartido] = useState(false);
+    const [selectedHora, setSelectedHora] = useState(defaultTime || timeSlots[0] || "19:00");
     const [users, setUsers] = useState<{ id: string, nombre: string }[]>([]);
     const router = useRouter();
     const { toast } = useToast();
@@ -60,8 +62,9 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
 
         const formData = new FormData(e.currentTarget);
         const dia = formData.get("dia") as string;
-        const hora = formData.get("hora") as string;
+        const horaForm = formData.get("hora") as string;
         const cancha_id = formData.get("cancha_id") as string;
+        const duracion = formData.get("duracion") as string;
 
         // Determinar nombre del jugador, categoria o id
         let playerName = "Comunidad";
@@ -81,19 +84,19 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
         }
 
         try {
-            // Calcular fecha y hora de la reserva en UTC "flotante"
             let fechaDate = new Date();
             if (dia) {
                 const [y, mm, d] = dia.split("-");
-                const [h, min] = hora.split(":");
+                const [h, min] = horaForm.split(":");
                 fechaDate = new Date(Date.UTC(parseInt(y), parseInt(mm) - 1, parseInt(d), parseInt(h), parseInt(min), 0));
             } else {
-                const [h, m] = hora.split(":");
+                const [h, m] = horaForm.split(":");
                 fechaDate = new Date(Date.UTC(fechaDate.getUTCFullYear(), fechaDate.getUTCMonth(), fechaDate.getUTCDate(), parseInt(h), parseInt(m), 0));
             }
             const fecha = fechaDate.toISOString();
 
-            const lugar_formateado = `${clubNombre} - ${cancha_id}${!abrirPartido ? ` - a nombre de ${playerName}` : ''}`;
+            const is90Min = duracion === "90" || (horariosPrime && horariosPrime.includes(horaForm));
+            const lugar_formateado = `${clubNombre} - ${cancha_id} (${is90Min ? '90' : '60'} min)${!abrirPartido ? ` - a nombre de ${playerName}` : ''}`;
 
             const { error } = await supabase.from('partidos').insert({
                 creador_id: userId,
@@ -243,7 +246,7 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                         </div>
                         <div className="space-y-2">
                             <Label className="text-neutral-300">Horario</Label>
-                            <Select name="hora" defaultValue={defaultTime || timeSlots[0]} required key={defaultTime || "time"}>
+                            <Select name="hora" defaultValue={selectedHora} onValueChange={setSelectedHora} required key={defaultTime || "time"}>
                                 <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
                                     <SelectValue placeholder="Horario" />
                                 </SelectTrigger>
@@ -256,6 +259,30 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                                 </SelectContent>
                             </Select>
                         </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-neutral-300 flex items-center justify-between">
+                            Duración
+                            {horariosPrime?.includes(selectedHora) && <span className="text-[10px] text-amber-500 font-bold ml-2">Horario Prime (Solo 90min)</span>}
+                        </Label>
+                        <Select
+                            name="duracion"
+                            defaultValue={horariosPrime?.includes(selectedHora) ? "90" : "60"}
+                            disabled={horariosPrime?.includes(selectedHora)}
+                            key={selectedHora + "dur"}
+                        >
+                            <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white disabled:opacity-50">
+                                <SelectValue placeholder="Duración" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+                                <SelectItem value="60">1 Hora</SelectItem>
+                                <SelectItem value="90">1 Hora y Media</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        {horariosPrime?.includes(selectedHora) && (
+                            <input type="hidden" name="duracion" value="90" />
+                        )}
                     </div>
 
                     <Button type="submit" disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-lg shadow-emerald-900/20 active:scale-95 transition-all mt-4">
