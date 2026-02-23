@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Trophy, CalendarDays, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { InscribirParejaDialog } from "./InscribirParejaDialog";
 
 export default async function TorneosPage() {
     const supabase = createClient();
@@ -85,9 +85,7 @@ export default async function TorneosPage() {
                                     </div>
 
                                     <div className="mt-auto pt-4 border-t border-neutral-800">
-                                        <Button className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold" disabled>
-                                            Inscribir Pareja
-                                        </Button>
+                                        <InscribirParejaDialog torneoId={torneo.id} torneoNombre={torneo.nombre} />
                                     </div>
                                 </CardContent>
                             </Card>
