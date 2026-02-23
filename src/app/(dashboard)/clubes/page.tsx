@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { MapPin, Search, Star, Navigation } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 export default async function ClubesMapPage() {
     const supabase = createClient();
@@ -24,35 +25,26 @@ export default async function ClubesMapPage() {
         redirect("/club");
     }
 
-    const clubesMock = [
-        {
-            id: "1",
-            name: "Manizales Padel Central",
-            address: "Calle 65 # 23-44, Sector El Cable",
-            courts: 4,
-            rating: 4.8,
+    const { data: clubesDb } = await supabase
+        .from('users')
+        .select('id, nombre, canchas_activas_json, auth_id')
+        .eq('rol', 'admin_club');
+
+    const clubesMap = (clubesDb || []).map((c, i) => {
+        const canchas = Array.isArray(c.canchas_activas_json) ? c.canchas_activas_json.length : 4;
+        return {
+            id: c.auth_id, // we use auth_id as the canonical user ID across the app, or we can use id
+            name: c.nombre || "Club Padel",
+            address: "Manizales, Caldas",
+            courts: canchas,
+            rating: 4.8 + (i * 0.1 % 0.2), // Mocking some rating rating
             status: "Abierto",
-            coors: { x: 50, y: 30 }
-        },
-        {
-            id: "2",
-            name: "Bosque Padel",
-            address: "Km 2 Vía Villamaría",
-            courts: 2,
-            rating: 4.9,
-            status: "Abierto",
-            coors: { x: 75, y: 65 }
-        },
-        {
-            id: "3",
-            name: "La Enea Padel Zone",
-            address: "Cra 104 # 16-10",
-            courts: 3,
-            rating: 4.5,
-            status: "Cerrado",
-            coors: { x: 25, y: 80 }
-        }
-    ];
+            coors: {
+                x: 20 + ((i * 37) % 60),
+                y: 20 + ((i * 29) % 60)
+            } // Random-ish mock coordinates
+        };
+    });
 
     return (
         <div className="space-y-6 h-full flex flex-col md:h-[calc(100vh-100px)]">
@@ -83,10 +75,11 @@ export default async function ClubesMapPage() {
                     </div>
 
                     {/* Map Pins */}
-                    {clubesMock.map((club) => (
-                        <div
+                    {clubesMap.map((club) => (
+                        <Link
+                            href={`/clubes/${club.id}`}
                             key={club.id}
-                            className="absolute z-20 group -translate-x-1/2 -translate-y-full hover:z-30 cursor-pointer"
+                            className="absolute z-20 group -translate-x-1/2 -translate-y-full hover:z-30 cursor-pointer block"
                             style={{ left: `${club.coors.x}%`, top: `${club.coors.y}%` }}
                         >
                             <div className="relative">
@@ -111,42 +104,43 @@ export default async function ClubesMapPage() {
                                     <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-neutral-900 border-b border-r border-neutral-700 rotate-45" />
                                 </div>
                             </div>
-                        </div>
+                        </Link>
                     ))}
                 </Card>
 
-                {/* List of Clubs Sidebar */}
-                <div className="w-full md:w-[350px] flex flex-col gap-4 overflow-y-auto pr-2">
-                    {clubesMock.map((club) => (
-                        <Card key={club.id} className="bg-neutral-900 border-neutral-800 hover:border-neutral-700 transition-all cursor-pointer group">
-                            <CardContent className="p-4 flex gap-4">
-                                <div className="w-16 h-16 rounded-xl bg-neutral-800 border border-neutral-700 shrink-0 overflow-hidden relative">
-                                    {/* Imagen de club simulada */}
-                                    <div className="absolute inset-0 bg-emerald-500/20 mix-blend-multiply" />
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex justify-between items-start mb-1">
-                                        <h3 className="font-bold text-white text-sm group-hover:text-emerald-400 transition-colors line-clamp-1">{club.name}</h3>
-                                        {club.status === "Abierto" ? (
-                                            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                                        ) : (
-                                            <span className="w-2 h-2 rounded-full bg-neutral-600" />
-                                        )}
+                <div className="w-full md:w-[350px] flex flex-col gap-4 overflow-y-auto pr-2 pb-20 md:pb-0">
+                    {clubesMap.map((club) => (
+                        <Link href={`/clubes/${club.id}`} key={club.id} className="block">
+                            <Card className="bg-neutral-900 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800/50 transition-all cursor-pointer group">
+                                <CardContent className="p-4 flex gap-4">
+                                    <div className="w-16 h-16 rounded-xl bg-neutral-800 border border-neutral-700 shrink-0 overflow-hidden relative">
+                                        {/* Imagen de club simulada */}
+                                        <div className="absolute inset-0 bg-emerald-500/20 mix-blend-multiply" />
                                     </div>
-                                    <p className="text-xs text-neutral-400 flex items-center mb-2 line-clamp-1">
-                                        <MapPin className="w-3 h-3 mr-1 shrink-0" /> {club.address}
-                                    </p>
-                                    <div className="flex items-center justify-between">
-                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-neutral-950 border-neutral-800 text-neutral-300">
-                                            {club.courts} Canchas
-                                        </Badge>
-                                        <span className="text-xs flex items-center text-amber-500 font-bold">
-                                            <Star className="w-3 h-3 mr-0.5" /> {club.rating}
-                                        </span>
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <h3 className="font-bold text-white text-sm group-hover:text-emerald-400 transition-colors line-clamp-1">{club.name}</h3>
+                                            {club.status === "Abierto" ? (
+                                                <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                                            ) : (
+                                                <span className="w-2 h-2 rounded-full bg-neutral-600" />
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-neutral-400 flex items-center mb-2 line-clamp-1">
+                                            <MapPin className="w-3 h-3 mr-1 shrink-0" /> {club.address}
+                                        </p>
+                                        <div className="flex items-center justify-between">
+                                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-neutral-950 border-neutral-800 text-neutral-300">
+                                                {club.courts} Canchas
+                                            </Badge>
+                                            <span className="text-xs flex items-center text-amber-500 font-bold">
+                                                <Star className="w-3 h-3 mr-0.5" /> {club.rating}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
+                        </Link>
                     ))}
 
                     <Button variant="outline" className="w-full border-dashed border-neutral-700 text-neutral-400 hover:text-white mt-2">
