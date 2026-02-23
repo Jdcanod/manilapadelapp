@@ -29,7 +29,7 @@ export async function autocancelarPartidosIncompletos() {
                 // Find matching club settings based on 'lugar' string
                 const club = clubes.find(c => p.lugar.startsWith(c.nombre));
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const tiempoMinutos = (club?.canchas_activas_json as any)?.tiempo_cancelacion_minutos || 120;
+                const tiempoMinutos = (club?.canchas_activas_json as any)?.tiempo_cancelacion_minutos || 0; // Se cambió el default temporalmente a 0 para pruebas
 
                 const matchTime = new Date(p.fecha).getTime();
                 const minutesDiff = (matchTime - now) / (1000 * 60);

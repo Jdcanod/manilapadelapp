@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -32,9 +32,25 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
     };
     const [loading, setLoading] = useState(false);
     const [isCustomClub, setIsCustomClub] = useState(false);
+    const [clubes, setClubes] = useState<string[]>([]);
     const router = useRouter();
     const { toast } = useToast();
     const supabase = createClient();
+
+    useEffect(() => {
+        if (open) {
+            const fetchClubes = async () => {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('nombre')
+                    .eq('rol', 'admin_club');
+                if (!error && data) {
+                    setClubes(data.map(c => c.nombre));
+                }
+            };
+            fetchClubes();
+        }
+    }, [open, supabase]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -130,13 +146,12 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
                                     <SelectValue placeholder="Selecciona un club..." />
                                 </SelectTrigger>
                                 <SelectContent className="bg-neutral-900 border-neutral-800">
-                                    {defaultLugar && defaultLugar !== "Manila Padel Central" && defaultLugar !== "Bosque Padel" && defaultLugar !== "La Nubia Padel" && defaultLugar !== "Cerro de Oro Padel" && (
+                                    {defaultLugar && !clubes.includes(defaultLugar) && defaultLugar !== "Otro" && (
                                         <SelectItem value={defaultLugar}>{defaultLugar}</SelectItem>
                                     )}
-                                    <SelectItem value="Manila Padel Central">Manila Padel Central</SelectItem>
-                                    <SelectItem value="Bosque Padel">Bosque Padel</SelectItem>
-                                    <SelectItem value="La Nubia Padel">La Nubia Padel</SelectItem>
-                                    <SelectItem value="Cerro de Oro Padel">Cerro de Oro Padel</SelectItem>
+                                    {clubes.map((club) => (
+                                        <SelectItem key={club} value={club}>{club}</SelectItem>
+                                    ))}
                                     <SelectItem value="Otro">Otro club...</SelectItem>
                                 </SelectContent>
                             </Select>
