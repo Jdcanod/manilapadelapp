@@ -72,8 +72,21 @@ export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, cou
                                     {timeSlots.map((time, tIdx) => {
                                         const reservation = reservations.find(r => r.courtIndex === cIdx && r.timeIndex === tIdx);
 
+                                        const slotDateTime = new Date(`${currentDateStr}T${time}`);
+                                        const isPast = slotDateTime < new Date();
+
                                         // If there is no reservation, it's available
                                         if (!reservation) {
+                                            if (isPast) {
+                                                return (
+                                                    <div key={tIdx} className="h-[80px] relative w-full mb-2">
+                                                        <div className="absolute inset-0 bg-neutral-900 border border-neutral-800/50 rounded-lg flex items-center justify-center opacity-50">
+                                                            <span className="text-xs font-medium text-neutral-600">No Disponible</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+
                                             return (
                                                 <div key={tIdx} className="h-[80px] relative w-full mb-2 group">
                                                     <div

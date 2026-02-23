@@ -52,21 +52,24 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
         }
     }
 
-    const targetDateUTC = new Date(Date.UTC(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), 0, 0, 0));
-    const tomorrowDateUTC = new Date(targetDateUTC);
-    tomorrowDateUTC.setUTCDate(tomorrowDateUTC.getUTCDate() + 1);
-
-    const prevDate = new Date(todayDate);
-    prevDate.setDate(prevDate.getDate() - 1);
-    const nextDate = new Date(todayDate);
-    nextDate.setDate(nextDate.getDate() + 1);
-
     const formatDateURL = (d: Date) => {
         const y = d.getFullYear();
         const m = (d.getMonth() + 1).toString().padStart(2, '0');
         const day = d.getDate().toString().padStart(2, '0');
         return `${y}-${m}-${day}`;
     };
+
+    const targetDateStr = formatDateURL(todayDate);
+    // Asumimos timezone de Colombia (UTC-5)
+    // El comienzo del día en Colombia:
+    const startTimeStr = `${targetDateStr}T00:00:00-05:00`;
+
+    const prevDate = new Date(todayDate);
+    prevDate.setDate(prevDate.getDate() - 1);
+    const nextDate = new Date(todayDate);
+    nextDate.setDate(nextDate.getDate() + 1);
+
+    const endTimeStr = `${formatDateURL(nextDate)}T00:00:00-05:00`;
 
     const prevDateStr = formatDateURL(prevDate);
     const nextDateStr = formatDateURL(nextDate);
@@ -76,12 +79,15 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
         .from('partidos')
         .select('*')
         .like('lugar', `${clubNombre}%`)
-        .gte('fecha', targetDateUTC.toISOString())
-        .lt('fecha', tomorrowDateUTC.toISOString());
+        .gte('fecha', new Date(startTimeStr).toISOString())
+        .lt('fecha', new Date(endTimeStr).toISOString());
 
     const reservations = (partidosHoy || []).map(p => {
         const dt = new Date(p.fecha || new Date());
-        const timeStr = `${dt.getUTCHours().toString().padStart(2, '0')}:${dt.getUTCMinutes().toString().padStart(2, '0')}`;
+        // Ajustar a UTC-5 para extraer la hora local del club ignorando el UTC timezone del server
+        const offsetMs = -5 * 60 * 60 * 1000;
+        const localDt = new Date(dt.getTime() + offsetMs);
+        const timeStr = `${localDt.getUTCHours().toString().padStart(2, '0')}:${localDt.getUTCMinutes().toString().padStart(2, '0')}`;
         const timeIndex = timeSlots.indexOf(timeStr);
 
         const lugarStr = p.lugar || "";
@@ -284,7 +290,7 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
                     </div>
                     <PlayerReservationsGrid
                         userId={user.id}
-                        currentDateStr={todayDate.toISOString().split('T')[0]}
+                        currentDateStr={targetDateStr}
                         clubNombre={clubNombre}
                         courts={courts}
                         timeSlots={timeSlots}
