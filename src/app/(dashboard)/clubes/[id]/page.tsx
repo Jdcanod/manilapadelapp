@@ -3,13 +3,15 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MapPin, Star, Calendar, Info, ChevronLeft, ChevronRight } from "lucide-react";
-import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { BotonUnirsePartido } from "@/components/BotonUnirsePartido";
 import { OrganizarPartidoDialog } from "@/components/OrganizarPartidoDialog";
 import { PlayerReservationsGrid } from "@/components/PlayerReservationsGrid";
 import { NovedadesList } from "@/app/(dashboard)/novedades/NovedadesList";
+import { DetallePartidoDialog } from "@/components/DetallePartidoDialog";
+import { Button } from "@/components/ui/button";
+import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = 'force-dynamic';
 
@@ -111,7 +113,7 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
         };
     }).filter(r => r.courtIndex >= 0 && r.timeIndex >= 0);
 
-    // Obtener los partidos reales de la BD, abiertos en ESTE club
+    // Obtener los partidos reales de la BD, abiertos en ESTE club (A futuro)
     const { data: partidosAbiertos } = await supabase
         .from('partidos')
         .select(`
@@ -119,8 +121,21 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
             creador:users(nombre)
         `)
         .eq('estado', 'abierto')
+        .gte('fecha', new Date().toISOString())
         .like('lugar', `${clubNombre}%`)
         .order('fecha', { ascending: true });
+
+    // Obtener el histórico (partidos pasados)
+    const { data: partidosHistoricos } = await supabase
+        .from('partidos')
+        .select(`
+            *,
+            creador:users(nombre)
+        `)
+        .lt('fecha', new Date().toISOString())
+        .like('lugar', `${clubNombre}%`)
+        .order('fecha', { ascending: false })
+        .limit(20);
 
     // Obtener novedades de ESTE club
     const { data: clubNews } = await supabase
@@ -185,6 +200,9 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
                 <TabsList className="bg-neutral-900 border border-neutral-800 p-1 w-full sm:w-auto mb-6 flex-wrap h-auto">
                     <TabsTrigger value="partidos" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
                         Partidos Abiertos
+                    </TabsTrigger>
+                    <TabsTrigger value="historico" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
+                        Histórico
                     </TabsTrigger>
                     <TabsTrigger value="reservas" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
                         Reservar Cancha
@@ -260,6 +278,78 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
                                                         partidoFecha={match.fecha}
                                                     />
                                                 )}
+                                                <DetallePartidoDialog
+                                                    partido={{
+                                                        ...match,
+                                                        creador: { nombre: match.creador?.nombre || 'Organizador' }
+                                                    }}
+                                                    trigger={
+                                                        <Button variant="outline" className="border-neutral-700 hover:bg-neutral-800 text-neutral-300 ml-2">
+                                                            Detalles
+                                                        </Button>
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
+                </TabsContent>
+
+                <TabsContent value="historico" className="space-y-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-2xl font-bold text-white">Historial de Partidos</h2>
+                    </div>
+
+                    {!partidosHistoricos || partidosHistoricos.length === 0 ? (
+                        <div className="text-center py-16 text-neutral-500 border border-neutral-800 border-dashed rounded-xl bg-neutral-900/30 flex flex-col items-center">
+                            <Info className="w-12 h-12 text-neutral-700 mb-4" />
+                            <p className="text-lg font-medium text-neutral-300 mb-1">No hay historial en {clubNombre}</p>
+                            <p className="text-sm">Aún no se ha jugado ningún partido en este club.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {partidosHistoricos.map((match) => (
+                                <Card key={match.id} className="bg-neutral-900 border-neutral-800 hover:border-neutral-700 transition-colors opacity-80">
+                                    <CardContent className="p-5">
+                                        <div className="flex justify-between items-start mb-4 gap-2">
+                                            <div className="flex-1">
+                                                <Badge variant="outline" className="text-neutral-400 border-neutral-700/50 bg-neutral-800/50 mb-2">
+                                                    Jugado - {match.tipo_partido}
+                                                </Badge>
+                                                <h3 className="text-md font-bold text-neutral-300 mb-1 line-clamp-1">{match.lugar}</h3>
+                                                <div className="flex items-center text-xs text-neutral-500 font-medium mt-1">
+                                                    <Calendar className="w-3.5 h-3.5 mr-1.5 text-neutral-600" />
+                                                    {new Date(match.fecha).toLocaleString('es-CO', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-neutral-800">
+                                            <div className="flex items-center gap-2">
+                                                <Avatar className="w-6 h-6 border border-neutral-800 opacity-50">
+                                                    <AvatarFallback className="bg-neutral-800 text-[10px] text-white">
+                                                        {match.creador?.nombre ? match.creador.nombre.substring(0, 2).toUpperCase() : "CR"}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <span className="text-[11px] text-neutral-500 line-clamp-1 max-w-[80px]">
+                                                    {match.creador?.nombre || 'Jugador'}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                <DetallePartidoDialog
+                                                    partido={{
+                                                        ...match,
+                                                        creador: { nombre: match.creador?.nombre || 'Organizador' }
+                                                    }}
+                                                    trigger={
+                                                        <Button variant="outline" size="sm" className="border-neutral-700 hover:bg-neutral-800 text-neutral-400">
+                                                            Ver Resultado
+                                                        </Button>
+                                                    }
+                                                />
                                             </div>
                                         </div>
                                     </CardContent>
