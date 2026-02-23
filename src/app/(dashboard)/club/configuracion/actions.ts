@@ -19,6 +19,7 @@ export async function saveClubSettings(userId: string, formData: FormData) {
         "2": formData.get("cancha-2") === "on",
         "3": formData.get("cancha-3") === "on",
         "4": formData.get("cancha-4") === "on",
+        "tiempo_cancelacion_minutos": parseInt(formData.get("tiempo_cancelacion") as string) || 120
     };
 
     const primeTimes = formData.getAll("prime_times") as string[];

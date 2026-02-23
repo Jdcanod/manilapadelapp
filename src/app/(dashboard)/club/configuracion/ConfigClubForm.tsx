@@ -17,7 +17,9 @@ interface ConfigData {
     precio_hora_base: number;
     precio_fin_semana: number;
     horarios_solo_90_min_json: string[];
-    canchas_activas_json: Record<string, boolean>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    canchas_activas_json: any;
+    tiempo_cancelacion_minutos: number;
     userId: string;
 }
 
@@ -127,6 +129,28 @@ export function ConfigClubForm({ initialData }: { initialData: ConfigData }) {
                                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">$</span>
                                                 <Input name="precio_fin" type="number" defaultValue={initialData.precio_fin_semana} className="pl-8 bg-neutral-950 border-neutral-800 text-white" />
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Políticas y Cancelaciones */}
+                                <div className="space-y-4 pt-4 border-t border-neutral-800">
+                                    <h3 className="text-sm font-medium text-emerald-400">Cancelaciones Automáticas</h3>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <Label className="text-neutral-300">Tiempo de Cancelación Mínimo</Label>
+                                            <p className="text-[10px] text-neutral-500 mb-2">Partidos sin los 4 jugadores se cancelarán automáticamente a falta de este tiempo.</p>
+                                            <Select name="tiempo_cancelacion" defaultValue={String(initialData.tiempo_cancelacion_minutos || 120)}>
+                                                <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white w-full">
+                                                    <SelectValue placeholder="Seleccionar..." />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+                                                    <SelectItem value="30">30 minutos antes</SelectItem>
+                                                    <SelectItem value="45">45 minutos antes</SelectItem>
+                                                    <SelectItem value="60">1 hora antes</SelectItem>
+                                                    <SelectItem value="120">2 horas antes</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </div>
                                     </div>
                                 </div>

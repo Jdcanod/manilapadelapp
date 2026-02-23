@@ -10,6 +10,7 @@ import { BotonUnirsePartido } from "@/components/BotonUnirsePartido";
 import { BotonCancelarPartido } from "@/components/BotonCancelarPartido";
 import { DetallePartidoDialog } from "@/components/DetallePartidoDialog";
 import { redirect } from "next/navigation";
+import { autocancelarPartidosIncompletos } from "@/utils/cancelarPartidos";
 
 export default async function PartidosPage() {
     const supabase = createClient();
@@ -28,6 +29,9 @@ export default async function PartidosPage() {
     if (userData?.rol === 'admin_club') {
         redirect("/club");
     }
+
+    // Cancelar partidos que ya pasaron su tiempo limite sin completarse
+    await autocancelarPartidosIncompletos();
 
     // Obtener los partidos reales de la BD, ordenados por fecha, solo los que sean a futuro
     const { data: partidosReales } = await supabase
@@ -141,38 +145,38 @@ export default async function PartidosPage() {
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center justify-between mt-6 pt-4 border-t border-neutral-800">
+                                        <div className="flex flex-col xl:flex-row xl:items-center justify-between mt-6 pt-4 border-t border-neutral-800 gap-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="flex -space-x-2">
+                                                <div className="flex -space-x-2 shrink-0">
                                                     <Avatar className="border-2 border-neutral-900 w-8 h-8">
                                                         <AvatarFallback className="bg-neutral-800 text-xs text-white">
                                                             {match.creador?.nombre ? match.creador.nombre.substring(0, 2).toUpperCase() : "CR"}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                 </div>
-                                                <span className="text-xs text-neutral-400 hidden sm:inline-block">
+                                                <span className="text-xs text-neutral-400 line-clamp-2">
                                                     Creado por {match.creador?.nombre || 'Jugador'}
                                                 </span>
                                             </div>
 
-                                            <div className="flex items-center gap-3">
+                                            <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full xl:w-auto xl:justify-end">
                                                 <span className="text-sm font-bold text-neutral-300">
                                                     {match.precio_por_persona > 0 ? `$${match.precio_por_persona}` : 'Gratis'}
                                                 </span>
                                                 <DetallePartidoDialog
                                                     partido={match}
                                                     trigger={
-                                                        <Button variant="outline" className="border-neutral-700 hover:bg-neutral-800 text-neutral-300">
+                                                        <Button variant="outline" className="border-neutral-700 hover:bg-neutral-800 text-neutral-300 shrink-0">
                                                             Ver Detalles
                                                         </Button>
                                                     }
                                                 />
                                                 {match.creador_id === user.id ? (
-                                                    <div className="flex items-center gap-2 bg-neutral-900 border border-neutral-800 rounded-md p-1">
-                                                        <Badge variant="outline" className="border-0 text-emerald-500 font-semibold bg-transparent shadow-none hover:bg-transparent cursor-default">
-                                                            <UserPlus className="w-4 h-4 mr-1.5" />
+                                                    <div className="flex items-center bg-neutral-900 border border-neutral-800 rounded-md p-1 pl-2 shrink-0">
+                                                        <span className="text-xs text-emerald-500 font-semibold hidden md:inline-flex items-center mr-1">
+                                                            <UserPlus className="w-4 h-4 mr-1" />
                                                             Organizador
-                                                        </Badge>
+                                                        </span>
                                                         <BotonCancelarPartido
                                                             partidoId={match.id}
                                                             partidoFecha={match.fecha}

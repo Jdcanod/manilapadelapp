@@ -50,12 +50,12 @@ export function BotonCancelarPartido({ partidoId, partidoFecha }: BotonCancelarP
         }
     };
 
-    // Calcular si faltan menos de 2 horas (Regla de oro de clubes)
+    // El organizador puede cancelar siempre y cuando no haya pasado la fecha
     const matchTime = new Date(partidoFecha).getTime();
     const now = new Date().getTime();
     const hoursDifference = (matchTime - now) / (1000 * 60 * 60);
 
-    const canCancel = hoursDifference > 2;
+    const canCancel = hoursDifference > 0;
 
     return (
         <Button
@@ -63,13 +63,13 @@ export function BotonCancelarPartido({ partidoId, partidoFecha }: BotonCancelarP
             onClick={canCancel ? handleCancel : undefined}
             disabled={loading || !canCancel}
             variant="ghost"
-            className={canCancel
+            className={`h-8 px-2 sm:px-3 ${canCancel
                 ? "text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                : "text-neutral-500 hover:bg-transparent cursor-not-allowed"}
-            title={!canCancel ? "No puedes cancelar a menos de 2 horas del evento" : "Cancelar Partido"}
+                : "text-neutral-500 hover:bg-transparent cursor-not-allowed"}`}
+            title={!canCancel ? "El partido ya finalizó" : "Cancelar Partido"}
         >
-            <Trash2 className="w-4 h-4 mr-2" />
-            {loading ? "..." : "Cancelar"}
+            <Trash2 className="w-4 h-4 sm:mr-2 shrink-0" />
+            <span className="hidden sm:inline">{loading ? "..." : "Cancelar"}</span>
         </Button>
     );
 }

@@ -95,9 +95,9 @@ export function BotonUnirsePartido({ partidoId, userId, yaInscrito, cuposDisponi
                 size="sm"
                 onClick={canLeave ? handleLeave : undefined}
                 disabled={loading || !canLeave}
-                className={canLeave
+                className={`shrink-0 h-9 px-3 text-xs ${canLeave
                     ? "bg-red-500/20 text-red-500 hover:bg-red-500/30 border border-red-500/30 font-semibold"
-                    : "bg-neutral-800 text-neutral-500 cursor-not-allowed"}
+                    : "bg-neutral-800 text-neutral-500 cursor-not-allowed"}`}
             >
                 {loading ? "Saliendo..." : canLeave ? "Salir" : "Aviso < 2h"}
             </Button>
@@ -113,8 +113,8 @@ export function BotonUnirsePartido({ partidoId, userId, yaInscrito, cuposDisponi
     }
 
     return (
-        <Button size="sm" className="bg-white text-neutral-950 hover:bg-neutral-200 shadow-lg" onClick={handleJoin} disabled={loading}>
-            <UserPlus className="w-4 h-4 mr-2" />
+        <Button size="sm" className="bg-white text-neutral-950 hover:bg-neutral-200 shadow-lg shrink-0 h-9 px-3 text-xs" onClick={handleJoin} disabled={loading}>
+            <UserPlus className="w-4 h-4 mr-1.5" />
             {loading ? "Uniendo..." : "Me Apunto"}
         </Button>
     );

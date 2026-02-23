@@ -12,6 +12,7 @@ import { NovedadesList } from "@/app/(dashboard)/novedades/NovedadesList";
 import { DetallePartidoDialog } from "@/components/DetallePartidoDialog";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/server";
+import { autocancelarPartidosIncompletos } from "@/utils/cancelarPartidos";
 
 export const dynamic = 'force-dynamic';
 
@@ -112,6 +113,9 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
             status: p.estado
         };
     }).filter(r => r.courtIndex >= 0 && r.timeIndex >= 0);
+
+    // Cancelar partidos que sobrepasaron su tiempo sin completarse antes de mostrarlos
+    await autocancelarPartidosIncompletos();
 
     // Obtener los partidos reales de la BD, abiertos en ESTE club (A futuro)
     const { data: partidosAbiertos } = await supabase
@@ -256,19 +260,19 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-neutral-800">
-                                            <div className="flex items-center gap-2">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4 pt-4 border-t border-neutral-800 gap-3">
+                                            <div className="flex items-center gap-2 shrink-0">
                                                 <Avatar className="w-6 h-6 border border-neutral-800">
                                                     <AvatarFallback className="bg-neutral-800 text-[10px] text-white">
                                                         {match.creador?.nombre ? match.creador.nombre.substring(0, 2).toUpperCase() : "CR"}
                                                     </AvatarFallback>
                                                 </Avatar>
-                                                <span className="text-[11px] text-neutral-400 line-clamp-1 max-w-[80px]">
+                                                <span className="text-[11px] text-neutral-400 line-clamp-1 max-w-[100px]">
                                                     {match.creador?.nombre || 'Jugador'}
                                                 </span>
                                             </div>
 
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
                                                 {match.creador_id !== user.id && (
                                                     <BotonUnirsePartido
                                                         partidoId={match.id}
@@ -284,7 +288,7 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
                                                         creador: { nombre: match.creador?.nombre || 'Organizador' }
                                                     }}
                                                     trigger={
-                                                        <Button variant="outline" className="border-neutral-700 hover:bg-neutral-800 text-neutral-300 ml-2">
+                                                        <Button variant="outline" className="border-neutral-700 hover:bg-neutral-800 text-neutral-300 shrink-0 h-9 px-3 text-xs">
                                                             Detalles
                                                         </Button>
                                                     }
