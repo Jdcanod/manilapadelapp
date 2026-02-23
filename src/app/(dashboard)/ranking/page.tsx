@@ -15,6 +15,16 @@ export default async function RankingPage({ searchParams }: { searchParams: { ca
         redirect("/login");
     }
 
+    const { data: userData } = await supabase
+        .from('users')
+        .select('rol')
+        .eq('auth_id', user.id)
+        .single();
+
+    if (userData?.rol === 'admin_club') {
+        redirect("/club");
+    }
+
     const categoria = searchParams?.categoria || 'todas';
 
     // Obtener parejas reales ordenadas por ELO

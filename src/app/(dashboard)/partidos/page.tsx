@@ -19,6 +19,16 @@ export default async function PartidosPage() {
         redirect("/login");
     }
 
+    const { data: userData } = await supabase
+        .from('users')
+        .select('rol')
+        .eq('auth_id', user.id)
+        .single();
+
+    if (userData?.rol === 'admin_club') {
+        redirect("/club");
+    }
+
     // Obtener los partidos reales de la BD, ordenados por fecha
     const { data: partidosReales } = await supabase
         .from('partidos')

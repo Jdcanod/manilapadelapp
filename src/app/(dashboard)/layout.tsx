@@ -43,17 +43,26 @@ export default async function DashboardLayout({
                         <span className="font-bold tracking-tight text-white hidden sm:inline-block">ManilaPadel</span>
                     </Link>
                     <nav className="hidden md:flex items-center gap-6 ml-8">
-                        <Link href="/jugador" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">Jugador</Link>
-                        <Link href="/partidos" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">Partidos</Link>
-                        <Link href="/clubes" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">Mapa Clubes</Link>
-                        <Link href="/ranking" className="text-sm font-medium text-amber-500/80 hover:text-amber-400 transition-colors">Ranking ELO</Link>
+                        {rolUsuario !== "admin_club" ? (
+                            <>
+                                <Link href="/jugador" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">Inicio</Link>
+                                <Link href="/partidos" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">Partidos</Link>
+                                <Link href="/clubes" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">Clubes</Link>
+                                <Link href="/ranking" className="text-sm font-medium text-amber-500/80 hover:text-amber-400 transition-colors">Ranking ELO</Link>
+                            </>
+                        ) : (
+                            <>
+                                <Link href="/club" className="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors">Dashboard</Link>
+                            </>
+                        )}
                     </nav>
 
                     <div className="flex items-center gap-4 ml-auto">
-                        <div className="hidden lg:flex items-center gap-3 mr-4 border-r border-neutral-800 pr-4">
-                            <Link href="/club" className="text-xs font-semibold text-emerald-500 hover:text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded bg-emerald-500/10">Admin Club</Link>
-                            <Link href="/superadmin" className="text-xs font-semibold text-red-500 hover:text-red-400 border border-red-500/30 px-2 py-1 rounded bg-red-500/10">SuperAdmin</Link>
-                        </div>
+                        {rolUsuario === "superadmin" && (
+                            <div className="hidden lg:flex items-center gap-3 mr-4 border-r border-neutral-800 pr-4">
+                                <Link href="/superadmin" className="text-xs font-semibold text-red-500 hover:text-red-400 border border-red-500/30 px-2 py-1 rounded bg-red-500/10">SuperAdmin</Link>
+                            </div>
+                        )}
 
                         <div className="flex flex-col text-right">
                             <span className="text-sm font-medium text-white line-clamp-1 max-w-[120px]">{nombreReal}</span>
@@ -78,22 +87,33 @@ export default async function DashboardLayout({
             {/* Mobile Bottom Navigation Bar */}
             <nav className="fixed bottom-0 w-full z-40 bg-neutral-950/90 backdrop-blur-lg border-t border-neutral-800 md:hidden pb-safe">
                 <div className="flex justify-around items-center h-16">
-                    <Link href="/jugador" className="flex flex-col items-center justify-center w-full h-full text-emerald-500">
-                        <Home className="w-5 h-5 mb-1" />
-                        <span className="text-[10px] font-medium">Inicio</span>
-                    </Link>
-                    <Link href="/partidos" className="flex flex-col items-center justify-center w-full h-full text-neutral-400 hover:text-neutral-200 transition-colors">
-                        <Calendar className="w-5 h-5 mb-1" />
-                        <span className="text-[10px] font-medium">Partidos</span>
-                    </Link>
-                    <Link href="/ranking" className="flex flex-col items-center justify-center w-full h-full text-neutral-400 hover:text-neutral-200 transition-colors">
-                        <Trophy className="w-5 h-5 mb-1" />
-                        <span className="text-[10px] font-medium">Ranking</span>
-                    </Link>
-                    <Link href="/jugador/perfil" className="flex flex-col items-center justify-center w-full h-full text-neutral-400 hover:text-neutral-200 transition-colors">
-                        <User className="w-5 h-5 mb-1" />
-                        <span className="text-[10px] font-medium">Perfil</span>
-                    </Link>
+                    {rolUsuario !== "admin_club" ? (
+                        <>
+                            <Link href="/jugador" className="flex flex-col items-center justify-center w-full h-full text-emerald-500">
+                                <Home className="w-5 h-5 mb-1" />
+                                <span className="text-[10px] font-medium">Inicio</span>
+                            </Link>
+                            <Link href="/partidos" className="flex flex-col items-center justify-center w-full h-full text-neutral-400 hover:text-neutral-200 transition-colors">
+                                <Calendar className="w-5 h-5 mb-1" />
+                                <span className="text-[10px] font-medium">Partidos</span>
+                            </Link>
+                            <Link href="/ranking" className="flex flex-col items-center justify-center w-full h-full text-neutral-400 hover:text-neutral-200 transition-colors">
+                                <Trophy className="w-5 h-5 mb-1" />
+                                <span className="text-[10px] font-medium">Ranking</span>
+                            </Link>
+                            <Link href="/jugador/perfil" className="flex flex-col items-center justify-center w-full h-full text-neutral-400 hover:text-neutral-200 transition-colors">
+                                <User className="w-5 h-5 mb-1" />
+                                <span className="text-[10px] font-medium">Perfil</span>
+                            </Link>
+                        </>
+                    ) : (
+                        <>
+                            <Link href="/club" className="flex flex-col items-center justify-center w-full h-full text-emerald-500">
+                                <Home className="w-5 h-5 mb-1" />
+                                <span className="text-[10px] font-medium">Dashboard</span>
+                            </Link>
+                        </>
+                    )}
                 </div>
             </nav>
         </div>

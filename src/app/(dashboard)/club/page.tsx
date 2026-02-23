@@ -23,6 +23,10 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
         .eq('auth_id', user.id)
         .single();
 
+    if (userData?.rol !== 'admin_club') {
+        redirect("/jugador");
+    }
+
     const nombreClub = userData?.nombre || "Mi Club de Padel";
 
     // Contar los partidos organizados actuales

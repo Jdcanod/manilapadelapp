@@ -1,12 +1,29 @@
-"use client";
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MapPin, Search, Star, Navigation } from "lucide-react";
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
 
-export default function ClubesMapPage() {
+export default async function ClubesMapPage() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        redirect("/login");
+    }
+
+    const { data: userData } = await supabase
+        .from('users')
+        .select('rol')
+        .eq('auth_id', user.id)
+        .single();
+
+    if (userData?.rol === 'admin_club') {
+        redirect("/club");
+    }
+
     const clubesMock = [
         {
             id: "1",
