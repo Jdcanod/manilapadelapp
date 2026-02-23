@@ -57,16 +57,17 @@ export default async function ClubDetailPage({ params }: { params: { id: string 
         .lt('fecha', tomorrowDateUTC.toISOString());
 
     const reservations = (partidosHoy || []).map(p => {
-        const dt = new Date(p.fecha);
+        const dt = new Date(p.fecha || new Date());
         const timeStr = `${dt.getUTCHours().toString().padStart(2, '0')}:${dt.getUTCMinutes().toString().padStart(2, '0')}`;
         const timeIndex = timeSlots.indexOf(timeStr);
 
-        const matches = p.lugar.match(/cancha_(\d+)/);
+        const lugarStr = p.lugar || "";
+        const matches = lugarStr.match(/cancha_(\d+)/i);
         const courtIndex = matches ? parseInt(matches[1]) - 1 : -1;
 
         let playerName = "Reservado";
-        if (p.lugar.includes("a nombre de ")) {
-            playerName = p.lugar.split("a nombre de ")[1];
+        if (lugarStr.includes("a nombre de ")) {
+            playerName = lugarStr.split("a nombre de ")[1];
         } else if (p.estado === 'abierto') {
             playerName = "Partido Abierto";
         }

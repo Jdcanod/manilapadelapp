@@ -33,7 +33,7 @@ export default async function ClubesMapPage() {
     const clubesMap = (clubesDb || []).map((c, i) => {
         const canchas = Array.isArray(c.canchas_activas_json) ? c.canchas_activas_json.length : 4;
         return {
-            id: c.auth_id, // we use auth_id as the canonical user ID across the app, or we can use id
+            id: c.auth_id || (c.id ? c.id.toString() : "0"), // we use auth_id as the canonical user ID across the app, or we can use id
             name: c.nombre || "Club Padel",
             address: "Manizales, Caldas",
             courts: canchas,
