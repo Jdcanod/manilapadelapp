@@ -13,8 +13,8 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { inscribirParejaTorneo } from "./actions";
-import { Trophy, Users, CheckCircle2 } from "lucide-react";
+import { inscribirParejaTorneo, buscarCompaneros } from "./actions";
+import { Trophy, Users, CheckCircle2, Search, X } from "lucide-react";
 
 interface Props {
     torneoId: string;
@@ -27,9 +27,41 @@ export function InscribirParejaDialog({ torneoId, torneoNombre }: Props) {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<boolean>(false);
 
+    // Search state
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchResults, setSearchResults] = useState<{ id: string, nombre: string, email: string }[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [selectedCompanero, setSelectedCompanero] = useState<{ id: string, nombre: string, email: string } | null>(null);
+
+    // Handle Search functionality
+    async function handleSearch(query: string) {
+        setSearchQuery(query);
+        if (query.length < 2) {
+            setSearchResults([]);
+            return;
+        }
+
+        setIsSearching(true);
+        try {
+            const results = await buscarCompaneros(query);
+            setSearchResults(results);
+        } catch {
+            setSearchResults([]);
+        } finally {
+            setIsSearching(false);
+        }
+    }
+
     async function handleSubmit(formData: FormData) {
         setError(null);
         setSuccess(false);
+
+        if (!selectedCompanero) {
+            setError("Debes buscar y seleccionar a tu compañero antes de inscribirte.");
+            return;
+        }
+
+        formData.append("email_companero", selectedCompanero.email);
         formData.append("torneo_id", torneoId);
 
         startTransition(async () => {
@@ -75,18 +107,71 @@ export function InscribirParejaDialog({ torneoId, torneoNombre }: Props) {
                     </div>
                 ) : (
                     <form action={handleSubmit} className="space-y-4 mt-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="email_companero">Email de tu Compañero</Label>
-                            <Input
-                                id="email_companero"
-                                name="email_companero"
-                                type="email"
-                                placeholder="correo@ejemplo.com"
-                                required
-                                className="bg-neutral-950 border-neutral-800 focus:border-emerald-500"
-                            />
-                            <p className="text-xs text-neutral-500">
-                                Tu compañero debe tener ya una cuenta creada en ManilaPadelAPP con este correo.
+                        <div className="space-y-2 relative">
+                            <Label>Busca a tu Compañero (Por Nombre)</Label>
+
+                            {selectedCompanero ? (
+                                <div className="flex items-center justify-between bg-neutral-950 border border-emerald-500/50 p-3 rounded-lg">
+                                    <div>
+                                        <p className="font-bold text-emerald-400">{selectedCompanero.nombre}</p>
+                                        <p className="text-xs text-neutral-400">{selectedCompanero.email}</p>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setSelectedCompanero(null)}
+                                        className="text-neutral-500 hover:text-red-400 hover:bg-red-500/10"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </Button>
+                                    <input type="hidden" name="email_companero" value={selectedCompanero.email} />
+                                </div>
+                            ) : (
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Search className="w-4 h-4 text-neutral-500" />
+                                    </div>
+                                    <Input
+                                        type="text"
+                                        placeholder="Ej: Juan Pérez"
+                                        value={searchQuery}
+                                        onChange={(e) => handleSearch(e.target.value)}
+                                        className="bg-neutral-950 border-neutral-800 focus:border-emerald-500 pl-9"
+                                        autoComplete="off"
+                                    />
+
+                                    {searchQuery.length >= 2 && (
+                                        <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl overflow-hidden">
+                                            {isSearching ? (
+                                                <div className="p-3 text-sm text-center text-neutral-400">Buscando...</div>
+                                            ) : searchResults.length > 0 ? (
+                                                <div className="max-h-48 overflow-y-auto">
+                                                    {searchResults.map((user) => (
+                                                        <button
+                                                            key={user.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setSelectedCompanero(user);
+                                                                setSearchQuery("");
+                                                                setSearchResults([]);
+                                                            }}
+                                                            className="w-full text-left p-3 border-b border-neutral-800/50 hover:bg-neutral-800 transition-colors last:border-0"
+                                                        >
+                                                            <div className="font-bold text-white">{user.nombre}</div>
+                                                            <div className="text-xs text-neutral-400">{user.email}</div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="p-3 text-sm text-center text-neutral-400">No se encontraron jugadores</div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            <p className="text-[10px] text-neutral-500">
+                                Buscamos entre los usuarios que ya están registrados en la app.
                             </p>
                         </div>
 

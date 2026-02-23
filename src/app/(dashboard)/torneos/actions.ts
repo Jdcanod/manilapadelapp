@@ -103,3 +103,31 @@ export async function inscribirParejaTorneo(formData: FormData) {
     revalidatePath("/torneos");
     return { success: true };
 }
+
+export async function buscarCompaneros(query: string) {
+    if (!query || query.length < 2) return [];
+
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return [];
+
+    const { data: currentUserData } = await supabase
+        .from('users')
+        .select('email')
+        .eq('auth_id', user.id)
+        .single();
+
+    const currentEmail = currentUserData?.email || "";
+
+    const { data: matchUsers } = await supabase
+        .from('users')
+        .select('id, nombre, email')
+        .neq('rol', 'admin_club')
+        .neq('rol', 'superadmin')
+        .neq('email', currentEmail)
+        .ilike('nombre', `%${query}%`)
+        .limit(5);
+
+    return matchUsers || [];
+}
