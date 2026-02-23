@@ -240,6 +240,23 @@ export default async function PartidosPage() {
                                             Confirmar Resultado
                                         </Button>
                                     )}
+                                    {!match.isPast && match.creador_id === user.id && (
+                                        <BotonCancelarPartido
+                                            partidoId={match.id}
+                                            partidoFecha={match.fecha}
+                                            fullWidth={true}
+                                        />
+                                    )}
+                                    {!match.isPast && match.creador_id !== user.id && (
+                                        <BotonUnirsePartido
+                                            partidoId={match.id}
+                                            userId={user.id}
+                                            yaInscrito={true}
+                                            cuposDisponibles={match.cupos_disponibles}
+                                            partidoFecha={match.fecha}
+                                            fullWidth={true}
+                                        />
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
