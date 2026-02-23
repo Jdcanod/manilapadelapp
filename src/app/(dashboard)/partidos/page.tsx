@@ -9,6 +9,7 @@ import { createClient } from "@/utils/supabase/server";
 import { OrganizarPartidoDialog } from "@/components/OrganizarPartidoDialog";
 import { BotonUnirsePartido } from "@/components/BotonUnirsePartido";
 import { BotonCancelarPartido } from "@/components/BotonCancelarPartido";
+import { DetallePartidoDialog } from "@/components/DetallePartidoDialog";
 import { redirect } from "next/navigation";
 
 export default async function PartidosPage() {
@@ -29,7 +30,7 @@ export default async function PartidosPage() {
         redirect("/club");
     }
 
-    // Obtener los partidos reales de la BD, ordenados por fecha
+    // Obtener los partidos reales de la BD, ordenados por fecha, solo los que sean a futuro
     const { data: partidosReales } = await supabase
         .from('partidos')
         .select(`
@@ -37,6 +38,7 @@ export default async function PartidosPage() {
             creador:users(nombre)
         `)
         .eq('estado', 'abierto')
+        .gte('fecha', new Date().toISOString())
         .order('fecha', { ascending: true });
 
     // Obtener las inscripciones del usuario actual
@@ -63,15 +65,22 @@ export default async function PartidosPage() {
     const myMatches = (misPartidosReales || []).map(p => {
         const dt = new Date(p.fecha);
         const timeStr = dt.toLocaleString('es-CO', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const isPast = dt < new Date();
+
+        let statusDisplay = p.estado === 'abierto' ? 'Buscando Jugadores' : 'Cerrado';
+        if (isPast && p.estado === 'abierto') statusDisplay = 'Jugado';
+        else if (isPast && p.estado === 'cerrado') statusDisplay = 'Jugado';
 
         return {
+            ...p,
             id: p.id,
             club: p.lugar,
             time: timeStr,
             type: `${p.tipo_partido} - ${p.sexo} (Lvl ${p.nivel})`,
-            status: p.estado === 'abierto' ? 'Buscando Jugadores' : 'Cerrado',
+            status: statusDisplay,
             opponents: p.creador?.nombre || 'Jugadores',
-            estado_original: p.estado
+            estado_original: p.estado,
+            isPast
         };
     });
 
@@ -151,6 +160,14 @@ export default async function PartidosPage() {
                                                 <span className="text-sm font-bold text-neutral-300">
                                                     {match.precio_por_persona > 0 ? `$${match.precio_por_persona}` : 'Gratis'}
                                                 </span>
+                                                <DetallePartidoDialog
+                                                    partido={match}
+                                                    trigger={
+                                                        <Button variant="outline" className="border-neutral-700 hover:bg-neutral-800 text-neutral-300">
+                                                            Ver Detalles
+                                                        </Button>
+                                                    }
+                                                />
                                                 {match.creador_id === user.id ? (
                                                     <div className="flex items-center gap-2 bg-neutral-900 border border-neutral-800 rounded-md p-1">
                                                         <Badge variant="outline" className="border-0 text-emerald-500 font-semibold bg-transparent shadow-none hover:bg-transparent cursor-default">
@@ -196,14 +213,30 @@ export default async function PartidosPage() {
                                         <span className="flex items-center"><MapPin className="w-4 h-4 mr-1.5" /> {match.club}</span>
                                     </div>
                                 </div>
-                                <div className="flex md:flex-col gap-3 w-full md:w-auto">
-                                    <Link href={`/partidos/${match.id}`} className="w-full">
-                                        <Button variant="secondary" className="w-full bg-neutral-800 hover:bg-neutral-700 text-white">Detalles</Button>
-                                    </Link>
-                                    <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20 hidden group-hover:flex">
-                                        <Swords className="w-4 h-4 mr-2" />
-                                        Confirmar Resultado
-                                    </Button>
+                                <div className="flex flex-col gap-3 w-full md:w-auto">
+                                    <DetallePartidoDialog
+                                        partido={{
+                                            ...match,
+                                            fecha: match.fecha,
+                                            lugar: match.lugar,
+                                            nivel: match.nivel,
+                                            sexo: match.sexo,
+                                            tipo_partido: match.tipo_partido,
+                                            estado: match.estado_original,
+                                            cupos_disponibles: match.cupos_disponibles,
+                                            precio_por_persona: match.precio_por_persona,
+                                            creador: { nombre: match.creador?.nombre || 'Organizador' }
+                                        }}
+                                        trigger={
+                                            <Button variant="secondary" className="w-full bg-neutral-800 hover:bg-neutral-700 text-white">Detalles</Button>
+                                        }
+                                    />
+                                    {match.isPast && match.creador_id === user.id && (
+                                        <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20 hidden group-hover:flex">
+                                            <Swords className="w-4 h-4 mr-2" />
+                                            Confirmar Resultado
+                                        </Button>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
