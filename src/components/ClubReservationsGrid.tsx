@@ -21,9 +21,10 @@ interface Props {
     courts: string[];
     timeSlots: string[];
     reservations: Reservation[];
+    currentDateStr?: string;
 }
 
-export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, reservations }: Props) {
+export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, reservations, currentDateStr }: Props) {
     const [open, setOpen] = useState(false);
     const [selectedCourt, setSelectedCourt] = useState<string>("");
     const [selectedTime, setSelectedTime] = useState<string>("");
@@ -113,6 +114,7 @@ export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, re
                 timeSlots={timeSlots}
                 defaultCourt={selectedCourt}
                 defaultTime={selectedTime}
+                defaultDate={currentDateStr}
                 openState={open}
                 onOpenChange={setOpen}
                 trigger={<span className="hidden"></span>}

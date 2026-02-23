@@ -21,9 +21,10 @@ interface Props {
     onOpenChange?: (open: boolean) => void;
     defaultCourt?: string;
     defaultTime?: string;
+    defaultDate?: string;
 }
 
-export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, trigger, openState, onOpenChange, defaultCourt, defaultTime }: Props) {
+export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, trigger, openState, onOpenChange, defaultCourt, defaultTime, defaultDate }: Props) {
     const [internalOpen, setInternalOpen] = useState(false);
 
     const open = openState !== undefined ? openState : internalOpen;
@@ -234,6 +235,8 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                                 name="dia"
                                 type="date"
                                 required
+                                defaultValue={defaultDate}
+                                key={defaultDate || "date"}
                                 className="bg-neutral-950 border-neutral-800 text-neutral-100"
                                 style={{ colorScheme: 'dark' }}
                             />

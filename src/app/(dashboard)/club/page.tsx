@@ -1,12 +1,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { ReservaManualDialog } from "@/components/ReservaManualDialog";
 import { ClubReservationsGrid } from "@/components/ClubReservationsGrid";
-import { CheckCircle, CalendarRange, Clock } from "lucide-react";
+import { ClubDateNavigator } from "@/components/ClubDateNavigator";
+import { CheckCircle, CalendarRange } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
-export default async function ClubDashboard() {
+export const dynamic = 'force-dynamic';
+
+export default async function ClubDashboard({ searchParams }: { searchParams: { date?: string } }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -29,22 +31,29 @@ export default async function ClubDashboard() {
         .select('*', { count: 'exact', head: true })
         .eq('estado', 'abierto');
 
-    const date = "Hoy";
-
     // Data for the reservation grid
     const courts = ["Cancha 1 (Panorámica)", "Cancha 2", "Cancha 3", "Cancha 4"];
     const timeSlots = ["16:00", "17:30", "19:00", "20:30", "22:00"];
 
-    const todayDate = new Date();
-    todayDate.setHours(0, 0, 0, 0);
-    const tomorrowDate = new Date(todayDate);
+    let targetDate = new Date();
+    if (searchParams?.date) {
+        const [y, m, d] = searchParams.date.split('-');
+        if (y && m && d) {
+            targetDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        }
+    }
+
+    // Ensure we start exactly at midnight of target date
+    targetDate.setHours(0, 0, 0, 0);
+
+    const tomorrowDate = new Date(targetDate);
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
 
     const { data: partidosData } = await supabase
         .from('partidos')
         .select('*')
         .like('lugar', `${nombreClub}%`)
-        .gte('fecha', todayDate.toISOString())
+        .gte('fecha', targetDate.toISOString())
         .lt('fecha', tomorrowDate.toISOString());
 
     const reservations = (partidosData || []).map(p => {
@@ -71,6 +80,27 @@ export default async function ClubDashboard() {
             status: p.estado
         };
     }).filter(r => r.courtIndex >= 0 && r.timeIndex >= 0);
+
+    // Format display strings
+    const actualToday = new Date();
+    actualToday.setHours(0, 0, 0, 0);
+    const diffTime = targetDate.getTime() - actualToday.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
+
+    let displayDate = "Hoy";
+    if (diffDays === 1) displayDate = "Mañana";
+    else if (diffDays === -1) displayDate = "Ayer";
+    else if (diffDays !== 0) {
+        // Formato: "Mié, 15 may"
+        const formatter = new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+        const parts = formatter.formatToParts(targetDate);
+        const weekStr = parts.find(p => p.type === 'weekday')?.value || '';
+        const dayStr = parts.find(p => p.type === 'day')?.value || '';
+        const monthStr = parts.find(p => p.type === 'month')?.value || '';
+        displayDate = `${weekStr.charAt(0).toUpperCase() + weekStr.slice(1)}, ${dayStr} ${monthStr}`;
+    }
+
+    const currentDateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
 
     return (
         <div className="space-y-6">
@@ -119,14 +149,13 @@ export default async function ClubDashboard() {
                         <CardDescription className="text-neutral-400">Panel central para administrar turnos y canchas.</CardDescription>
                     </div>
                     <div className="flex items-center gap-3 mt-4 sm:mt-0 w-full sm:w-auto">
-                        <Button variant="outline" className="flex-1 sm:flex-none bg-neutral-950 border-neutral-700 text-white">
-                            <Clock className="w-4 h-4 mr-2" /> {date}
-                        </Button>
+                        <ClubDateNavigator currentDateStr={currentDateStr} displayDate={displayDate} />
                         <ReservaManualDialog
                             userId={user.id}
                             clubNombre={nombreClub}
                             courts={courts}
                             timeSlots={timeSlots}
+                            defaultDate={currentDateStr}
                         />
                     </div>
                 </CardHeader>
@@ -136,6 +165,7 @@ export default async function ClubDashboard() {
                         clubNombre={nombreClub}
                         courts={courts}
                         timeSlots={timeSlots}
+                        currentDateStr={currentDateStr}
                         reservations={reservations}
                     />
                 </CardContent>
