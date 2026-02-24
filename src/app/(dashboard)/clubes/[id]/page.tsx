@@ -2,10 +2,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MapPin, Star, Calendar, Info, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, Star, Calendar, Info, ChevronLeft, ChevronRight, UserPlus } from "lucide-react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { BotonUnirsePartido } from "@/components/BotonUnirsePartido";
+import { BotonCancelarPartido } from "@/components/BotonCancelarPartido";
 import { OrganizarPartidoDialog } from "@/components/OrganizarPartidoDialog";
 import { PlayerReservationsGrid } from "@/components/PlayerReservationsGrid";
 import { NovedadesList } from "@/app/(dashboard)/novedades/NovedadesList";
@@ -31,6 +32,15 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
         .eq('auth_id', params.id)
         .single();
 
+    // Obtener el perfil del usuario actual (jugador logueado)
+    const { data: currentUserProfile } = await supabase
+        .from('users')
+        .select('id')
+        .eq('auth_id', user.id)
+        .single();
+
+    const currentProfileId = currentUserProfile?.id || user.id;
+
     if (error || !clubData) {
         console.error("Club no encontrado", error, params.id);
         redirect("/clubes");
@@ -43,8 +53,10 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
     const courts = Array.from({ length: courtsCount }, (_, i) => `Cancha ${i + 1}`);
 
     const timeSlots = [
-        "07:00", "08:30", "10:00", "11:30", "13:00",
-        "14:30", "16:00", "17:30", "19:00", "20:30", "22:00", "23:30"
+        "06:00", "06:30", "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
+        "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30",
+        "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30", "20:00", "20:30",
+        "21:00", "21:30", "22:00", "22:30", "23:00", "23:30"
     ];
 
     let todayDate = new Date();
@@ -87,10 +99,12 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
 
     const reservations = (partidosHoy || []).map(p => {
         const dt = new Date(p.fecha || new Date());
-        // Ajustar a UTC-5 para extraer la hora local del club ignorando el UTC timezone del server
-        const offsetMs = -5 * 60 * 60 * 1000;
-        const localDt = new Date(dt.getTime() + offsetMs);
-        const timeStr = `${localDt.getUTCHours().toString().padStart(2, '0')}:${localDt.getUTCMinutes().toString().padStart(2, '0')}`;
+        // Ajustar a la zona horaria de Colombia para extraer la hora local
+        const timeStr = dt.toLocaleString('en-GB', {
+            timeZone: 'America/Bogota',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
         const timeIndex = timeSlots.indexOf(timeStr);
 
         const lugarStr = p.lugar || "";
@@ -122,7 +136,7 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
         .from('partidos')
         .select(`
             *,
-            creador:users(nombre)
+            creador:users!creador_id(nombre)
         `)
         .eq('estado', 'abierto')
         .gte('fecha', new Date().toISOString())
@@ -134,7 +148,7 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
         .from('partidos')
         .select(`
             *,
-            creador:users(nombre)
+            creador:users!creador_id(nombre)
         `)
         .lt('fecha', new Date().toISOString())
         .like('lugar', `${clubNombre}%`)
@@ -273,7 +287,18 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
                                             </div>
 
                                             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
-                                                {match.creador_id !== user.id && (
+                                                {match.creador_id === user.id ? (
+                                                    <div className="flex items-center bg-neutral-900 border border-neutral-800 rounded-md p-1 pl-2 shrink-0 h-9">
+                                                        <span className="text-xs text-emerald-500 font-semibold hidden md:inline-flex items-center mr-1">
+                                                            <UserPlus className="w-4 h-4 mr-1" />
+                                                            Organizador
+                                                        </span>
+                                                        <BotonCancelarPartido
+                                                            partidoId={match.id}
+                                                            partidoFecha={match.fecha}
+                                                        />
+                                                    </div>
+                                                ) : (
                                                     <BotonUnirsePartido
                                                         partidoId={match.id}
                                                         userId={user.id}

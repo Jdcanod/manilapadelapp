@@ -55,7 +55,7 @@ export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, cou
                     {/* Timeline Column */}
                     <div className="flex flex-col w-[80px] shrink-0 border-r border-neutral-800 pr-4 mr-4 mt-[40px]">
                         {timeSlots.map((time, idx) => (
-                            <div key={idx} className="h-[80px] flex items-start justify-end pr-2 text-xs font-medium text-neutral-500 transform -translate-y-2">
+                            <div key={idx} className="h-[50px] flex items-start justify-end pr-2 text-xs font-medium text-neutral-500 transform -translate-y-2">
                                 {time}
                             </div>
                         ))}
@@ -79,7 +79,7 @@ export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, cou
                                         if (!reservation) {
                                             if (isPast) {
                                                 return (
-                                                    <div key={tIdx} className="h-[80px] relative w-full mb-2">
+                                                    <div key={tIdx} className="h-[50px] relative w-full mb-2">
                                                         <div className="absolute inset-0 bg-neutral-900 border border-neutral-800/50 rounded-lg flex items-center justify-center opacity-50">
                                                             <span className="text-xs font-medium text-neutral-600">No Disponible</span>
                                                         </div>
@@ -88,7 +88,7 @@ export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, cou
                                             }
 
                                             return (
-                                                <div key={tIdx} className="h-[80px] relative w-full mb-2 group">
+                                                <div key={tIdx} className="h-[50px] relative w-full mb-2 group">
                                                     <div
                                                         className="absolute inset-0 bg-emerald-500/5 border border-emerald-500/20 rounded-lg flex items-center justify-center cursor-pointer hover:bg-emerald-500/10 transition-colors"
                                                         onClick={() => handleSlotClick(court, time)}
@@ -103,7 +103,7 @@ export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, cou
                                         const isAbierto = reservation.status === 'abierto' || reservation.player === 'Partido Abierto';
 
                                         return (
-                                            <div key={tIdx} className="h-[80px] relative w-full mb-2">
+                                            <div key={tIdx} className="h-[50px] relative w-full mb-2">
                                                 <div className={`absolute inset-0 rounded-lg p-3 z-10 flex flex-col justify-between shadow-md ${isAbierto ? 'bg-amber-500/10 border border-amber-500/50' : 'bg-neutral-900 border border-neutral-800 opacity-60'
                                                     }`}>
                                                     <div className="flex justify-between items-start">

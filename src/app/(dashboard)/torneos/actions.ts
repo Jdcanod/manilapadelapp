@@ -101,6 +101,7 @@ export async function inscribirParejaTorneo(formData: FormData) {
     }
 
     revalidatePath("/torneos");
+    revalidatePath("/partidos");
     return { success: true };
 }
 

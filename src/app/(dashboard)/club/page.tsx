@@ -39,8 +39,10 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
     // Data for the reservation grid
     const courts = ["Cancha 1 (Panorámica)", "Cancha 2", "Cancha 3", "Cancha 4"];
     const timeSlots = [
-        "07:00", "08:30", "10:00", "11:30", "13:00",
-        "14:30", "16:00", "17:30", "19:00", "20:30", "22:00", "23:30"
+        "06:00", "06:30", "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
+        "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30",
+        "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30", "20:00", "20:30",
+        "21:00", "21:30", "22:00", "22:30", "23:00", "23:30"
     ];
 
     const targetDate = new Date();
@@ -72,7 +74,12 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
 
     const reservations = (partidosData || []).map(p => {
         const dt = new Date(p.fecha || new Date());
-        const timeStr = `${dt.getUTCHours().toString().padStart(2, '0')}:${dt.getUTCMinutes().toString().padStart(2, '0')}`;
+        // Obtener hora en formato HH:mm usando la zona horaria de Colombia
+        const timeStr = dt.toLocaleString('en-GB', {
+            timeZone: 'America/Bogota',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
         const timeIndex = timeSlots.indexOf(timeStr);
 
         const lugarStr = p.lugar || "";

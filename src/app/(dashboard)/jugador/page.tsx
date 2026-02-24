@@ -34,7 +34,7 @@ export default async function JugadorDashboard() {
     const { data: misInscripciones } = await supabase
         .from('partido_jugadores')
         .select('partido_id')
-        .eq('jugador_id', user.id);
+        .eq('jugador_id', userData?.id || user.id);
 
     const misPartidosIds = misInscripciones?.map(i => i.partido_id) || [];
 
@@ -45,10 +45,12 @@ export default async function JugadorDashboard() {
         .order('fecha', { ascending: true })
         .limit(1);
 
+    const currentProfileId = user.id;
+
     if (misPartidosIds.length > 0) {
-        queryPartidos = queryPartidos.or(`creador_id.eq.${user.id},id.in.(${misPartidosIds.join(',')})`);
+        queryPartidos = queryPartidos.or(`creador_id.eq.${currentProfileId},id.in.(${misPartidosIds.join(',')})`);
     } else {
-        queryPartidos = queryPartidos.eq('creador_id', user.id);
+        queryPartidos = queryPartidos.eq('creador_id', currentProfileId);
     }
 
     const { data: misProximosPartidos } = await queryPartidos;
@@ -148,10 +150,10 @@ export default async function JugadorDashboard() {
                                     <div className="flex items-center gap-4 flex-1">
                                         <div className="text-center w-24 shrink-0 border-r border-neutral-800 pr-4">
                                             <div className="text-sm font-medium text-emerald-500">
-                                                {new Date(proximoPartido.fecha).toLocaleDateString('es-CO', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                                {new Date(proximoPartido.fecha).toLocaleDateString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', month: 'short', day: 'numeric' })}
                                             </div>
                                             <div className="text-2xl font-black text-white tracking-tighter">
-                                                {new Date(proximoPartido.fecha).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                                                {new Date(proximoPartido.fecha).toLocaleTimeString('es-CO', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit' })}
                                             </div>
                                         </div>
                                         <div>
@@ -208,10 +210,10 @@ export default async function JugadorDashboard() {
                                         <div className="flex items-center gap-4 flex-1">
                                             <div className="text-center w-20 shrink-0 border-r border-neutral-800 pr-4">
                                                 <div className="text-xs font-medium text-emerald-500">
-                                                    {new Date(partido.fecha).toLocaleDateString('es-CO', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                                    {new Date(partido.fecha).toLocaleDateString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', month: 'short', day: 'numeric' })}
                                                 </div>
                                                 <div className="text-xl font-black text-white tracking-tighter">
-                                                    {new Date(partido.fecha).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                                                    {new Date(partido.fecha).toLocaleTimeString('es-CO', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             </div>
                                             <div>

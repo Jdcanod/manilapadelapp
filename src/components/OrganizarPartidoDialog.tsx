@@ -57,7 +57,17 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
         setLoading(true);
 
         const formData = new FormData(e.currentTarget);
-        const fecha = formData.get("fecha") as string;
+        const fechaInput = formData.get("fecha") as string; // Format: "YYYY-MM-DDTHH:mm"
+
+        let fechaISO = "";
+        try {
+            // Forzar interpretación como hora local de Colombia (UTC-5)
+            const dateObj = new Date(`${fechaInput}:00-05:00`);
+            fechaISO = dateObj.toISOString();
+        } catch (err) {
+            console.error("Error parsing date:", err);
+            fechaISO = new Date(fechaInput).toISOString();
+        }
 
         let lugar = formData.get("lugar") as string;
         if (lugar === "Otro") {
@@ -75,7 +85,7 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
         try {
             const { error } = await supabase.from("partidos").insert({
                 creador_id: userId,
-                fecha: new Date(fecha).toISOString(),
+                fecha: fechaISO,
                 lugar,
                 nivel,
                 sexo,
@@ -134,6 +144,7 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
                                 name="fecha"
                                 type="datetime-local"
                                 required
+                                step="1800"
                                 defaultValue={defaultFecha}
                                 className="bg-neutral-950 border-neutral-800 [color-scheme:dark]"
                             />

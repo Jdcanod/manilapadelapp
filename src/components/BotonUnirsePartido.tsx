@@ -14,9 +14,20 @@ interface BotonUnirseProps {
     cuposDisponibles: number;
     partidoFecha: string;
     fullWidth?: boolean;
+    partidoCreadorId?: string; // Nuevo
+    showLeaveButtonOnly?: boolean; // Nuevo
 }
 
-export function BotonUnirsePartido({ partidoId, userId, yaInscrito, cuposDisponibles, partidoFecha, fullWidth = false }: BotonUnirseProps) {
+export function BotonUnirsePartido({
+    partidoId,
+    userId,
+    yaInscrito,
+    cuposDisponibles,
+    partidoFecha,
+    fullWidth = false,
+    partidoCreadorId,
+    showLeaveButtonOnly = false
+}: BotonUnirseProps) {
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
@@ -84,6 +95,12 @@ export function BotonUnirsePartido({ partidoId, userId, yaInscrito, cuposDisponi
     };
 
     if (yaInscrito) {
+        // Si el usuario es el creador, no debería ver este botón (para eso está BotonCancelar)
+        // Pero por si acaso, lo manejamos
+        if (userId === partidoCreadorId && !showLeaveButtonOnly) {
+            return null;
+        }
+
         // Calcular si faltan menos de 2 horas
         const matchTime = new Date(partidoFecha).getTime();
         const now = new Date().getTime();
@@ -104,6 +121,8 @@ export function BotonUnirsePartido({ partidoId, userId, yaInscrito, cuposDisponi
             </Button>
         );
     }
+
+    if (showLeaveButtonOnly) return null; // No mostramos "Me Apunto" si solo queríamos el de salir
 
     if (cuposDisponibles <= 0) {
         return (

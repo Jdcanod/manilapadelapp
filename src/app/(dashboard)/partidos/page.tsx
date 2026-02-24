@@ -22,7 +22,7 @@ export default async function PartidosPage() {
 
     const { data: userData } = await supabase
         .from('users')
-        .select('rol')
+        .select('id, rol')
         .eq('auth_id', user.id)
         .single();
 
@@ -38,7 +38,7 @@ export default async function PartidosPage() {
         .from('partidos')
         .select(`
             *,
-            creador:users(nombre)
+            creador:users!creador_id(nombre)
         `)
         .eq('estado', 'abierto')
         .gte('fecha', new Date().toISOString())
@@ -52,16 +52,18 @@ export default async function PartidosPage() {
 
     const inscritosSet = new Set(misInscripciones?.map(i => i.partido_id) || []);
 
+    const currentProfileId = userData?.id || user.id;
+
     let orQuery = `creador_id.eq.${user.id}`;
     if (misInscripciones && misInscripciones.length > 0) {
         // Envolver IDs en comillas para UUID si es necesario o unirlos directamente
         const idsJoin = misInscripciones.map(i => i.partido_id).join(',');
-        orQuery += `,id.in.(${idsJoin})`;
+        orQuery = `creador_id.eq.${user.id},id.in.(${idsJoin})`;
     }
 
     const { data: misPartidosReales } = await supabase
         .from('partidos')
-        .select(`*, creador:users(nombre)`)
+        .select(`*, creador:users!creador_id(nombre)`)
         .or(orQuery)
         .order('fecha', { ascending: true });
 
@@ -69,7 +71,7 @@ export default async function PartidosPage() {
     const { data: misParejas } = await supabase
         .from('parejas')
         .select('id')
-        .or(`jugador1_id.eq.${user.id},jugador2_id.eq.${user.id}`);
+        .or(`jugador1_id.eq.${currentProfileId},jugador2_id.eq.${currentProfileId}`);
 
     const misParejasIds = misParejas?.map(p => p.id) || [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -253,103 +255,112 @@ export default async function PartidosPage() {
                 </TabsContent>
 
                 <TabsContent value="mis-partidos" className="space-y-4">
-                    {allMyEntries.map((match) => {
-                        // REnder alternativo para Torneos
-                        if (match.isTournament) {
+                    {allMyEntries.length === 0 ? (
+                        <div className="text-center py-12 text-neutral-500 border border-neutral-800 border-dashed rounded-xl bg-neutral-900/30">
+                            <Trophy className="w-12 h-12 text-neutral-700 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-neutral-300 mb-2">Aún no tienes partidos</h3>
+                            <p className="mb-4">No estás inscrito ni has organizado partidos recientemente.</p>
+                        </div>
+                    ) : (
+                        allMyEntries.map((match) => {
+                            // REnder alternativo para Torneos
+                            if (match.isTournament) {
+                                return (
+                                    <Card key={match.id} className="bg-neutral-900/80 border-amber-900/50 relative overflow-hidden group hover:bg-neutral-900 transition-colors">
+                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
+                                        <CardContent className="p-6 flex flex-col md:flex-row justify-between items-center gap-6">
+                                            <div className="flex-1 w-full text-center md:text-left">
+                                                <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+                                                    <Badge className="bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 border-0">{match.status}</Badge>
+                                                    <Badge variant="outline" className="border-neutral-700 text-neutral-400">{match.type}</Badge>
+                                                </div>
+                                                <h3 className="text-xl font-bold text-white mb-1">
+                                                    <Trophy className="inline w-5 h-5 mr-1.5 text-amber-500 mb-0.5" />
+                                                    {match.torneo_nombre}
+                                                </h3>
+                                                <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 sm:gap-6 text-sm text-neutral-400">
+                                                    <span className="flex items-center"><Calendar className="w-4 h-4 mr-1.5 text-neutral-500" /> {match.time}</span>
+                                                    <span className="flex items-center"><MapPin className="w-4 h-4 mr-1.5 text-neutral-500" /> {match.club}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col gap-3 w-full md:w-auto text-center shrink-0">
+                                                <div className="bg-neutral-950 px-4 py-2 rounded-lg border border-neutral-800">
+                                                    <div className="text-[10px] text-neutral-500 uppercase">Pareja Inscrita</div>
+                                                    <div className="text-sm font-bold text-white leading-tight mt-0.5 mb-1">{match.opponents}</div>
+                                                    <div className={`text-[10px] uppercase font-bold mt-1 ${match.estado_pago === 'pagado' ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                                        Pago: {match.estado_pago}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )
+                            }
+
+                            // Render normal para Partidos Estándar
                             return (
-                                <Card key={match.id} className="bg-neutral-900/80 border-amber-900/50 relative overflow-hidden group hover:bg-neutral-900 transition-colors">
-                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
+                                <Card key={match.id} className="bg-neutral-900/80 border-neutral-800 relative overflow-hidden group hover:bg-neutral-900 transition-colors">
+                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
                                     <CardContent className="p-6 flex flex-col md:flex-row justify-between items-center gap-6">
                                         <div className="flex-1 w-full text-center md:text-left">
                                             <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-                                                <Badge className="bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 border-0">{match.status}</Badge>
+                                                <Badge className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-0">{match.status}</Badge>
                                                 <Badge variant="outline" className="border-neutral-700 text-neutral-400">{match.type}</Badge>
                                             </div>
-                                            <h3 className="text-xl font-bold text-white mb-1">
-                                                <Trophy className="inline w-5 h-5 mr-1.5 text-amber-500 mb-0.5" />
-                                                {match.torneo_nombre}
-                                            </h3>
+                                            <h3 className="text-xl font-bold text-white mb-1">vs {match.opponents}</h3>
                                             <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 sm:gap-6 text-sm text-neutral-400">
-                                                <span className="flex items-center"><Calendar className="w-4 h-4 mr-1.5 text-neutral-500" /> {match.time}</span>
-                                                <span className="flex items-center"><MapPin className="w-4 h-4 mr-1.5 text-neutral-500" /> {match.club}</span>
+                                                <span className="flex items-center"><Calendar className="w-4 h-4 mr-1.5" /> {match.time}</span>
+                                                <span className="flex items-center"><MapPin className="w-4 h-4 mr-1.5" /> {match.club}</span>
                                             </div>
                                         </div>
-                                        <div className="flex flex-col gap-3 w-full md:w-auto text-center shrink-0">
-                                            <div className="bg-neutral-950 px-4 py-2 rounded-lg border border-neutral-800">
-                                                <div className="text-[10px] text-neutral-500 uppercase">Pareja Inscrita</div>
-                                                <div className="text-sm font-bold text-white leading-tight mt-0.5 mb-1">{match.opponents}</div>
-                                                <div className={`text-[10px] uppercase font-bold mt-1 ${match.estado_pago === 'pagado' ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                                    Pago: {match.estado_pago}
-                                                </div>
-                                            </div>
+                                        <div className="flex flex-col gap-3 w-full md:w-auto">
+                                            <DetallePartidoDialog
+                                                partido={{
+                                                    ...match,
+                                                    fecha: match.fecha,
+                                                    lugar: match.lugar,
+                                                    nivel: match.nivel,
+                                                    sexo: match.sexo,
+                                                    tipo_partido: match.tipo_partido,
+                                                    estado: match.estado_original,
+                                                    cupos_disponibles: match.cupos_disponibles,
+                                                    precio_por_persona: match.precio_por_persona,
+                                                    creador: { nombre: match.creador?.nombre || 'Organizador' }
+                                                }}
+                                                trigger={
+                                                    <Button variant="secondary" className="w-full bg-neutral-800 hover:bg-neutral-700 text-white">Detalles</Button>
+                                                }
+                                            />
+                                            {match.isPast && match.creador_id === user.id && (
+                                                <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20 hidden group-hover:flex">
+                                                    <Swords className="w-4 h-4 mr-2" />
+                                                    Confirmar Resultado
+                                                </Button>
+                                            )}
+                                            {!match.isPast && match.creador_id === user.id && (
+                                                <BotonCancelarPartido
+                                                    partidoId={match.id}
+                                                    partidoFecha={match.fecha}
+                                                    fullWidth={true}
+                                                />
+                                            )}
+                                            {!match.isPast && match.creador_id !== user.id && (
+                                                <BotonUnirsePartido
+                                                    partidoId={match.id}
+                                                    userId={user.id}
+                                                    yaInscrito={true}
+                                                    cuposDisponibles={match.cupos_disponibles}
+                                                    partidoFecha={match.fecha}
+                                                    partidoCreadorId={match.creador_id}
+                                                    showLeaveButtonOnly={true}
+                                                />
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
                             )
-                        }
-
-                        // Render normal para Partidos Estándar
-                        return (
-                            <Card key={match.id} className="bg-neutral-900/80 border-neutral-800 relative overflow-hidden group hover:bg-neutral-900 transition-colors">
-                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
-                                <CardContent className="p-6 flex flex-col md:flex-row justify-between items-center gap-6">
-                                    <div className="flex-1 w-full text-center md:text-left">
-                                        <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-                                            <Badge className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-0">{match.status}</Badge>
-                                            <Badge variant="outline" className="border-neutral-700 text-neutral-400">{match.type}</Badge>
-                                        </div>
-                                        <h3 className="text-xl font-bold text-white mb-1">vs {match.opponents}</h3>
-                                        <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 sm:gap-6 text-sm text-neutral-400">
-                                            <span className="flex items-center"><Calendar className="w-4 h-4 mr-1.5" /> {match.time}</span>
-                                            <span className="flex items-center"><MapPin className="w-4 h-4 mr-1.5" /> {match.club}</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col gap-3 w-full md:w-auto">
-                                        <DetallePartidoDialog
-                                            partido={{
-                                                ...match,
-                                                fecha: match.fecha,
-                                                lugar: match.lugar,
-                                                nivel: match.nivel,
-                                                sexo: match.sexo,
-                                                tipo_partido: match.tipo_partido,
-                                                estado: match.estado_original,
-                                                cupos_disponibles: match.cupos_disponibles,
-                                                precio_por_persona: match.precio_por_persona,
-                                                creador: { nombre: match.creador?.nombre || 'Organizador' }
-                                            }}
-                                            trigger={
-                                                <Button variant="secondary" className="w-full bg-neutral-800 hover:bg-neutral-700 text-white">Detalles</Button>
-                                            }
-                                        />
-                                        {match.isPast && match.creador_id === user.id && (
-                                            <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20 hidden group-hover:flex">
-                                                <Swords className="w-4 h-4 mr-2" />
-                                                Confirmar Resultado
-                                            </Button>
-                                        )}
-                                        {!match.isPast && match.creador_id === user.id && (
-                                            <BotonCancelarPartido
-                                                partidoId={match.id}
-                                                partidoFecha={match.fecha}
-                                                fullWidth={true}
-                                            />
-                                        )}
-                                        {!match.isPast && match.creador_id !== user.id && (
-                                            <BotonUnirsePartido
-                                                partidoId={match.id}
-                                                userId={user.id}
-                                                yaInscrito={true}
-                                                cuposDisponibles={match.cupos_disponibles}
-                                                partidoFecha={match.fecha}
-                                                fullWidth={true}
-                                            />
-                                        )}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )
-                    })}
+                        })
+                    )}
                 </TabsContent>
             </Tabs>
         </div>

@@ -45,7 +45,7 @@ export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, re
                     {/* Timeline Column */}
                     <div className="flex flex-col w-[80px] shrink-0 border-r border-neutral-800 pr-4 mr-4 mt-[40px]">
                         {timeSlots.map((time, idx) => (
-                            <div key={idx} className="h-[80px] flex items-start justify-end pr-2 text-xs font-medium text-neutral-500 transform -translate-y-2">
+                            <div key={idx} className="h-[50px] flex items-start justify-end pr-2 text-xs font-medium text-neutral-500 transform -translate-y-2">
                                 {time}
                             </div>
                         ))}
@@ -62,7 +62,7 @@ export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, re
                                     {timeSlots.map((time, tIdx) => {
                                         const reservation = reservations.find(r => r.courtIndex === cIdx && r.timeIndex === tIdx);
                                         return (
-                                            <div key={tIdx} className="h-[80px] relative w-full mb-2 group">
+                                            <div key={tIdx} className="h-[50px] relative w-full mb-2 group">
                                                 {/* Empty slot background */}
                                                 <div
                                                     className="absolute inset-0 bg-neutral-950/30 border border-neutral-800/50 border-dashed rounded-lg opacity-20 transition-opacity hover:opacity-100 flex items-center justify-center cursor-pointer hover:bg-emerald-900/10"
