@@ -1,9 +1,10 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { ChevronLeft, CalendarDays, Users, Swords } from "lucide-react";
+import { ChevronLeft, CalendarDays, Users, Swords, Trophy } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default async function TorneoDetailsPage({ params }: { params: { id: string } }) {
     const supabase = createClient();
@@ -136,10 +137,135 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                 </TabsContent>
 
                 <TabsContent value="cuadros" className="mt-6">
-                    <div className="text-center py-12 text-neutral-500 border border-neutral-800 border-dashed rounded-xl bg-neutral-900/30">
-                        <Swords className="w-12 h-12 text-neutral-700 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-neutral-300 mb-2">Cuadros en construcción</h3>
-                        <p className="max-w-md mx-auto">Una vez cierres las inscripciones, podrás configurar cómo quedarán armados los grupos de juego.</p>
+                    {/* Simulated Tournament Bracket View */}
+                    <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <h3 className="text-xl font-bold text-white mb-1">Cuadro Principal - 1ra Categoría</h3>
+                                <p className="text-sm text-neutral-400">Eliminatoria Directa</p>
+                            </div>
+                            <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">
+                                Oficial
+                            </Badge>
+                        </div>
+
+                        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 relative overflow-x-auto pb-4">
+                            {/* Line connections for desktop */}
+                            <div className="hidden lg:block absolute inset-0 pointer-events-none w-full h-full z-0">
+                                <svg className="w-full h-full" style={{ minWidth: "600px" }}>
+                                    {/* Semis to Final Lines */}
+                                    <path d="M 280 80 L 320 80 L 320 180 L 360 180" fill="none" stroke="#262626" strokeWidth="2" />
+                                    <path d="M 280 280 L 320 280 L 320 180 L 360 180" fill="none" stroke="#262626" strokeWidth="2" />
+                                </svg>
+                            </div>
+
+                            {/* Semifinals */}
+                            <div className="flex flex-col gap-8 lg:gap-24 w-full lg:w-72 z-10 shrink-0">
+                                <div className="text-sm font-bold text-neutral-500 uppercase tracking-wider mb-2 lg:mb-0 lg:absolute lg:top-[-20px]">Semifinales</div>
+
+                                {/* Match 1 */}
+                                <Card className="bg-neutral-950 border-neutral-800 relative z-10 shadow-xl">
+                                    <CardContent className="p-0">
+                                        <div className="flex justify-between items-center p-3 border-b border-neutral-800/50 bg-neutral-900/50">
+                                            <span className="text-xs text-neutral-500">SF1 • Pista Central</span>
+                                            <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-400 text-[10px] uppercase">Finalizado</Badge>
+                                        </div>
+                                        <div className="p-3 bg-neutral-900/40 font-medium">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+                                                    <span className="text-white text-sm">Nadal & Alcaraz</span>
+                                                </div>
+                                                <div className="flex gap-1.5">
+                                                    <span className="w-6 h-6 flex items-center justify-center bg-white text-black font-bold text-xs rounded-sm">6</span>
+                                                    <span className="w-6 h-6 flex items-center justify-center bg-white text-black font-bold text-xs rounded-sm">6</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-center opacity-50">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-transparent"></span>
+                                                    <span className="text-white text-sm">Murray & Zverev</span>
+                                                </div>
+                                                <div className="flex gap-1.5 grayscale">
+                                                    <span className="w-6 h-6 flex items-center justify-center bg-neutral-700 text-neutral-300 font-bold text-xs rounded-sm">2</span>
+                                                    <span className="w-6 h-6 flex items-center justify-center bg-neutral-700 text-neutral-300 font-bold text-xs rounded-sm">4</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Match 2 */}
+                                <Card className="bg-neutral-950 border-neutral-800 relative z-10 shadow-xl">
+                                    <CardContent className="p-0">
+                                        <div className="flex justify-between items-center p-3 border-b border-neutral-800/50 bg-neutral-900/50">
+                                            <span className="text-xs text-neutral-500">SF2 • Pista Master</span>
+                                            <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-400 text-[10px] uppercase">Finalizado</Badge>
+                                        </div>
+                                        <div className="p-3 bg-neutral-900/40 font-medium">
+                                            <div className="flex justify-between items-center mb-3 opacity-50">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-transparent"></span>
+                                                    <span className="text-white text-sm">Medvedev & Ruud</span>
+                                                </div>
+                                                <div className="flex gap-1.5 grayscale">
+                                                    <span className="w-6 h-6 flex items-center justify-center bg-neutral-700 text-neutral-300 font-bold text-xs rounded-sm">5</span>
+                                                    <span className="w-6 h-6 flex items-center justify-center bg-neutral-700 text-neutral-300 font-bold text-xs rounded-sm">3</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+                                                    <span className="text-white text-sm">Sinner & Djokovic</span>
+                                                </div>
+                                                <div className="flex gap-1.5">
+                                                    <span className="w-6 h-6 flex items-center justify-center bg-white text-black font-bold text-xs rounded-sm">7</span>
+                                                    <span className="w-6 h-6 flex items-center justify-center bg-white text-black font-bold text-xs rounded-sm">6</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* Final */}
+                            <div className="flex flex-col justify-center w-full lg:w-72 z-10 shrink-0 mt-8 lg:mt-0 relative">
+                                <div className="text-sm font-bold text-amber-500 uppercase tracking-wider mb-2 lg:mb-0 lg:absolute lg:top-[-20px]">Gran Final</div>
+
+                                <Card className="bg-neutral-950 border-amber-500/30 relative z-10 shadow-[0_0_20px_rgba(245,158,11,0.1)] overflow-hidden">
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-yellow-300"></div>
+                                    <CardContent className="p-0">
+                                        <div className="flex justify-between items-center p-3 border-b border-neutral-800/50 bg-gradient-to-r from-amber-500/10 to-transparent">
+                                            <span className="text-xs text-amber-500/80 font-semibold flex items-center"><Trophy className="w-3 h-3 mr-1" /> FINAL • Domingo 18:00</span>
+                                            <Badge variant="secondary" className="bg-amber-500/20 text-amber-400 text-[10px] uppercase border border-amber-500/20">Por Jugar</Badge>
+                                        </div>
+                                        <div className="p-3 bg-neutral-900/40 font-medium space-y-3">
+                                            <div className="flex justify-between items-center">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>
+                                                    <span className="text-white text-base">Nadal & Alcaraz</span>
+                                                </div>
+                                                <div className="flex gap-1.5">
+                                                    <span className="w-6 h-6 flex items-center justify-center bg-neutral-800 text-neutral-600 font-bold text-xs rounded-sm">-</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>
+                                                    <span className="text-white text-base">Sinner & Djokovic</span>
+                                                </div>
+                                                <div className="flex gap-1.5">
+                                                    <span className="w-6 h-6 flex items-center justify-center bg-neutral-800 text-neutral-600 font-bold text-xs rounded-sm">-</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="bg-neutral-900 p-2 text-center border-t border-neutral-800">
+                                            <button className="text-xs text-amber-500 hover:text-amber-400 font-semibold uppercase tracking-wider transition-colors w-full py-1">Registrar Resultado Final</button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
                     </div>
                 </TabsContent>
             </Tabs>
