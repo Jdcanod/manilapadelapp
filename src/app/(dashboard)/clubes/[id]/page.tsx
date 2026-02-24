@@ -32,15 +32,6 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
         .eq('auth_id', params.id)
         .single();
 
-    // Obtener el perfil del usuario actual (jugador logueado)
-    const { data: currentUserProfile } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_id', user.id)
-        .single();
-
-    const currentProfileId = currentUserProfile?.id || user.id;
-
     if (error || !clubData) {
         console.error("Club no encontrado", error, params.id);
         redirect("/clubes");
