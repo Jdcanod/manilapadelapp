@@ -23,8 +23,13 @@ export async function crearTorneoCentral(formData: FormData) {
     }
 
     const nombre = formData.get("nombre") as string;
-    const fechaInicio = formData.get("fecha_inicio") as string;
-    const fechaFin = formData.get("fecha_fin") as string;
+    const fechaInicioDia = formData.get("fecha_inicio_dia") as string;
+    const fechaInicioHora = formData.get("fecha_inicio_hora") as string;
+    const fechaInicio = `${fechaInicioDia}T${fechaInicioHora}`;
+
+    const fechaFinDia = formData.get("fecha_fin_dia") as string;
+    const fechaFinHora = formData.get("fecha_fin_hora") as string;
+    const fechaFin = `${fechaFinDia}T${fechaFinHora}`;
     const formato = formData.get("formato") as string;
 
     const { data, error } = await supabase

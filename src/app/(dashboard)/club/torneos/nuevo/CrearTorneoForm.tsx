@@ -37,23 +37,55 @@ export function CrearTorneoForm() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="fecha_inicio" className="text-white">Fecha de Inicio</Label>
-                        <Input
-                            id="fecha_inicio"
-                            name="fecha_inicio"
-                            type="datetime-local"
-                            required
-                            className="bg-neutral-900 border-neutral-800 text-white focus:border-emerald-500 [color-scheme:dark]"
-                        />
+                        <div className="flex gap-2">
+                            <Input
+                                id="fecha_inicio_dia"
+                                name="fecha_inicio_dia"
+                                type="date"
+                                required
+                                className="bg-neutral-900 border-neutral-800 text-white focus:border-emerald-500 [color-scheme:dark] flex-1"
+                            />
+                            <Select name="fecha_inicio_hora" defaultValue="08:00">
+                                <SelectTrigger className="bg-neutral-900 border-neutral-800 text-white focus:ring-emerald-500 w-[110px]">
+                                    <SelectValue placeholder="Hora" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[220px]">
+                                    {Array.from({ length: 24 }).flatMap((_, i) => {
+                                        const h = i.toString().padStart(2, '0');
+                                        return [
+                                            <SelectItem key={`${h}:00`} value={`${h}:00`}>{h}:00</SelectItem>,
+                                            <SelectItem key={`${h}:30`} value={`${h}:30`}>{h}:30</SelectItem>
+                                        ];
+                                    })}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="fecha_fin" className="text-white">Fecha de Finalización</Label>
-                        <Input
-                            id="fecha_fin"
-                            name="fecha_fin"
-                            type="datetime-local"
-                            required
-                            className="bg-neutral-900 border-neutral-800 text-white focus:border-emerald-500 [color-scheme:dark]"
-                        />
+                        <div className="flex gap-2">
+                            <Input
+                                id="fecha_fin_dia"
+                                name="fecha_fin_dia"
+                                type="date"
+                                required
+                                className="bg-neutral-900 border-neutral-800 text-white focus:border-emerald-500 [color-scheme:dark] flex-1"
+                            />
+                            <Select name="fecha_fin_hora" defaultValue="20:00">
+                                <SelectTrigger className="bg-neutral-900 border-neutral-800 text-white focus:ring-emerald-500 w-[110px]">
+                                    <SelectValue placeholder="Hora" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[220px]">
+                                    {Array.from({ length: 24 }).flatMap((_, i) => {
+                                        const h = i.toString().padStart(2, '0');
+                                        return [
+                                            <SelectItem key={`${h}:00`} value={`${h}:00`}>{h}:00</SelectItem>,
+                                            <SelectItem key={`${h}:30`} value={`${h}:30`}>{h}:30</SelectItem>
+                                        ];
+                                    })}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                 </div>
 

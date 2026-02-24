@@ -54,11 +54,14 @@ export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, cou
                 <div className="flex w-max min-w-full p-6 pb-8">
                     {/* Timeline Column */}
                     <div className="flex flex-col w-[80px] shrink-0 border-r border-neutral-800 pr-4 mr-4 mt-[40px]">
-                        {timeSlots.map((time, idx) => (
-                            <div key={idx} className="h-[50px] flex items-start justify-end pr-2 text-xs font-medium text-neutral-500 transform -translate-y-2">
-                                {time}
-                            </div>
-                        ))}
+                        {timeSlots.map((time, idx) => {
+                            const isHour = time.endsWith(":00");
+                            return (
+                                <div key={idx} className={`h-[50px] mb-2 flex items-start justify-end pr-2 text-[10px] sm:text-xs transform -translate-y-2 ${isHour ? "font-bold text-neutral-300" : "font-medium text-neutral-600"}`}>
+                                    {time}
+                                </div>
+                            );
+                        })}
                     </div>
 
                     {/* Courts Columns */}
@@ -75,11 +78,13 @@ export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, cou
                                         const slotDateTime = new Date(`${currentDateStr}T${time}`);
                                         const isPast = slotDateTime < new Date();
 
+                                        const isHour = time.endsWith(":00");
+
                                         // If there is no reservation, it's available
                                         if (!reservation) {
                                             if (isPast) {
                                                 return (
-                                                    <div key={tIdx} className="h-[50px] relative w-full mb-2">
+                                                    <div key={tIdx} className={`h-[50px] relative w-full mb-2 ${isHour ? "border-t border-dashed border-neutral-700/50 pt-[1px]" : ""}`}>
                                                         <div className="absolute inset-0 bg-neutral-900 border border-neutral-800/50 rounded-lg flex items-center justify-center opacity-50">
                                                             <span className="text-xs font-medium text-neutral-600">No Disponible</span>
                                                         </div>
@@ -88,7 +93,7 @@ export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, cou
                                             }
 
                                             return (
-                                                <div key={tIdx} className="h-[50px] relative w-full mb-2 group">
+                                                <div key={tIdx} className={`h-[50px] relative w-full mb-2 group ${isHour ? "border-t border-dashed border-neutral-700/50 pt-[1px]" : ""}`}>
                                                     <div
                                                         className="absolute inset-0 bg-emerald-500/5 border border-emerald-500/20 rounded-lg flex items-center justify-center cursor-pointer hover:bg-emerald-500/10 transition-colors"
                                                         onClick={() => handleSlotClick(court, time)}
@@ -103,7 +108,7 @@ export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, cou
                                         const isAbierto = reservation.status === 'abierto' || reservation.player === 'Partido Abierto';
 
                                         return (
-                                            <div key={tIdx} className="h-[50px] relative w-full mb-2">
+                                            <div key={tIdx} className={`h-[50px] relative w-full mb-2 ${isHour ? "border-t border-dashed border-neutral-700/50 pt-[1px]" : ""}`}>
                                                 <div className={`absolute inset-0 rounded-lg p-3 z-10 flex flex-col justify-between shadow-md ${isAbierto ? 'bg-amber-500/10 border border-amber-500/50' : 'bg-neutral-900 border border-neutral-800 opacity-60'
                                                     }`}>
                                                     <div className="flex justify-between items-start">

@@ -57,7 +57,9 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
         setLoading(true);
 
         const formData = new FormData(e.currentTarget);
-        const fechaInput = formData.get("fecha") as string; // Format: "YYYY-MM-DDTHH:mm"
+        const fechaDia = formData.get("fecha_dia") as string;
+        const fechaHora = formData.get("fecha_hora") as string;
+        const fechaInput = `${fechaDia}T${fechaHora}`; // Format: "YYYY-MM-DDTHH:mm"
 
         let fechaISO = "";
         try {
@@ -140,14 +142,29 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2 col-span-2">
                             <Label className="text-neutral-300 flex items-center gap-2"><CalendarIcon className="w-4 h-4" /> Fecha y Hora</Label>
-                            <Input
-                                name="fecha"
-                                type="datetime-local"
-                                required
-                                step="1800"
-                                defaultValue={defaultFecha}
-                                className="bg-neutral-950 border-neutral-800 [color-scheme:dark]"
-                            />
+                            <div className="flex gap-2">
+                                <Input
+                                    name="fecha_dia"
+                                    type="date"
+                                    required
+                                    defaultValue={defaultFecha ? defaultFecha.split('T')[0] : ''}
+                                    className="bg-neutral-950 border-neutral-800 [color-scheme:dark] flex-1"
+                                />
+                                <Select name="fecha_hora" defaultValue={defaultFecha && defaultFecha.includes('T') ? defaultFecha.split('T')[1].substring(0, 5) : '18:00'}>
+                                    <SelectTrigger className="bg-neutral-950 border-neutral-800 w-[120px]">
+                                        <SelectValue placeholder="Hora" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-neutral-900 border-neutral-800 max-h-[250px]">
+                                        {Array.from({ length: 24 }).flatMap((_, i) => {
+                                            const h = i.toString().padStart(2, '0');
+                                            return [
+                                                <SelectItem key={`${h}:00`} value={`${h}:00`}>{h}:00</SelectItem>,
+                                                <SelectItem key={`${h}:30`} value={`${h}:30`}>{h}:30</SelectItem>
+                                            ];
+                                        })}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
 
                         <div className="space-y-2 col-span-2">

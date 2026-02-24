@@ -44,11 +44,14 @@ export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, re
                 <div className="flex w-max min-w-full p-6 pb-8">
                     {/* Timeline Column */}
                     <div className="flex flex-col w-[80px] shrink-0 border-r border-neutral-800 pr-4 mr-4 mt-[40px]">
-                        {timeSlots.map((time, idx) => (
-                            <div key={idx} className="h-[50px] flex items-start justify-end pr-2 text-xs font-medium text-neutral-500 transform -translate-y-2">
-                                {time}
-                            </div>
-                        ))}
+                        {timeSlots.map((time, idx) => {
+                            const isHour = time.endsWith(":00");
+                            return (
+                                <div key={idx} className={`h-[50px] mb-2 flex items-start justify-end pr-2 text-[10px] sm:text-xs transform -translate-y-2 ${isHour ? "font-bold text-neutral-300" : "font-medium text-neutral-600"}`}>
+                                    {time}
+                                </div>
+                            );
+                        })}
                     </div>
 
                     {/* Courts Columns */}
@@ -61,8 +64,9 @@ export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, re
                                 <div className="flex flex-col relative w-full border-l border-neutral-800/30 pl-2">
                                     {timeSlots.map((time, tIdx) => {
                                         const reservation = reservations.find(r => r.courtIndex === cIdx && r.timeIndex === tIdx);
+                                        const isHour = time.endsWith(":00");
                                         return (
-                                            <div key={tIdx} className="h-[50px] relative w-full mb-2 group">
+                                            <div key={tIdx} className={`h-[50px] relative w-full mb-2 group ${isHour ? "border-t border-dashed border-neutral-700/50 pt-[1px]" : ""}`}>
                                                 {/* Empty slot background */}
                                                 <div
                                                     className="absolute inset-0 bg-neutral-950/30 border border-neutral-800/50 border-dashed rounded-lg opacity-20 transition-opacity hover:opacity-100 flex items-center justify-center cursor-pointer hover:bg-emerald-900/10"
