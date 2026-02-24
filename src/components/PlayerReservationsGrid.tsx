@@ -135,7 +135,7 @@ export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, cou
                                         if (isInteractive) {
                                             return (
                                                 <div key={tIdx} className={`h-[50px] relative w-full mb-2 ${isHour ? "border-t border-dashed border-neutral-700/50 pt-[1px]" : ""}`}>
-                                                    <DetallePartidoDialog partido={reservation.partido} trigger={content} />
+                                                    <DetallePartidoDialog partido={reservation.partido} trigger={content} userId={userId} />
                                                 </div>
                                             );
                                         }

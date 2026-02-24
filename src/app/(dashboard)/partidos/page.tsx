@@ -325,8 +325,10 @@ export default async function PartidosPage() {
                                                     estado: match.estado_original,
                                                     cupos_disponibles: match.cupos_disponibles,
                                                     precio_por_persona: match.precio_por_persona,
+                                                    creador_id: match.creador_id,
                                                     creador: { nombre: match.creador?.nombre || 'Organizador' }
                                                 }}
+                                                userId={user.id}
                                                 trigger={
                                                     <Button variant="secondary" className="w-full bg-neutral-800 hover:bg-neutral-700 text-white">Detalles</Button>
                                                 }

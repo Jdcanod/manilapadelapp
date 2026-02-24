@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MapPin, Users, Coins, Trophy, Clock } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { BotonUnirsePartido } from "./BotonUnirsePartido";
+import { BotonCancelarPartido } from "./BotonCancelarPartido";
 
 interface Partido {
     id: string;
@@ -18,11 +20,13 @@ interface Partido {
     cupos_disponibles: number;
     precio_por_persona: number;
     creador?: { nombre: string };
+    creador_id?: string;
     resultado?: string;
 }
 
 interface Jugador {
     id: string;
+    jugador_id: string;
     jugador: {
         nombre: string;
         nivel: string;
@@ -32,13 +36,25 @@ interface Jugador {
 interface Props {
     partido: Partido;
     trigger: React.ReactNode;
+    userId?: string;
 }
 
-export function DetallePartidoDialog({ partido, trigger }: Props) {
+export function DetallePartidoDialog({ partido, trigger, userId: propUserId }: Props) {
     const [open, setOpen] = useState(false);
+    const [userId, setUserId] = useState<string | null>(propUserId || null);
     const [jugadores, setJugadores] = useState<Jugador[]>([]);
     const [loading, setLoading] = useState(false);
     const supabase = createClient();
+
+    useEffect(() => {
+        if (!userId) {
+            const getSession = async () => {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) setUserId(user.id);
+            };
+            getSession();
+        }
+    }, [userId, supabase.auth]);
 
     useEffect(() => {
         if (open) {
@@ -48,6 +64,7 @@ export function DetallePartidoDialog({ partido, trigger }: Props) {
                     .from('partido_jugadores')
                     .select(`
                         id,
+                        jugador_id,
                         jugador:users(nombre, nivel)
                     `)
                     .eq('partido_id', partido.id);
@@ -209,6 +226,28 @@ export function DetallePartidoDialog({ partido, trigger }: Props) {
                             </div>
                         )}
                     </div>
+
+                    {/* Footer Actions */}
+                    {!isPlayed && userId && (
+                        <div className="pt-4 border-t border-neutral-800">
+                            {partido.creador_id === userId ? (
+                                <BotonCancelarPartido
+                                    partidoId={partido.id}
+                                    partidoFecha={partido.fecha}
+                                    fullWidth
+                                />
+                            ) : (
+                                <BotonUnirsePartido
+                                    partidoId={partido.id}
+                                    userId={userId}
+                                    yaInscrito={jugadores.some(j => j.jugador_id === userId)}
+                                    cuposDisponibles={partido.cupos_disponibles}
+                                    partidoFecha={partido.fecha}
+                                    fullWidth
+                                />
+                            )}
+                        </div>
+                    )}
                 </div>
             </DialogContent>
         </Dialog>
