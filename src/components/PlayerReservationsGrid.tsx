@@ -4,14 +4,18 @@ import { useState } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { OrganizarPartidoDialog } from "./OrganizarPartidoDialog";
+import { DetallePartidoDialog } from "./DetallePartidoDialog";
 
 interface Reservation {
-    id: number;
+    id: string;
     courtIndex: number;
     timeIndex: number;
     player: string;
     type: string;
     status: string;
+    creador_id?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    partido?: any;
 }
 
 interface Props {
@@ -105,24 +109,40 @@ export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, cou
                                         }
 
                                         // If there is a reservation, show as occupied or open match
+                                        const isMiPartido = reservation.creador_id === userId;
                                         const isAbierto = reservation.status === 'abierto' || reservation.player === 'Partido Abierto';
+                                        const isInteractive = (isAbierto || isMiPartido) && reservation.partido;
+
+                                        const title = isMiPartido ? "Mi Partido" : (isAbierto ? "Partido Abierto" : "Ocupado");
+                                        const badgeText = isMiPartido ? "MI PARTIDO" : (isAbierto ? "UNIRSE" : "RESERVADO");
+                                        const badgeColor = isMiPartido ? "text-blue-500 bg-blue-500/20" : (isAbierto ? 'text-amber-500 bg-amber-500/20' : 'text-neutral-500 bg-neutral-800');
+
+                                        const content = (
+                                            <div className={`absolute inset-0 rounded-lg p-3 z-10 flex flex-col justify-between shadow-md ${isMiPartido ? 'bg-blue-500/10 border border-blue-500/50' : (isAbierto ? 'bg-amber-500/10 border border-amber-500/50' : 'bg-neutral-900 border border-neutral-800 opacity-60')} ${isInteractive ? "hover:scale-[1.02] cursor-pointer transition-transform" : ""}`}>
+                                                <div className="flex justify-between items-start">
+                                                    <div className="font-bold text-sm text-white line-clamp-1">
+                                                        {title}
+                                                    </div>
+                                                </div>
+                                                <div className="flex justify-between items-end">
+                                                    <Badge variant="outline" className={`text-[9px] px-1 py-0 h-4 border-0 ${badgeColor}`}>
+                                                        {badgeText}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        );
+
+                                        if (isInteractive) {
+                                            return (
+                                                <div key={tIdx} className={`h-[50px] relative w-full mb-2 ${isHour ? "border-t border-dashed border-neutral-700/50 pt-[1px]" : ""}`}>
+                                                    <DetallePartidoDialog partido={reservation.partido} trigger={content} />
+                                                </div>
+                                            );
+                                        }
 
                                         return (
                                             <div key={tIdx} className={`h-[50px] relative w-full mb-2 ${isHour ? "border-t border-dashed border-neutral-700/50 pt-[1px]" : ""}`}>
-                                                <div className={`absolute inset-0 rounded-lg p-3 z-10 flex flex-col justify-between shadow-md ${isAbierto ? 'bg-amber-500/10 border border-amber-500/50' : 'bg-neutral-900 border border-neutral-800 opacity-60'
-                                                    }`}>
-                                                    <div className="flex justify-between items-start">
-                                                        <div className="font-bold text-sm text-white line-clamp-1">
-                                                            {isAbierto ? "Partido Abierto" : "Ocupado"}
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex justify-between items-end">
-                                                        <Badge variant="outline" className={`text-[9px] px-1 py-0 h-4 border-0 ${isAbierto ? 'text-amber-500 bg-amber-500/20' : 'text-neutral-500 bg-neutral-800'
-                                                            }`}>
-                                                            {isAbierto ? 'UNIRSE' : 'RESERVADO'}
-                                                        </Badge>
-                                                    </div>
-                                                </div>
+                                                {content}
                                             </div>
                                         );
                                     })}

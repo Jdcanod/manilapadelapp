@@ -83,7 +83,7 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
     // Obtener reservas y partidos del dia (Para la grilla)
     const { data: partidosHoy } = await supabase
         .from('partidos')
-        .select('*')
+        .select(`*, creador:users!creador_id(nombre)`)
         .like('lugar', `${clubNombre}%`)
         .gte('fecha', new Date(startTimeStr).toISOString())
         .lt('fecha', new Date(endTimeStr).toISOString());
@@ -115,7 +115,9 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
             timeIndex,
             player: playerName,
             type: p.tipo_partido?.toLowerCase().includes('amistoso') ? 'partido_app' : 'manual',
-            status: p.estado
+            status: p.estado,
+            creador_id: p.creador_id,
+            partido: p
         };
     }).filter(r => r.courtIndex >= 0 && r.timeIndex >= 0);
 
