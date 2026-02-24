@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 // import { CrearTorneoDialog } from "./CrearTorneoDialog";
 
+export const dynamic = 'force-dynamic';
+
 export default async function ClubTorneosPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -25,7 +27,7 @@ export default async function ClubTorneosPage() {
         redirect("/jugador");
     }
 
-    const { data: torneos } = await supabase
+    const { data: torneos, error } = await supabase
         .from('torneos')
         .select(`
             *,
@@ -34,6 +36,8 @@ export default async function ClubTorneosPage() {
         `)
         .eq('club_id', clubData.id)
         .order('fecha_inicio', { ascending: false });
+
+    console.log("torneos:", torneos, "error:", error);
 
     return (
         <div className="space-y-6">

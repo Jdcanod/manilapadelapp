@@ -12,6 +12,8 @@ import { DetallePartidoDialog } from "@/components/DetallePartidoDialog";
 import { redirect } from "next/navigation";
 import { autocancelarPartidosIncompletos } from "@/utils/cancelarPartidos";
 
+export const dynamic = 'force-dynamic';
+
 export default async function PartidosPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();

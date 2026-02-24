@@ -1,0 +1,34 @@
+{
+  "torneos": [
+    {
+      "id": "ffeee54b-91e8-4ded-89fe-4ca0b3fee1f5",
+      "club_id": "96d30a54-915a-4e2e-a327-ddeb308992c6",
+      "nombre": "torneo prueba 1",
+      "fecha_inicio": "2026-02-28T06:04:00+00:00",
+      "fecha_fin": "2026-03-01T18:04:00+00:00",
+      "formato": "relampago",
+      "participantes": [],
+      "resultados": {},
+      "creado_en": "2026-02-23T23:04:35.615789+00:00"
+    },
+    {
+      "id": "8a390925-c47c-4699-a6da-d79ae1d5c7d6",
+      "club_id": "96d30a54-915a-4e2e-a327-ddeb308992c6",
+      "nombre": "GRAND SLAM MANILA",
+      "fecha_inicio": "2026-02-24T02:12:46.52452+00:00",
+      "fecha_fin": "2026-03-26T02:12:46.52452+00:00",
+      "formato": "Grupos + Final",
+      "participantes": [],
+      "resultados": {},
+      "creado_en": "2026-02-24T02:12:46.52452+00:00"
+    }
+  ],
+  "users": [
+    {
+      "id": "96d30a54-915a-4e2e-a327-ddeb308992c6",
+      "email": "master@torneo.com",
+      "rol": "admin_club",
+      "auth_id": "80276741-2bfc-4c20-b13b-289f7ae3c9b4"
+    }
+  ]
+}
