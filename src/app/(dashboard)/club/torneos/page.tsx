@@ -17,7 +17,7 @@ export default async function ClubTorneosPage() {
 
     const { data: clubData } = await supabase
         .from('users')
-        .select('rol')
+        .select('id, rol')
         .eq('auth_id', user.id)
         .single();
 
@@ -32,7 +32,7 @@ export default async function ClubTorneosPage() {
             torneo_parejas(count),
             torneo_fases(count)
         `)
-        .eq('club_id', user.id)
+        .eq('club_id', clubData.id)
         .order('fecha_inicio', { ascending: false });
 
     return (
