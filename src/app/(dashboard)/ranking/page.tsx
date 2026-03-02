@@ -97,6 +97,7 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
                                 No se encontraron jugadores con estos filtros.
                             </div>
                         ) : (
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             jugadores.map((jugador: any, idx: number) => {
                                 const rank = idx + 1;
                                 const isCurrentUser = jugador.auth_id === user.id;

@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Medal, Users, Save } from "lucide-react";
+import { Users, Save } from "lucide-react";
 import { updatePlayerRanking } from "./actions";
 
 export default async function AdminJugadoresPage() {
@@ -76,6 +76,7 @@ export default async function AdminJugadoresPage() {
 }
 
 // Client component wrapper that handles its own form state
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function PlayerRow({ jugador, clubes }: { jugador: any, clubes: any[] }) {
     return (
         <TableRow className="border-neutral-800 hover:bg-neutral-800/50 group">

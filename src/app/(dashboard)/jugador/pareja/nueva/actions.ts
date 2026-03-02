@@ -32,7 +32,7 @@ export async function crearParejaAction(formData: FormData) {
     }
 
     // Buscar info extendida de jugador 1 y jugador 2 para el ELO
-    const { data: usersInfo, error: usersErr } = await supabase
+    const { data: usersInfo } = await supabase
         .from("users")
         .select("id, elo")
         .in("id", [dbUser.id, jugador2_id]);
