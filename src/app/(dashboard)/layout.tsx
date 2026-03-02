@@ -64,7 +64,9 @@ export default async function DashboardLayout({
                     <div className="flex items-center gap-4 ml-auto">
                         {rolUsuario === "superadmin" && (
                             <div className="hidden lg:flex items-center gap-3 mr-4 border-r border-neutral-800 pr-4">
-                                <Link href="/superadmin" className="text-xs font-semibold text-red-500 hover:text-red-400 border border-red-500/30 px-2 py-1 rounded bg-red-500/10">SuperAdmin</Link>
+                                <Link href="/superadmin" className="text-xs font-semibold text-red-500 hover:text-red-400 border border-red-500/30 px-2 py-1 rounded bg-red-500/10">Admin Panel</Link>
+                                <Link href="/superadmin/jugadores" className="text-xs font-semibold text-neutral-400 hover:text-white transition-colors">Jugadores</Link>
+                                <Link href="/superadmin/clubes" className="text-xs font-semibold text-neutral-400 hover:text-white transition-colors">Clubes</Link>
                             </div>
                         )}
 

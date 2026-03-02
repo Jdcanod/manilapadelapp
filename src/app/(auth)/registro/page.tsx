@@ -14,7 +14,6 @@ import { createClient } from "@/utils/supabase/client";
 export default function RegistroPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
-    const [role, setRole] = useState("jugador");
     const { toast } = useToast();
     const supabase = createClient();
 
@@ -26,9 +25,10 @@ export default function RegistroPage() {
         const name = formData.get("name") as string;
         const email = formData.get("email") as string;
         const password = formData.get("password") as string;
+        const userRole = formData.get("role") as string || "jugador";
 
         try {
-            console.log("Iniciando registro con supabase: ", { email, role, url: process.env.NEXT_PUBLIC_SUPABASE_URL });
+            console.log("Iniciando registro con supabase: ", { email, role: userRole, url: process.env.NEXT_PUBLIC_SUPABASE_URL });
 
             if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
                 throw new Error("Las variables de entorno de Supabase no están cargadas. Reinicia el servidor.");
@@ -41,7 +41,7 @@ export default function RegistroPage() {
                 options: {
                     data: {
                         nombre: name,
-                        rol: role,
+                        rol: userRole,
                     }
                 }
             });
@@ -64,7 +64,7 @@ export default function RegistroPage() {
                     auth_id: authData.user.id,
                     nombre: name,
                     email: email,
-                    rol: role,
+                    rol: userRole,
                 });
 
                 if (dbError) {
@@ -81,7 +81,7 @@ export default function RegistroPage() {
                     });
                 }
 
-                if (role === 'admin_club') {
+                if (userRole === 'admin_club') {
                     router.push("/club");
                 } else {
                     router.push("/jugador");
@@ -127,27 +127,7 @@ export default function RegistroPage() {
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="space-y-3 pb-2">
-                            <Label className="text-neutral-300">¿Qué tipo de cuenta quieres?</Label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setRole("jugador")}
-                                    className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${role === "jugador" ? "border-green-500 bg-green-500/10 text-white" : "border-neutral-800 bg-neutral-900/50 text-neutral-400 hover:border-neutral-700 hover:text-neutral-300"}`}
-                                >
-                                    <span className="font-semibold text-lg">Jugador</span>
-                                    <span className="text-xs opacity-70 mt-1">Quiero competir y jugar</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setRole("admin_club")}
-                                    className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${role === "admin_club" ? "border-blue-500 bg-blue-500/10 text-white" : "border-neutral-800 bg-neutral-900/50 text-neutral-400 hover:border-neutral-700 hover:text-neutral-300"}`}
-                                >
-                                    <span className="font-semibold text-lg">Admin Club</span>
-                                    <span className="text-xs opacity-70 mt-1">Gestionar instalaciones</span>
-                                </button>
-                            </div>
-                        </div>
+                        <input type="hidden" name="role" value="jugador" />
 
                         <div className="space-y-2">
                             <Label htmlFor="name" className="text-neutral-300">Nombre Completo</Label>
