@@ -26,8 +26,39 @@ export function calculateNewRating(
 }
 
 /**
+ * Calcula un partido de dobles entre 4 jugadores individuales (j1, j2 vs j3, j4).
+ * El ELO de la pareja se calcula como el promedio de los dos jugadores.
+ * @returns El nuevo rating individual para cada uno de los 4 jugadores.
+ */
+export function calculateMatchRankings4Players(
+    p1Rating: number,
+    p2Rating: number,
+    p3Rating: number,
+    p4Rating: number,
+    team1Won: boolean
+) {
+    const team1Rating = (p1Rating + p2Rating) / 2;
+    const team2Rating = (p3Rating + p4Rating) / 2;
+
+    const team1Result: EloResult = team1Won ? 1 : 0;
+    const team2Result: EloResult = team1Won ? 0 : 1;
+
+    // Calculamos el nuevo ELO de la pareja "como un todo" 
+    // pero usando el rating individual como currentRating, así el que tiene menos gana más
+    const newP1 = calculateNewRating(p1Rating, team2Rating, team1Result);
+    const newP2 = calculateNewRating(p2Rating, team2Rating, team1Result);
+
+    const newP3 = calculateNewRating(p3Rating, team1Rating, team2Result);
+    const newP4 = calculateNewRating(p4Rating, team1Rating, team2Result);
+
+    return {
+        newP1, newP2, newP3, newP4
+    };
+}
+
+/**
  * Calcula un partido de dobles entre 4 puntajes o simplemente entre 2 puntajes de pareja promediados.
- * Esto asume que el puntaje de la pareja es único y existe en la base de datos (según schema propuesto).
+ * Mantenido para retrocompatibilidad
  */
 export function calculateMatchRankings(
     team1Rating: number,

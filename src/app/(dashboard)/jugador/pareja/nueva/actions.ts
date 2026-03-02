@@ -31,6 +31,16 @@ export async function crearParejaAction(formData: FormData) {
         throw new Error("Faltan datos para crear la pareja.");
     }
 
+    // Buscar info extendida de jugador 1 y jugador 2 para el ELO
+    const { data: usersInfo, error: usersErr } = await supabase
+        .from("users")
+        .select("id, elo")
+        .in("id", [dbUser.id, jugador2_id]);
+
+    const elo1 = usersInfo?.find(u => u.id === dbUser.id)?.elo || 1450;
+    const elo2 = usersInfo?.find(u => u.id === jugador2_id)?.elo || 1450;
+    const initialEloPair = Math.round((elo1 + elo2) / 2);
+
     // Insertar la nueva pareja en la base de datos
     const { error } = await supabase.from("parejas").insert({
         jugador1_id: dbUser.id,
@@ -38,8 +48,8 @@ export async function crearParejaAction(formData: FormData) {
         nombre_pareja: nombre_pareja,
         categoria: categoria,
         activa: true,
-        puntos_ranking: 1200,
-        elo: 1200
+        puntos_ranking: initialEloPair, // usamos ELO como puntos base
+        elo: initialEloPair
     });
 
     if (error) {
