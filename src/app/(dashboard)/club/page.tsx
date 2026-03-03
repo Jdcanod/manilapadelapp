@@ -24,6 +24,9 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
         .single();
 
     if (userData?.rol !== 'admin_club') {
+        if (userData?.rol === 'superadmin') {
+            redirect("/superadmin");
+        }
         redirect("/jugador");
     }
 
