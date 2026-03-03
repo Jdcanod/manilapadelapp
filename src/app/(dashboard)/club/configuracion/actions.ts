@@ -22,9 +22,15 @@ export async function saveClubSettings(userId: string, formData: FormData) {
         "tiempo_cancelacion_minutos": parseInt(formData.get("tiempo_cancelacion") as string) || 120
     };
 
-    const primeTimes: Record<string, string[]> = {};
-    for (let c = 1; c <= 4; c++) {
-        primeTimes[String(c)] = formData.getAll(`prime_cancha_${c}`) as string[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let primeTimes: any = [];
+    try {
+        const rawRanges = formData.get("prime_ranges") as string;
+        if (rawRanges) {
+            primeTimes = JSON.parse(rawRanges);
+        }
+    } catch {
+        primeTimes = [];
     }
 
     const { error } = await supabase.from('users').update({

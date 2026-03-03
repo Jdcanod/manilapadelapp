@@ -22,7 +22,8 @@ interface Props {
     defaultCourt?: string;
     defaultTime?: string;
     defaultDate?: string;
-    horariosPrime?: Record<string, string[]>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    horariosPrime?: any[];
 }
 
 export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, trigger, openState, onOpenChange, defaultCourt, defaultTime, defaultDate, horariosPrime }: Props) {
@@ -41,7 +42,21 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
     const [abrirPartido, setAbrirPartido] = useState(false);
     const [selectedHora, setSelectedHora] = useState(defaultTime || timeSlots[0] || "19:00");
     const [selectedIdCancha, setSelectedIdCancha] = useState(defaultCourt || "cancha_1");
+    const [selectedDia, setSelectedDia] = useState(defaultDate || new Date().toLocaleString("en-CA", { timeZone: "America/Bogota" }).split(',')[0]);
     const [users, setUsers] = useState<{ id: string, nombre: string }[]>([]);
+
+    const checkIsPrime = (hora: string, dia: string, cancha: string) => {
+        if (!horariosPrime || !Array.isArray(horariosPrime)) return false;
+        const num = cancha.replace('cancha_', '');
+        for (const r of horariosPrime) {
+            if (r.cancha === 'all' || r.cancha === num) {
+                if (r.fecha_inicio && dia < r.fecha_inicio) continue;
+                if (r.fecha_fin && dia > r.fecha_fin) continue;
+                if (hora >= r.hora_inicio && hora < r.hora_fin) return true;
+            }
+        }
+        return false;
+    };
     const router = useRouter();
     const { toast } = useToast();
     const supabase = createClient();
@@ -95,9 +110,8 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
             }
             const fecha = fechaDate.toISOString();
 
-            const canchaNumero = cancha_id.replace('cancha_', '');
             let is90Min = duracion === "90";
-            if (horariosPrime && horariosPrime[canchaNumero] && horariosPrime[canchaNumero].includes(horaForm)) {
+            if (checkIsPrime(horaForm, dia, cancha_id)) {
                 is90Min = true;
             }
             const lugar_formateado = `${clubNombre} - ${cancha_id} (${is90Min ? '90' : '60'} min)${!abrirPartido ? ` - a nombre de ${playerName}` : ''}`;
@@ -137,7 +151,6 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
         }
     };
 
-    const selectedCourtNumber = selectedIdCancha.replace('cancha_', '');
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -244,8 +257,8 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                                 name="dia"
                                 type="date"
                                 required
-                                defaultValue={defaultDate}
-                                key={defaultDate || "date"}
+                                value={selectedDia}
+                                onChange={(e) => setSelectedDia(e.target.value)}
                                 className="bg-neutral-950 border-neutral-800 text-neutral-100"
                                 style={{ colorScheme: 'dark' }}
                             />
@@ -270,13 +283,12 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                     <div className="space-y-2">
                         <Label className="text-neutral-300 flex items-center justify-between">
                             Duración
-                            {horariosPrime?.[selectedCourtNumber]?.includes(selectedHora) && <span className="text-[10px] text-amber-500 font-bold ml-2">Horario Prime (Solo 90min)</span>}
+                            {checkIsPrime(selectedHora, selectedDia, selectedIdCancha) && <span className="text-[10px] text-amber-500 font-bold ml-2">Horario Prime (Solo 90min)</span>}
                         </Label>
                         <Select
                             name="duracion"
-                            defaultValue={horariosPrime?.[selectedCourtNumber]?.includes(selectedHora) ? "90" : "60"}
-                            disabled={horariosPrime?.[selectedCourtNumber]?.includes(selectedHora)}
-                            key={selectedHora + "dur" + selectedCourtNumber}
+                            value={checkIsPrime(selectedHora, selectedDia, selectedIdCancha) ? "90" : "60"}
+                            disabled={checkIsPrime(selectedHora, selectedDia, selectedIdCancha)}
                         >
                             <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white disabled:opacity-50">
                                 <SelectValue placeholder="Duración" />
@@ -286,7 +298,7 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                                 <SelectItem value="90">1 Hora y Media</SelectItem>
                             </SelectContent>
                         </Select>
-                        {horariosPrime?.[selectedCourtNumber]?.includes(selectedHora) && (
+                        {checkIsPrime(selectedHora, selectedDia, selectedIdCancha) && (
                             <input type="hidden" name="duracion" value="90" />
                         )}
                     </div>

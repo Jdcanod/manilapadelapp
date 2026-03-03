@@ -22,7 +22,8 @@ interface Props {
     timeSlots: string[];
     reservations: Reservation[];
     currentDateStr?: string;
-    horariosPrime?: Record<string, string[]>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    horariosPrime?: any[];
 }
 
 export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, reservations, currentDateStr, horariosPrime }: Props) {
