@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Trophy, Home, User, Calendar, Megaphone } from "lucide-react";
+import { Trophy, Home, User, Calendar, Megaphone, MapPin } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createClient } from "@/utils/supabase/server";
 
@@ -113,9 +113,13 @@ export default async function DashboardLayout({
                                 <Trophy className="w-5 h-5 mb-1" />
                                 <span className="text-[10px] font-medium">Torneos</span>
                             </Link>
+                            <Link href="/clubes" className="flex flex-col items-center justify-center w-full h-full text-neutral-400 hover:text-white transition-colors">
+                                <MapPin className="w-5 h-5 mb-1" />
+                                <span className="text-[10px] font-medium">Clubes</span>
+                            </Link>
                             <Link href="/novedades" className="flex flex-col items-center justify-center w-full h-full text-blue-400 hover:text-blue-300 transition-colors">
                                 <Megaphone className="w-5 h-5 mb-1" />
-                                <span className="text-[10px] font-medium">Novedades</span>
+                                <span className="text-[10px] font-medium">Muro</span>
                             </Link>
                             <Link href="/jugador/perfil" className="flex flex-col items-center justify-center w-full h-full text-neutral-400 hover:text-neutral-200 transition-colors">
                                 <User className="w-5 h-5 mb-1" />
