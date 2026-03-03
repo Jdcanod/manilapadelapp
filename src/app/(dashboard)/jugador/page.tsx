@@ -65,13 +65,38 @@ export default async function JugadorDashboard() {
         .order('fecha', { ascending: true })
         .limit(2);
 
-    const { data: newsData } = await supabase
-        .from('club_news')
-        .select('*, users:club_id(nombre)')
-        .order('created_at', { ascending: false })
-        .limit(4);
+    // Obtener clubes seguidos
+    const { data: follows } = await supabase
+        .from('club_seguidores')
+        .select('club_id')
+        .eq('jugador_id', userData?.id || user.id);
 
-    const clubNews = (newsData || []).map((item) => ({
+    const followedClubIds = follows?.map(f => f.club_id) || [];
+
+    let newsData = [];
+
+    // Si sigue clubes, traer primero esas noticias
+    if (followedClubIds.length > 0) {
+        const { data } = await supabase
+            .from('club_news')
+            .select('*, users:club_id(nombre)')
+            .in('club_id', followedClubIds)
+            .order('created_at', { ascending: false })
+            .limit(6);
+        if (data) newsData = data;
+    }
+
+    // Si no sigue clubes o sus clubes no tienen noticias, traer listado general
+    if (newsData.length === 0) {
+        const { data } = await supabase
+            .from('club_news')
+            .select('*, users:club_id(nombre)')
+            .order('created_at', { ascending: false })
+            .limit(6);
+        if (data) newsData = data;
+    }
+
+    const clubNews = newsData.map((item) => ({
         id: item.id,
         tipo: item.tipo,
         titulo: item.titulo,
@@ -247,7 +272,9 @@ export default async function JugadorDashboard() {
                         <CardHeader className="pb-4 flex flex-row items-center justify-between">
                             <div>
                                 <CardTitle className="text-xl text-white">Novedades</CardTitle>
-                                <CardDescription className="text-neutral-400">Lo último en la comunidad</CardDescription>
+                                <CardDescription className="text-neutral-400">
+                                    {followedClubIds.length > 0 ? "Noticias de tus clubes" : "Lo último en la comunidad"}
+                                </CardDescription>
                             </div>
                             <Link href="/novedades" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">Ver Muro</Link>
                         </CardHeader>

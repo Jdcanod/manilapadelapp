@@ -11,6 +11,7 @@ import { OrganizarPartidoDialog } from "@/components/OrganizarPartidoDialog";
 import { PlayerReservationsGrid } from "@/components/PlayerReservationsGrid";
 import { NovedadesList } from "@/app/(dashboard)/novedades/NovedadesList";
 import { DetallePartidoDialog } from "@/components/DetallePartidoDialog";
+import { BotonSeguirClub } from "@/components/BotonSeguirClub";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/server";
 import { autocancelarPartidosIncompletos } from "@/utils/cancelarPartidos";
@@ -42,6 +43,34 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
     const canchasActivas = Array.isArray(clubData.canchas_activas_json) ? clubData.canchas_activas_json : [];
     const courtsCount = canchasActivas.length > 0 ? canchasActivas.length : 4;
     const courts = Array.from({ length: courtsCount }, (_, i) => `Cancha ${i + 1}`);
+
+    const { data: publicUser } = await supabase.from('users').select('id, rol').eq('auth_id', user.id).single();
+
+    // Check if following
+    let isFollowing = false;
+    let seguidoresCount = 0;
+
+    try {
+        if (publicUser?.id) {
+            const { data: followRecord } = await supabase
+                .from('club_seguidores')
+                .select('id')
+                .eq('club_id', clubData.id)
+                .eq('jugador_id', publicUser.id)
+                .single();
+            isFollowing = !!followRecord;
+        }
+
+        const { count } = await supabase
+            .from('club_seguidores')
+            .select('*', { count: 'exact', head: true })
+            .eq('club_id', clubData.id);
+
+        seguidoresCount = count || 0;
+    } catch {
+        isFollowing = false;
+        seguidoresCount = 0;
+    }
 
     const timeSlots = [
         "06:00", "06:30", "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
@@ -194,16 +223,45 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
                             <Star className="w-4 h-4 fill-amber-500" />
                             <span>4.8 (120 reseñas)</span>
                             <Badge variant="outline" className="ml-2 bg-neutral-950/50 text-emerald-400 border-emerald-500/30">Abierto Ahora</Badge>
+                            <span className="hidden sm:inline-block ml-2 text-neutral-400 font-medium bg-neutral-900/50 px-2 py-0.5 rounded-full border border-neutral-800 text-xs">
+                                {seguidoresCount} Miembros
+                            </span>
                         </div>
                         <h1 className="text-4xl font-black text-white mb-2">{clubNombre}</h1>
                         <p className="text-neutral-300 flex items-center gap-1.5 font-medium line-clamp-1">
                             <MapPin className="w-4 h-4 text-emerald-500" /> Manizales, Caldas · {courtsCount} Canchas Activas
                         </p>
                     </div>
-                    <div className="hidden md:flex gap-2 shrink-0">
-                        <OrganizarPartidoDialog userId={user.id} />
+
+                    <div className="hidden md:flex flex-col gap-2 shrink-0 pb-1">
+                        <div className="flex items-center gap-2 mb-1 justify-end">
+                            <Badge variant="secondary" className="bg-neutral-900 text-neutral-300 border border-neutral-800">Torneos y Partidos</Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {publicUser?.rol === 'jugador' && (
+                                <BotonSeguirClub
+                                    clubId={clubData.id}
+                                    clubNombre={clubNombre}
+                                    jugadorAuthId={user.id}
+                                    initialIsFollowing={isFollowing}
+                                />
+                            )}
+                            <OrganizarPartidoDialog userId={user.id} />
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            <div className="md:hidden flex flex-col gap-3 px-4 mt-2 mb-6">
+                {publicUser?.rol === 'jugador' && (
+                    <BotonSeguirClub
+                        clubId={clubData.id}
+                        clubNombre={clubNombre}
+                        jugadorAuthId={user.id}
+                        initialIsFollowing={isFollowing}
+                    />
+                )}
+                <OrganizarPartidoDialog userId={user.id} />
             </div>
 
             {/* Informacion Principal con Pestañas */}

@@ -52,7 +52,16 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
     }
 
     if (club && club !== 'todos') {
-        query = query.eq('club_id', club);
+        const { data: clubData } = await supabase.from('users').select('id').eq('auth_id', club).single();
+        if (clubData) {
+            const { data: followers } = await supabase.from('club_seguidores').select('jugador_id').eq('club_id', clubData.id);
+            if (followers && followers.length > 0) {
+                const pIds = followers.map(f => f.jugador_id);
+                query = query.in('id', pIds);
+            } else {
+                query = query.eq('id', '00000000-0000-0000-0000-000000000000'); // Force no results
+            }
+        }
     }
 
     const { data: jugadoresData } = await query;
