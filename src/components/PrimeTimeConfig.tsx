@@ -63,6 +63,17 @@ export function PrimeTimeConfig({ initialRanges = [] }: { initialRanges: any }) 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
 
+        const [h_ini_h, h_ini_m] = horaInicio.split(':').map(Number);
+        const [h_fin_h, h_fin_m] = horaFin.split(':').map(Number);
+        const minsInicio = h_ini_h * 60 + h_ini_m;
+        const minsFin = h_fin_h * 60 + h_fin_m;
+
+        const diffMins = minsFin - minsInicio;
+        if (diffMins <= 0 || diffMins % 180 !== 0) {
+            alert("Error: El bloque de tiempo debe ser un múltiplo exacto de 3 horas (ej: de 17:00 a 20:00, o de 18:30 a 21:30) para evitar dejar franjas sueltas de media hora.");
+            return;
+        }
+
         if (editingId) {
             setRanges(ranges.map(r => r.id === editingId ? {
                 ...r,
@@ -80,6 +91,12 @@ export function PrimeTimeConfig({ initialRanges = [] }: { initialRanges: any }) 
         }
         setIsDialogOpen(false);
     };
+
+    const timeOptions = [];
+    for (let h = 6; h <= 23; h++) {
+        timeOptions.push(`${String(h).padStart(2, '0')}:00`);
+        timeOptions.push(`${String(h).padStart(2, '0')}:30`);
+    }
 
     return (
         <div className="space-y-4">
@@ -158,11 +175,25 @@ export function PrimeTimeConfig({ initialRanges = [] }: { initialRanges: any }) 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label className="text-neutral-300">Hora Inicio</Label>
-                                <Input type="time" required value={horaInicio} onChange={e => setHoraInicio(e.target.value)} className="bg-neutral-950 border-neutral-800 text-white [color-scheme:dark]" />
+                                <Select value={horaInicio} onValueChange={setHoraInicio} required>
+                                    <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
+                                        <SelectValue placeholder="Hora Inicio" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-neutral-900 border-neutral-800 text-white h-[200px]">
+                                        {timeOptions.map(t => <SelectItem key={`ini-${t}`} value={t}>{t}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-neutral-300">Hora Fin</Label>
-                                <Input type="time" required value={horaFin} onChange={e => setHoraFin(e.target.value)} className="bg-neutral-950 border-neutral-800 text-white [color-scheme:dark]" />
+                                <Select value={horaFin} onValueChange={setHoraFin} required>
+                                    <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
+                                        <SelectValue placeholder="Hora Fin" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-neutral-900 border-neutral-800 text-white h-[200px]">
+                                        {timeOptions.map(t => <SelectItem key={`fin-${t}`} value={t}>{t}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
 
