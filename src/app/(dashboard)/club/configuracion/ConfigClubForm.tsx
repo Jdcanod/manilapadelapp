@@ -16,7 +16,7 @@ import { saveClubSettings, postClubNews } from "./actions";
 interface ConfigData {
     precio_hora_base: number;
     precio_fin_semana: number;
-    horarios_solo_90_min_json: string[];
+    horarios_solo_90_min_json: Record<string, string[]>;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     canchas_activas_json: any;
     tiempo_cancelacion_minutos: number;
@@ -157,22 +157,45 @@ export function ConfigClubForm({ initialData }: { initialData: ConfigData }) {
 
                                 {/* Horarios Prime (Obliga 90 mins) */}
                                 <div className="space-y-4">
-                                    <h3 className="text-sm font-medium text-emerald-400">Horarios Prime (Exigir 1 hora y media)</h3>
-                                    <p className="text-xs text-neutral-400">Selecciona en qué horas los jugadores y tú solo podrán elegir reservas de 90 minutos (para evitar huecos en la grilla).</p>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        {["17:30", "19:00", "20:30", "22:00"].map((hora) => {
-                                            const isChecked = initialData.horarios_solo_90_min_json?.includes(hora);
+                                    <h3 className="text-sm font-medium text-emerald-400">Horarios Prime por Cancha (1 Hora y Media)</h3>
+                                    <p className="text-xs text-neutral-400">Selecciona en qué horas y canchas se exigiría reservas obligatorias de 90 minutos para optimizar la grilla.</p>
+                                    <div className="space-y-4">
+                                        {[1, 2, 3, 4].map((num) => {
+                                            const isActive = initialData.canchas_activas_json?.[String(num)] ?? true;
+                                            if (!isActive) return null;
+
+                                            // Make sure we have safely an array, falling back to an empty one or adapting an older flat array
+                                            const savedVal = initialData.horarios_solo_90_min_json?.[String(num)];
+                                            let horariosCourt: string[] = [];
+                                            if (Array.isArray(savedVal)) {
+                                                horariosCourt = savedVal;
+                                            } else if (Array.isArray(initialData.horarios_solo_90_min_json) && Object.keys(initialData.horarios_solo_90_min_json).length > 0 && typeof initialData.horarios_solo_90_min_json[0] === 'string') {
+                                                // Fallback if data was old style string[]
+                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                horariosCourt = (initialData.horarios_solo_90_min_json as any) as string[];
+                                            }
+
                                             return (
-                                                <div key={hora} className="flex items-center space-x-2 bg-neutral-950 p-2 rounded-lg border border-neutral-800">
-                                                    <input
-                                                        type="checkbox"
-                                                        id={`prime-${hora}`}
-                                                        name="prime_times"
-                                                        value={hora}
-                                                        defaultChecked={isChecked}
-                                                        className="w-4 h-4 accent-emerald-500 rounded border-neutral-700 bg-neutral-900"
-                                                    />
-                                                    <Label htmlFor={`prime-${hora}`} className="text-white cursor-pointer select-none">{hora}</Label>
+                                                <div key={num} className="bg-neutral-950 p-4 rounded-lg border border-neutral-800">
+                                                    <h4 className="text-sm font-bold text-white mb-3">Cancha {num}</h4>
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                                                        {["17:00", "17:30", "18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00"].map((hora) => {
+                                                            const isChecked = horariosCourt.includes(hora);
+                                                            return (
+                                                                <div key={hora} className="flex items-center justify-center space-x-2 bg-neutral-900 px-2 py-3 rounded-md border border-neutral-800 transition-colors hover:border-emerald-500/50">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        id={`prime-c${num}-${hora}`}
+                                                                        name={`prime_cancha_${num}`}
+                                                                        value={hora}
+                                                                        defaultChecked={isChecked}
+                                                                        className="w-4 h-4 accent-emerald-500 rounded border-neutral-700 bg-neutral-900 cursor-pointer"
+                                                                    />
+                                                                    <Label htmlFor={`prime-c${num}-${hora}`} className="text-neutral-300 cursor-pointer select-none text-xs font-mono">{hora}</Label>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
                                             );
                                         })}

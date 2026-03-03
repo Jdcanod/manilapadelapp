@@ -22,7 +22,7 @@ interface Props {
     timeSlots: string[];
     reservations: Reservation[];
     currentDateStr?: string;
-    horariosPrime?: string[];
+    horariosPrime?: Record<string, string[]>;
 }
 
 export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, reservations, currentDateStr, horariosPrime }: Props) {

@@ -22,7 +22,7 @@ interface Props {
     defaultCourt?: string;
     defaultTime?: string;
     defaultDate?: string;
-    horariosPrime?: string[];
+    horariosPrime?: Record<string, string[]>;
 }
 
 export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, trigger, openState, onOpenChange, defaultCourt, defaultTime, defaultDate, horariosPrime }: Props) {
@@ -40,6 +40,7 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
     const [loading, setLoading] = useState(false);
     const [abrirPartido, setAbrirPartido] = useState(false);
     const [selectedHora, setSelectedHora] = useState(defaultTime || timeSlots[0] || "19:00");
+    const [selectedIdCancha, setSelectedIdCancha] = useState(defaultCourt || "cancha_1");
     const [users, setUsers] = useState<{ id: string, nombre: string }[]>([]);
     const router = useRouter();
     const { toast } = useToast();
@@ -94,7 +95,11 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
             }
             const fecha = fechaDate.toISOString();
 
-            const is90Min = duracion === "90" || (horariosPrime && horariosPrime.includes(horaForm));
+            const canchaNumero = cancha_id.replace('cancha_', '');
+            let is90Min = duracion === "90";
+            if (horariosPrime && horariosPrime[canchaNumero] && horariosPrime[canchaNumero].includes(horaForm)) {
+                is90Min = true;
+            }
             const lugar_formateado = `${clubNombre} - ${cancha_id} (${is90Min ? '90' : '60'} min)${!abrirPartido ? ` - a nombre de ${playerName}` : ''}`;
 
             const { error } = await supabase.from('partidos').insert({
@@ -131,6 +136,8 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
             setLoading(false);
         }
     };
+
+    const selectedCourtNumber = selectedIdCancha.replace('cancha_', '');
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -216,7 +223,7 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
 
                     <div className="space-y-2">
                         <Label className="text-neutral-300">Cancha</Label>
-                        <Select name="cancha_id" defaultValue={defaultCourt || (courts[0] ? `cancha_1` : undefined)} required key={defaultCourt || "court"}>
+                        <Select name="cancha_id" value={selectedIdCancha} onValueChange={setSelectedIdCancha} required>
                             <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
                                 <SelectValue placeholder="Elige la cancha" />
                             </SelectTrigger>
@@ -263,13 +270,13 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                     <div className="space-y-2">
                         <Label className="text-neutral-300 flex items-center justify-between">
                             Duración
-                            {horariosPrime?.includes(selectedHora) && <span className="text-[10px] text-amber-500 font-bold ml-2">Horario Prime (Solo 90min)</span>}
+                            {horariosPrime?.[selectedCourtNumber]?.includes(selectedHora) && <span className="text-[10px] text-amber-500 font-bold ml-2">Horario Prime (Solo 90min)</span>}
                         </Label>
                         <Select
                             name="duracion"
-                            defaultValue={horariosPrime?.includes(selectedHora) ? "90" : "60"}
-                            disabled={horariosPrime?.includes(selectedHora)}
-                            key={selectedHora + "dur"}
+                            defaultValue={horariosPrime?.[selectedCourtNumber]?.includes(selectedHora) ? "90" : "60"}
+                            disabled={horariosPrime?.[selectedCourtNumber]?.includes(selectedHora)}
+                            key={selectedHora + "dur" + selectedCourtNumber}
                         >
                             <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white disabled:opacity-50">
                                 <SelectValue placeholder="Duración" />
@@ -279,7 +286,7 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                                 <SelectItem value="90">1 Hora y Media</SelectItem>
                             </SelectContent>
                         </Select>
-                        {horariosPrime?.includes(selectedHora) && (
+                        {horariosPrime?.[selectedCourtNumber]?.includes(selectedHora) && (
                             <input type="hidden" name="duracion" value="90" />
                         )}
                     </div>

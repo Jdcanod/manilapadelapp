@@ -22,7 +22,10 @@ export async function saveClubSettings(userId: string, formData: FormData) {
         "tiempo_cancelacion_minutos": parseInt(formData.get("tiempo_cancelacion") as string) || 120
     };
 
-    const primeTimes = formData.getAll("prime_times") as string[];
+    const primeTimes: Record<string, string[]> = {};
+    for (let c = 1; c <= 4; c++) {
+        primeTimes[String(c)] = formData.getAll(`prime_cancha_${c}`) as string[];
+    }
 
     const { error } = await supabase.from('users').update({
         precio_hora_base: basePrice,
