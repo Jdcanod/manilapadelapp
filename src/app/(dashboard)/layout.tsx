@@ -52,6 +52,12 @@ export default async function DashboardLayout({
                                 <Link href="/ranking" className="text-sm font-medium text-emerald-500 hover:text-emerald-400 transition-colors">Ranking ELO</Link>
                                 <Link href="/novedades" className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors">Novedades</Link>
                             </>
+                        ) : rolUsuario === "superadmin" ? (
+                            <>
+                                <Link href="/superadmin" className="text-sm font-medium text-red-500 hover:text-red-400 transition-colors">Admin Panel</Link>
+                                <Link href="/superadmin/clubes" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">Clubes</Link>
+                                <Link href="/superadmin/jugadores" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">Jugadores ELO</Link>
+                            </>
                         ) : (
                             <>
                                 <Link href="/club" className="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors">Dashboard</Link>
@@ -114,6 +120,17 @@ export default async function DashboardLayout({
                             <Link href="/jugador/perfil" className="flex flex-col items-center justify-center w-full h-full text-neutral-400 hover:text-neutral-200 transition-colors">
                                 <User className="w-5 h-5 mb-1" />
                                 <span className="text-[10px] font-medium">Perfil</span>
+                            </Link>
+                        </>
+                    ) : rolUsuario === "superadmin" ? (
+                        <>
+                            <Link href="/superadmin" className="flex flex-col items-center justify-center w-full h-full text-red-500">
+                                <Home className="w-5 h-5 mb-1" />
+                                <span className="text-[10px] font-medium">Panel Admin</span>
+                            </Link>
+                            <Link href="/superadmin/jugadores" className="flex flex-col items-center justify-center w-full h-full text-emerald-500 hover:text-emerald-400 transition-colors">
+                                <User className="w-5 h-5 mb-1" />
+                                <span className="text-[10px] font-medium">Jugadores</span>
                             </Link>
                         </>
                     ) : (
