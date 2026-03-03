@@ -36,14 +36,14 @@ export default async function DashboardLayout({
             {/* Mobile Top Header */}
             <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-neutral-950/80 border-b border-neutral-800">
                 <div className="flex h-16 items-center justify-between px-4 md:px-6">
-                    <Link href={rolUsuario === "admin_club" ? "/club" : "/jugador"} className="flex items-center gap-2">
+                    <Link href={rolUsuario === "jugador" ? "/jugador" : "/club"} className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-green-400 to-emerald-600 flex items-center justify-center shadow-sm">
                             <Trophy className="w-4 h-4 text-white" />
                         </div>
                         <span className="font-bold tracking-tight text-white hidden sm:inline-block">ManilaPadel</span>
                     </Link>
                     <nav className="hidden md:flex items-center gap-6 ml-8">
-                        {rolUsuario !== "admin_club" ? (
+                        {rolUsuario === "jugador" ? (
                             <>
                                 <Link href="/jugador" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">Inicio</Link>
                                 <Link href="/partidos" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">Partidos</Link>
@@ -72,11 +72,11 @@ export default async function DashboardLayout({
 
                         <div className="flex flex-col text-right">
                             <span className="text-sm font-medium text-white line-clamp-1 max-w-[120px]">{nombreReal}</span>
-                            {rolUsuario !== "admin_club" && (
+                            {rolUsuario === "jugador" && (
                                 <span className="text-xs text-green-400 font-semibold">1450 pts</span>
                             )}
                         </div>
-                        <Link href={rolUsuario === "admin_club" ? "/club/configuracion" : "/jugador/perfil"}>
+                        <Link href={rolUsuario === "jugador" ? "/jugador/perfil" : "/club/configuracion"}>
                             <Avatar className="h-9 w-9 border border-neutral-800 hover:border-emerald-500/50 transition-colors cursor-pointer">
                                 <AvatarFallback className="bg-neutral-800 text-neutral-300">{iniciales}</AvatarFallback>
                             </Avatar>
@@ -93,7 +93,7 @@ export default async function DashboardLayout({
             {/* Mobile Bottom Navigation Bar */}
             <nav className="fixed bottom-0 w-full z-40 bg-neutral-950/90 backdrop-blur-lg border-t border-neutral-800 md:hidden pb-safe">
                 <div className="flex justify-around items-center h-16">
-                    {rolUsuario !== "admin_club" ? (
+                    {rolUsuario === "jugador" ? (
                         <>
                             <Link href="/jugador" className="flex flex-col items-center justify-center w-full h-full text-emerald-500">
                                 <Home className="w-5 h-5 mb-1" />
