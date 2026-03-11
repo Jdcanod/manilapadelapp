@@ -83,22 +83,47 @@ export async function inscribirParejaTorneo(formData: FormData) {
         }
     }
 
-    // 4. Register to the Tournament
-    const { error: insError } = await supabase
-        .from('torneo_parejas')
-        .insert({
-            torneo_id: torneoId,
-            pareja_id: parejaId,
-            categoria: categoria,
-            estado_pago: 'pendiente'
-        });
+    // 4. Determinar si el torneo es "master"
+    const { data: torneoDetalle } = await supabase.from('torneos').select('tipo').eq('id', torneoId).single();
+    const esMaster = torneoDetalle?.tipo === 'master';
 
-    if (insError) {
-        if (insError.code === '23505') {
-            throw new Error("Tu pareja ya está inscrita en este torneo");
+    if (esMaster) {
+        const { error: insError } = await supabase
+            .from('inscripciones_torneo')
+            .insert({
+                torneo_id: torneoId,
+                jugador1_id: jugador1Id,
+                jugador2_id: jugador2Id,
+                nivel: categoria,
+                estado: 'pendiente'
+            });
+
+        if (insError) {
+            if (insError.code === '23505') {
+                throw new Error("Su pareja ya está inscrita en este torneo");
+            }
+            throw new Error("Error al inscribir en el torneo (Master): " + insError.message);
         }
-        throw new Error("Error al inscribir en el torneo: " + insError.message);
+    } else {
+        // Register to the Tournament (Regular via Parejas table)
+        const { error: insError } = await supabase
+            .from('torneo_parejas')
+            .insert({
+                torneo_id: torneoId,
+                pareja_id: parejaId,
+                categoria: categoria,
+                estado_pago: 'pendiente'
+            });
+
+        if (insError) {
+            if (insError.code === '23505') {
+                throw new Error("Tu pareja ya está inscrita en este torneo");
+            }
+            throw new Error("Error al inscribir en el torneo: " + insError.message);
+        }
     }
+
+    // Se reemplaza en la instrucción anterior
 
     revalidatePath("/torneos");
     revalidatePath("/partidos");

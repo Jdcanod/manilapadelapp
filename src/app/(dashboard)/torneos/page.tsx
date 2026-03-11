@@ -19,7 +19,8 @@ export default async function TorneosPage() {
         .select(`
             *,
             club:users(nombre),
-            torneo_parejas(count)
+            torneo_parejas:torneo_parejas(count),
+            inscripciones:inscripciones_torneo(count)
         `)
         .order('fecha_inicio', { ascending: true });
 
@@ -56,8 +57,11 @@ export default async function TorneosPage() {
                             statusText = "Próximo / Inscripciones";
                         }
 
-                        const countParejas = (torneo.torneo_parejas && torneo.torneo_parejas[0]?.count) ? torneo.torneo_parejas[0].count : 0;
-                        const nombreClub = (torneo.club && torneo.club.nombre) ? torneo.club.nombre : "Club Organizador";
+                        const inscripcionesCount = (torneo.inscripciones && torneo.inscripciones[0]?.count) ? torneo.inscripciones[0].count : 0;
+                        const parejasCount = (torneo.torneo_parejas && torneo.torneo_parejas[0]?.count) ? torneo.torneo_parejas[0].count : 0;
+                        const countParejas = (torneo.tipo === 'master') ? inscripcionesCount : parejasCount;
+                        
+                        const nombreSede = (torneo.tipo === 'master') ? `Torneo Ciudad (${torneo.ciudad})` : ((torneo.club && torneo.club.nombre) ? torneo.club.nombre : "Club Organizador");
 
                         return (
                             <Card key={torneo.id} className="bg-neutral-900 border-neutral-800 hover:border-neutral-700 transition-colors">
@@ -74,13 +78,16 @@ export default async function TorneosPage() {
                                                 {new Date(torneo.fecha_inicio).toLocaleDateString('es-CO')} - {new Date(torneo.fecha_fin).toLocaleDateString('es-CO')}
                                             </div>
                                             <div className="flex items-center text-sm text-neutral-400 font-medium mt-1">
-                                                <MapPin className="w-4 h-4 mr-2 text-emerald-500" />
-                                                {nombreClub}
+                                                <MapPin className={`w-4 h-4 mr-2 ${torneo.tipo === 'master' ? 'text-violet-500' : 'text-emerald-500'}`} />
+                                                {nombreSede}
                                             </div>
                                         </div>
-                                        <div className="text-center shrink-0 bg-neutral-950 px-4 py-2 rounded-xl border border-neutral-800">
+                                        <div className="text-center shrink-0 bg-neutral-950 px-4 py-2 rounded-xl border border-neutral-800 flex flex-col items-center">
                                             <div className="text-[10px] text-neutral-500 uppercase tracking-tighter">Inscritos</div>
-                                            <div className="text-2xl font-black text-amber-500 leading-none">{countParejas}</div>
+                                            <div className={`text-2xl font-black ${torneo.tipo === 'master' ? 'text-violet-500' : 'text-amber-500'} leading-none`}>{countParejas}</div>
+                                            {torneo.precio_inscripcion > 0 && torneo.tipo === 'master' && (
+                                                <div className="text-[10px] text-neutral-400 mt-2">${torneo.precio_inscripcion} COP</div>
+                                            )}
                                         </div>
                                     </div>
 
