@@ -25,6 +25,7 @@ export default function RegistroPage() {
         const name = formData.get("name") as string;
         const email = formData.get("email") as string;
         const password = formData.get("password") as string;
+        const ciudad = formData.get("ciudad") as string || "Manizales";
         const userRole = formData.get("role") as string || "jugador";
 
         try {
@@ -41,6 +42,7 @@ export default function RegistroPage() {
                 options: {
                     data: {
                         nombre: name,
+                        ciudad: ciudad,
                         rol: userRole,
                     }
                 }
@@ -64,6 +66,7 @@ export default function RegistroPage() {
                     auth_id: authData.user.id,
                     nombre: name,
                     email: email,
+                    ciudad: ciudad,
                     rol: userRole,
                 });
 
@@ -135,6 +138,17 @@ export default function RegistroPage() {
                                 id="name"
                                 name="name"
                                 placeholder="Ej. Juan Pérez"
+                                required
+                                className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="ciudad" className="text-neutral-300">Ciudad</Label>
+                            <Input
+                                id="ciudad"
+                                name="ciudad"
+                                placeholder="Ej. Manizales"
+                                defaultValue="Manizales"
                                 required
                                 className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
                             />
