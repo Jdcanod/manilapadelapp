@@ -64,6 +64,8 @@ export default function LoginPage() {
 
                 if (userData?.rol === 'admin_club') {
                     router.push("/club");
+                } else if (userData?.rol === 'superadmin') {
+                    router.push("/superadmin");
                 } else {
                     router.push("/jugador");
                 }

@@ -54,7 +54,25 @@ export async function updateSession(request: NextRequest) {
     // Si el usuario está logueado pero intenta ir a Auth (Login/Registro), lo enviamos al Dashboard
     if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/registro' || request.nextUrl.pathname === '/')) {
         const url = request.nextUrl.clone()
-        url.pathname = '/jugador'
+        
+        try {
+            const { data: userData } = await supabase
+                .from('users')
+                .select('rol')
+                .eq('auth_id', user.id)
+                .single()
+                
+            if (userData?.rol === 'admin_club') {
+                url.pathname = '/club'
+            } else if (userData?.rol === 'superadmin') {
+                url.pathname = '/superadmin'
+            } else {
+                url.pathname = '/jugador'
+            }
+        } catch {
+            url.pathname = '/jugador'
+        }
+        
         return NextResponse.redirect(url)
     }
 
