@@ -16,6 +16,9 @@ interface Props {
     onOpenChange: (open: boolean) => void;
     courts: string[]; // e.g. ["Cancha 1", "Cancha 2"]
     timeSlots: string[]; // e.g. ["06:00", "06:30", ...]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    horariosPrime?: any[];
+    currentDateStr?: string;
 }
 
 interface User {
@@ -40,7 +43,8 @@ interface PartidoJugador {
     }[];
 }
 
-export function GestionReservaModal({ reservationId, open, onOpenChange, courts, timeSlots }: Props) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function GestionReservaModal({ reservationId, open, onOpenChange, courts, timeSlots, horariosPrime }: Props) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [partido, setPartido] = useState<Partido | null>(null);
@@ -122,6 +126,21 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
 
     const handleSaveCourt = async () => {
         if (!selectedCourt) return;
+
+        // Validar Horario Prime para reservas de 1 hora
+        const is60min = partido?.lugar && /60\s?min/i.test(partido.lugar);
+        const timeStrFromDate = partido?.fecha ? new Date(partido.fecha).toLocaleString('en-GB', { 
+            timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit' 
+        }).replace('.', ':') : ""; // Asegurar formato HH:mm
+
+        if (is60min && timeStrFromDate) {
+            const isPrime = checkIsPrime(timeStrFromDate, selectedCourt);
+            if (isPrime) {
+                alert(`⚠️ RESTRICCIÓN PRIME: No se puede mover a esta cancha. En este horario (${timeStrFromDate}), la cancha seleccionada es PRIME y exige bloques de 90 minutos.`);
+                return;
+            }
+        }
+
         setSaving(true);
         
         // Reemplazar la cancha antigua por la nueva en el string "lugar"
@@ -139,8 +158,42 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
         }
     };
 
+    const checkIsPrime = (hora: string, canchaId: string) => {
+        if (!horariosPrime || !Array.isArray(horariosPrime)) return false;
+        
+        // Normalizar canchaId (ej: 'cancha_1' -> '1')
+        const num = String(canchaId || '').replace('cancha_', '');
+        
+        for (const r of horariosPrime) {
+            // Un rango aplica si es 'all' o coincide con el número de cancha
+            const rangeCancha = String(r.cancha || '');
+            if (rangeCancha === 'all' || rangeCancha === num) {
+                // Si hay rango de fechas, validar
+                if (r.fecha_inicio && selectedDate && selectedDate < r.fecha_inicio) continue;
+                if (r.fecha_fin && selectedDate && selectedDate > r.fecha_fin) continue;
+                
+                // Comparar horas (formato HH:mm)
+                if (hora >= r.hora_inicio && hora < r.hora_fin) return true;
+            }
+        }
+        return false;
+    };
+
     const handleSaveDateTime = async () => {
         if (!selectedDate || !selectedTime) return;
+
+        // Validar Horario Prime para reservas de 1 hora
+        // Regex flexible para "60 min", "60min", "60 min", etc.
+        const is60min = partido?.lugar && /60\s?min/i.test(partido.lugar);
+        
+        if (is60min) {
+            const isPrime = checkIsPrime(selectedTime, selectedCourt);
+            if (isPrime) {
+                alert(`⚠️ RESTRICCIÓN PRIME: El horario ${selectedTime} en esta cancha está configurado como PRIME. Las reservas PRIME deben ser de 90 minutos obligatoriamente. Esta reserva es de 60 minutos y no se puede mover aquí.`);
+                return;
+            }
+        }
+
         setSaving(true);
         
         // Generar ISO con offset -05:00

@@ -1,15 +1,24 @@
-const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config({ path: '.env.local' });
 
-const env = fs.readFileSync('.env.local', 'utf8').split('\n').reduce((acc, line) => {
-    const [key, ...value] = line.split('=');
-    if (key && value) acc[key.trim()] = value.join('=').trim();
-    return acc;
-}, {});
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
-const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+async function checkColumns() {
+  const { data, error } = await supabase
+    .from('partidos')
+    .select('*')
+    .limit(1);
 
-(async () => {
-    const { data } = await supabase.from('users').select('nombre, horarios_solo_90_min_json').eq('nombre', 'club prueba 1');
-    console.log(JSON.stringify(data, null, 2));
-})();
+  if (error) {
+    console.error(error);
+  } else if (data && data.length > 0) {
+    console.log(Object.keys(data[0]));
+  } else {
+    console.log('No data found to check columns');
+  }
+}
+
+checkColumns();
