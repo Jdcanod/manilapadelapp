@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/utils/supabase/client";
@@ -21,7 +20,9 @@ interface Props {
 export function GestionReservaModal({ reservationId, open, onOpenChange, courts }: Props) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [partido, setPartido] = useState<any>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [jugadores, setJugadores] = useState<any[]>([]);
 
     const [editCourtMode, setEditCourtMode] = useState(false);
@@ -211,6 +212,7 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts 
                                 <div className="mt-4">
                                     <h5 className="text-xs text-neutral-500 mb-2">Jugadores Oficiales de la App (Amistoso/Torneo):</h5>
                                     <ul className="space-y-1">
+                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                         {jugadores.map((j: any) => (
                                             <li key={j.id} className="text-sm bg-neutral-900 px-3 py-1.5 rounded flex justify-between border border-neutral-800">
                                                 <span>{j.jugador?.nombre}</span>
