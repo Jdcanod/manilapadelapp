@@ -3,7 +3,6 @@ import { Trophy, Home, User, Calendar, Megaphone, MapPin, LogOut } from "lucide-
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createClient } from "@/utils/supabase/server";
 import { cerrarSesionAction } from "@/app/actions/auth";
-import { Button } from "@/components/ui/button";
 
 export default async function DashboardLayout({
     children,
