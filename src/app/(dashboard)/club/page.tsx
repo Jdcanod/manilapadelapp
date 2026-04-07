@@ -48,10 +48,13 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
         "21:00", "21:30", "22:00", "22:30", "23:00", "23:30"
     ];
 
-    const targetDate = new Date();
-    let y = targetDate.getFullYear();
-    let m = targetDate.getMonth() + 1;
-    let d = targetDate.getDate();
+    // Obtener la fecha actual en la zona horaria de Colombia para el default
+    const bogotaNow = new Date().toLocaleString("en-CA", { timeZone: "America/Bogota" }).split(',')[0];
+    const [currY, currM, currD] = bogotaNow.split('-').map(Number);
+
+    let y = currY;
+    let m = currM;
+    let d = currD;
 
     if (searchParams?.date) {
         const parts = searchParams.date.split('-');
@@ -62,18 +65,19 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
         }
     }
 
-    // Ensure we start exactly at midnight UTC of target date
+    // targetDateUTC se usa para la lógica de navegación (Hoy, Mañana, Ayer)
     const targetDateUTC = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
 
-    const tomorrowDateUTC = new Date(targetDateUTC);
-    tomorrowDateUTC.setUTCDate(tomorrowDateUTC.getUTCDate() + 1);
+    // Rango de búsqueda exacto para el día en Bogotá (UTC-5):
+    const startOfBogotaDay = new Date(`${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T00:00:00-05:00`);
+    const endOfBogotaDay = new Date(`${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T23:59:59-05:00`);
 
     const { data: partidosData } = await supabase
         .from('partidos')
         .select('*')
-        .like('lugar', `${nombreClub}%`)
-        .gte('fecha', targetDateUTC.toISOString())
-        .lt('fecha', tomorrowDateUTC.toISOString());
+        .ilike('lugar', `${nombreClub}%`) // ilike es insensible a mayúsculas/minúsculas
+        .gte('fecha', startOfBogotaDay.toISOString())
+        .lte('fecha', endOfBogotaDay.toISOString());
 
     const reservations = (partidosData || []).map(p => {
         const dt = new Date(p.fecha || new Date());

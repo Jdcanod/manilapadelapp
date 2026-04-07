@@ -6,19 +6,17 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-async function checkColumns() {
+async function checkData() {
   const { data, error } = await supabase
     .from('partidos')
-    .select('*')
-    .limit(1);
+    .select('lugar, fecha')
+    .limit(10);
 
   if (error) {
     console.error(error);
-  } else if (data && data.length > 0) {
-    console.log(Object.keys(data[0]));
   } else {
-    console.log('No data found to check columns');
+    console.log(data);
   }
 }
 
-checkColumns();
+checkData();
