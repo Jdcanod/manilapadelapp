@@ -33,7 +33,7 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState(1);
     const [isCustomClub, setIsCustomClub] = useState(false);
-    const [clubes, setClubes] = useState<{ id: string, nombre: string, canchas_activas_json: any }[]>([]);
+    const [clubes, setClubes] = useState<{ id: string, nombre: string, canchas_activas_json: Record<string, boolean> }[]>([]);
     const [selectedClub, setSelectedClub] = useState<string>(defaultLugar || "");
     const [selectedDate, setSelectedDate] = useState<string>(defaultFecha?.split('T')[0] || "");
     const [selectedTime, setSelectedTime] = useState<string>(defaultFecha?.includes('T') ? defaultFecha.split('T')[1].substring(0, 5) : "18:00");
@@ -124,7 +124,7 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
         try {
             const dateObj = new Date(`${fechaInput}:00-05:00`);
             fechaISO = dateObj.toISOString();
-        } catch (err) {
+        } catch {
             fechaISO = new Date(fechaInput).toISOString();
         }
 
@@ -165,11 +165,11 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
 
             setOpen(false);
             router.refresh();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error creando partido:", err);
             toast({
                 title: "Error al publicar",
-                description: err?.message || "Ocurrió un error inesperado.",
+                description: (err as Error)?.message || "Ocurrió un error inesperado.",
                 variant: "destructive"
             });
         } finally {
@@ -178,9 +178,8 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
     };
 
     const clubSeleccionadoObj = clubes.find(c => c.nombre === selectedClub);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const canchasList = clubSeleccionadoObj?.canchas_activas_json ? 
-        Object.keys(clubSeleccionadoObj.canchas_activas_json).filter(k => (clubSeleccionadoObj.canchas_activas_json as any)[k]) : [];
+        Object.keys(clubSeleccionadoObj.canchas_activas_json).filter(k => clubSeleccionadoObj.canchas_activas_json[k]) : [];
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
