@@ -63,6 +63,11 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
 
     useEffect(() => {
         if (open) {
+            // Sincronizar estados con defaults si se abrió desde la grilla
+            if (defaultTime) setSelectedHora(defaultTime);
+            if (defaultCourt) setSelectedIdCancha(defaultCourt);
+            if (defaultDate) setSelectedDia(defaultDate);
+
             // Load players when dialog opens
             supabase.from('users').select('auth_id, nombre').eq('rol', 'jugador').then(({ data }) => {
                 if (data) {
@@ -70,7 +75,7 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                 }
             });
         }
-    }, [open, supabase]);
+    }, [open, supabase, defaultTime, defaultCourt, defaultDate]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
