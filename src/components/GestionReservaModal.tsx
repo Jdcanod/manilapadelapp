@@ -17,16 +17,34 @@ interface Props {
     timeSlots: string[]; // e.g. ["06:00", "06:30", ...]
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface User {
+    auth_id: string;
+    nombre: string;
+    nivel: string;
+}
+
+interface Partido {
+    id: number;
+    fecha: string;
+    lugar: string;
+    tipo_partido?: string;
+    estado?: string;
+}
+
+interface PartidoJugador {
+    id: number;
+    jugador: {
+        nombre: string;
+        nivel: string;
+    }[];
+}
+
 export function GestionReservaModal({ reservationId, open, onOpenChange, courts, timeSlots }: Props) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [partido, setPartido] = useState<any>(null);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [jugadores, setJugadores] = useState<any[]>([]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [allUsers, setAllUsers] = useState<any[]>([]);
+    const [partido, setPartido] = useState<Partido | null>(null);
+    const [jugadores, setJugadores] = useState<PartidoJugador[]>([]);
+    const [allUsers, setAllUsers] = useState<User[]>([]);
 
     const [editCourtMode, setEditCourtMode] = useState(false);
     const [selectedCourt, setSelectedCourt] = useState("");
@@ -106,7 +124,7 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
         setSaving(true);
         
         // Reemplazar la cancha antigua por la nueva en el string "lugar"
-        const currentLugar = partido.lugar;
+        const currentLugar = partido?.lugar || "";
         const newLugar = currentLugar.replace(/cancha[_\s]\d+/i, selectedCourt);
         
         const { error } = await supabase.from('partidos').update({ lugar: newLugar }).eq('id', reservationId);
@@ -159,7 +177,7 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
         }
     };
 
-    const handleRemovePlayer = async (pjId: string) => {
+    const handleRemovePlayer = async (pjId: number) => {
         if (!confirm("¿Seguro que deseas quitar a este jugador del partido?")) return;
         setSaving(true);
         const { error } = await supabase.from('partido_jugadores').delete().eq('id', pjId);
@@ -175,7 +193,7 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
         if (!addedName.trim()) return;
         setSaving(true);
         
-        const currentLugar = partido.lugar;
+        const currentLugar = partido?.lugar || "";
         let newLugar = currentLugar;
         
         if (currentLugar.includes("a nombre de")) {
@@ -243,7 +261,7 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
                             </div>
                             <div className="flex justify-between items-center pt-2 border-t border-neutral-800">
                                 <span className="text-neutral-500">Tipo:</span>
-                                <span className="font-bold uppercase text-amber-500">{partido.tipo_partido?.replace('_', ' ')}</span>
+                                <span className="font-bold uppercase text-amber-500">{partido?.tipo_partido?.replace('_', ' ')}</span>
                             </div>
                         </div>
 
@@ -296,7 +314,7 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
                                         <SelectValue placeholder="Inscribir jugador de la base de datos..." />
                                     </SelectTrigger>
                                     <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[150px]">
-                                        {allUsers.map((u: any) => (
+                                        {allUsers.map((u) => (
                                             <SelectItem key={u.auth_id} value={u.auth_id}>{u.nombre} (Lvl {u.nivel})</SelectItem>
                                         ))}
                                     </SelectContent>
@@ -307,11 +325,11 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
                             </div>
                             
                             <div className="mt-4 space-y-2">
-                                {jugadores.map((j: any) => (
+                                {jugadores.map((j) => (
                                     <div key={j.id} className="text-sm bg-neutral-900/50 px-3 py-2 rounded flex justify-between items-center border border-neutral-800 group hover:border-neutral-700 transition-colors">
                                         <div className="flex flex-col">
-                                            <span className="font-medium text-white">{j.jugador?.nombre}</span>
-                                            <span className="text-[10px] text-neutral-500 uppercase">Nivel {j.jugador?.nivel}</span>
+                                            <span className="font-medium text-white">{j.jugador?.[0]?.nombre || "Jugador"}</span>
+                                            <span className="text-[10px] text-neutral-500 uppercase">Nivel {j.jugador?.[0]?.nivel || "-"}</span>
                                         </div>
                                         <Button 
                                             variant="ghost" 
@@ -346,10 +364,10 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
                                 </Button>
                             </div>
                             <p className="text-[10px] text-neutral-500 mt-1 italic">
-                                Esto se añade al campo "lugar" para visualización rápida.
+                                Esto se añade al campo &quot;lugar&quot; para visualización rápida.
                             </p>
                             <div className="bg-neutral-900 p-2 rounded text-xs text-neutral-300 border border-neutral-800 mt-2 line-clamp-2">
-                                {partido.lugar}
+                                {partido?.lugar}
                             </div>
                         </div>
 
