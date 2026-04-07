@@ -90,6 +90,13 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
         const courtIndex = matches ? parseInt(matches[1]) - 1 : -1;
 
         let playerName = "Reservado";
+        let span = 3; // Default padel duration is 90 mins (3 slots of 30 mins)
+        if (lugarStr.includes("60 min")) {
+            span = 2; // 60 mins
+        } else if (lugarStr.includes("90 min")) {
+            span = 3; // 90 mins
+        }
+
         if (lugarStr.includes("a nombre de ")) {
             playerName = lugarStr.split("a nombre de ")[1];
         } else if (p.estado === 'abierto') {
@@ -100,6 +107,7 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
             id: p.id,
             courtIndex,
             timeIndex,
+            span,
             player: playerName,
             type: p.tipo_partido?.toLowerCase().includes('amistoso') ? 'partido_app' : 'manual',
             status: p.estado
