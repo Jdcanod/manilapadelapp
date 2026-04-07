@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { Trophy, Home, User, Calendar, Megaphone, MapPin } from "lucide-react";
+import { Trophy, Home, User, Calendar, Megaphone, MapPin, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createClient } from "@/utils/supabase/server";
+import { cerrarSesionAction } from "@/app/actions/auth";
+import { Button } from "@/components/ui/button";
 
 export default async function DashboardLayout({
     children,
@@ -75,6 +77,11 @@ export default async function DashboardLayout({
                                 <Link href="/superadmin/torneos" className="text-xs font-semibold text-neutral-400 hover:text-white transition-colors">Torneos</Link>
                                 <Link href="/superadmin/jugadores" className="text-xs font-semibold text-neutral-400 hover:text-white transition-colors">Jugadores</Link>
                                 <Link href="/superadmin/clubes" className="text-xs font-semibold text-neutral-400 hover:text-white transition-colors">Clubes</Link>
+                                <form action={cerrarSesionAction} className="inline">
+                                    <button type="submit" className="text-xs font-semibold text-neutral-500 hover:text-red-400 transition-colors ml-2 flex items-center gap-1">
+                                        <LogOut className="w-3 h-3" /> Salir
+                                    </button>
+                                </form>
                             </div>
                         )}
 
@@ -84,7 +91,7 @@ export default async function DashboardLayout({
                                 <span className="text-xs text-green-400 font-semibold">1450 pts</span>
                             )}
                         </div>
-                        <Link href={rolUsuario === "jugador" ? "/jugador/perfil" : "/club/configuracion"}>
+                        <Link href={rolUsuario === "jugador" ? "/jugador/perfil" : rolUsuario === "admin_club" ? "/club/configuracion" : "/superadmin"}>
                             <Avatar className="h-9 w-9 border border-neutral-800 hover:border-emerald-500/50 transition-colors cursor-pointer">
                                 <AvatarFallback className="bg-neutral-800 text-neutral-300">{iniciales}</AvatarFallback>
                             </Avatar>
@@ -142,6 +149,12 @@ export default async function DashboardLayout({
                                 <User className="w-5 h-5 mb-1" />
                                 <span className="text-[10px] font-medium">Jugadores</span>
                             </Link>
+                            <form action={cerrarSesionAction} className="flex flex-col items-center justify-center w-full h-full text-neutral-500">
+                                <button type="submit" className="flex flex-col items-center justify-center w-full h-full">
+                                    <LogOut className="w-5 h-5 mb-1 text-red-500/70" />
+                                    <span className="text-[10px] font-medium">Cerrar Sesión</span>
+                                </button>
+                            </form>
                         </>
                     ) : (
                         <>

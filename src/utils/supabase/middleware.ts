@@ -51,29 +51,60 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url)
     }
 
-    // Si el usuario está logueado pero intenta ir a Auth (Login/Registro), lo enviamos al Dashboard
-    if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/registro' || request.nextUrl.pathname === '/')) {
+    // Re-escritura de lógica para asegurar que cada rol esté en su área
+    if (user) {
         const url = request.nextUrl.clone()
-        
+        const pathname = url.pathname
+
+        let userRol = 'jugador'
         try {
             const { data: userData } = await supabase
                 .from('users')
                 .select('rol')
                 .eq('auth_id', user.id)
                 .single()
-                
-            if (userData?.rol === 'admin_club') {
-                url.pathname = '/club'
-            } else if (userData?.rol === 'superadmin') {
-                url.pathname = '/superadmin'
-            } else {
-                url.pathname = '/jugador'
-            }
-        } catch {
-            url.pathname = '/jugador'
+            if (userData?.rol) userRol = userData.rol
+        } catch (e) {
+            console.error('Error fetching role in middleware:', e)
         }
-        
-        return NextResponse.redirect(url)
+
+        // Si intenta ir a login/registro/home logueado, redirigir a su dashboard
+        if (pathname === '/login' || pathname === '/registro' || pathname === '/') {
+            if (userRol === 'admin_club') url.pathname = '/club'
+            else if (userRol === 'superadmin') url.pathname = '/superadmin'
+            else url.pathname = '/jugador'
+            return NextResponse.redirect(url)
+        }
+
+        // Protecciones de Rutas
+        const playerRoutes = ['/jugador', '/partidos', '/torneos', '/clubes', '/ranking']
+        const clubRoutes = ['/club']
+        const adminRoutes = ['/superadmin']
+
+        // Superadmin no puede entrar a rutas de jugador o club (excepto compartidas como /novedades si las hubiera)
+        if (userRol === 'superadmin') {
+            const isForbidden = playerRoutes.some(r => pathname.startsWith(r)) || clubRoutes.some(r => pathname.startsWith(r))
+            if (isForbidden) {
+                url.pathname = '/superadmin'
+                return NextResponse.redirect(url)
+            }
+        } 
+        // Admin Club no puede entrar a jugador ni admin
+        else if (userRol === 'admin_club') {
+            const isForbidden = playerRoutes.some(r => pathname.startsWith(r)) || adminRoutes.some(r => pathname.startsWith(r))
+            if (isForbidden) {
+                url.pathname = '/club'
+                return NextResponse.redirect(url)
+            }
+        }
+        // Jugador no puede entrar a club ni admin
+        else if (userRol === 'jugador') {
+            const isForbidden = clubRoutes.some(r => pathname.startsWith(r)) || adminRoutes.some(r => pathname.startsWith(r))
+            if (isForbidden) {
+                url.pathname = '/jugador'
+                return NextResponse.redirect(url)
+            }
+        }
     }
 
     // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
