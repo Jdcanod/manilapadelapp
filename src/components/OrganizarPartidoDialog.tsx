@@ -179,7 +179,7 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
 
     const clubSeleccionadoObj = clubes.find(c => c.nombre === selectedClub);
     const canchasList = clubSeleccionadoObj?.canchas_activas_json ? 
-        Object.keys(clubSeleccionadoObj.canchas_activas_json).filter(k => clubSeleccionadoObj.canchas_activas_json[k]) : [];
+        Object.keys(clubSeleccionadoObj.canchas_activas_json).filter(k => clubSeleccionadoObj.canchas_activas_json[k] && !isNaN(Number(k))) : [];
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -202,123 +202,122 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-                    {step === 1 ? (
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2 col-span-2">
-                                <Label className="text-neutral-300 flex items-center gap-2"><CalendarIcon className="w-4 h-4" /> Fecha y Hora</Label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        name="fecha_dia"
-                                        type="date"
-                                        required
-                                        value={selectedDate}
-                                        onChange={(e) => setSelectedDate(e.target.value)}
-                                        className="bg-neutral-950 border-neutral-800 [color-scheme:dark] flex-1"
-                                    />
-                                    <Select name="fecha_hora" value={selectedTime} onValueChange={setSelectedTime}>
-                                        <SelectTrigger className="bg-neutral-950 border-neutral-800 w-[120px]">
-                                            <SelectValue placeholder="Hora" />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-neutral-900 border-neutral-800 max-h-[250px]">
-                                            {Array.from({ length: 24 }).flatMap((_, i) => {
-                                                const h = i.toString().padStart(2, '0');
-                                                return [
-                                                    <SelectItem key={`${h}:00`} value={`${h}:00`}>{h}:00</SelectItem>,
-                                                    <SelectItem key={`${h}:30`} value={`${h}:30`}>{h}:30</SelectItem>
-                                                ];
-                                            })}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2 col-span-2">
-                                <Label className="text-neutral-300 flex items-center gap-2"><MapPin className="w-4 h-4" /> Club o Lugar</Label>
-                                <Select name="lugar" value={selectedClub} onValueChange={(val) => {
-                                    setSelectedClub(val);
-                                    setIsCustomClub(val === "Otro");
-                                }}>
-                                    <SelectTrigger className="bg-neutral-950 border-neutral-800">
-                                        <SelectValue placeholder="Selecciona un club..." />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-neutral-900 border-neutral-800">
-                                        {defaultLugar && !clubes.find(c => c.nombre === defaultLugar) && defaultLugar !== "Otro" && (
-                                            <SelectItem value={defaultLugar}>{defaultLugar}</SelectItem>
-                                        )}
-                                        {clubes.map((club) => (
-                                            <SelectItem key={club.id} value={club.nombre}>{club.nombre}</SelectItem>
-                                        ))}
-                                        <SelectItem value="Otro">Otro club...</SelectItem>
-                                    </SelectContent>
-                                </Select>
-
-                                {isCustomClub && (
-                                    <Input
-                                        name="lugar_custom"
-                                        placeholder="Escribe el nombre del club o lugar"
-                                        required
-                                        className="bg-neutral-950 border-neutral-800 mt-2"
-                                    />
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-neutral-300">Nivel Buscado</Label>
-                                <Select name="nivel" defaultValue="intermedio">
-                                    <SelectTrigger className="bg-neutral-950 border-neutral-800">
-                                        <SelectValue placeholder="Nivel" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-neutral-900 border-neutral-800">
-                                        <SelectItem value="principiante">Principiante</SelectItem>
-                                        <SelectItem value="intermedio">Intermedio (5ta - 6ta)</SelectItem>
-                                        <SelectItem value="avanzado">Avanzado (3ra - 4ta)</SelectItem>
-                                        <SelectItem value="profesional">Pro (1ra - 2da)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-neutral-300">Categoría</Label>
-                                <Select name="sexo" defaultValue="mixto">
-                                    <SelectTrigger className="bg-neutral-950 border-neutral-800">
-                                        <SelectValue placeholder="Categoría" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-neutral-900 border-neutral-800">
-                                        <SelectItem value="masculino">Masculino</SelectItem>
-                                        <SelectItem value="femenino">Femenino</SelectItem>
-                                        <SelectItem value="mixto">Mixto</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-neutral-300 flex items-center gap-2"><Users className="w-4 h-4" /> ¿Qué buscas?</Label>
-                                <Select name="faltantes" defaultValue="3">
-                                    <SelectTrigger className="bg-neutral-950 border-neutral-800">
-                                        <SelectValue placeholder="Jugadores faltantes" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-neutral-900 border-neutral-800">
-                                        <SelectItem value="3">Me faltan 3 jugadores</SelectItem>
-                                        <SelectItem value="2">Nos faltan 2 (Tengo Pareja)</SelectItem>
-                                        <SelectItem value="1">Me falta 1 jugador</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-neutral-300 flex items-center gap-2"><Coins className="w-4 h-4" /> Costo x c/u ($)</Label>
+                    <div className={step === 1 ? "grid grid-cols-2 gap-4" : "hidden"}>
+                        <div className="space-y-2 col-span-2">
+                            <Label className="text-neutral-300 flex items-center gap-2"><CalendarIcon className="w-4 h-4" /> Fecha y Hora</Label>
+                            <div className="flex gap-2">
                                 <Input
-                                    name="precio"
-                                    type="number"
-                                    min="0"
-                                    placeholder="Ej. 25000"
-                                    className="bg-neutral-950 border-neutral-800"
+                                    name="fecha_dia"
+                                    type="date"
+                                    required
+                                    value={selectedDate}
+                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                    className="bg-neutral-950 border-neutral-800 [color-scheme:dark] flex-1"
                                 />
+                                <Select name="fecha_hora" value={selectedTime} onValueChange={setSelectedTime}>
+                                    <SelectTrigger className="bg-neutral-950 border-neutral-800 w-[120px]">
+                                        <SelectValue placeholder="Hora" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-neutral-900 border-neutral-800 max-h-[250px]">
+                                        {Array.from({ length: 24 }).flatMap((_, i) => {
+                                            const h = i.toString().padStart(2, '0');
+                                            return [
+                                                <SelectItem key={`${h}:00`} value={`${h}:00`}>{h}:00</SelectItem>,
+                                                <SelectItem key={`${h}:30`} value={`${h}:30`}>{h}:30</SelectItem>
+                                            ];
+                                        })}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
-                    ) : (
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-2 gap-3">
+
+                        <div className="space-y-2 col-span-2">
+                            <Label className="text-neutral-300 flex items-center gap-2"><MapPin className="w-4 h-4" /> Club o Lugar</Label>
+                            <Select name="lugar" value={selectedClub} onValueChange={(val) => {
+                                setSelectedClub(val);
+                                setIsCustomClub(val === "Otro");
+                            }}>
+                                <SelectTrigger className="bg-neutral-950 border-neutral-800">
+                                    <SelectValue placeholder="Selecciona un club..." />
+                                </SelectTrigger>
+                                <SelectContent className="bg-neutral-900 border-neutral-800">
+                                    {defaultLugar && !clubes.find(c => c.nombre === defaultLugar) && defaultLugar !== "Otro" && (
+                                        <SelectItem value={defaultLugar}>{defaultLugar}</SelectItem>
+                                    )}
+                                    {clubes.map((club) => (
+                                        <SelectItem key={club.id} value={club.nombre}>{club.nombre}</SelectItem>
+                                    ))}
+                                    <SelectItem value="Otro">Otro club...</SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            {isCustomClub && (
+                                <Input
+                                    name="lugar_custom"
+                                    placeholder="Escribe el nombre del club o lugar"
+                                    required={isCustomClub}
+                                    className="bg-neutral-950 border-neutral-800 mt-2"
+                                />
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-neutral-300">Nivel Buscado</Label>
+                            <Select name="nivel" defaultValue="intermedio">
+                                <SelectTrigger className="bg-neutral-950 border-neutral-800">
+                                    <SelectValue placeholder="Nivel" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-neutral-900 border-neutral-800">
+                                    <SelectItem value="principiante">Principiante</SelectItem>
+                                    <SelectItem value="intermedio">Intermedio (5ta - 6ta)</SelectItem>
+                                    <SelectItem value="avanzado">Avanzado (3ra - 4ta)</SelectItem>
+                                    <SelectItem value="profesional">Pro (1ra - 2da)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-neutral-300">Categoría</Label>
+                            <Select name="sexo" defaultValue="mixto">
+                                <SelectTrigger className="bg-neutral-950 border-neutral-800">
+                                    <SelectValue placeholder="Categoría" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-neutral-900 border-neutral-800">
+                                    <SelectItem value="masculino">Masculino</SelectItem>
+                                    <SelectItem value="femenino">Femenino</SelectItem>
+                                    <SelectItem value="mixto">Mixto</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-neutral-300 flex items-center gap-2"><Users className="w-4 h-4" /> ¿Qué buscas?</Label>
+                            <Select name="faltantes" defaultValue="3">
+                                <SelectTrigger className="bg-neutral-950 border-neutral-800">
+                                    <SelectValue placeholder="Jugadores faltantes" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-neutral-900 border-neutral-800">
+                                    <SelectItem value="3">Me faltan 3 jugadores</SelectItem>
+                                    <SelectItem value="2">Nos faltan 2 (Tengo Pareja)</SelectItem>
+                                    <SelectItem value="1">Me falta 1 jugador</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-neutral-300 flex items-center gap-2"><Coins className="w-4 h-4" /> Costo x c/u ($)</Label>
+                            <Input
+                                name="precio"
+                                type="number"
+                                min="0"
+                                placeholder="Ej. 25000"
+                                className="bg-neutral-950 border-neutral-800"
+                            />
+                        </div>
+                    </div>
+
+                    <div className={step === 2 && !isCustomClub ? "space-y-6" : "hidden"}>
+                        <div className="grid grid-cols-2 gap-3">
                                 {canchasList.length > 0 ? canchasList.map((canchaNum) => {
                                     const idCancha = `cancha_${canchaNum}`;
                                     const isBusy = busyCourts.includes(idCancha);
@@ -359,7 +358,6 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
                                 </p>
                             )}
                         </div>
-                    )}
 
                     <div className="pt-4 flex justify-between gap-2">
                         {step === 2 ? (
