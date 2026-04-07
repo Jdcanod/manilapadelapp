@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { User, MoreVertical, Trophy } from "lucide-react";
 import { ReservaManualDialog } from "@/components/ReservaManualDialog";
+import { GestionReservaModal } from "@/components/GestionReservaModal";
 
 interface Reservation {
     id: number;
@@ -31,6 +32,10 @@ export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, re
     const [open, setOpen] = useState(false);
     const [selectedCourt, setSelectedCourt] = useState<string>("");
     const [selectedTime, setSelectedTime] = useState<string>("");
+    
+    // States for Reservation Management
+    const [gestionOpen, setGestionOpen] = useState(false);
+    const [gestionId, setGestionId] = useState<string | number>("");
 
     const handleSlotClick = (court: string, time: string) => {
         // court structure is "Cancha X (Panorámica)" but the id used in form is "cancha_1"
@@ -106,7 +111,11 @@ export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, re
                                                     </div>
                                                 ) : (
                                                     <div 
-                                                        className={`absolute top-0 inset-x-0 rounded-lg p-3 z-10 flex flex-col justify-between shadow-md transition-transform hover:scale-[1.02] cursor-default ${reservation.type === 'torneo' ? 'bg-amber-500/10 border border-amber-500/50' :
+                                                        onClick={() => {
+                                                            setGestionId(reservation.id);
+                                                            setGestionOpen(true);
+                                                        }}
+                                                        className={`absolute top-0 inset-x-0 rounded-lg p-3 z-10 flex flex-col justify-between shadow-md transition-transform hover:scale-[1.02] cursor-pointer ${reservation.type === 'torneo' ? 'bg-amber-500/10 border border-amber-500/50' :
                                                         reservation.type === 'manual' ? 'bg-blue-500/10 border border-blue-500/50' :
                                                             reservation.status === 'pendiente' ? 'bg-neutral-800 border border-neutral-600' :
                                                                 'bg-emerald-500/10 border border-emerald-500/50'
@@ -155,6 +164,13 @@ export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, re
                 onOpenChange={setOpen}
                 horariosPrime={horariosPrime}
                 trigger={<span className="hidden"></span>}
+            />
+
+            <GestionReservaModal 
+                reservationId={gestionId}
+                open={gestionOpen}
+                onOpenChange={setGestionOpen}
+                courts={courts}
             />
         </>
     );
