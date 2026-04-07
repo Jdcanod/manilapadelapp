@@ -43,7 +43,8 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
                 const { data, error } = await supabase
                     .from('users')
                     .select('nombre')
-                    .eq('rol', 'admin_club');
+                    .eq('rol', 'admin_club')
+                    .neq('rol', 'superadmin');
                 if (!error && data) {
                     setClubes(data.map(c => c.nombre));
                 }

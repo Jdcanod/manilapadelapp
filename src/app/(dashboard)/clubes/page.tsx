@@ -28,7 +28,8 @@ export default async function ClubesMapPage() {
     const { data: clubesDb } = await supabase
         .from('users')
         .select('id, nombre, canchas_activas_json, auth_id')
-        .eq('rol', 'admin_club');
+        .eq('rol', 'admin_club')
+        .neq('rol', 'superadmin');
 
     const clubesMap = (clubesDb || []).map((c, i) => {
         const canchas = Array.isArray(c.canchas_activas_json) ? c.canchas_activas_json.length : 4;

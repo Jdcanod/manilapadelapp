@@ -32,7 +32,8 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
     const { data: clubesData } = await supabase
         .from('users')
         .select('auth_id, nombre')
-        .eq('rol', 'admin_club');
+        .eq('rol', 'admin_club')
+        .neq('rol', 'superadmin');
 
     const clubes = clubesData || [];
 
@@ -44,6 +45,8 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
             club:club_id(nombre)
         `)
         .eq('rol', 'jugador')
+        .neq('rol', 'superadmin')
+        .neq('rol', 'admin_club')
         .order('elo', { ascending: false });
 
     if (ciudad && ciudad !== 'todas') {
