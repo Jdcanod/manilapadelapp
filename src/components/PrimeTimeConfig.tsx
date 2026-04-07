@@ -217,6 +217,9 @@ export function PrimeTimeConfig({ initialRanges = [] }: { initialRanges: any }) 
                     </form>
                 </DialogContent>
             </Dialog>
+            <div className="mt-2 text-[11px] text-amber-500 font-medium">
+                ⚠️ Recuerda que después de configurar estas reglas, debes hacer clic en el botón principal "Guardar Configuraciones" de la parte inferior para guardar los cambios a la base de datos de tu club.
+            </div>
         </div>
     );
 }

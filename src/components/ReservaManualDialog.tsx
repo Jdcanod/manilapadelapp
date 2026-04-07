@@ -86,7 +86,9 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
         const dia = (formData.get("dia") as string) || selectedDia;
         const horaForm = (formData.get("hora") as string) || selectedHora;
         const cancha_id = (formData.get("cancha_id") as string) || selectedIdCancha;
-        const duracion = formData.get("duracion") as string;
+
+        const isPrime = checkIsPrime(horaForm, dia, cancha_id);
+        const duracion = isPrime ? "90" : ((formData.get("duracion") as string) || selectedDuracion);
 
         // Determinar nombre del jugador, categoria o id
         let playerName = "Comunidad";
