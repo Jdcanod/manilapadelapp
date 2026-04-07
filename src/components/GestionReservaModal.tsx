@@ -24,6 +24,8 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts 
     const [partido, setPartido] = useState<any>(null);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [jugadores, setJugadores] = useState<any[]>([]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [allUsers, setAllUsers] = useState<any[]>([]);
 
     const [editCourtMode, setEditCourtMode] = useState(false);
     const [selectedCourt, setSelectedCourt] = useState("");
@@ -52,6 +54,11 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts 
                         setSelectedCourt(match[0]); // "Cancha 1"
                     }
                 }
+                
+                // Cargar jugadores registrados
+                const { data: usersData } = await supabase.from('users').select('auth_id, nombre, nivel').eq('rol', 'jugador').order('nombre');
+                setAllUsers(usersData || []);
+
                 setLoading(false);
             };
             fetchInfo();
@@ -91,9 +98,8 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts 
         if (error) {
             alert("Error al cambiar la cancha: " + error.message);
         } else {
-            setPartido({ ...partido, lugar: newLugar });
-            setEditCourtMode(false);
             router.refresh();
+            onOpenChange(false);
         }
     };
 
@@ -116,9 +122,8 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts 
         if (error) {
             alert("Error al añadir jugador: " + error.message);
         } else {
-            setPartido({ ...partido, lugar: newLugar });
-            setAddedName("");
             router.refresh();
+            onOpenChange(false);
         }
     };
 
@@ -194,15 +199,19 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts 
 
                         {/* Jugadores Add */}
                         <div className="space-y-3 pt-2">
-                            <h4 className="font-bold text-sm text-emerald-400">Añadir personas a la reserva (Etiqueta Textual)</h4>
+                            <h4 className="font-bold text-sm text-emerald-400">Añadir etiqueta de jugador a la reserva</h4>
                             <div className="flex gap-2">
-                                <Input 
-                                    className="bg-neutral-950 border-neutral-800 [color-scheme:dark]" 
-                                    placeholder="Nombre del jugador a agregar..." 
-                                    value={addedName}
-                                    onChange={(e) => setAddedName(e.target.value)}
-                                    maxLength={40}
-                                />
+                                <Select value={addedName} onValueChange={setAddedName}>
+                                    <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white w-full">
+                                        <SelectValue placeholder="Busca un jugador en base de datos..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[150px]">
+                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                        {allUsers.map((u: any) => (
+                                            <SelectItem key={u.auth_id} value={u.nombre}>{u.nombre} (Lvl {u.nivel})</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                                 <Button onClick={handleAddPlayerText} disabled={saving || !addedName.trim()} className="bg-blue-600 hover:bg-blue-500 text-white px-3">
                                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                                 </Button>
