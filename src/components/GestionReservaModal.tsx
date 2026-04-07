@@ -18,6 +18,8 @@ interface Props {
     timeSlots: string[]; // e.g. ["06:00", "06:30", ...]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     horariosPrime?: any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    reservations?: any[];
     currentDateStr?: string;
 }
 
@@ -44,7 +46,7 @@ interface PartidoJugador {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function GestionReservaModal({ reservationId, open, onOpenChange, courts, timeSlots, horariosPrime }: Props) {
+export function GestionReservaModal({ reservationId, open, onOpenChange, courts, timeSlots, horariosPrime, reservations }: Props) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [partido, setPartido] = useState<Partido | null>(null);
@@ -149,6 +151,27 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
             }
         }
 
+        // Validar Solapamiento al cambiar de Cancha
+        if (reservations && Array.isArray(reservations)) {
+            const courtIdx = courts.indexOf(courts.find(c => `cancha_${courts.indexOf(c) + 1}` === selectedCourt) || "");
+            const startIdx = timeSlots.indexOf(timeStrFromDate);
+            const durationSlots = partido?.lugar && /60\s?min/i.test(partido.lugar) ? 2 : 3;
+
+            const hasOverlap = reservations.some(r => {
+                if (String(r.id) === String(reservationId)) return false;
+                if (r.courtIndex !== courtIdx) return false;
+                const rStart = r.timeIndex;
+                const rEnd = r.timeIndex + (r.span || 3);
+                const newEnd = startIdx + durationSlots;
+                return startIdx < rEnd && rStart < newEnd;
+            });
+
+            if (hasOverlap) {
+                alert("❌ SOLAPAMIENTO: Esta cancha ya está ocupada en este horario por otra reserva.");
+                return;
+            }
+        }
+
         setSaving(true);
         
         // Reemplazar la cancha antigua por la nueva en el string "lugar"
@@ -198,6 +221,27 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
             const isPrime = checkIsPrime(selectedTime, selectedCourt);
             if (isPrime) {
                 alert(`⚠️ RESTRICCIÓN PRIME: El horario ${selectedTime} en esta cancha está configurado como PRIME. Las reservas PRIME deben ser de 90 minutos obligatoriamente. Esta reserva es de 60 minutos y no se puede mover aquí.`);
+                return;
+            }
+        }
+
+        // Validar Solapamiento al cambiar el Horario
+        if (reservations && Array.isArray(reservations)) {
+            const courtIdx = courts.indexOf(courts.find(c => `cancha_${courts.indexOf(c) + 1}` === selectedCourt) || "");
+            const startIdx = timeSlots.indexOf(selectedTime);
+            const durationSlots = is60min ? 2 : 3;
+
+            const hasOverlap = reservations.some(r => {
+                if (String(r.id) === String(reservationId)) return false;
+                if (r.courtIndex !== courtIdx) return false;
+                const rStart = r.timeIndex;
+                const rEnd = r.timeIndex + (r.span || 3);
+                const newEnd = startIdx + durationSlots;
+                return startIdx < rEnd && rStart < newEnd;
+            });
+
+            if (hasOverlap) {
+                alert("❌ SOLAPAMIENTO: Ya existe otra reserva que se cruza con el nuevo horario seleccionado.");
                 return;
             }
         }

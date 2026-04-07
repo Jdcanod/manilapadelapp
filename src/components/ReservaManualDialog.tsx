@@ -24,9 +24,10 @@ interface Props {
     defaultDate?: string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     horariosPrime?: any[];
+    reservations?: any[];
 }
 
-export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, trigger, openState, onOpenChange, defaultCourt, defaultTime, defaultDate, horariosPrime }: Props) {
+export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, trigger, openState, onOpenChange, defaultCourt, defaultTime, defaultDate, horariosPrime, reservations }: Props) {
     const [internalOpen, setInternalOpen] = useState(false);
 
     const open = openState !== undefined ? openState : internalOpen;
@@ -104,6 +105,29 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
             if (isSelect) {
                 const userObj = users.find(u => u.id === isSelect);
                 if (userObj) playerName = userObj.nombre;
+            }
+        }
+
+        // Validar Solapamiento de Horarios
+        if (reservations && Array.isArray(reservations)) {
+            const courtIdx = courts.findIndex(c => `cancha_${courts.indexOf(c) + 1}` === cancha_id);
+            const startIdx = timeSlots.indexOf(horaForm);
+            const durationSlots = isPrime ? 3 : (selectedDuracion === "90" ? 3 : 2);
+
+            const hasOverlap = reservations.some(r => {
+                if (r.courtIndex !== courtIdx) return false;
+                
+                const rStart = r.timeIndex;
+                const rEnd = r.timeIndex + (r.span || 3);
+                const newEnd = startIdx + durationSlots;
+
+                return startIdx < rEnd && rStart < newEnd;
+            });
+
+            if (hasOverlap) {
+                alert("❌ SOLAPAMIENTO: Ya existe una reserva en este horario para la cancha seleccionada.");
+                setLoading(false);
+                return;
             }
         }
 

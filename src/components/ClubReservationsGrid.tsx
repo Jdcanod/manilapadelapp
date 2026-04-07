@@ -163,6 +163,7 @@ export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, re
                 openState={open}
                 onOpenChange={setOpen}
                 horariosPrime={horariosPrime}
+                reservations={reservations}
                 trigger={<span className="hidden"></span>}
             />
 
@@ -173,7 +174,7 @@ export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, re
                 courts={courts}
                 timeSlots={timeSlots}
                 horariosPrime={horariosPrime}
-                currentDateStr={currentDateStr}
+                reservations={reservations}
             />
         </>
     );
