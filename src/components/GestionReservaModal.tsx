@@ -106,21 +106,29 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
     }, [open, reservationId, supabase]);
 
     const handleDelete = async () => {
-        if (!confirm("¿Estás seguro de que deseas eliminar esta reserva por completo? Esta acción es irreversible.")) return;
+        if (!confirm("¿Estás seguro de que deseas eliminar esta reserva por completo?")) return;
         
         setSaving(true);
-        // Borrar jugadores asociados primero para evitar errores de llave foránea (por si no hay cascade)
-        await supabase.from('partido_jugadores').delete().eq('partido_id', reservationId);
-        // Borrar reserva
-        const { error } = await supabase.from('partidos').delete().eq('id', reservationId);
-        
-        setSaving(false);
-        if (error) {
-            alert("Error al eliminar la reserva: " + error.message);
-        } else {
-            alert("Reserva eliminada con éxito");
-            onOpenChange(false);
-            window.location.reload();
+        try {
+            // Actualizar estado a cancelado (Borrado Lógico)
+            // Esto es más seguro que el borrado físico ya que no rompe constraints
+            const { error } = await supabase
+                .from('partidos')
+                .update({ estado: 'cancelado' })
+                .eq('id', reservationId);
+            
+            if (error) {
+                alert("Error al eliminar la reserva: " + error.message);
+            } else {
+                alert("Reserva eliminada con éxito");
+                onOpenChange(false);
+                window.location.reload();
+            }
+        } catch (err: unknown) {
+            console.error("Error en handleDelete:", err);
+            alert("Excepción al eliminar: " + (err as Error).message);
+        } finally {
+            setSaving(false);
         }
     };
 

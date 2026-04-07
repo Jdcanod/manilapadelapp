@@ -77,7 +77,8 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
         .select('*')
         .ilike('lugar', `${nombreClub}%`) // ilike es insensible a mayúsculas/minúsculas
         .gte('fecha', startOfBogotaDay.toISOString())
-        .lte('fecha', endOfBogotaDay.toISOString());
+        .lte('fecha', endOfBogotaDay.toISOString())
+        .neq('estado', 'cancelado'); // No mostrar cancelados
 
     const reservations = (partidosData || []).map(p => {
         const dt = new Date(p.fecha || new Date());
