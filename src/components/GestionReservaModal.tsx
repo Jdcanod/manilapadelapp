@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { createClient } from "@/utils/supabase/client";
-import { Loader2, Trash2, Edit, Save, Plus } from "lucide-react";
+import { Loader2, Trash2, Edit, Save, Plus, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface Props {
@@ -13,10 +14,11 @@ interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     courts: string[]; // e.g. ["Cancha 1", "Cancha 2"]
+    timeSlots: string[]; // e.g. ["06:00", "06:30", ...]
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function GestionReservaModal({ reservationId, open, onOpenChange, courts }: Props) {
+export function GestionReservaModal({ reservationId, open, onOpenChange, courts, timeSlots }: Props) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,6 +30,9 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts 
 
     const [editCourtMode, setEditCourtMode] = useState(false);
     const [selectedCourt, setSelectedCourt] = useState("");
+    const [selectedDate, setSelectedDate] = useState("");
+    const [selectedTime, setSelectedTime] = useState("");
+    const [selectedUserId, setSelectedUserId] = useState("");
     const [addedName, setAddedName] = useState("");
 
     const supabase = createClient();
@@ -47,10 +52,23 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts 
                     const { data: jData } = await supabase.from('partido_jugadores').select('id, jugador:users(nombre, nivel)').eq('partido_id', pData.id);
                     setJugadores(jData || []);
                     
-                    // Extraer cancha actual del string "Cancha X (..."
-                    const match = pData.lugar.match(/Cancha (\d+)/i);
+                    // Extraer cancha actual. Soportamos tanto "cancha_1" como "Cancha 1"
+                    const match = pData.lugar.match(/cancha[_\s](\d+)/i);
                     if (match) {
-                        setSelectedCourt(match[0]); // "Cancha 1"
+                        setSelectedCourt(`cancha_${match[1]}`);
+                    }
+
+                    // Extraer fecha y hora actual (ajustado a Colombia)
+                    if (pData.fecha) {
+                        const dt = new Date(pData.fecha);
+                        const dateStr = dt.toLocaleString('en-CA', { timeZone: 'America/Bogota' }).split(',')[0];
+                        const timeStr = dt.toLocaleString('en-GB', { 
+                            timeZone: 'America/Bogota', 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                        });
+                        setSelectedDate(dateStr);
+                        setSelectedTime(timeStr);
                     }
                 }
                 
@@ -89,7 +107,7 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts 
         
         // Reemplazar la cancha antigua por la nueva en el string "lugar"
         const currentLugar = partido.lugar;
-        const newLugar = currentLugar.replace(/Cancha \d+/i, selectedCourt);
+        const newLugar = currentLugar.replace(/cancha[_\s]\d+/i, selectedCourt);
         
         const { error } = await supabase.from('partidos').update({ lugar: newLugar }).eq('id', reservationId);
         
@@ -100,6 +118,57 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts 
             router.refresh();
             onOpenChange(false);
         }
+    };
+
+    const handleSaveDateTime = async () => {
+        if (!selectedDate || !selectedTime) return;
+        setSaving(true);
+        
+        // Generar ISO con offset -05:00
+        const newFecha = new Date(`${selectedDate}T${selectedTime}:00-05:00`).toISOString();
+        
+        const { error } = await supabase.from('partidos').update({ fecha: newFecha }).eq('id', reservationId);
+        
+        setSaving(false);
+        if (error) {
+            alert("Error al cambiar fecha/hora: " + error.message);
+        } else {
+            router.refresh();
+            onOpenChange(false);
+        }
+    };
+
+    const handleAddPlayerFormal = async () => {
+        if (!selectedUserId) return;
+        setSaving(true);
+        
+        const { error } = await supabase.from('partido_jugadores').insert({
+            partido_id: reservationId,
+            jugador_id: selectedUserId
+        });
+        
+        if (error) {
+            alert("Error al añadir jugador: " + error.message);
+            setSaving(false);
+        } else {
+            // Recargar lista local
+            const { data: jData } = await supabase.from('partido_jugadores').select('id, jugador:users(nombre, nivel)').eq('partido_id', reservationId);
+            setJugadores(jData || []);
+            setSelectedUserId("");
+            setSaving(false);
+        }
+    };
+
+    const handleRemovePlayer = async (pjId: string) => {
+        if (!confirm("¿Seguro que deseas quitar a este jugador del partido?")) return;
+        setSaving(true);
+        const { error } = await supabase.from('partido_jugadores').delete().eq('id', pjId);
+        if (error) {
+            alert("Error al quitar jugador");
+        } else {
+            setJugadores(jugadores.filter(j => j.id !== pjId));
+        }
+        setSaving(false);
     };
 
     const handleAddPlayerText = async () => {
@@ -147,18 +216,34 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts 
                 ) : (
                     <div className="space-y-6 pt-2">
                         {/* Info Básica */}
-                        <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800 space-y-2 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-neutral-500">Fecha/Hora:</span>
-                                <span className="font-bold">{new Date(partido.fecha).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}</span>
+                        <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800 space-y-3 text-sm">
+                            <div className="flex flex-col gap-2">
+                                <span className="text-neutral-500 text-xs font-semibold uppercase tracking-wider">Fecha y Horario</span>
+                                <div className="flex gap-2">
+                                    <Input 
+                                        type="date" 
+                                        value={selectedDate} 
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedDate(e.target.value)}
+                                        className="bg-neutral-900 border-neutral-800 text-white h-9 [color-scheme:dark]"
+                                    />
+                                    <Select value={selectedTime} onValueChange={setSelectedTime}>
+                                        <SelectTrigger className="bg-neutral-900 border-neutral-800 text-white h-9 w-[120px]">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[200px]">
+                                            {timeSlots.map(t => (
+                                                <SelectItem key={t} value={t}>{t}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <Button onClick={handleSaveDateTime} disabled={saving} size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white">
+                                        <Save className="w-3.5 h-3.5" />
+                                    </Button>
+                                </div>
                             </div>
-                            <div className="flex justify-between">
+                            <div className="flex justify-between items-center pt-2 border-t border-neutral-800">
                                 <span className="text-neutral-500">Tipo:</span>
                                 <span className="font-bold uppercase text-amber-500">{partido.tipo_partido?.replace('_', ' ')}</span>
-                            </div>
-                            <div className="flex flex-col pt-2 border-t border-neutral-800 mt-2">
-                                <span className="text-neutral-500 mb-1">Descripción / Ubicación (Lugar Oficial):</span>
-                                <span className="font-medium bg-neutral-900 p-2 rounded">{partido.lugar}</span>
                             </div>
                         </div>
 
@@ -167,7 +252,11 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts 
                             <h4 className="font-bold text-sm text-emerald-400">Modificar Cancha Asignada</h4>
                             {!editCourtMode ? (
                                 <div className="flex items-center justify-between bg-neutral-950 px-4 py-2 rounded-lg border border-neutral-800">
-                                    <span className="font-bold">{selectedCourt || "No detectada"}</span>
+                                    <span className="font-bold">
+                                        {selectedCourt ? 
+                                            (courts[parseInt(selectedCourt.split('_')[1]) - 1] || selectedCourt) 
+                                            : "No detectada"}
+                                    </span>
                                     <Button variant="ghost" size="sm" onClick={() => setEditCourtMode(true)} className="text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 h-8">
                                         <Edit className="w-4 h-4 mr-2" /> Cambiar
                                     </Button>
@@ -181,7 +270,7 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts 
                                             </SelectTrigger>
                                             <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
                                                 {courts.map((c, i) => (
-                                                    <SelectItem key={i} value={`Cancha ${i + 1}`}>Cancha {i + 1}</SelectItem>
+                                                    <SelectItem key={i} value={`cancha_${i + 1}`}>{c}</SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
@@ -198,38 +287,70 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts 
 
                         {/* Jugadores Add */}
                         <div className="space-y-3 pt-2">
-                            <h4 className="font-bold text-sm text-emerald-400">Añadir etiqueta de jugador a la reserva</h4>
+                            <h4 className="font-bold text-sm text-emerald-400 flex items-center gap-2">
+                                <Users className="w-4 h-4" /> Jugadores Inscritos
+                            </h4>
                             <div className="flex gap-2">
-                                <Select value={addedName} onValueChange={setAddedName}>
+                                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
                                     <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white w-full">
-                                        <SelectValue placeholder="Busca un jugador en base de datos..." />
+                                        <SelectValue placeholder="Inscribir jugador de la base de datos..." />
                                     </SelectTrigger>
                                     <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[150px]">
-                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                         {allUsers.map((u: any) => (
-                                            <SelectItem key={u.auth_id} value={u.nombre}>{u.nombre} (Lvl {u.nivel})</SelectItem>
+                                            <SelectItem key={u.auth_id} value={u.auth_id}>{u.nombre} (Lvl {u.nivel})</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <Button onClick={handleAddPlayerText} disabled={saving || !addedName.trim()} className="bg-blue-600 hover:bg-blue-500 text-white px-3">
+                                <Button onClick={handleAddPlayerFormal} disabled={saving || !selectedUserId} className="bg-blue-600 hover:bg-blue-500 text-white px-3 h-10">
                                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                                 </Button>
                             </div>
                             
-                            {jugadores.length > 0 && (
-                                <div className="mt-4">
-                                    <h5 className="text-xs text-neutral-500 mb-2">Jugadores Oficiales de la App (Amistoso/Torneo):</h5>
-                                    <ul className="space-y-1">
-                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                        {jugadores.map((j: any) => (
-                                            <li key={j.id} className="text-sm bg-neutral-900 px-3 py-1.5 rounded flex justify-between border border-neutral-800">
-                                                <span>{j.jugador?.nombre}</span>
-                                                <span className="text-xs text-neutral-500">Lvl {j.jugador?.nivel}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
+                            <div className="mt-4 space-y-2">
+                                {jugadores.map((j: any) => (
+                                    <div key={j.id} className="text-sm bg-neutral-900/50 px-3 py-2 rounded flex justify-between items-center border border-neutral-800 group hover:border-neutral-700 transition-colors">
+                                        <div className="flex flex-col">
+                                            <span className="font-medium text-white">{j.jugador?.nombre}</span>
+                                            <span className="text-[10px] text-neutral-500 uppercase">Nivel {j.jugador?.nivel}</span>
+                                        </div>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            onClick={() => handleRemovePlayer(j.id)}
+                                            className="h-8 w-8 p-0 text-neutral-500 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                                {jugadores.length === 0 && (
+                                    <div className="text-center py-4 text-xs text-neutral-600 border border-dashed border-neutral-800 rounded-lg">
+                                        Sin jugadores inscritos formalmente
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Descripción Manual (Texto) */}
+                        <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800 space-y-2">
+                            <span className="text-neutral-500 text-xs font-semibold uppercase tracking-wider">Etiqueta de Texto (Lugar)</span>
+                            <div className="flex gap-2">
+                                <Input 
+                                    placeholder="Nombre o nota rápida..." 
+                                    value={addedName} 
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAddedName(e.target.value)}
+                                    className="bg-neutral-900 border-neutral-800 text-white h-9"
+                                />
+                                <Button onClick={handleAddPlayerText} disabled={saving || !addedName.trim()} variant="secondary" className="h-9 px-3">
+                                    <Plus className="w-4 h-4" />
+                                </Button>
+                            </div>
+                            <p className="text-[10px] text-neutral-500 mt-1 italic">
+                                Esto se añade al campo "lugar" para visualización rápida.
+                            </p>
+                            <div className="bg-neutral-900 p-2 rounded text-xs text-neutral-300 border border-neutral-800 mt-2 line-clamp-2">
+                                {partido.lugar}
+                            </div>
                         </div>
 
                         {/* Zona de Peligro */}

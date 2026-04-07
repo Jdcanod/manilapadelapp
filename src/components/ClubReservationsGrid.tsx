@@ -171,6 +171,7 @@ export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, re
                 open={gestionOpen}
                 onOpenChange={setGestionOpen}
                 courts={courts}
+                timeSlots={timeSlots}
             />
         </>
     );

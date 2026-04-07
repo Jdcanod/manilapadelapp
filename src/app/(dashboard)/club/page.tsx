@@ -86,7 +86,7 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
         const timeIndex = timeSlots.indexOf(timeStr);
 
         const lugarStr = p.lugar || "";
-        const matches = lugarStr.match(/cancha_(\d+)/i);
+        const matches = lugarStr.match(/cancha[_\s](\d+)/i);
         const courtIndex = matches ? parseInt(matches[1]) - 1 : -1;
 
         let playerName = "Reservado";
