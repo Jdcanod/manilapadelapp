@@ -77,9 +77,9 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
         setLoading(true);
 
         const formData = new FormData(e.currentTarget);
-        const dia = formData.get("dia") as string;
-        const horaForm = formData.get("hora") as string;
-        const cancha_id = formData.get("cancha_id") as string;
+        const dia = (formData.get("dia") as string) || selectedDia;
+        const horaForm = (formData.get("hora") as string) || selectedHora;
+        const cancha_id = (formData.get("cancha_id") as string) || selectedIdCancha;
         const duracion = formData.get("duracion") as string;
 
         // Determinar nombre del jugador, categoria o id
@@ -236,8 +236,8 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
 
                     <div className="space-y-2">
                         <Label className="text-neutral-300">Cancha</Label>
-                        <Select name="cancha_id" value={selectedIdCancha} onValueChange={setSelectedIdCancha} required>
-                            <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
+                        <Select name="cancha_id" value={selectedIdCancha} onValueChange={setSelectedIdCancha} required disabled={!!defaultCourt}>
+                            <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white disabled:opacity-50">
                                 <SelectValue placeholder="Elige la cancha" />
                             </SelectTrigger>
                             <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
@@ -259,14 +259,15 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                                 required
                                 value={selectedDia}
                                 onChange={(e) => setSelectedDia(e.target.value)}
-                                className="bg-neutral-950 border-neutral-800 text-neutral-100"
+                                className="bg-neutral-950 border-neutral-800 text-neutral-100 disabled:opacity-50"
                                 style={{ colorScheme: 'dark' }}
+                                disabled={!!defaultDate && !!defaultCourt}
                             />
                         </div>
                         <div className="space-y-2">
                             <Label className="text-neutral-300">Horario</Label>
-                            <Select name="hora" defaultValue={selectedHora} onValueChange={setSelectedHora} required key={defaultTime || "time"}>
-                                <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
+                            <Select name="hora" defaultValue={selectedHora} onValueChange={setSelectedHora} required key={defaultTime || "time"} disabled={!!defaultTime}>
+                                <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white disabled:opacity-50">
                                     <SelectValue placeholder="Horario" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
