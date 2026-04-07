@@ -120,7 +120,7 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
         } else {
             alert("Reserva eliminada con éxito");
             onOpenChange(false);
-            router.refresh();
+            window.location.reload();
         }
     };
 
