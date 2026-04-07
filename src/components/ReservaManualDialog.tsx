@@ -22,9 +22,23 @@ interface Props {
     defaultCourt?: string;
     defaultTime?: string;
     defaultDate?: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    horariosPrime?: any[];
-    reservations?: any[];
+    horariosPrime?: {
+        id: string;
+        cancha: string;
+        hora_inicio: string;
+        hora_fin: string;
+        fecha_inicio?: string;
+        fecha_fin?: string;
+    }[];
+    reservations?: {
+        id: number | string;
+        courtIndex: number;
+        timeIndex: number;
+        player: string;
+        type: string;
+        status: string;
+        span?: number;
+    }[];
 }
 
 export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, trigger, openState, onOpenChange, defaultCourt, defaultTime, defaultDate, horariosPrime, reservations }: Props) {

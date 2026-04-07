@@ -16,10 +16,23 @@ interface Props {
     onOpenChange: (open: boolean) => void;
     courts: string[]; // e.g. ["Cancha 1", "Cancha 2"]
     timeSlots: string[]; // e.g. ["06:00", "06:30", ...]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    horariosPrime?: any[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    reservations?: any[];
+    horariosPrime?: {
+        id: string;
+        cancha: string;
+        hora_inicio: string;
+        hora_fin: string;
+        fecha_inicio?: string;
+        fecha_fin?: string;
+    }[];
+    reservations?: {
+        id: number | string;
+        courtIndex: number;
+        timeIndex: number;
+        player: string;
+        type: string;
+        status: string;
+        span?: number;
+    }[];
     currentDateStr?: string;
 }
 
