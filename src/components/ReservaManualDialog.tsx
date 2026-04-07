@@ -43,6 +43,7 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
     const [selectedHora, setSelectedHora] = useState(defaultTime || timeSlots[0] || "19:00");
     const [selectedIdCancha, setSelectedIdCancha] = useState(defaultCourt || "cancha_1");
     const [selectedDia, setSelectedDia] = useState(defaultDate || new Date().toLocaleString("en-CA", { timeZone: "America/Bogota" }).split(',')[0]);
+    const [selectedDuracion, setSelectedDuracion] = useState("90");
     const [users, setUsers] = useState<{ id: string, nombre: string }[]>([]);
 
     const checkIsPrime = (hora: string, dia: string, cancha: string) => {
@@ -293,15 +294,16 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                         </Label>
                         <Select
                             name="duracion"
-                            value={checkIsPrime(selectedHora, selectedDia, selectedIdCancha) ? "90" : "60"}
+                            value={checkIsPrime(selectedHora, selectedDia, selectedIdCancha) ? "90" : selectedDuracion}
+                            onValueChange={setSelectedDuracion}
                             disabled={checkIsPrime(selectedHora, selectedDia, selectedIdCancha)}
                         >
                             <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white disabled:opacity-50">
                                 <SelectValue placeholder="Duración" />
                             </SelectTrigger>
                             <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
-                                <SelectItem value="60">1 Hora</SelectItem>
-                                <SelectItem value="90">1 Hora y Media</SelectItem>
+                                <SelectItem value="60">1 Hora (60 min)</SelectItem>
+                                <SelectItem value="90">1 Hora y Media (90 min)</SelectItem>
                             </SelectContent>
                         </Select>
                         {checkIsPrime(selectedHora, selectedDia, selectedIdCancha) && (

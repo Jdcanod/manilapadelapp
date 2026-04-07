@@ -40,6 +40,20 @@ export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, re
         setOpen(true);
     };
 
+    const checkIsPrime = (hora: string, canchaId: string) => {
+        if (!horariosPrime || !Array.isArray(horariosPrime)) return false;
+        const num = canchaId.replace('cancha_', '');
+        for (const r of horariosPrime) {
+            if (r.cancha === 'all' || r.cancha === num) {
+                if (r.fecha_inicio && currentDateStr && currentDateStr < r.fecha_inicio) continue;
+                if (r.fecha_fin && currentDateStr && currentDateStr > r.fecha_fin) continue;
+                if (hora >= r.hora_inicio && hora < r.hora_fin) return true;
+            }
+        }
+        return false;
+    };
+
+
     return (
         <>
             <ScrollArea className="w-full whitespace-nowrap rounded-b-xl">
@@ -68,6 +82,7 @@ export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, re
                                         const reservation = reservations.find(r => r.courtIndex === cIdx && r.timeIndex === tIdx);
                                         const isCoveredByPrevious = reservations.find(r => r.courtIndex === cIdx && r.timeIndex < tIdx && r.timeIndex + (r.span || 1) > tIdx);
                                         const isHour = time.endsWith(":00");
+                                        const isPrime = checkIsPrime(time, `cancha_${cIdx + 1}`);
 
                                         if (isCoveredByPrevious) {
                                             return <div key={tIdx} className={`h-[50px] w-full mb-2 border-l border-transparent ${isHour ? "border-t border-dashed border-neutral-700/50 pt-[1px]" : ""}`}></div>;
@@ -77,10 +92,17 @@ export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, re
                                             <div key={tIdx} className={`h-[50px] relative w-full mb-2 group ${isHour ? "border-t border-dashed border-neutral-700/50 pt-[1px]" : ""}`}>
                                                 {!reservation ? (
                                                     <div
-                                                        className="absolute inset-0 bg-neutral-950/30 border border-neutral-800/50 border-dashed rounded-lg opacity-20 transition-opacity hover:opacity-100 flex items-center justify-center cursor-pointer hover:bg-emerald-900/10"
+                                                        className={`absolute inset-0 border border-dashed rounded-lg transition-all flex items-center justify-center cursor-pointer 
+                                                        ${isPrime 
+                                                            ? 'bg-amber-950/20 border-amber-800/40 opacity-40 hover:opacity-100 hover:bg-amber-900/30' 
+                                                            : 'bg-neutral-950/30 border-neutral-800/50 opacity-20 hover:opacity-100 hover:bg-emerald-900/10'}`}
                                                         onClick={() => handleSlotClick(court, time)}
                                                     >
-                                                        <span className="text-xs text-neutral-500 group-hover:text-emerald-500">+ Reservar</span>
+                                                        {isPrime ? (
+                                                            <span className="text-[10px] text-amber-500/70 group-hover:text-amber-400 font-medium">+ Prime (90m)</span>
+                                                        ) : (
+                                                            <span className="text-xs text-neutral-500 group-hover:text-emerald-500">+ Reservar</span>
+                                                        )}
                                                     </div>
                                                 ) : (
                                                     <div 
