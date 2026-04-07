@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { createClient } from "@/utils/supabase/client";
 import { Loader2, Trash2, Edit, Save, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
