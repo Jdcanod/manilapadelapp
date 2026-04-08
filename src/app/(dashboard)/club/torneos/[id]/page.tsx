@@ -29,6 +29,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         .select(`
             *,
             torneo_parejas(*, pareja:parejas(*)),
+            inscripciones:inscripciones_torneo(*, jugador1:users(nombre), jugador2:users(nombre)),
             torneo_fases(*)
         `)
         .eq('id', params.id)
@@ -38,6 +39,47 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     if (error || !torneo) {
         return <div className="p-8 text-center text-red-500">Error: Torneo no encontrado o sin permisos.</div>;
     }
+
+    // Unificar participantes
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const allParticipants: any[] = [];
+    
+    // Regular pairs
+    if (torneo.torneo_parejas) {
+        torneo.torneo_parejas.forEach((tp: any) => {
+            allParticipants.push({
+                id: tp.id,
+                nombre: tp.pareja?.nombre_pareja || "Pareja s/n",
+                categoria: tp.categoria,
+                estado_pago: tp.estado_pago,
+                tipo: 'regular'
+            });
+        });
+    }
+    
+    // Master players (converted to pairs display)
+    if (torneo.inscripciones) {
+        torneo.inscripciones.forEach((ins: any) => {
+            allParticipants.push({
+                id: ins.id,
+                nombre: `${ins.jugador1?.nombre} & ${ins.jugador2?.nombre}`,
+                categoria: ins.nivel,
+                estado_pago: ins.estado || 'pendiente',
+                tipo: 'master'
+            });
+        });
+    }
+
+    // Obtener partidos reales del torneo
+    const { data: partidosReales } = await supabase
+        .from('partidos')
+        .select(`
+            *,
+            pareja1:parejas(nombre_pareja),
+            pareja2:parejas(nombre_pareja)
+        `)
+        .eq('torneo_id', params.id)
+        .order('fecha', { ascending: true });
 
     const isPast = new Date(torneo.fecha_fin) < new Date();
     const isUpcoming = new Date(torneo.fecha_inicio) > new Date();
@@ -82,7 +124,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                 <TabsList className="bg-neutral-900 border border-neutral-800 p-1 w-full flex overflow-x-auto justify-start sm:w-auto overflow-y-hidden">
                     <TabsTrigger value="inscripciones" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
                         Parejas Inscritas
-                        <Badge className="ml-2 bg-neutral-800 text-white hover:bg-neutral-700">{torneo.torneo_parejas?.length || 0}</Badge>
+                        <Badge className="ml-2 bg-neutral-800 text-white hover:bg-neutral-700">{allParticipants.length}</Badge>
                     </TabsTrigger>
                     <TabsTrigger value="cuadros" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
                         Cuadros de Juego
@@ -91,7 +133,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
 
                 <TabsContent value="inscripciones" className="mt-6">
                     {/* View for inscriptions */}
-                    {!torneo.torneo_parejas || torneo.torneo_parejas.length === 0 ? (
+                    {allParticipants.length === 0 ? (
                         <div className="text-center py-12 text-neutral-500 border border-neutral-800 border-dashed rounded-xl bg-neutral-900/30">
                             <Users className="w-12 h-12 text-neutral-700 mx-auto mb-4" />
                             <h3 className="text-lg font-medium text-neutral-300 mb-2">Aún no hay inscritos</h3>
@@ -109,11 +151,10 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                    {torneo.torneo_parejas.map((tp: any) => (
+                                    {allParticipants.map((tp) => (
                                         <tr key={tp.id} className="bg-neutral-900 border-b border-neutral-800 hover:bg-neutral-800/30">
                                             <td className="px-6 py-4 font-bold text-white">
-                                                {tp.pareja.nombre_pareja || "Pareja sin nombre"}
+                                                {tp.nombre}
                                             </td>
                                             <td className="px-6 py-4">
                                                 {tp.categoria}
@@ -124,7 +165,6 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                                 </Badge>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                {/* Action menu to mark as paid or eliminate */}
                                                 <button className="text-blue-400 hover:text-blue-300 mr-4 font-medium">Marcar Pago</button>
                                                 <button className="text-red-400 hover:text-red-300 font-medium">Bajar</button>
                                             </td>
@@ -137,135 +177,58 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                 </TabsContent>
 
                 <TabsContent value="cuadros" className="mt-6">
-                    {/* Simulated Tournament Bracket View */}
                     <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
                         <div className="flex items-center justify-between mb-8">
                             <div>
-                                <h3 className="text-xl font-bold text-white mb-1">Cuadro Principal - 1ra Categoría</h3>
-                                <p className="text-sm text-neutral-400">Eliminatoria Directa</p>
+                                <h3 className="text-xl font-bold text-white mb-1">Encuentros del Torneo</h3>
+                                <p className="text-sm text-neutral-400">Listado de partidos reales programados</p>
                             </div>
                             <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">
                                 Oficial
                             </Badge>
                         </div>
 
-                        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 relative overflow-x-auto pb-4">
-                            {/* Line connections for desktop */}
-                            <div className="hidden lg:block absolute inset-0 pointer-events-none w-full h-full z-0">
-                                <svg className="w-full h-full" style={{ minWidth: "600px" }}>
-                                    {/* Semis to Final Lines */}
-                                    <path d="M 280 80 L 320 80 L 320 180 L 360 180" fill="none" stroke="#262626" strokeWidth="2" />
-                                    <path d="M 280 280 L 320 280 L 320 180 L 360 180" fill="none" stroke="#262626" strokeWidth="2" />
-                                </svg>
+                        {!partidosReales || partidosReales.length === 0 ? (
+                            <div className="text-center py-12 text-neutral-500 border border-neutral-800 border-dashed rounded-xl bg-neutral-950/50">
+                                <Swords className="w-12 h-12 text-neutral-800 mx-auto mb-4" />
+                                <h3 className="text-lg font-medium text-neutral-400 mb-2">Cuadros no generados</h3>
+                                <p className="max-w-sm mx-auto text-sm">Una vez cierren las inscripciones, podrás generar los encuentros desde el panel de control o crearlos manualmente como partidos oficiales.</p>
                             </div>
-
-                            {/* Semifinals */}
-                            <div className="flex flex-col gap-8 lg:gap-24 w-full lg:w-72 z-10 shrink-0">
-                                <div className="text-sm font-bold text-neutral-500 uppercase tracking-wider mb-2 lg:mb-0 lg:absolute lg:top-[-20px]">Semifinales</div>
-
-                                {/* Match 1 */}
-                                <Card className="bg-neutral-950 border-neutral-800 relative z-10 shadow-xl">
-                                    <CardContent className="p-0">
-                                        <div className="flex justify-between items-center p-3 border-b border-neutral-800/50 bg-neutral-900/50">
-                                            <span className="text-xs text-neutral-500">SF1 • Pista Central</span>
-                                            <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-400 text-[10px] uppercase">Finalizado</Badge>
-                                        </div>
-                                        <div className="p-3 bg-neutral-900/40 font-medium">
-                                            <div className="flex justify-between items-center mb-3">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-                                                    <span className="text-white text-sm">Nadal & Alcaraz</span>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {partidosReales.map((match) => (
+                                    <Card key={match.id} className="bg-neutral-950 border-neutral-800 shadow-xl overflow-hidden hover:border-neutral-700 transition-all">
+                                        <CardContent className="p-0">
+                                            <div className="flex justify-between items-center p-3 border-b border-neutral-800/50 bg-neutral-900/50">
+                                                <span className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">
+                                                    Match {match.id.toString().substring(0,4)} • {new Date(match.fecha).toLocaleDateString()}
+                                                </span>
+                                                <Badge variant="secondary" className={`${match.estado === 'jugado' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-blue-500/10 text-blue-400'} text-[10px] uppercase`}>
+                                                    {match.estado}
+                                                </Badge>
+                                            </div>
+                                            <div className="p-4 space-y-3">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-white text-sm font-bold">{match.pareja1?.nombre_pareja || "TBD"}</span>
+                                                    <span className="w-6 h-6 flex items-center justify-center bg-neutral-800 text-white font-bold text-xs rounded">
+                                                        {match.resultado?.split('-')[0] || '-'}
+                                                    </span>
                                                 </div>
-                                                <div className="flex gap-1.5">
-                                                    <span className="w-6 h-6 flex items-center justify-center bg-white text-black font-bold text-xs rounded-sm">6</span>
-                                                    <span className="w-6 h-6 flex items-center justify-center bg-white text-black font-bold text-xs rounded-sm">6</span>
+                                                <div className="flex justify-between items-center border-t border-neutral-900 pt-3">
+                                                    <span className="text-white text-sm font-bold">{match.pareja2?.nombre_pareja || "TBD"}</span>
+                                                    <span className="w-6 h-6 flex items-center justify-center bg-neutral-800 text-white font-bold text-xs rounded">
+                                                        {match.resultado?.split('-')[1] || '-'}
+                                                    </span>
                                                 </div>
                                             </div>
-                                            <div className="flex justify-between items-center opacity-50">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-transparent"></span>
-                                                    <span className="text-white text-sm">Murray & Zverev</span>
-                                                </div>
-                                                <div className="flex gap-1.5 grayscale">
-                                                    <span className="w-6 h-6 flex items-center justify-center bg-neutral-700 text-neutral-300 font-bold text-xs rounded-sm">2</span>
-                                                    <span className="w-6 h-6 flex items-center justify-center bg-neutral-700 text-neutral-300 font-bold text-xs rounded-sm">4</span>
-                                                </div>
+                                            <div className="bg-neutral-900 p-2 text-center border-t border-neutral-800">
+                                                <button className="text-[10px] text-neutral-500 hover:text-white font-bold uppercase tracking-widest transition-colors w-full">Ver Detalles</button>
                                             </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                {/* Match 2 */}
-                                <Card className="bg-neutral-950 border-neutral-800 relative z-10 shadow-xl">
-                                    <CardContent className="p-0">
-                                        <div className="flex justify-between items-center p-3 border-b border-neutral-800/50 bg-neutral-900/50">
-                                            <span className="text-xs text-neutral-500">SF2 • Pista Master</span>
-                                            <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-400 text-[10px] uppercase">Finalizado</Badge>
-                                        </div>
-                                        <div className="p-3 bg-neutral-900/40 font-medium">
-                                            <div className="flex justify-between items-center mb-3 opacity-50">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-transparent"></span>
-                                                    <span className="text-white text-sm">Medvedev & Ruud</span>
-                                                </div>
-                                                <div className="flex gap-1.5 grayscale">
-                                                    <span className="w-6 h-6 flex items-center justify-center bg-neutral-700 text-neutral-300 font-bold text-xs rounded-sm">5</span>
-                                                    <span className="w-6 h-6 flex items-center justify-center bg-neutral-700 text-neutral-300 font-bold text-xs rounded-sm">3</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-between items-center">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-                                                    <span className="text-white text-sm">Sinner & Djokovic</span>
-                                                </div>
-                                                <div className="flex gap-1.5">
-                                                    <span className="w-6 h-6 flex items-center justify-center bg-white text-black font-bold text-xs rounded-sm">7</span>
-                                                    <span className="w-6 h-6 flex items-center justify-center bg-white text-black font-bold text-xs rounded-sm">6</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                        </CardContent>
+                                    </Card>
+                                ))}
                             </div>
-
-                            {/* Final */}
-                            <div className="flex flex-col justify-center w-full lg:w-72 z-10 shrink-0 mt-8 lg:mt-0 relative">
-                                <div className="text-sm font-bold text-amber-500 uppercase tracking-wider mb-2 lg:mb-0 lg:absolute lg:top-[-20px]">Gran Final</div>
-
-                                <Card className="bg-neutral-950 border-amber-500/30 relative z-10 shadow-[0_0_20px_rgba(245,158,11,0.1)] overflow-hidden">
-                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-yellow-300"></div>
-                                    <CardContent className="p-0">
-                                        <div className="flex justify-between items-center p-3 border-b border-neutral-800/50 bg-gradient-to-r from-amber-500/10 to-transparent">
-                                            <span className="text-xs text-amber-500/80 font-semibold flex items-center"><Trophy className="w-3 h-3 mr-1" /> FINAL • Domingo 18:00</span>
-                                            <Badge variant="secondary" className="bg-amber-500/20 text-amber-400 text-[10px] uppercase border border-amber-500/20">Por Jugar</Badge>
-                                        </div>
-                                        <div className="p-3 bg-neutral-900/40 font-medium space-y-3">
-                                            <div className="flex justify-between items-center">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>
-                                                    <span className="text-white text-base">Nadal & Alcaraz</span>
-                                                </div>
-                                                <div className="flex gap-1.5">
-                                                    <span className="w-6 h-6 flex items-center justify-center bg-neutral-800 text-neutral-600 font-bold text-xs rounded-sm">-</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-between items-center">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>
-                                                    <span className="text-white text-base">Sinner & Djokovic</span>
-                                                </div>
-                                                <div className="flex gap-1.5">
-                                                    <span className="w-6 h-6 flex items-center justify-center bg-neutral-800 text-neutral-600 font-bold text-xs rounded-sm">-</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="bg-neutral-900 p-2 text-center border-t border-neutral-800">
-                                            <button className="text-xs text-amber-500 hover:text-amber-400 font-semibold uppercase tracking-wider transition-colors w-full py-1">Registrar Resultado Final</button>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        </div>
+                        )}
                     </div>
                 </TabsContent>
             </Tabs>
