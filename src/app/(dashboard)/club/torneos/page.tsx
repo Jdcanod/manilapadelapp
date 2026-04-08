@@ -32,6 +32,7 @@ export default async function ClubTorneosPage() {
         .select(`
             *,
             torneo_parejas(count),
+            inscripciones:inscripciones_torneo(count),
             torneo_fases(count)
         `)
         .eq('club_id', clubData.id)
@@ -83,7 +84,11 @@ export default async function ClubTorneosPage() {
                             statusText = "Próximo";
                         }
 
-                        const countParejas = (torneo.torneo_parejas && torneo.torneo_parejas[0]?.count) ? torneo.torneo_parejas[0].count : 0;
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const regularCount = (torneo.torneo_parejas as any)?.[0]?.count || 0;
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const masterCount = (torneo.inscripciones as any)?.[0]?.count || 0;
+                        const countParejas = regularCount + masterCount;
 
                         return (
                             <Card key={torneo.id} className="bg-neutral-900 border-neutral-800 hover:border-neutral-700 transition-colors">
