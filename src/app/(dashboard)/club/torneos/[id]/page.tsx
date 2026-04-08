@@ -24,21 +24,31 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         redirect("/jugador");
     }
 
-    const { data: torneo, error } = await supabase
+    const { data: torneo, error: torneoError } = await supabase
         .from('torneos')
         .select(`
             *,
             torneo_parejas(*, pareja:parejas(*)),
-            inscripciones:inscripciones_torneo(*, jugador1:users(nombre), jugador2:users(nombre)),
             torneo_fases(*)
         `)
         .eq('id', params.id)
         .eq('club_id', userData.id)
         .single();
 
-    if (error || !torneo) {
+    if (torneoError || !torneo) {
+        console.error("DEBUG - Torneo Error:", torneoError);
         return <div className="p-8 text-center text-red-500">Error: Torneo no encontrado o sin permisos.</div>;
     }
+
+    // Cargar inscripciones Master por separado para evitar fallos en el join complejo
+    const { data: inscripcionesMaster } = await supabase
+        .from('inscripciones_torneo')
+        .select(`
+            *,
+            jugador1:users!jugador1_id(nombre),
+            jugador2:users!jugador2_id(nombre)
+        `)
+        .eq('torneo_id', params.id);
 
     interface Participant {
         id: string | number;
@@ -64,8 +74,8 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     }
     
     // Master players (converted to pairs display)
-    if (torneo.inscripciones) {
-        torneo.inscripciones.forEach((ins: { id: string; jugador1: { nombre: string } | null; jugador2: { nombre: string } | null; nivel: string; estado: string }) => {
+    if (inscripcionesMaster) {
+        inscripcionesMaster.forEach((ins: { id: string; jugador1: { nombre: string } | null; jugador2: { nombre: string } | null; nivel: string; estado: string }) => {
             allParticipants.push({
                 id: ins.id,
                 nombre: `${ins.jugador1?.nombre || 'Jugador'} & ${ins.jugador2?.nombre || 'Jugador'}`,
