@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { History as HistoryIcon, MapPin, Calendar, Trophy, Users, ChevronLeft } from "lucide-react";
+import { History as HistoryIcon, MapPin, Trophy, Users, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 
 export default async function HistorialPartidosPage() {
@@ -107,6 +107,12 @@ export default async function HistorialPartidosPage() {
     );
 }
 
-function Button({ children, variant, className }: any) {
+interface ButtonProps {
+    children: React.ReactNode;
+    variant?: 'outline';
+    className?: string;
+}
+
+function Button({ children, variant, className }: ButtonProps) {
     return <button className={`px-4 py-2 rounded-lg font-bold ${variant === 'outline' ? 'border border-neutral-800 text-white' : ''} ${className}`}>{children}</button>;
 }
