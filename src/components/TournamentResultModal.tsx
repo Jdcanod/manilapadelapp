@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { registrarResultadoTorneo } from "@/app/(dashboard)/torneos/match-actions";
 import { Trophy } from "lucide-react";
@@ -35,8 +34,8 @@ export function TournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, u
                 await registrarResultadoTorneo(matchId, resultadoFinal, userId);
                 setOpen(false);
                 alert("Resultado registrado. Pendiente de confirmación del rival.");
-            } catch (err: any) {
-                alert(err.message);
+            } catch (err: unknown) {
+                alert(err instanceof Error ? err.message : "Error desconocido");
             }
         });
     };

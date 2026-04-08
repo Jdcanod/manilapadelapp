@@ -26,12 +26,15 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
     }
 
     // 2. Mapear a formato Participant para la lógica
-    const participants = (inscripciones as any[]).map(ins => ({
-        id: ins.id,
-        nombre: `${ins.jugador1?.nombre || 'Jugador'} & ${ins.jugador2?.nombre || 'Jugador'}`,
-        ranking: (((ins.jugador1 as any)?.puntos_ranking || 0) + ((ins.jugador2 as any)?.puntos_ranking || 0)) / 2,
-        pareja_id: ins.id
-    }));
+    const participants = (inscripciones || []).map(ins => {
+        const i = ins as any;
+        return {
+            id: i.id,
+            nombre: `${(i.jugador1 as any)?.nombre || 'Jugador'} & ${(i.jugador2 as any)?.nombre || 'Jugador'}`,
+            ranking: (Number((i.jugador1 as any)?.puntos_ranking || 0) + Number((i.jugador2 as any)?.puntos_ranking || 0)) / 2,
+            pareja_id: i.id
+        };
+    });
 
     // 3. Ejecutar algoritmo de sorteo
     const groupDistributions = distributeParticipantsIntoGroups(participants);

@@ -2,7 +2,7 @@
 
 import { useTransition, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Swords, Users, Trophy, ChevronRight } from "lucide-react";
+import { Swords, Users } from "lucide-react";
 import { generarFaseGrupos } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,7 @@ interface Props {
 
 export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes }: Props) {
     const [isPending, startTransition] = useTransition();
-    const [selectedCat, setSelectedCat] = useState(categorias[0] || "General");
+    const [selectedCat] = useState(categorias[0] || "General");
 
     const onGenerate = () => {
         if (!confirm(`¿Estás seguro de generar el sorteo para la categoría ${selectedCat}? Esto creará los grupos y partidos automáticamente.`)) return;
@@ -24,8 +24,8 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
             try {
                 await generarFaseGrupos(torneoId, selectedCat);
                 alert("¡Fase de grupos generada con éxito!");
-            } catch (err: any) {
-                alert(err.message || "Error al generar grupos");
+            } catch (err: unknown) {
+                alert(err instanceof Error ? err.message : "Error desconocido");
             }
         });
     };
