@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Trophy, TrendingUp, Calendar, MapPin, Activity, Star, UserPlus } from "lucide-react";
+import { Trophy, TrendingUp, Calendar, MapPin, Activity, Star, UserPlus, History as HistoryIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -185,11 +185,11 @@ export default async function JugadorDashboard() {
                                     </div>
                                 </div>
                                 <div className="mt-4 flex flex-col gap-3">
-                                    {proximoPartido.tipo_partido === 'torneo' && proximoPartido.estado !== 'jugado' && !proximoPartido.estado_resultado && (
+                                    {proximoPartido.estado !== 'jugado' && !proximoPartido.estado_resultado && (
                                         <TournamentResultModal 
                                             matchId={proximoPartido.id} 
-                                            pareja1Nombre={proximoPartido.pareja1?.nombre_pareja || "Pareja 1"} 
-                                            pareja2Nombre={proximoPartido.pareja2?.nombre_pareja || "Pareja 2"} 
+                                            pareja1Nombre={proximoPartido.pareja1?.nombre_pareja || "Equipo 1"} 
+                                            pareja2Nombre={proximoPartido.pareja2?.nombre_pareja || "Equipo 2"} 
                                             userId={userData?.id || user.id} 
                                         />
                                     )}
@@ -238,11 +238,21 @@ export default async function JugadorDashboard() {
                     {/* Partidos Abiertos Cerca */}
                     <div className="mt-8 flex items-center justify-between mb-4">
                         <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                            <HistoryIcon className="w-5 h-5 text-emerald-500" />
+                            Mi Historial
+                        </h2>
+                        <Link href="/jugador/historial" className="text-sm font-medium text-emerald-500 hover:text-emerald-400 transition-colors flex items-center">
+                            Ver partidos jugados &rarr;
+                        </Link>
+                    </div>
+
+                    <div className="mt-8 flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
                             <Activity className="w-5 h-5 text-emerald-500" />
-                            Partidos Abiertos Recientes
+                            Partidos Abiertos de la Comunidad
                         </h2>
                         <Link href="/partidos" className="text-sm font-medium text-emerald-500 hover:text-emerald-400 transition-colors flex items-center">
-                            Ver todos &rarr;
+                            Explorar todo &rarr;
                         </Link>
                     </div>
                     {partidosAbiertos && partidosAbiertos.length > 0 ? (
