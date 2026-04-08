@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 interface Props {
     torneoId: string;
     categorias: string[];
-    gruposExistentes: any[];
+    gruposExistentes: { id: string; nombre_grupo: string; categoria: string }[];
 }
 
 export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes }: Props) {

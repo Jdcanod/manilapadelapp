@@ -4,6 +4,12 @@ import { createClient } from "@/utils/supabase/server";
 import { distributeParticipantsIntoGroups, generateMatchesForGroup } from "@/lib/tournaments/logic";
 import { revalidatePath } from "next/cache";
 
+interface InscripcionQuery {
+    id: string;
+    jugador1: { id: string; nombre: string; puntos_ranking: number } | null;
+    jugador2: { id: string; nombre: string; puntos_ranking: number } | null;
+}
+
 export async function generarFaseGrupos(torneoId: string, categoria: string) {
     const supabase = createClient();
 
@@ -26,15 +32,13 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
     }
 
     // 2. Mapear a formato Participant para la lógica
-    const participants = (inscripciones || []).map(ins => {
-        const i = ins as any;
-        return {
-            id: i.id,
-            nombre: `${(i.jugador1 as any)?.nombre || 'Jugador'} & ${(i.jugador2 as any)?.nombre || 'Jugador'}`,
-            ranking: (Number((i.jugador1 as any)?.puntos_ranking || 0) + Number((i.jugador2 as any)?.puntos_ranking || 0)) / 2,
-            pareja_id: i.id
-        };
-    });
+
+    const participants = ((inscripciones as unknown as InscripcionQuery[]) || []).map(i => ({
+        id: i.id,
+        nombre: `${i.jugador1?.nombre || 'Jugador'} & ${i.jugador2?.nombre || 'Jugador'}`,
+        ranking: (Number(i.jugador1?.puntos_ranking || 0) + Number(i.jugador2?.puntos_ranking || 0)) / 2,
+        pareja_id: i.id
+    }));
 
     // 3. Ejecutar algoritmo de sorteo
     const groupDistributions = distributeParticipantsIntoGroups(participants);
