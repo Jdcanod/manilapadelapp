@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { ChevronLeft, CalendarDays, Users, Swords, Trophy } from "lucide-react";
+import { ChevronLeft, CalendarDays, Users, Swords } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -40,13 +40,19 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         return <div className="p-8 text-center text-red-500">Error: Torneo no encontrado o sin permisos.</div>;
     }
 
-    // Unificar participantes
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const allParticipants: any[] = [];
+    interface Participant {
+        id: string | number;
+        nombre: string;
+        categoria: string;
+        estado_pago: string;
+        tipo: 'regular' | 'master';
+    }
+
+    const allParticipants: Participant[] = [];
     
     // Regular pairs
     if (torneo.torneo_parejas) {
-        torneo.torneo_parejas.forEach((tp: any) => {
+        torneo.torneo_parejas.forEach((tp: { id: number; pareja: { nombre_pareja: string } | null; categoria: string; estado_pago: string }) => {
             allParticipants.push({
                 id: tp.id,
                 nombre: tp.pareja?.nombre_pareja || "Pareja s/n",
@@ -59,10 +65,10 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     
     // Master players (converted to pairs display)
     if (torneo.inscripciones) {
-        torneo.inscripciones.forEach((ins: any) => {
+        torneo.inscripciones.forEach((ins: { id: string; jugador1: { nombre: string } | null; jugador2: { nombre: string } | null; nivel: string; estado: string }) => {
             allParticipants.push({
                 id: ins.id,
-                nombre: `${ins.jugador1?.nombre} & ${ins.jugador2?.nombre}`,
+                nombre: `${ins.jugador1?.nombre || 'Jugador'} & ${ins.jugador2?.nombre || 'Jugador'}`,
                 categoria: ins.nivel,
                 estado_pago: ins.estado || 'pendiente',
                 tipo: 'master'
