@@ -8,6 +8,8 @@ import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { OrganizarPartidoDialog } from "@/components/OrganizarPartidoDialog";
+import { TournamentResultModal } from "@/components/TournamentResultModal";
+import { ValidationTimer } from "@/components/ValidationTimer";
 
 export default async function JugadorDashboard() {
     const supabase = createClient();
@@ -30,30 +32,17 @@ export default async function JugadorDashboard() {
     const nombreReal = userData?.nombre || "Jugador";
     const iniciales = nombreReal.substring(0, 2).toUpperCase();
 
-    // Obtener las inscripciones del usuario actual
-    const { data: misInscripciones } = await supabase
-        .from('partido_jugadores')
-        .select('partido_id')
-        .eq('jugador_id', userData?.id || user.id);
-
-    const misPartidosIds = misInscripciones?.map(i => i.partido_id) || [];
-
-    let queryPartidos = supabase
+    const { data: misProximosPartidos } = await supabase
         .from('partidos')
-        .select('*')
-        .gte('fecha', new Date().toISOString())
+        .select(`
+            *,
+            pareja1:parejas!pareja1_id(nombre_pareja),
+            pareja2:parejas!pareja2_id(nombre_pareja)
+        `)
+        .or(`creador_id.eq.${user.id},pareja1_id.not.is.null,pareja2_id.not.is.null`)
         .order('fecha', { ascending: true })
-        .limit(1);
+        .limit(5);
 
-    const currentProfileId = user.id;
-
-    if (misPartidosIds.length > 0) {
-        queryPartidos = queryPartidos.or(`creador_id.eq.${currentProfileId},id.in.(${misPartidosIds.join(',')})`);
-    } else {
-        queryPartidos = queryPartidos.eq('creador_id', currentProfileId);
-    }
-
-    const { data: misProximosPartidos } = await queryPartidos;
     const proximoPartido = misProximosPartidos?.[0];
 
     const { data: partidosAbiertos } = await supabase
@@ -195,8 +184,37 @@ export default async function JugadorDashboard() {
                                         </Avatar>
                                     </div>
                                 </div>
-                                <div className="mt-4 flex justify-end">
-                                    <Button size="sm" variant="secondary" className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-0">
+                                <div className="mt-4 flex flex-col gap-3">
+                                    {proximoPartido.tipo_partido === 'torneo' && proximoPartido.estado !== 'jugado' && !proximoPartido.estado_resultado && (
+                                        <TournamentResultModal 
+                                            matchId={proximoPartido.id} 
+                                            pareja1Nombre={proximoPartido.pareja1?.nombre_pareja || "Pareja 1"} 
+                                            pareja2Nombre={proximoPartido.pareja2?.nombre_pareja || "Pareja 2"} 
+                                            userId={userData?.id || user.id} 
+                                        />
+                                    )}
+
+                                    {proximoPartido.estado_resultado === 'pendiente' && (
+                                        <div className="space-y-3">
+                                            <ValidationTimer startTime={proximoPartido.resultado_registrado_at} />
+                                            
+                                            {proximoPartido.resultado_registrado_por !== (userData?.id || user.id) ? (
+                                                <form action={async () => {
+                                                    "use server";
+                                                    const { confirmarResultadoTorneo } = await import("@/app/(dashboard)/torneos/match-actions");
+                                                    await confirmarResultadoTorneo(proximoPartido.id, userData?.id || user.id);
+                                                }}>
+                                                    <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold">
+                                                        Confirmar Marcador: {proximoPartido.resultado}
+                                                    </Button>
+                                                </form>
+                                            ) : (
+                                                <p className="text-[10px] text-neutral-500 text-center italic">Esperando confirmación del rival...</p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <Button size="sm" variant="secondary" className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-0 w-full sm:w-auto self-end">
                                         Ver Detalles
                                     </Button>
                                 </div>
