@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 
+import { TournamentGroupsManager } from "@/components/TournamentGroupsManager";
+
 export default async function TorneoDetailsPage({ params }: { params: { id: string } }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -40,14 +42,20 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         return <div className="p-8 text-center text-red-500">Error: Torneo no encontrado o sin permisos.</div>;
     }
 
-    // Cargar inscripciones Master por separado para evitar fallos en el join complejo
+    // Cargar inscripciones Master por separado
     const { data: inscripcionesMaster } = await supabase
         .from('inscripciones_torneo')
         .select(`
             *,
-            jugador1:users!jugador1_id(nombre),
-            jugador2:users!jugador2_id(nombre)
+            jugador1:users!jugador1_id(id, nombre, puntos_ranking),
+            jugador2:users!jugador2_id(id, nombre, puntos_ranking)
         `)
+        .eq('torneo_id', params.id);
+
+    // Cargar grupos existentes
+    const { data: gruposExistentes } = await supabase
+        .from('torneo_grupos')
+        .select('*')
         .eq('torneo_id', params.id);
 
     interface Participant {
@@ -85,6 +93,9 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
             });
         });
     }
+
+    // Extraer categorías únicas para el selector de grupos
+    const categorias = Array.from(new Set(allParticipants.map(p => p.categoria)));
 
     // Obtener partidos reales del torneo
     const { data: partidosReales } = await supabase
@@ -142,10 +153,21 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                         Parejas Inscritas
                         <Badge className="ml-2 bg-neutral-800 text-white hover:bg-neutral-700">{allParticipants.length}</Badge>
                     </TabsTrigger>
+                    <TabsTrigger value="grupos" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
+                        Fase de Grupos
+                    </TabsTrigger>
                     <TabsTrigger value="cuadros" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
                         Cuadros de Juego
                     </TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="grupos" className="mt-6">
+                    <TournamentGroupsManager 
+                        torneoId={params.id} 
+                        categorias={categorias} 
+                        gruposExistentes={gruposExistentes || []} 
+                    />
+                </TabsContent>
 
                 <TabsContent value="inscripciones" className="mt-6">
                     {/* View for inscriptions */}

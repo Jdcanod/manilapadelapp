@@ -32,6 +32,12 @@ export async function crearTorneoCentral(formData: FormData) {
     const fechaFin = `${fechaFinDia}T${fechaFinHora}`;
     const formato = formData.get("formato") as string;
 
+    const reglasPuntuacion = {
+        sets: parseInt(formData.get("sets") as string) || 3,
+        juegos: parseInt(formData.get("juegos") as string) || 6,
+        ventaja: formData.get("ventaja") as string || "oro"
+    };
+
     const { data, error } = await supabase
         .from("torneos")
         .insert({
@@ -41,7 +47,8 @@ export async function crearTorneoCentral(formData: FormData) {
             fecha_fin: new Date(fechaFin).toISOString(),
             formato,
             participantes: [],
-            resultados: {}
+            resultados: {},
+            reglas_puntuacion: reglasPuntuacion
         })
         .select()
         .single();

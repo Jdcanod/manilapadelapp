@@ -101,6 +101,48 @@ export function CrearTorneoForm() {
                         </SelectContent>
                     </Select>
                 </div>
+
+                <div className="pt-4 border-t border-neutral-800 space-y-4">
+                    <h3 className="text-sm font-bold text-amber-500 uppercase tracking-wider">Reglas de los Partidos</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                            <Label className="text-xs text-neutral-400">Sets por Partido</Label>
+                            <Select name="sets" defaultValue="3">
+                                <SelectTrigger className="bg-neutral-900 border-neutral-800 text-white">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+                                    <SelectItem value="1">1 Set Único</SelectItem>
+                                    <SelectItem value="3">Al mejor de 3</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-xs text-neutral-400">Juegos por Set</Label>
+                            <Select name="juegos" defaultValue="6">
+                                <SelectTrigger className="bg-neutral-900 border-neutral-800 text-white">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+                                    <SelectItem value="4">Set de 4 juegos</SelectItem>
+                                    <SelectItem value="6">Set de 6 juegos</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-xs text-neutral-400">Sistema de Ventaja</Label>
+                            <Select name="ventaja" defaultValue="oro">
+                                <SelectTrigger className="bg-neutral-900 border-neutral-800 text-white">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+                                    <SelectItem value="oro">Punto de Oro</SelectItem>
+                                    <SelectItem value="ventaja">Ventaja Clásica</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {error && (
