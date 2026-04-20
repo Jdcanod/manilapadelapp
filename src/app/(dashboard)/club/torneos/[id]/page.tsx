@@ -97,19 +97,39 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         });
     }
 
-    // Extraer categorías únicas para el selector de grupos
-    const categorias = Array.from(new Set(allParticipants.map(p => p.categoria)));
+    // Extraer categorías únicas para el selector de grupos y limpiar nulos
+    const categorias = Array.from(new Set(allParticipants.map(p => p.categoria).filter(Boolean)));
 
-    // Obtener partidos reales del torneo
-    const { data: partidosReales } = await supabase
+    // Obtener partidos reales del torneo (Sin el join que falla si la DB no tiene los FKs explícitos)
+    const { data: rawPartidos } = await supabase
         .from('partidos')
-        .select(`
-            *,
-            pareja1:parejas!pareja1_id(nombre_pareja),
-            pareja2:parejas!pareja2_id(nombre_pareja)
-        `)
+        .select('*')
         .eq('torneo_id', params.id)
         .order('fecha', { ascending: true });
+
+    // Obtener nombres de las parejas involucradas en los partidos
+    const pairIds = new Set<string>();
+    (rawPartidos || []).forEach(p => {
+        if (p.pareja1_id) pairIds.add(p.pareja1_id);
+        if (p.pareja2_id) pairIds.add(p.pareja2_id);
+    });
+
+    const parejaNamesMap = new Map<string, string>();
+    if (pairIds.size > 0) {
+        const { data: namesData } = await supabase
+            .from('parejas')
+            .select('id, nombre_pareja')
+            .in('id', Array.from(pairIds));
+        
+        namesData?.forEach(n => parejaNamesMap.set(n.id, n.nombre_pareja));
+    }
+
+    // Inyectar nombres manualmente desde el mapa
+    const partidosReales = (rawPartidos || []).map(p => ({
+        ...p,
+        pareja1: { nombre_pareja: parejaNamesMap.get(p.pareja1_id) || "TBD" },
+        pareja2: { nombre_pareja: parejaNamesMap.get(p.pareja2_id) || "TBD" }
+    }));
 
     const isPast = new Date(torneo.fecha_fin) < new Date();
     const isUpcoming = new Date(torneo.fecha_inicio) > new Date();

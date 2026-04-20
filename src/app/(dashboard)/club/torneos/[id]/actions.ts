@@ -72,9 +72,7 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
 
     revalidatePath(`/club/torneos/${torneoId}`);
     return { success: true };
-}
-
-export async function inscribirParejaManual(torneoId: string, jugador1Sel: string, jugador2Sel: string, categoria: string, esMaster: boolean) {
+}export async function inscribirParejaManual(torneoId: string, jugador1Sel: string, jugador2Sel: string, categoria: string, esMaster: boolean) {
     const supabase = createClient();
     const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
     const supabaseAdmin = createSupabaseClient(
@@ -85,6 +83,7 @@ export async function inscribirParejaManual(torneoId: string, jugador1Sel: strin
     let j1Id = jugador1Sel;
     let j2Id = jugador2Sel;
 
+    // 1. Create ghost users if needed
     if (j1Id.startsWith("manual:")) {
         const name = j1Id.replace("manual:", "").trim();
         const { data, error } = await supabaseAdmin.from('users').insert({
@@ -107,21 +106,21 @@ export async function inscribirParejaManual(torneoId: string, jugador1Sel: strin
         if (data) j2Id = data.id;
     }
 
-    // Find or Create the 'Pareja'
-    const { data: existingPareja } = await supabase
+    // 2. Find or Create the 'Pareja' (using Admin to be sure we see the ghost users)
+    const { data: existingPareja } = await supabaseAdmin
         .from('parejas')
         .select('id')
         .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
-        .single();
+        .maybeSingle();
 
     let parejaId = existingPareja?.id;
 
     if (!parejaId) {
-        // Obtenemos los nombres para generar un nombre de pareja por defecto
-        const { data: j1 } = await supabase.from('users').select('nombre').eq('id', j1Id).single();
-        const { data: j2 } = await supabase.from('users').select('nombre').eq('id', j2Id).single();
+        // Use Admin to read names (anon client might still have RLS delay)
+        const { data: j1 } = await supabaseAdmin.from('users').select('nombre').eq('id', j1Id).single();
+        const { data: j2 } = await supabaseAdmin.from('users').select('nombre').eq('id', j2Id).single();
 
-        const { data: newPareja, error: parejaError } = await supabase
+        const { data: newPareja, error: parejaError } = await supabaseAdmin
             .from('parejas')
             .insert({
                 jugador1_id: j1Id,
@@ -138,6 +137,7 @@ export async function inscribirParejaManual(torneoId: string, jugador1Sel: strin
         parejaId = newPareja.id;
     }
 
+    // 3. Perform inscription (can use standard supabase client as the club is authorized)
     if (esMaster) {
         const { error: insError } = await supabase
             .from('inscripciones_torneo')
@@ -146,7 +146,7 @@ export async function inscribirParejaManual(torneoId: string, jugador1Sel: strin
                 jugador1_id: j1Id,
                 jugador2_id: j2Id,
                 nivel: categoria,
-                estado: 'pagado' // El club inscribe, asumimos pagado o gestionado por el club
+                estado: 'pagado'
             });
 
         if (insError) {
@@ -160,7 +160,7 @@ export async function inscribirParejaManual(torneoId: string, jugador1Sel: strin
                 torneo_id: torneoId,
                 pareja_id: parejaId,
                 categoria: categoria,
-                estado_pago: 'pagado' // El club inscribe, asumimos pagado o gestionado por el club
+                estado_pago: 'pagado'
             });
 
         if (insError) {
