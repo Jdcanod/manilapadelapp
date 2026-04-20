@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UserPlus, AlertCircle } from "lucide-react";
 import { inscribirParejaManual, obtenerTodosJugadores } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
 
 interface AddTournamentPlayerModalProps {
     torneoId: string;
@@ -34,16 +35,28 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
 
     const [selectedJ1Id, setSelectedJ1Id] = useState<string>("");
     const [selectedJ2Id, setSelectedJ2Id] = useState<string>("");
+    const [j1Manual, setJ1Manual] = useState(false);
+    const [j2Manual, setJ2Manual] = useState(false);
+    const [j1Name, setJ1Name] = useState("");
+    const [j2Name, setJ2Name] = useState("");
+
     const [categoria, setCategoria] = useState(categorias[0] || "6ta");
     const [error, setError] = useState<string | null>(null);
 
-    const handleInscribir = () => {
-        if (!selectedJ1Id || !selectedJ2Id) {
-            setError("Debe seleccionar dos jugadores");
-            return;
-        }
+    const checkDisabled = () => {
+        if (isPending) return true;
+        if (j1Manual && j1Name.trim().length < 2) return true;
+        if (!j1Manual && !selectedJ1Id) return true;
+        if (j2Manual && j2Name.trim().length < 2) return true;
+        if (!j2Manual && !selectedJ2Id) return true;
+        return false;
+    };
 
-        if (selectedJ1Id === selectedJ2Id) {
+    const handleInscribir = () => {
+        const finalJ1 = j1Manual ? `manual:${j1Name.trim()}` : selectedJ1Id;
+        const finalJ2 = j2Manual ? `manual:${j2Name.trim()}` : selectedJ2Id;
+
+        if (finalJ1 === finalJ2 && !j1Manual && !j2Manual) {
             setError("Los jugadores deben ser distintos");
             return;
         }
@@ -51,10 +64,14 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
         setError(null);
         startTransition(async () => {
             try {
-                await inscribirParejaManual(torneoId, selectedJ1Id, selectedJ2Id, categoria, esMaster);
+                await inscribirParejaManual(torneoId, finalJ1, finalJ2, categoria, esMaster);
                 setOpen(false);
                 setSelectedJ1Id("");
                 setSelectedJ2Id("");
+                setJ1Name("");
+                setJ2Name("");
+                setJ1Manual(false);
+                setJ2Manual(false);
                 router.refresh(); 
             } catch (err: unknown) {
                 setError(err instanceof Error ? err.message : "Error al inscribir");
@@ -77,38 +94,68 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
                 <div className="space-y-6 pt-4">
                     {/* Jugador 1 */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-neutral-400">Jugador 1</label>
-                        <Select value={selectedJ1Id} onValueChange={setSelectedJ1Id}>
-                            <SelectTrigger className="bg-neutral-950 border-neutral-800">
-                                <SelectValue placeholder="Seleccione al primer jugador" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
-                                {allUsers.map((u) => (
-                                    <SelectItem key={u.id} value={u.id}>
-                                        {u.nombre} <span className="text-neutral-500 text-xs ml-2">({u.email})</span>
-                                    </SelectItem>
-                                ))}
-                                {allUsers.length === 0 && <SelectItem value="disabled" disabled>Cargando jugadores...</SelectItem>}
-                            </SelectContent>
-                        </Select>
+                        <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium text-neutral-400">Jugador 1</label>
+                            <label className="flex items-center gap-2 text-xs text-neutral-400 cursor-pointer">
+                                <input type="checkbox" checked={j1Manual} onChange={(e) => setJ1Manual(e.target.checked)} className="rounded border-neutral-700 bg-neutral-900 text-emerald-500 focus:ring-emerald-500" />
+                                Añadir invitado (No Registrado)
+                            </label>
+                        </div>
+                        {j1Manual ? (
+                            <Input 
+                                placeholder="Nombre completo del Jugador 1" 
+                                value={j1Name} 
+                                onChange={(e) => setJ1Name(e.target.value)} 
+                                className="bg-neutral-950 border-neutral-800" 
+                            />
+                        ) : (
+                            <Select value={selectedJ1Id} onValueChange={setSelectedJ1Id}>
+                                <SelectTrigger className="bg-neutral-950 border-neutral-800">
+                                    <SelectValue placeholder="Seleccione al primer jugador" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
+                                    {allUsers.map((u) => (
+                                        <SelectItem key={u.id} value={u.id}>
+                                            {u.nombre} <span className="text-neutral-500 text-xs ml-2">({u.email})</span>
+                                        </SelectItem>
+                                    ))}
+                                    {allUsers.length === 0 && <SelectItem value="disabled" disabled>Cargando jugadores...</SelectItem>}
+                                </SelectContent>
+                            </Select>
+                        )}
                     </div>
 
                     {/* Jugador 2 */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-neutral-400">Jugador 2</label>
-                        <Select value={selectedJ2Id} onValueChange={setSelectedJ2Id}>
-                            <SelectTrigger className="bg-neutral-950 border-neutral-800">
-                                <SelectValue placeholder="Seleccione al segundo jugador" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
-                                {allUsers.map((u) => (
-                                    <SelectItem key={u.id} value={u.id}>
-                                        {u.nombre} <span className="text-neutral-500 text-xs ml-2">({u.email})</span>
-                                    </SelectItem>
-                                ))}
-                                {allUsers.length === 0 && <SelectItem value="disabled" disabled>Cargando jugadores...</SelectItem>}
-                            </SelectContent>
-                        </Select>
+                        <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium text-neutral-400">Jugador 2</label>
+                            <label className="flex items-center gap-2 text-xs text-neutral-400 cursor-pointer">
+                                <input type="checkbox" checked={j2Manual} onChange={(e) => setJ2Manual(e.target.checked)} className="rounded border-neutral-700 bg-neutral-900 text-emerald-500 focus:ring-emerald-500" />
+                                Añadir invitado (No Registrado)
+                            </label>
+                        </div>
+                        {j2Manual ? (
+                            <Input 
+                                placeholder="Nombre completo del Jugador 2" 
+                                value={j2Name} 
+                                onChange={(e) => setJ2Name(e.target.value)} 
+                                className="bg-neutral-950 border-neutral-800" 
+                            />
+                        ) : (
+                            <Select value={selectedJ2Id} onValueChange={setSelectedJ2Id}>
+                                <SelectTrigger className="bg-neutral-950 border-neutral-800">
+                                    <SelectValue placeholder="Seleccione al segundo jugador" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
+                                    {allUsers.map((u) => (
+                                        <SelectItem key={u.id} value={u.id}>
+                                            {u.nombre} <span className="text-neutral-500 text-xs ml-2">({u.email})</span>
+                                        </SelectItem>
+                                    ))}
+                                    {allUsers.length === 0 && <SelectItem value="disabled" disabled>Cargando jugadores...</SelectItem>}
+                                </SelectContent>
+                            </Select>
+                        )}
                     </div>
 
                     {/* Categoría */}
@@ -142,7 +189,7 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
 
                     <Button 
                         className="w-full bg-amber-600 hover:bg-amber-500" 
-                        disabled={!selectedJ1Id || !selectedJ2Id || isPending}
+                        disabled={checkDisabled()}
                         onClick={handleInscribir}
                     >
                         {isPending ? "Inscribiendo..." : "Confirmar Inscripción"}

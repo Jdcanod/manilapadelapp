@@ -105,8 +105,8 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         .from('partidos')
         .select(`
             *,
-            pareja1:parejas(nombre_pareja),
-            pareja2:parejas(nombre_pareja)
+            pareja1:parejas!pareja1_id(nombre_pareja),
+            pareja2:parejas!pareja2_id(nombre_pareja)
         `)
         .eq('torneo_id', params.id)
         .order('fecha', { ascending: true });

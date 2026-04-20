@@ -74,28 +74,51 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
     return { success: true };
 }
 
-export async function inscribirParejaManual(torneoId: string, jugador1Id: string, jugador2Id: string, categoria: string, esMaster: boolean) {
+export async function inscribirParejaManual(torneoId: string, jugador1Sel: string, jugador2Sel: string, categoria: string, esMaster: boolean) {
     const supabase = createClient();
     
+    let j1Id = jugador1Sel;
+    let j2Id = jugador2Sel;
+
+    if (j1Id.startsWith("manual:")) {
+        const name = j1Id.replace("manual:", "").trim();
+        const { data } = await supabase.from('users').insert({
+            nombre: name,
+            email: `invitado_${Date.now()}_${Math.random().toString(36).substring(7)}@manilapadel.app`,
+            rol: 'jugador'
+        }).select('id').single();
+        if (data) j1Id = data.id;
+    }
+
+    if (j2Id.startsWith("manual:")) {
+        const name = j2Id.replace("manual:", "").trim();
+        const { data } = await supabase.from('users').insert({
+            nombre: name,
+            email: `invitado_${Date.now()}_${Math.random().toString(36).substring(7)}@manilapadel.app`,
+            rol: 'jugador'
+        }).select('id').single();
+        if (data) j2Id = data.id;
+    }
+
     // Find or Create the 'Pareja'
     const { data: existingPareja } = await supabase
         .from('parejas')
         .select('id')
-        .or(`and(jugador1_id.eq.${jugador1Id},jugador2_id.eq.${jugador2Id}),and(jugador1_id.eq.${jugador2Id},jugador2_id.eq.${jugador1Id})`)
+        .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
         .single();
 
     let parejaId = existingPareja?.id;
 
     if (!parejaId) {
         // Obtenemos los nombres para generar un nombre de pareja por defecto
-        const { data: j1 } = await supabase.from('users').select('nombre').eq('id', jugador1Id).single();
-        const { data: j2 } = await supabase.from('users').select('nombre').eq('id', jugador2Id).single();
+        const { data: j1 } = await supabase.from('users').select('nombre').eq('id', j1Id).single();
+        const { data: j2 } = await supabase.from('users').select('nombre').eq('id', j2Id).single();
 
         const { data: newPareja, error: parejaError } = await supabase
             .from('parejas')
             .insert({
-                jugador1_id: jugador1Id,
-                jugador2_id: jugador2Id,
+                jugador1_id: j1Id,
+                jugador2_id: j2Id,
                 nombre_pareja: `${j1?.nombre?.split(' ')[0] || 'J1'} & ${j2?.nombre?.split(' ')[0] || 'J2'}`,
                 activa: true
             })
@@ -113,8 +136,8 @@ export async function inscribirParejaManual(torneoId: string, jugador1Id: string
             .from('inscripciones_torneo')
             .insert({
                 torneo_id: torneoId,
-                jugador1_id: jugador1Id,
-                jugador2_id: jugador2Id,
+                jugador1_id: j1Id,
+                jugador2_id: j2Id,
                 nivel: categoria,
                 estado: 'pagado' // El club inscribe, asumimos pagado o gestionado por el club
             });
