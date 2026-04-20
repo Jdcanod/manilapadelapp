@@ -167,3 +167,16 @@ export async function registrarResultadoPorClub(matchId: string, resultado: stri
     // Quien lo llama se encarga de revalidar su path.
     return { success: true };
 }
+
+export async function obtenerTodosJugadores() {
+    const supabase = createClient();
+    const { data } = await supabase
+        .from('users')
+        .select('id, nombre, email')
+        .neq('rol', 'admin_club')
+        .neq('rol', 'superadmin')
+        .order('nombre', { ascending: true })
+        .limit(1000);
+        
+    return data || [];
+}

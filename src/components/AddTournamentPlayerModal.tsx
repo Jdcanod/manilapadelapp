@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Search, AlertCircle } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { buscarCompaneros } from "@/app/(dashboard)/torneos/actions";
-import { inscribirParejaManual } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { UserPlus, AlertCircle } from "lucide-react";
+import { inscribirParejaManual, obtenerTodosJugadores } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { useRouter } from "next/navigation";
 
 interface AddTournamentPlayerModalProps {
@@ -27,33 +25,25 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
 
-    const [j1Search, setJ1Search] = useState("");
-    const [j2Search, setJ2Search] = useState("");
+    const [allUsers, setAllUsers] = useState<User[]>([]);
+    
+    // Cargar todos los jugadores al montar
+    useEffect(() => {
+        obtenerTodosJugadores().then(setAllUsers);
+    }, []);
 
-    const [j1Results, setJ1Results] = useState<User[]>([]);
-    const [j2Results, setJ2Results] = useState<User[]>([]);
-
-    const [selectedJ1, setSelectedJ1] = useState<User | null>(null);
-    const [selectedJ2, setSelectedJ2] = useState<User | null>(null);
+    const [selectedJ1Id, setSelectedJ1Id] = useState<string>("");
+    const [selectedJ2Id, setSelectedJ2Id] = useState<string>("");
     const [categoria, setCategoria] = useState(categorias[0] || "6ta");
     const [error, setError] = useState<string | null>(null);
 
-    const handleSearch = async (query: string, setResults: (val: User[]) => void) => {
-        if (query.length >= 3) {
-            const results = await buscarCompaneros(query);
-            setResults(results);
-        } else {
-            setResults([]);
-        }
-    };
-
     const handleInscribir = () => {
-        if (!selectedJ1 || !selectedJ2) {
+        if (!selectedJ1Id || !selectedJ2Id) {
             setError("Debe seleccionar dos jugadores");
             return;
         }
 
-        if (selectedJ1.id === selectedJ2.id) {
+        if (selectedJ1Id === selectedJ2Id) {
             setError("Los jugadores deben ser distintos");
             return;
         }
@@ -61,13 +51,11 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
         setError(null);
         startTransition(async () => {
             try {
-                await inscribirParejaManual(torneoId, selectedJ1.id, selectedJ2.id, categoria, esMaster);
+                await inscribirParejaManual(torneoId, selectedJ1Id, selectedJ2Id, categoria, esMaster);
                 setOpen(false);
-                setSelectedJ1(null);
-                setSelectedJ2(null);
-                setJ1Search("");
-                setJ2Search("");
-                router.refresh(); // Asegurar que la UI se actualiza con la nueva pareja
+                setSelectedJ1Id("");
+                setSelectedJ2Id("");
+                router.refresh(); 
             } catch (err: unknown) {
                 setError(err instanceof Error ? err.message : "Error al inscribir");
             }
@@ -90,87 +78,37 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
                     {/* Jugador 1 */}
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-neutral-400">Jugador 1</label>
-                        {selectedJ1 ? (
-                            <div className="flex items-center justify-between bg-neutral-950 border border-neutral-800 p-3 rounded-lg">
-                                <div>
-                                    <p className="font-bold">{selectedJ1.nombre}</p>
-                                    <p className="text-xs text-neutral-500">{selectedJ1.email}</p>
-                                </div>
-                                <Button variant="ghost" size="sm" onClick={() => setSelectedJ1(null)} className="text-red-400 hover:text-red-300">
-                                    Quitar
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="relative">
-                                <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-500" />
-                                <Input
-                                    placeholder="Buscar por nombre..."
-                                    className="pl-9 bg-neutral-950 border-neutral-800"
-                                    value={j1Search}
-                                    onChange={(e) => {
-                                        setJ1Search(e.target.value);
-                                        handleSearch(e.target.value, setJ1Results);
-                                    }}
-                                />
-                                {j1Results.length > 0 && (
-                                    <div className="absolute z-10 w-full mt-1 bg-neutral-800 border border-neutral-700 rounded-md shadow-lg">
-                                        {j1Results.map((u) => (
-                                            <div 
-                                                key={u.id} 
-                                                className="p-2 hover:bg-neutral-700 cursor-pointer flex flex-col"
-                                                onClick={() => { setSelectedJ1(u); setJ1Results([]); setJ1Search(""); }}
-                                            >
-                                                <span className="font-medium text-sm">{u.nombre}</span>
-                                                <span className="text-xs text-neutral-400">{u.email}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                        <Select value={selectedJ1Id} onValueChange={setSelectedJ1Id}>
+                            <SelectTrigger className="bg-neutral-950 border-neutral-800">
+                                <SelectValue placeholder="Seleccione al primer jugador" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
+                                {allUsers.map((u) => (
+                                    <SelectItem key={u.id} value={u.id}>
+                                        {u.nombre} <span className="text-neutral-500 text-xs ml-2">({u.email})</span>
+                                    </SelectItem>
+                                ))}
+                                {allUsers.length === 0 && <SelectItem value="disabled" disabled>Cargando jugadores...</SelectItem>}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     {/* Jugador 2 */}
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-neutral-400">Jugador 2</label>
-                        {selectedJ2 ? (
-                            <div className="flex items-center justify-between bg-neutral-950 border border-neutral-800 p-3 rounded-lg">
-                                <div>
-                                    <p className="font-bold">{selectedJ2.nombre}</p>
-                                    <p className="text-xs text-neutral-500">{selectedJ2.email}</p>
-                                </div>
-                                <Button variant="ghost" size="sm" onClick={() => setSelectedJ2(null)} className="text-red-400 hover:text-red-300">
-                                    Quitar
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="relative">
-                                <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-500" />
-                                <Input
-                                    placeholder="Buscar por nombre..."
-                                    className="pl-9 bg-neutral-950 border-neutral-800"
-                                    value={j2Search}
-                                    onChange={(e) => {
-                                        setJ2Search(e.target.value);
-                                        handleSearch(e.target.value, setJ2Results);
-                                    }}
-                                />
-                                {j2Results.length > 0 && (
-                                    <div className="absolute z-10 w-full mt-1 bg-neutral-800 border border-neutral-700 rounded-md shadow-lg">
-                                        {j2Results.map((u) => (
-                                            <div 
-                                                key={u.id} 
-                                                className="p-2 hover:bg-neutral-700 cursor-pointer flex flex-col"
-                                                onClick={() => { setSelectedJ2(u); setJ2Results([]); setJ2Search(""); }}
-                                            >
-                                                <span className="font-medium text-sm">{u.nombre}</span>
-                                                <span className="text-xs text-neutral-400">{u.email}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                        <Select value={selectedJ2Id} onValueChange={setSelectedJ2Id}>
+                            <SelectTrigger className="bg-neutral-950 border-neutral-800">
+                                <SelectValue placeholder="Seleccione al segundo jugador" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
+                                {allUsers.map((u) => (
+                                    <SelectItem key={u.id} value={u.id}>
+                                        {u.nombre} <span className="text-neutral-500 text-xs ml-2">({u.email})</span>
+                                    </SelectItem>
+                                ))}
+                                {allUsers.length === 0 && <SelectItem value="disabled" disabled>Cargando jugadores...</SelectItem>}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     {/* Categoría */}
@@ -204,7 +142,7 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
 
                     <Button 
                         className="w-full bg-amber-600 hover:bg-amber-500" 
-                        disabled={!selectedJ1 || !selectedJ2 || isPending}
+                        disabled={!selectedJ1Id || !selectedJ2Id || isPending}
                         onClick={handleInscribir}
                     >
                         {isPending ? "Inscribiendo..." : "Confirmar Inscripción"}
