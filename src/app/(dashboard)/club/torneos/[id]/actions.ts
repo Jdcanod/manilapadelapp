@@ -76,27 +76,34 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
 
 export async function inscribirParejaManual(torneoId: string, jugador1Sel: string, jugador2Sel: string, categoria: string, esMaster: boolean) {
     const supabase = createClient();
+    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+    const supabaseAdmin = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
     
     let j1Id = jugador1Sel;
     let j2Id = jugador2Sel;
 
     if (j1Id.startsWith("manual:")) {
         const name = j1Id.replace("manual:", "").trim();
-        const { data } = await supabase.from('users').insert({
+        const { data, error } = await supabaseAdmin.from('users').insert({
             nombre: name,
             email: `invitado_${Date.now()}_${Math.random().toString(36).substring(7)}@manilapadel.app`,
             rol: 'jugador'
         }).select('id').single();
+        if (error) throw new Error("Error creando invitado 1: " + error.message);
         if (data) j1Id = data.id;
     }
 
     if (j2Id.startsWith("manual:")) {
         const name = j2Id.replace("manual:", "").trim();
-        const { data } = await supabase.from('users').insert({
+        const { data, error } = await supabaseAdmin.from('users').insert({
             nombre: name,
             email: `invitado_${Date.now()}_${Math.random().toString(36).substring(7)}@manilapadel.app`,
             rol: 'jugador'
         }).select('id').single();
+        if (error) throw new Error("Error creando invitado 2: " + error.message);
         if (data) j2Id = data.id;
     }
 
