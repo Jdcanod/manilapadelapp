@@ -1,9 +1,8 @@
 "use client";
-
 import { useTransition, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Swords, Users } from "lucide-react";
-import { generarFaseGrupos } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { Swords, Users, Trophy } from "lucide-react";
+import { generarFaseGrupos, generarFaseEliminatoria } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -11,14 +10,23 @@ interface Props {
     torneoId: string;
     categorias: string[];
     gruposExistentes: { id: string; nombre_grupo: string; categoria: string }[];
+    partidos: any[];
 }
 
-export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes }: Props) {
+interface Standing {
+    parejaId: string;
+    nombre: string;
+    pj: number;
+    pg: number;
+    pts: number;
+}
+
+export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos }: Props) {
     const [isPending, startTransition] = useTransition();
-    const [selectedCat] = useState(categorias[0] || "General");
+    const [selectedCat, setSelectedCat] = useState(categorias[0] || "General");
 
     const onGenerate = () => {
-        if (!confirm(`¿Estás seguro de generar el sorteo para la categoría ${selectedCat}? Esto creará los grupos y partidos automáticamente.`)) return;
+        if (!confirm(`¿Estás seguro de generar el sorteo de GRUPOS para la categoría ${selectedCat}?`)) return;
         
         startTransition(async () => {
             try {
@@ -30,26 +38,88 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
         });
     };
 
+    const onGeneratePlayoffs = () => {
+        if (!confirm(`¿Estás seguro de generar las ELIMINATORIAS (Octavos/Cuartos/Final) para la categoría ${selectedCat}? Se tomarán los dos mejores de cada grupo.`)) return;
+        
+        startTransition(async () => {
+            try {
+                await generarFaseEliminatoria(torneoId, selectedCat);
+                alert("¡Fase eliminatoria generada con éxito! Revisa la pestaña de Cuadros de Juego.");
+            } catch (err: unknown) {
+                alert(err instanceof Error ? err.message : "Error desconocido");
+            }
+        });
+    };
+
     const gruposCategoria = gruposExistentes.filter(g => g.categoria === selectedCat);
+
+    const getStandings = (grupoId: string) => {
+        const matches = partidos.filter(p => p.torneo_grupo_id === grupoId);
+        const map = new Map<string, Standing>();
+
+        matches.forEach(m => {
+            if (!m.pareja1_id || !m.pareja2_id) return;
+            
+            if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: m.pareja1?.nombre_pareja || "TBD", pj: 0, pg: 0, pts: 0 });
+            if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: m.pareja2?.nombre_pareja || "TBD", pj: 0, pg: 0, pts: 0 });
+
+            if (m.estado === 'jugado' && m.resultado) {
+                const s1 = map.get(m.pareja1_id)!;
+                const s2 = map.get(m.pareja2_id)!;
+                
+                s1.pj += 1;
+                s2.pj += 1;
+
+                const sets = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
+                let setsP1 = 0; let setsP2 = 0;
+                
+                sets.forEach((set: number[]) => {
+                    if (set.length === 2 && !isNaN(set[0]) && !isNaN(set[1])) {
+                        if (set[0] > set[1]) setsP1++;
+                        else if (set[1] > set[0]) setsP2++;
+                    }
+                });
+
+                if (setsP1 > setsP2) {
+                    s1.pg += 1;
+                    s1.pts += 3;
+                } else if (setsP2 > setsP1) {
+                    s2.pg += 1;
+                    s2.pts += 3;
+                }
+            }
+        });
+
+        return Array.from(map.values()).sort((a, b) => b.pts - a.pts || b.pg - a.pg);
+    };
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-neutral-900 p-4 border border-neutral-800 rounded-xl">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-neutral-900 p-4 border border-neutral-800 rounded-xl">
                 <div>
                     <h3 className="text-lg font-bold text-white flex items-center gap-2">
                         <Swords className="w-5 h-5 text-emerald-500" />
-                        Sorteo de Fase de Grupos
+                        Sorteos de Torneo
                     </h3>
-                    <p className="text-sm text-neutral-400">Genera grupos de 3 o 4 parejas balanceados por ranking.</p>
+                    <p className="text-sm text-neutral-400">Genera grupos o arma el cuadro de eliminatorias.</p>
                 </div>
                 
-                <div className="flex gap-2 w-full sm:w-auto">
+                <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
                     <Button 
                         onClick={onGenerate}
                         disabled={isPending}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                        variant="outline"
+                        className="bg-neutral-950 border-neutral-800 text-white hover:bg-neutral-800 font-bold"
                     >
-                        {isPending ? "Generando..." : "Realizar Sorteo"}
+                        {isPending ? "..." : "Sorteo Grupos"}
+                    </Button>
+                    <Button 
+                        onClick={onGeneratePlayoffs}
+                        disabled={isPending || gruposCategoria.length === 0}
+                        className="bg-amber-600 hover:bg-amber-500 text-white font-bold"
+                    >
+                        <Trophy className="w-4 h-4 mr-2" />
+                        {isPending ? "Generando..." : "Sorteo Eliminatorias"}
                     </Button>
                 </div>
             </div>
@@ -61,22 +131,52 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {gruposCategoria.map((grupo) => (
-                        <Card key={grupo.id} className="bg-neutral-900 border-neutral-800 border-l-4 border-l-emerald-500">
-                            <CardContent className="p-4">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h4 className="text-xl font-bold text-white">{grupo.nombre_grupo}</h4>
-                                    <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-                                        Round Robin
-                                    </Badge>
-                                </div>
-                                <div className="space-y-2">
-                                    {/* Aquí mostraremos los integrantes del grupo próximamente */}
-                                    <p className="text-xs text-neutral-500 italic">Toca el grupo para ver enfrentamientos y tabla de posiciones.</p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                    {gruposCategoria.map((grupo) => {
+                        const standings = getStandings(grupo.id);
+                        return (
+                            <Card key={grupo.id} className="bg-neutral-900 border-neutral-800 border-t-2 border-t-emerald-500 overflow-hidden">
+                                <CardContent className="p-0">
+                                    <div className="flex justify-between items-center p-4 border-b border-neutral-800 bg-neutral-950">
+                                        <h4 className="text-xl font-bold text-white tracking-widest">{grupo.nombre_grupo}</h4>
+                                        <Badge variant="outline" className="text-emerald-500 border-emerald-500/20">
+                                            Fase de Grupos
+                                        </Badge>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="text-xs text-neutral-500 uppercase bg-neutral-900/50 border-b border-neutral-800">
+                                                <tr>
+                                                    <th className="px-4 py-2 font-bold w-10 text-center">#</th>
+                                                    <th className="px-4 py-2 font-bold">Pareja</th>
+                                                    <th className="px-2 py-2 font-bold text-center">PJ</th>
+                                                    <th className="px-2 py-2 font-bold text-center">PG</th>
+                                                    <th className="px-4 py-2 font-black text-center text-emerald-400">PTS</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {standings.map((team, idx) => (
+                                                    <tr key={team.parejaId} className="border-b border-neutral-800/50 hover:bg-neutral-800/30 transition-colors">
+                                                        <td className="px-4 py-3 text-center text-neutral-500 font-bold">{idx + 1}</td>
+                                                        <td className="px-4 py-3 font-bold text-white max-w-[150px] truncate" title={team.nombre}>
+                                                            {team.nombre}
+                                                        </td>
+                                                        <td className="px-2 py-3 text-center text-neutral-300">{team.pj}</td>
+                                                        <td className="px-2 py-3 text-center text-neutral-300">{team.pg}</td>
+                                                        <td className="px-4 py-3 text-center font-black text-emerald-400">{team.pts}</td>
+                                                    </tr>
+                                                ))}
+                                                {standings.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={5} className="px-4 py-6 text-center text-neutral-500">Sin participantes asignados</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
                 </div>
             )}
         </div>

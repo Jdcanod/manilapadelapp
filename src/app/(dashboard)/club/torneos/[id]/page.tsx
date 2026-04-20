@@ -4,6 +4,7 @@ import { ChevronLeft, CalendarDays, Users, Swords } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdminParticipantActions } from "@/components/AdminParticipantActions";
 import { Card, CardContent } from "@/components/ui/card";
 
 import { TournamentGroupsManager } from "@/components/TournamentGroupsManager";
@@ -167,7 +168,8 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                     <TournamentGroupsManager 
                         torneoId={params.id} 
                         categorias={categorias} 
-                        gruposExistentes={gruposExistentes || []} 
+                        gruposExistentes={gruposExistentes || []}
+                        partidos={partidosReales || []}
                     />
                 </TabsContent>
 
@@ -209,8 +211,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                                 </Badge>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <button className="text-blue-400 hover:text-blue-300 mr-4 font-medium">Marcar Pago</button>
-                                                <button className="text-red-400 hover:text-red-300 font-medium">Bajar</button>
+                                                <AdminParticipantActions id={tp.id.toString()} tipo={tp.tipo} torneoId={params.id} />
                                             </td>
                                         </tr>
                                     ))}
