@@ -72,8 +72,9 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
 
     revalidatePath(`/club/torneos/${torneoId}`);
     return { success: true };
-}export async function inscribirParejaManual(torneoId: string, jugador1Sel: string, jugador2Sel: string, categoria: string, esMaster: boolean) {
-    const supabase = createClient();
+}
+
+export async function inscribirParejaManual(torneoId: string, jugador1Sel: string, jugador2Sel: string, categoria: string, esMaster: boolean) {
     const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
     const supabaseAdmin = createSupabaseClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -137,9 +138,9 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
         parejaId = newPareja.id;
     }
 
-    // 3. Perform inscription (can use standard supabase client as the club is authorized)
+    // 3. Perform inscription using Admin to bypass RLS
     if (esMaster) {
-        const { error: insError } = await supabase
+        const { error: insError } = await supabaseAdmin
             .from('inscripciones_torneo')
             .insert({
                 torneo_id: torneoId,
@@ -154,7 +155,7 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
             throw new Error("Error al inscribir: " + insError.message);
         }
     } else {
-        const { error: insError } = await supabase
+        const { error: insError } = await supabaseAdmin
             .from('torneo_parejas')
             .insert({
                 torneo_id: torneoId,
