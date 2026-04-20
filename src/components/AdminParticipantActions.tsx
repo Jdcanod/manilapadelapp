@@ -3,7 +3,6 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { eliminarInscripcion } from "@/app/(dashboard)/club/torneos/[id]/actions";
-import { Button } from "@/components/ui/button";
 
 export function AdminParticipantActions({ id, tipo, torneoId }: { id: string, tipo: 'master' | 'regular', torneoId: string }) {
     const [isPending, startTransition] = useTransition();

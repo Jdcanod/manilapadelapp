@@ -205,7 +205,7 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
     for (let i = 0; i < grupos.length; i++) {
         const { data: partidos } = await supabase.from('partidos').select('*').eq('torneo_grupo_id', grupos[i].id);
         
-        const map = new Map<string, any>();
+        const map = new Map<string, { parejaId: string, pts: number, pg: number }>();
         (partidos || []).forEach(m => {
             if (!m.pareja1_id || !m.pareja2_id) return;
             if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, pts: 0, pg: 0 });

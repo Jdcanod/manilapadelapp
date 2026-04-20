@@ -10,7 +10,15 @@ interface Props {
     torneoId: string;
     categorias: string[];
     gruposExistentes: { id: string; nombre_grupo: string; categoria: string }[];
-    partidos: any[];
+    partidos: {
+        torneo_grupo_id?: string;
+        pareja1_id?: string;
+        pareja2_id?: string;
+        estado?: string;
+        resultado?: string;
+        pareja1?: { nombre_pareja?: string };
+        pareja2?: { nombre_pareja?: string };
+    }[];
 }
 
 interface Standing {
@@ -23,7 +31,7 @@ interface Standing {
 
 export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos }: Props) {
     const [isPending, startTransition] = useTransition();
-    const [selectedCat, setSelectedCat] = useState(categorias[0] || "General");
+    const [selectedCat] = useState(categorias[0] || "General");
 
     const onGenerate = () => {
         if (!confirm(`¿Estás seguro de generar el sorteo de GRUPOS para la categoría ${selectedCat}?`)) return;
