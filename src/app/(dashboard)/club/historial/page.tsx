@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { History, MapPin, Calendar, Users, ChevronLeft, Search } from "lucide-react";
+import { History, MapPin, Users, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 
 export default async function HistorialClubPage() {

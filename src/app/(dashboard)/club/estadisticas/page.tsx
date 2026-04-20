@@ -2,10 +2,9 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Clock, Calendar as CalendarIcon, TrendingUp, ChevronLeft, Filter } from "lucide-react";
+import { BarChart3, Clock, Calendar as CalendarIcon, TrendingUp, ChevronLeft } from "lucide-react";
 import Link from "next/link";
-import { startOfDay, startOfWeek, startOfMonth, subDays, format, parseISO } from "date-fns";
-import { es } from "date-fns/locale";
+import { startOfDay, startOfWeek, startOfMonth } from "date-fns";
 
 export default async function EstadisticasClubPage({ searchParams }: { searchParams: { range?: string } }) {
     const supabase = createClient();

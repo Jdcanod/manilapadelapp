@@ -4,11 +4,10 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Search, Check, AlertCircle } from "lucide-react";
+import { UserPlus, Search, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { buscarCompaneros } from "@/app/(dashboard)/torneos/actions";
 import { inscribirParejaManual } from "@/app/(dashboard)/club/torneos/[id]/actions";
-import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 
 interface AddTournamentPlayerModalProps {
@@ -69,8 +68,8 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
                 setJ1Search("");
                 setJ2Search("");
                 router.refresh(); // Asegurar que la UI se actualiza con la nueva pareja
-            } catch (err: any) {
-                setError(err.message || "Error al inscribir");
+            } catch (err: unknown) {
+                setError(err instanceof Error ? err.message : "Error al inscribir");
             }
         });
     };
