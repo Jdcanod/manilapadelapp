@@ -2,7 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ReservaManualDialog } from "@/components/ReservaManualDialog";
 import { ClubReservationsGrid } from "@/components/ClubReservationsGrid";
 import { ClubDateNavigator } from "@/components/ClubDateNavigator";
-import { CheckCircle, CalendarRange } from "lucide-react";
+import { CheckCircle, CalendarRange, BarChart3, History } from "lucide-react";
+import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -158,6 +159,43 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                         <h1 className="text-4xl font-black text-white mb-2 truncate">{nombreClub}</h1>
                     </div>
                 </div>
+            </div>
+
+            {/* Quick Actions / Shortcuts */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Link href="/club/estadisticas">
+                    <Card className="bg-neutral-900 border-neutral-800 hover:border-emerald-500/50 transition-all group overflow-hidden relative h-32 flex items-center">
+                        <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all">
+                            <BarChart3 className="w-32 h-32 text-emerald-500" />
+                        </div>
+                        <CardContent className="p-6 flex items-center gap-4 relative z-10 w-full">
+                            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                                <BarChart3 className="w-8 h-8" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors">Estadísticas del Club</h3>
+                                <p className="text-neutral-500 text-sm">Ver tiempos, horarios pico y actividad analítica.</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </Link>
+
+                <Link href="/club/historial">
+                    <Card className="bg-neutral-900 border-neutral-800 hover:border-blue-500/50 transition-all group overflow-hidden relative h-32 flex items-center">
+                        <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all">
+                            <History className="w-32 h-32 text-blue-500" />
+                        </div>
+                        <CardContent className="p-6 flex items-center gap-4 relative z-10 w-full">
+                            <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                                <History className="w-8 h-8" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">Historial de Partidos</h3>
+                                <p className="text-neutral-500 text-sm">Consultar todos los partidos jugados y resultados pasados.</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </Link>
             </div>
 
             {/* Analytics & Core Modules */}

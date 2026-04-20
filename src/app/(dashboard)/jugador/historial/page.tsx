@@ -17,13 +17,34 @@ export default async function HistorialPartidosPage() {
         .eq('auth_id', user.id)
         .single();
 
-    // Obtener IDs de mis partidos
-    const { data: misPartidosIds } = await supabase
+    // 1. Obtener IDs de partidos donde me inscribí individualmente (Amistosos/Abiertos)
+    const { data: misPartidosIndiv } = await supabase
         .from('partido_jugadores')
         .select('partido_id')
-        .eq('jugador_id', userData?.id);
+        .eq('jugador_id', user.id); // Usamos auth_id que es lo que guarda partido_jugadores
 
-    const ids = misPartidosIds?.map(p => p.partido_id) || [];
+    // 2. Obtener IDs de parejas donde participo
+    const { data: misParejas } = await supabase
+        .from('parejas')
+        .select('id')
+        .or(`jugador1_id.eq.${userData?.id},jugador2_id.eq.${userData?.id}`);
+
+    const misParejasIds = misParejas?.map(p => p.id) || [];
+
+    // 3. Obtener IDs de partidos de torneo donde participo mi pareja
+    let tournamentMatchIds: string[] = [];
+    if (misParejasIds.length > 0) {
+        const { data: matches } = await supabase
+            .from('partidos')
+            .select('id')
+            .or(`pareja1_id.in.(${misParejasIds.join(',')}),pareja2_id.in.(${misParejasIds.join(',')})`);
+        tournamentMatchIds = matches?.map(m => m.id) || [];
+    }
+
+    const ids = Array.from(new Set([
+        ...(misPartidosIndiv?.map(p => p.partido_id) || []),
+        ...tournamentMatchIds
+    ]));
 
     if (ids.length === 0) {
         return (

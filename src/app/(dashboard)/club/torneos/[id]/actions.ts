@@ -73,3 +73,97 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
     revalidatePath(`/club/torneos/${torneoId}`);
     return { success: true };
 }
+
+export async function inscribirParejaManual(torneoId: string, jugador1Id: string, jugador2Id: string, categoria: string, esMaster: boolean) {
+    const supabase = createClient();
+    
+    // Find or Create the 'Pareja'
+    const { data: existingPareja } = await supabase
+        .from('parejas')
+        .select('id')
+        .or(`and(jugador1_id.eq.${jugador1Id},jugador2_id.eq.${jugador2Id}),and(jugador1_id.eq.${jugador2Id},jugador2_id.eq.${jugador1Id})`)
+        .single();
+
+    let parejaId = existingPareja?.id;
+
+    if (!parejaId) {
+        // Obtenemos los nombres para generar un nombre de pareja por defecto
+        const { data: j1 } = await supabase.from('users').select('nombre').eq('id', jugador1Id).single();
+        const { data: j2 } = await supabase.from('users').select('nombre').eq('id', jugador2Id).single();
+
+        const { data: newPareja, error: parejaError } = await supabase
+            .from('parejas')
+            .insert({
+                jugador1_id: jugador1Id,
+                jugador2_id: jugador2Id,
+                nombre_pareja: `${j1?.nombre?.split(' ')[0] || 'J1'} & ${j2?.nombre?.split(' ')[0] || 'J2'}`,
+                activa: true
+            })
+            .select('id')
+            .single();
+
+        if (parejaError) {
+            throw new Error("Error al crear la pareja: " + parejaError.message);
+        }
+        parejaId = newPareja.id;
+    }
+
+    if (esMaster) {
+        const { error: insError } = await supabase
+            .from('inscripciones_torneo')
+            .insert({
+                torneo_id: torneoId,
+                jugador1_id: jugador1Id,
+                jugador2_id: jugador2Id,
+                nivel: categoria,
+                estado: 'pagado' // El club inscribe, asumimos pagado o gestionado por el club
+            });
+
+        if (insError) {
+            if (insError.code === '23505') throw new Error("La pareja ya está inscrita en este torneo");
+            throw new Error("Error al inscribir: " + insError.message);
+        }
+    } else {
+        const { error: insError } = await supabase
+            .from('torneo_parejas')
+            .insert({
+                torneo_id: torneoId,
+                pareja_id: parejaId,
+                categoria: categoria,
+                estado_pago: 'pagado' // El club inscribe, asumimos pagado o gestionado por el club
+            });
+
+        if (insError) {
+            if (insError.code === '23505') throw new Error("La pareja ya está inscrita en este torneo");
+            throw new Error("Error al inscribir: " + insError.message);
+        }
+    }
+
+    revalidatePath(`/club/torneos/${torneoId}`);
+    return { success: true };
+}
+
+export async function registrarResultadoPorClub(matchId: string, resultado: string) {
+    const supabase = createClient();
+    
+    // Obtenemos el ID del club actual (por auditoría)
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const { error } = await supabase
+        .from('partidos')
+        .update({
+            resultado: resultado,
+            resultado_registrado_por: user?.id,
+            resultado_confirmado_por: user?.id,
+            resultado_registrado_at: new Date().toISOString(),
+            estado_resultado: 'confirmado',
+            estado: 'jugado' // El club registra, es oficial y finalizado
+        })
+        .eq('id', matchId);
+
+    if (error) throw new Error(error.message);
+    
+    // Asumimos que podemos estar en cualquier página, pero revalidamos de forma general o no hacemos nada específico de path
+    // Quien lo llama se encarga de revalidar su path.
+    return { success: true };
+}

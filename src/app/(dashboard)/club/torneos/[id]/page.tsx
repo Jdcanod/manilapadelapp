@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 
 import { TournamentGroupsManager } from "@/components/TournamentGroupsManager";
+import { AddTournamentPlayerModal } from "@/components/AddTournamentPlayerModal";
+import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 
 export default async function TorneoDetailsPage({ params }: { params: { id: string } }) {
     const supabase = createClient();
@@ -170,6 +172,10 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                 </TabsContent>
 
                 <TabsContent value="inscripciones" className="mt-6">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-bold text-white">Listado de Inscritos</h3>
+                        <AddTournamentPlayerModal torneoId={params.id} categorias={categorias} esMaster={torneo.tipo === 'master'} />
+                    </div>
                     {/* View for inscriptions */}
                     {allParticipants.length === 0 ? (
                         <div className="text-center py-12 text-neutral-500 border border-neutral-800 border-dashed rounded-xl bg-neutral-900/30">
@@ -259,8 +265,17 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="bg-neutral-900 p-2 text-center border-t border-neutral-800">
-                                                <button className="text-[10px] text-neutral-500 hover:text-white font-bold uppercase tracking-widest transition-colors w-full">Ver Detalles</button>
+                                            <div className="bg-neutral-900 p-2 border-t border-neutral-800">
+                                                {match.estado !== 'jugado' && match.pareja1 && match.pareja2 && (
+                                                    <div className="mb-2">
+                                                        <AdminTournamentResultModal 
+                                                            matchId={match.id} 
+                                                            pareja1Nombre={match.pareja1.nombre_pareja || "TBD"} 
+                                                            pareja2Nombre={match.pareja2.nombre_pareja || "TBD"} 
+                                                        />
+                                                    </div>
+                                                )}
+                                                <button className="text-[10px] text-neutral-500 hover:text-white font-bold uppercase tracking-widest transition-colors w-full text-center">Ver Detalles</button>
                                             </div>
                                         </CardContent>
                                     </Card>
