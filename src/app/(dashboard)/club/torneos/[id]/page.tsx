@@ -13,14 +13,14 @@ import { AddTournamentPlayerModal } from "@/components/AddTournamentPlayerModal"
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 
 interface MatchItem {
-    id: string | number;
+    id: string;
     lugar: string | null;
     estado: string;
     fecha: string | null;
     pareja1: { nombre_pareja: string | null } | null;
     pareja2: { nombre_pareja: string | null } | null;
     resultado: string | null;
-    torneo_grupo_id: string | number | null;
+    torneo_grupo_id: string | null;
 }
 
 function BracketMatchCard({ match }: { match: MatchItem }) {
