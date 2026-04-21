@@ -5,6 +5,17 @@ import { Participant, distributeParticipantsIntoGroups, generateMatchesForGroup 
 import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
+interface RegularResult {
+    id: string;
+    pareja: { id: string; nombre_pareja: string; puntos_ranking: number } | { id: string; nombre_pareja: string; puntos_ranking: number }[] | null;
+}
+
+interface MasterResult {
+    id: string;
+    jugador1: { id: string; nombre: string; puntos_ranking: number } | null;
+    jugador2: { id: string; nombre: string; puntos_ranking: number } | null;
+}
+
 export async function generarFaseGrupos(torneoId: string, categoria: string) {
     const supabase = createClient();
     const supabaseAdmin = createAdminClient();
@@ -12,7 +23,7 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
     // 1. Obtener participantes de ambas fuentes (Regular y Master)
     
     // a. Regulares (torneo_parejas)
-    const { data: regulares } = await supabase
+    const { data: regularesRaw } = await supabase
         .from('torneo_parejas')
         .select(`
             id,
@@ -20,9 +31,11 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
         `)
         .eq('torneo_id', torneoId)
         .eq('categoria', categoria);
+    
+    const regulares = (regularesRaw as unknown as RegularResult[]) || [];
 
     // b. Master (inscripciones_torneo)
-    const { data: masters } = await supabase
+    const { data: mastersRaw } = await supabase
         .from('inscripciones_torneo')
         .select(`
             id,
@@ -31,17 +44,20 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
         `)
         .eq('torneo_id', torneoId)
         .eq('nivel', categoria);
+    
+    const masters = (mastersRaw as unknown as MasterResult[]) || [];
 
     const participants: Participant[] = [];
 
     // Procesar Regulares
     (regulares || []).forEach(r => {
-        if (r.pareja) {
+        const p = Array.isArray(r.pareja) ? r.pareja[0] : r.pareja;
+        if (p) {
             participants.push({
-                id: r.pareja.id,
-                nombre: r.pareja.nombre_pareja,
-                ranking: Number(r.pareja.puntos_ranking || 0),
-                pareja_id: r.pareja.id
+                id: p.id,
+                nombre: p.nombre_pareja,
+                ranking: Number(p.puntos_ranking || 0),
+                pareja_id: p.id
             });
         }
     });
