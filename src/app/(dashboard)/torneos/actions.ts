@@ -4,130 +4,132 @@ import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
 export async function inscribirParejaTorneo(formData: FormData) {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
-        throw new Error("No estás autenticado");
-    }
+        if (!user) {
+            return { error: "No estás autenticado" };
+        }
 
-    const torneoId = formData.get("torneo_id") as string;
-    const emailCompanero = formData.get("email_companero") as string;
-    const categoria = formData.get("categoria") as string;
-    const nombrePareja = formData.get("nombre_pareja") as string || "Pareja sin nombre";
+        const { createSupabaseClient } = await import("@/utils/supabase/server");
+        const admin = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
 
-    if (!torneoId || !emailCompanero || !categoria) {
-        throw new Error("Faltan campos obligatorios");
-    }
+        const torneoId = formData.get("torneo_id") as string;
+        const emailCompanero = formData.get("email_companero") as string;
+        const categoria = formData.get("categoria") as string;
+        const nombrePareja = formData.get("nombre_pareja") as string || "Pareja sin nombre";
 
-    // 1. Get current user ID by auth_id
-    const { data: currentUserData } = await supabase
-        .from('users')
-        .select('id, email')
-        .eq('auth_id', user.id)
-        .single();
+        if (!torneoId || !emailCompanero || !categoria) {
+            return { error: "Faltan campos obligatorios" };
+        }
 
-    if (!currentUserData) {
-        throw new Error("No se encontró tu perfil de usuario");
-    }
+        // 1. Get current user ID by auth_id
+        const { data: currentUserData } = await admin
+            .from('users')
+            .select('id, email')
+            .eq('auth_id', user.id)
+            .maybeSingle();
 
-    if (currentUserData.email.toLowerCase() === emailCompanero.toLowerCase()) {
-        throw new Error("No puedes inscribirte contigo mismo");
-    }
+        if (!currentUserData) {
+            return { error: "No se encontró tu perfil de usuario" };
+        }
 
-    // 2. Find the partner by email
-    const { data: companeroData } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', emailCompanero.trim().toLowerCase())
-        .single();
+        if (currentUserData.email.toLowerCase() === emailCompanero.toLowerCase()) {
+            return { error: "No puedes inscribirte contigo mismo" };
+        }
 
-    if (!companeroData) {
-        throw new Error("No se encontró ningún usuario con ese correo electrónico");
-    }
-
-    const jugador1Id = currentUserData.id;
-    const jugador2Id = companeroData.id;
-
-    // 3. Find or Create the 'Pareja'
-    // Search both combinations because order doesn't matter
-    const { data: existingPareja } = await supabase
-        .from('parejas')
-        .select('id')
-        .or(`and(jugador1_id.eq.${jugador1Id},jugador2_id.eq.${jugador2Id}),and(jugador1_id.eq.${jugador2Id},jugador2_id.eq.${jugador1Id})`)
-        .single();
-
-    let parejaId = existingPareja?.id;
-
-    if (!parejaId) {
-        // Create new pareja
-        const { data: newPareja, error: parejaError } = await supabase
-            .from('parejas')
-            .insert({
-                jugador1_id: jugador1Id,
-                jugador2_id: jugador2Id,
-                nombre_pareja: nombrePareja || "Nueva Pareja",
-                activa: true
-            })
+        // 2. Find the partner by email
+        const { data: companeroData } = await admin
+            .from('users')
             .select('id')
-            .single();
+            .eq('email', emailCompanero.trim().toLowerCase())
+            .maybeSingle();
 
-        if (parejaError) {
-            throw new Error("Error al crear el equipo: " + parejaError.message);
+        if (!companeroData) {
+            return { error: "No se encontró ningún usuario con ese correo electrónico" };
         }
-        parejaId = newPareja.id;
-    } else {
-        // Optionally update the name if one was provided
-        if (nombrePareja && nombrePareja !== "Pareja sin nombre") {
-            await supabase.from('parejas').update({ nombre_pareja: nombrePareja }).eq('id', parejaId);
-        }
-    }
 
-    // 4. Determinar si el torneo es "master"
-    const { data: torneoDetalle } = await supabase.from('torneos').select('tipo').eq('id', torneoId).single();
-    const esMaster = torneoDetalle?.tipo === 'master';
+        const jugador1Id = currentUserData.id;
+        const jugador2Id = companeroData.id;
 
-    if (esMaster) {
-        const { error: insError } = await supabase
-            .from('inscripciones_torneo')
-            .insert({
-                torneo_id: torneoId,
-                jugador1_id: jugador1Id,
-                jugador2_id: jugador2Id,
-                nivel: categoria,
-                estado: 'pendiente'
-            });
+        // 3. Find or Create the 'Pareja'
+        const { data: existingPareja } = await admin
+            .from('parejas')
+            .select('id')
+            .or(`and(jugador1_id.eq.${jugador1Id},jugador2_id.eq.${jugador2Id}),and(jugador1_id.eq.${jugador2Id},jugador2_id.eq.${jugador1Id})`)
+            .maybeSingle();
 
-        if (insError) {
-            if (insError.code === '23505') {
-                throw new Error("Su pareja ya está inscrita en este torneo");
+        let parejaId = existingPareja?.id;
+
+        if (!parejaId) {
+            // Create new pareja
+            const { data: newPareja, error: parejaError } = await admin
+                .from('parejas')
+                .insert({
+                    jugador1_id: jugador1Id,
+                    jugador2_id: jugador2Id,
+                    nombre_pareja: nombrePareja || "Nueva Pareja",
+                    activa: true
+                })
+                .select('id')
+                .single();
+
+            if (parejaError) {
+                return { error: "Error al crear el equipo: " + parejaError.message };
             }
-            throw new Error("Error al inscribir en el torneo (Master): " + insError.message);
+            parejaId = newPareja.id;
         }
-    } else {
-        // Register to the Tournament (Regular via Parejas table)
-        const { error: insError } = await supabase
-            .from('torneo_parejas')
-            .insert({
-                torneo_id: torneoId,
-                pareja_id: parejaId,
-                categoria: categoria,
-                estado_pago: 'pendiente'
-            });
 
-        if (insError) {
-            if (insError.code === '23505') {
-                throw new Error("Tu pareja ya está inscrita en este torneo");
+        // 4. Determinar si el torneo es "master"
+        const { data: torneoDetalle } = await admin.from('torneos').select('tipo').eq('id', torneoId).single();
+        const esMaster = torneoDetalle?.tipo === 'master';
+
+        if (esMaster) {
+            const { error: insError } = await admin
+                .from('inscripciones_torneo')
+                .insert({
+                    torneo_id: torneoId,
+                    jugador1_id: jugador1Id,
+                    jugador2_id: jugador2Id,
+                    nivel: categoria,
+                    estado: 'pendiente'
+                });
+
+            if (insError) {
+                if (insError.code === '23505') {
+                    return { error: "Ustedes ya están inscritos en este torneo" };
+                }
+                return { error: "Error al inscribir (Master): " + insError.message };
             }
-            throw new Error("Error al inscribir en el torneo: " + insError.message);
+        } else {
+            const { error: insError } = await admin
+                .from('torneo_parejas')
+                .insert({
+                    torneo_id: torneoId,
+                    pareja_id: parejaId,
+                    categoria: categoria,
+                    estado_pago: 'pendiente'
+                });
+
+            if (insError) {
+                if (insError.code === '23505') {
+                    return { error: "Esta pareja ya está inscrita en este torneo" };
+                }
+                return { error: "Error al inscribir: " + insError.message };
+            }
         }
+
+        revalidatePath("/torneos");
+        revalidatePath("/partidos");
+        return { success: true };
+    } catch (err: any) {
+        console.error("Error en inscribirParejaTorneo:", err);
+        return { error: "Ocurrió un error inesperado: " + err.message };
     }
-
-    // Se reemplaza en la instrucción anterior
-
-    revalidatePath("/torneos");
-    revalidatePath("/partidos");
-    return { success: true };
 }
 
 export async function buscarCompaneros(query: string) {
@@ -156,4 +158,66 @@ export async function buscarCompaneros(query: string) {
         .limit(5);
 
     return matchUsers || [];
+}
+export async function registrarResultadoPorJugador(matchId: string, resultado: string) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado" };
+
+        const supabaseAdmin = createClient(); // Use standard client for initial check, or admin if RLS is tight
+        
+        // 1. Verificar que el jugador pertenece a una de las parejas del partido
+        const { data: userPairs } = await supabase
+            .from('parejas')
+            .select('id')
+            .or(`jugador1_id.eq.${user.id},jugador2_id.eq.${user.id}`);
+        
+        const myPairIds = (userPairs || []).map(p => p.id);
+        
+        const { data: match } = await supabase
+            .from('partidos')
+            .select('*')
+            .eq('id', matchId)
+            .single();
+
+        if (!match) return { success: false, message: "Partido no encontrado" };
+
+        const isParticipant = (match.pareja1_id && myPairIds.includes(match.pareja1_id)) || 
+                              (match.pareja2_id && myPairIds.includes(match.pareja2_id));
+
+        if (!isParticipant) {
+            return { success: false, message: "No tienes permiso para reportar este resultado." };
+        }
+
+        // 2. Actualizar el resultado usando Admin
+        const { createSupabaseClient } = await import("@/utils/supabase/server");
+        const admin = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+        const { error } = await admin
+            .from('partidos')
+            .update({
+                resultado: resultado,
+                estado: 'jugado',
+                resultado_registrado_at: new Date().toISOString(),
+                estado_resultado: 'confirmado' // Autoconfirmado para agilidad
+            })
+            .eq('id', matchId);
+
+        if (error) throw new Error(error.message);
+
+        // 3. Verificar avance de fase (si era semifinal)
+        if (!match.torneo_grupo_id && match.lugar?.toLowerCase().includes('semifinal')) {
+            const { verificarYGenerarFinal } = await import("@/lib/tournaments/progression");
+            await verificarYGenerarFinal(match.torneo_id, match.nivel, match.club_id, user.id);
+        }
+
+        revalidatePath(`/torneos/${match.torneo_id}`);
+        return { success: true };
+    } catch (err: unknown) {
+        console.error("Error en registrarResultadoPorJugador:", err);
+        return { success: false, message: err instanceof Error ? err.message : "Error desconocido" };
+    }
 }
