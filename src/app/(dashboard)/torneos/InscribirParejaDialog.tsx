@@ -68,7 +68,7 @@ export function InscribirParejaDialog({ torneoId, torneoNombre }: Props) {
             try {
                 const response = await inscribirParejaTorneo(formData);
                 if (response && 'error' in response) {
-                    setError(response.error);
+                    setError(response.error ?? "Error desconocido");
                 } else if (response && response.success) {
                     setSuccess(true);
                     // Cerrar modal automáticamente después de 2.5s
