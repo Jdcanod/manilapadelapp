@@ -314,7 +314,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                 <Badge className="bg-amber-500 text-black font-black px-6 py-1 text-sm tracking-widest animate-pulse uppercase">Modo Final</Badge>
                             </div>
 
-                            {partidosReales.filter(p => !p.torneo_grupo_id && (p.lugar?.includes('Final') || p.lugar?.includes('Playoff'))).length === 0 ? (
+                            {partidosReales.filter(p => !p.torneo_grupo_id && (p.lugar?.toLowerCase().includes('final') || p.lugar?.toLowerCase().includes('playoff') || p.lugar?.toLowerCase().includes('semifinal'))).length === 0 ? (
                                 <div className="text-center py-20 text-neutral-500 border-2 border-neutral-800 border-dashed rounded-3xl bg-neutral-950/50 relative z-10">
                                     <Trophy className="w-20 h-20 text-neutral-800 mx-auto mb-6" />
                                     <p className="max-w-xs mx-auto text-sm font-bold uppercase tracking-wider opacity-50">El cuadro se generará una vez finalices la fase de grupos</p>
@@ -325,10 +325,10 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                     {/* COLUMNA SEMIFINALES (Izquierda y Derecha se verán juntas en móvil) */}
                                     <div className="flex flex-col gap-12 w-full max-w-sm">
                                         <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-4">Semifinales</h4>
-                                        {partidosReales.filter(p => p.lugar?.includes('Semifinal')).map((match) => (
+                                        {partidosReales.filter(p => p.lugar?.toLowerCase().includes('semifinal')).map((match) => (
                                             <BracketMatchCard key={match.id} match={match} />
                                         ))}
-                                        {partidosReales.filter(p => p.lugar?.includes('Semifinal')).length === 0 && (
+                                        {partidosReales.filter(p => p.lugar?.toLowerCase().includes('semifinal')).length === 0 && (
                                             <div className="p-8 border border-neutral-800 border-dashed rounded-2xl text-center text-neutral-600 text-xs font-bold uppercase italic">Esperando Semifinales...</div>
                                         )}
                                     </div>
@@ -345,10 +345,10 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                     {/* COLUMNA FINAL (O la otra parte del cuadro) */}
                                     <div className="flex flex-col gap-12 w-full max-w-sm">
                                         <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-4">Final</h4>
-                                        {partidosReales.filter(p => p.lugar?.includes('Final') && !p.lugar?.includes('Semifinal')).map((match) => (
+                                        {partidosReales.filter(p => p.lugar?.toLowerCase().includes('final') && !p.lugar?.toLowerCase().includes('semifinal')).map((match) => (
                                             <BracketMatchCard key={match.id} match={match} />
                                         ))}
-                                        {partidosReales.filter(p => p.lugar?.includes('Final') && !p.lugar?.includes('Semifinal')).length === 0 && (
+                                        {partidosReales.filter(p => p.lugar?.toLowerCase().includes('final') && !p.lugar?.toLowerCase().includes('semifinal')).length === 0 && (
                                             <div className="p-8 border border-neutral-800 border-dashed rounded-2xl text-center text-neutral-600 text-xs font-bold uppercase italic">Esperando a los Finalistas...</div>
                                         )}
                                     </div>
