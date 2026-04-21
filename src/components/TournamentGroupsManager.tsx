@@ -17,6 +17,7 @@ interface Props {
         pareja1_id?: string;
         pareja2_id?: string;
         estado?: string;
+        lugar?: string;
         resultado?: string;
         pareja1?: { nombre_pareja?: string };
         pareja2?: { nombre_pareja?: string };
