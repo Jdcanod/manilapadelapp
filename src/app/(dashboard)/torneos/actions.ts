@@ -12,11 +12,8 @@ export async function inscribirParejaTorneo(formData: FormData) {
             return { error: "No estás autenticado" };
         }
 
-        const { createSupabaseClient } = await import("@/utils/supabase/server");
-        const admin = createSupabaseClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
+        const { createAdminClient } = await import("@/utils/supabase/server");
+        const admin = createAdminClient();
 
         const torneoId = formData.get("torneo_id") as string;
         const emailCompanero = formData.get("email_companero") as string;
