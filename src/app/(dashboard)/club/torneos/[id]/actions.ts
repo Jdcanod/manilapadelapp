@@ -132,7 +132,7 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
         // Get tournament info for inherited fields
         const { data: torneoInfo } = await supabaseAdmin
             .from('torneos')
-            .select('club_id')
+            .select('club_id, fecha_inicio')
             .eq('id', torneoId)
             .single();
 
@@ -170,7 +170,8 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
                 club_id: torneoInfo?.club_id,
                 tipo_partido_oficial: 'torneo',
                 nivel: categoria,
-                sexo: 'Mixto'
+                sexo: 'Mixto',
+                fecha: torneoInfo?.fecha_inicio || new Date().toISOString()
             }));
 
             const { error: matchError } = await supabaseAdmin.from('partidos').insert(finalMatches);
