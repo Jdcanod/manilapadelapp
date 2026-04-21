@@ -75,6 +75,10 @@ export async function inscribirParejaTorneo(formData: FormData) {
         }
 
         if (!parejaId) {
+            // Desactivar parejas anteriores de ambos jugadores para evitar la restricción única (idx_jugador1_activo)
+            await admin.from('parejas').update({ activa: false }).in('jugador1_id', [jugador1Id, jugador2Id]);
+            await admin.from('parejas').update({ activa: false }).in('jugador2_id', [jugador1Id, jugador2Id]);
+
             // Create new pareja
             const { data: newPareja, error: parejaError } = await admin
                 .from('parejas')
