@@ -111,11 +111,8 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
         playerPairIds = (userPairs || []).map(p => p.id);
     }
 
-    const { createAdminClient } = await import("@/utils/supabase/server");
-    const admin = createAdminClient();
-
     // Obtener partidos y nombres de parejas con permisos elevados para asegurar visibilidad
-    const { data: rawPartidos } = await admin
+    const { data: rawPartidos } = await adminSupabase
         .from('partidos')
         .select('*')
         .eq('torneo_id', params.id)
@@ -129,7 +126,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
 
     const parejaNamesMap = new Map<string, string>();
     if (pairIds.size > 0) {
-        const { data: namesData } = await admin
+        const { data: namesData } = await adminSupabase
             .from('parejas')
             .select('id, nombre_pareja')
             .in('id', Array.from(pairIds));
@@ -154,7 +151,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
     }
 
     // Obtener grupos del torneo con admin client
-    const { data: grupos } = await admin
+    const { data: grupos } = await adminSupabase
         .from('torneo_grupos')
         .select('*')
         .eq('torneo_id', params.id);
