@@ -73,112 +73,115 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
 
     revalidatePath(`/club/torneos/${torneoId}`);
     return { success: true };
-}
+}export async function inscribirParejaManual(torneoId: string, jugador1Sel: string, jugador2Sel: string, categoria: string, esMaster: boolean) {
+    try {
+        // Create admin client directly to be 100% sure about bypassing RLS and not relying on cookies
+        const supabaseAdmin = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+        
+        let j1Id = jugador1Sel;
+        let j2Id = jugador2Sel;
 
-export async function inscribirParejaManual(torneoId: string, jugador1Sel: string, jugador2Sel: string, categoria: string, esMaster: boolean) {
-    // Create admin client directly to be 100% sure about bypassing RLS and not relying on cookies
-    const supabaseAdmin = createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-    
-    let j1Id = jugador1Sel;
-    let j2Id = jugador2Sel;
+        // 1. Create ghost users if needed
+        if (j1Id.startsWith("manual:")) {
+            const name = j1Id.replace("manual:", "").trim();
+            const { data, error } = await supabaseAdmin.from('users').insert({
+                nombre: name,
+                email: `invitado_${Date.now()}_${Math.random().toString(36).substring(7)}@manilapadel.app`,
+                rol: 'jugador'
+            }).select('id').single();
+            if (error) throw new Error("Error creando invitado 1: " + error.message);
+            if (data) j1Id = data.id;
+        }
 
-    // 1. Create ghost users if needed
-    if (j1Id.startsWith("manual:")) {
-        const name = j1Id.replace("manual:", "").trim();
-        const { data, error } = await supabaseAdmin.from('users').insert({
-            nombre: name,
-            email: `invitado_${Date.now()}_${Math.random().toString(36).substring(7)}@manilapadel.app`,
-            rol: 'jugador'
-        }).select('id').single();
-        if (error) throw new Error("Error creando invitado 1: " + error.message);
-        if (data) j1Id = data.id;
-    }
+        if (j2Id.startsWith("manual:")) {
+            const name = j2Id.replace("manual:", "").trim();
+            const { data, error } = await supabaseAdmin.from('users').insert({
+                nombre: name,
+                email: `invitado_${Date.now()}_${Math.random().toString(36).substring(7)}@manilapadel.app`,
+                rol: 'jugador'
+            }).select('id').single();
+            if (error) throw new Error("Error creando invitado 2: " + error.message);
+            if (data) j2Id = data.id;
+        }
 
-    if (j2Id.startsWith("manual:")) {
-        const name = j2Id.replace("manual:", "").trim();
-        const { data, error } = await supabaseAdmin.from('users').insert({
-            nombre: name,
-            email: `invitado_${Date.now()}_${Math.random().toString(36).substring(7)}@manilapadel.app`,
-            rol: 'jugador'
-        }).select('id').single();
-        if (error) throw new Error("Error creando invitado 2: " + error.message);
-        if (data) j2Id = data.id;
-    }
+        // 2. Find or Create the 'Pareja' (using Admin to be sure we see the ghost users)
+        // First, validate we have valid IDs
+        if (!j1Id || !j2Id) {
+            throw new Error("IDs de jugadores inválidos");
+        }
 
-    // 2. Find or Create the 'Pareja' (using Admin to be sure we see the ghost users)
-    // First, validate we have valid IDs
-    if (!j1Id || !j2Id) {
-        throw new Error("IDs de jugadores inválidos");
-    }
-
-    const { data: existingPareja } = await supabaseAdmin
-        .from('parejas')
-        .select('id')
-        .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
-        .maybeSingle();
-
-    let parejaId = existingPareja?.id;
-
-    if (!parejaId) {
-        // Use Admin to read names (anon client might still have RLS delay)
-        const { data: j1 } = await supabaseAdmin.from('users').select('nombre').eq('id', j1Id).single();
-        const { data: j2 } = await supabaseAdmin.from('users').select('nombre').eq('id', j2Id).single();
-
-        const { data: newPareja, error: parejaError } = await supabaseAdmin
+        const { data: existingPareja } = await supabaseAdmin
             .from('parejas')
-            .insert({
-                jugador1_id: j1Id,
-                jugador2_id: j2Id,
-                nombre_pareja: `${j1?.nombre?.split(' ')[0] || 'J1'} & ${j2?.nombre?.split(' ')[0] || 'J2'}`,
-                activa: true,
-                categoria: categoria // Agregamos la categoría a la pareja
-            })
             .select('id')
-            .single();
+            .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
+            .maybeSingle();
 
-        if (parejaError) {
-            throw new Error("Error al crear la pareja: " + parejaError.message);
+        let parejaId = existingPareja?.id;
+
+        if (!parejaId) {
+            // Use Admin to read names (anon client might still have RLS delay)
+            const { data: j1 } = await supabaseAdmin.from('users').select('nombre').eq('id', j1Id).single();
+            const { data: j2 } = await supabaseAdmin.from('users').select('nombre').eq('id', j2Id).single();
+
+            const { data: newPareja, error: parejaError } = await supabaseAdmin
+                .from('parejas')
+                .insert({
+                    jugador1_id: j1Id,
+                    jugador2_id: j2Id,
+                    nombre_pareja: `${j1?.nombre?.split(' ')[0] || 'J1'} & ${j2?.nombre?.split(' ')[0] || 'J2'}`,
+                    activa: true,
+                    categoria: categoria // Agregamos la categoría a la pareja
+                })
+                .select('id')
+                .single();
+
+            if (parejaError) {
+                throw new Error("Error al crear la pareja: " + parejaError.message);
+            }
+            parejaId = newPareja.id;
         }
-        parejaId = newPareja.id;
+
+        // 3. Perform inscription using Admin to bypass RLS
+        if (esMaster) {
+            const { error: insError } = await supabaseAdmin
+                .from('inscripciones_torneo')
+                .insert({
+                    torneo_id: torneoId,
+                    jugador1_id: j1Id,
+                    jugador2_id: j2Id,
+                    nivel: categoria,
+                    estado: 'pagado'
+                });
+
+            if (insError) {
+                if (insError.code === '23505') throw new Error("La pareja ya está inscrita en este torneo");
+                throw new Error("Error al inscribir: " + insError.message);
+            }
+        } else {
+            const { error: insError } = await supabaseAdmin
+                .from('torneo_parejas')
+                .insert({
+                    torneo_id: torneoId,
+                    pareja_id: parejaId,
+                    categoria: categoria,
+                    estado_pago: 'pagado'
+                });
+
+            if (insError) {
+                if (insError.code === '23505') throw new Error("La pareja ya está inscrita en este torneo");
+                throw new Error("Error al inscribir: " + insError.message);
+            }
+        }
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        return { success: true };
+    } catch (err: any) {
+        console.error("Error en inscribirParejaManual:", err);
+        return { success: false, error: err.message || "Error desconocido" };
     }
-
-    // 3. Perform inscription using Admin to bypass RLS
-    if (esMaster) {
-        const { error: insError } = await supabaseAdmin
-            .from('inscripciones_torneo')
-            .insert({
-                torneo_id: torneoId,
-                jugador1_id: j1Id,
-                jugador2_id: j2Id,
-                nivel: categoria,
-                estado: 'pagado'
-            });
-
-        if (insError) {
-            if (insError.code === '23505') throw new Error("La pareja ya está inscrita en este torneo");
-            throw new Error("Error al inscribir: " + insError.message);
-        }
-    } else {
-        const { error: insError } = await supabaseAdmin
-            .from('torneo_parejas')
-            .insert({
-                torneo_id: torneoId,
-                pareja_id: parejaId,
-                categoria: categoria,
-                estado_pago: 'pagado'
-            });
-
-        if (insError) {
-            if (insError.code === '23505') throw new Error("La pareja ya está inscrita en este torneo");
-            throw new Error("Error al inscribir: " + insError.message);
-        }
-    }
-
-    revalidatePath(`/club/torneos/${torneoId}`);
-    return { success: true };
 }
 
 export async function registrarResultadoPorClub(matchId: string, resultado: string) {

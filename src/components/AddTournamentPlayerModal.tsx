@@ -64,15 +64,20 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
         setError(null);
         startTransition(async () => {
             try {
-                await inscribirParejaManual(torneoId, finalJ1, finalJ2, categoria, esMaster);
-                setOpen(false);
-                setSelectedJ1Id("");
-                setSelectedJ2Id("");
-                setJ1Name("");
-                setJ2Name("");
-                setJ1Manual(false);
-                setJ2Manual(false);
-                router.refresh(); 
+                const result = await inscribirParejaManual(torneoId, finalJ1, finalJ2, categoria, esMaster);
+                
+                if (result.success) {
+                    setOpen(false);
+                    setSelectedJ1Id("");
+                    setSelectedJ2Id("");
+                    setJ1Name("");
+                    setJ2Name("");
+                    setJ1Manual(false);
+                    setJ2Manual(false);
+                    router.refresh(); 
+                } else {
+                    setError(result.error || "Error al inscribir");
+                }
             } catch (err: unknown) {
                 setError(err instanceof Error ? err.message : "Error al inscribir");
             }
