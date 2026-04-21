@@ -17,6 +17,14 @@ interface MasterResult {
 }
 
 export async function generarFaseGrupos(torneoId: string, categoria: string) {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
+
+    if (!userId) {
+        throw new Error("Debes estar autenticado para generar grupos.");
+    }
+
     try {
         const supabaseAdmin = createAdminClient();
 
@@ -34,6 +42,13 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
             // Borrar los grupos
             await supabaseAdmin.from('torneo_grupos').delete().in('id', groupIds);
         }
+
+        // Get tournament info for inherited fields
+        const { data: torneoInfo } = await supabaseAdmin
+            .from('torneos')
+            .select('club_id')
+            .eq('id', torneoId)
+            .single();
 
         // 2. Obtener participantes de ambas fuentes (Regular y Master)
         
@@ -158,7 +173,7 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
             // Inyectar campos obligatorios
             const finalMatches = baseMatches.map(m => ({
                 ...m,
-                creador_id: torneoInfo?.creador_id,
+                creador_id: userId,
                 club_id: torneoInfo?.club_id,
                 tipo_partido_oficial: 'torneo'
             }));
