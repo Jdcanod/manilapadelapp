@@ -168,6 +168,12 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
                             {isPending ? "Enviando..." : "Guardar Resultado"}
                         </Button>
                     </div>
+
+                    {statusMsg && (
+                        <div className={`mt-4 text-center text-xs font-bold p-3 rounded-xl animate-in slide-in-from-bottom-2 ${statusMsg.startsWith('✅') ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-red-400 bg-red-500/10 border border-red-500/20'}`}>
+                            {statusMsg}
+                        </div>
+                    )}
                 </div>
             </DialogContent>
         </Dialog>
