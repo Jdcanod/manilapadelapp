@@ -21,6 +21,7 @@ interface Standing {
 
 interface Match {
     id: string;
+    torneo_id: string;
     torneo_grupo_id: string | null;
     pareja1_id: string | null;
     pareja2_id: string | null;
@@ -198,51 +199,57 @@ export function PlayerTournamentGroups({ torneoId, grupos, partidos, playerPairI
                                                         </div>
                                                      </div>
                                                      {isMyMatch && (
-                                                        <div className="ml-4 flex flex-col items-end">
+                                                        <div className="ml-4 flex flex-col items-end gap-2">
                                                             <div className="flex items-center gap-1.5 bg-amber-500 text-black px-2 py-0.5 rounded-full">
                                                                 <Trophy className="w-2.5 h-2.5" />
                                                                 <span className="text-[9px] font-black uppercase tracking-tighter">Tu Partido</span>
                                                             </div>
+                                                            {match.estado_resultado !== 'confirmado' && !isPending && (
+                                                                <PlayerTournamentResultModal 
+                                                                    matchId={match.id}
+                                                                    pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"}
+                                                                    pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
+                                                                    torneoId={torneoId}
+                                                                />
+                                                            )}
                                                         </div>
                                                      )}
                                                 </div>
                                                 
-                                                {isMyMatch && !match.estado_resultado && (
-                                                    <PlayerTournamentResultModal 
-                                                        matchId={match.id}
-                                                        pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"}
-                                                        pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
-                                                        torneoId={torneoId}
-                                                    />
-                                                )}
-
                                                 {isMyMatch && isPending && (
-                                                    <div className="space-y-2">
-                                                        <p className="text-[9px] text-amber-500 font-bold uppercase text-center mb-2 animate-pulse">Resultado pendiente de confirmación</p>
+                                                    <div className="mt-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-3">
+                                                        <p className="text-[10px] text-amber-500 font-black uppercase text-center animate-pulse">
+                                                            Resultado Pendiente de Confirmación
+                                                        </p>
                                                         <div className="flex gap-2">
                                                             <Button 
                                                                 onClick={() => handleConfirm(match.id)}
                                                                 disabled={isPendingAction}
-                                                                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase h-8"
+                                                                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase h-9 rounded-lg shadow-lg"
                                                             >
-                                                                {isPendingAction ? "..." : "Confirmar Rival"}
+                                                                {isPendingAction ? "..." : "Confirmar Resultado"}
                                                             </Button>
-                                                            <PlayerTournamentResultModal 
-                                                                matchId={match.id}
-                                                                pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"}
-                                                                pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
-                                                                torneoId={torneoId}
-                                                                buttonText="Corregir"
-                                                            />
+                                                            <div className="flex-1">
+                                                                <PlayerTournamentResultModal 
+                                                                    matchId={match.id}
+                                                                    pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"}
+                                                                    pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
+                                                                    torneoId={torneoId}
+                                                                    buttonText="Corregir"
+                                                                />
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 )}
 
                                                 {match.estado_resultado === 'confirmado' && (
-                                                    <div className="flex items-center justify-center gap-2 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                                                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
-                                                            {isMyMatch ? "✓ RESULTADO VERIFICADO: " : "Confirmado: "} {match.resultado}
-                                                        </span>
+                                                    <div className="mt-2 flex items-center justify-center gap-2 py-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                                                        <div className="flex items-center gap-1.5 text-emerald-500">
+                                                            <Trophy className="w-3 h-3" />
+                                                            <span className="text-[10px] font-black uppercase tracking-widest italic">
+                                                                Resultado Verificado: {match.resultado}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
