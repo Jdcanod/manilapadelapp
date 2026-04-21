@@ -202,7 +202,30 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         statusText = "Finalizado";
     } else if (isUpcoming) {
         statusColor = "bg-blue-500/20 text-blue-400 border-blue-500/30";
-        statusText = "Inscripciones Abiertas / Próximo";
+        statusText = "Próximo";
+    }
+
+    // Identificar Ganador y Finalista del torneo
+    const partidoFinal = partidosReales.find(p => p.lugar?.toLowerCase().includes('final') && !p.lugar?.toLowerCase().includes('semifinal'));
+    let campeon = null;
+    let subcampeon = null;
+    
+    if (partidoFinal && partidoFinal.estado === 'jugado' && partidoFinal.resultado) {
+        const setsFinal = partidoFinal.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
+        let p1Wins = 0;
+        let p2Wins = 0;
+        setsFinal.forEach((s: number[]) => {
+            if (s[0] > s[1]) p1Wins++;
+            else if (s[1] > s[0]) p2Wins++;
+        });
+        
+        if (p1Wins > p2Wins) {
+            campeon = partidoFinal.pareja1?.nombre_pareja;
+            subcampeon = partidoFinal.pareja2?.nombre_pareja;
+        } else if (p2Wins > p1Wins) {
+            campeon = partidoFinal.pareja2?.nombre_pareja;
+            subcampeon = partidoFinal.pareja1?.nombre_pareja;
+        }
     }
 
     return (
@@ -214,19 +237,41 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                 >
                     <ChevronLeft className="w-5 h-5" />
                 </Link>
-                <div className="flex-1">
-                    <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center mb-1">
-                        <h1 className="text-3xl font-bold tracking-tight text-white leading-tight">
-                            {torneo.nombre}
-                        </h1>
-                        <Badge variant="outline" className={statusColor}>
-                            {statusText}
-                        </Badge>
+                <div className="flex-1 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div>
+                        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center mb-1">
+                            <h1 className="text-3xl font-bold tracking-tight text-white leading-tight">
+                                {torneo.nombre}
+                            </h1>
+                            <div className="flex items-center gap-2">
+                                <Badge variant="outline" className={statusColor}>
+                                    {statusText}
+                                </Badge>
+                                {campeon && (
+                                    <Badge className="bg-amber-500 text-black font-black uppercase tracking-widest text-[10px] animate-pulse">
+                                        ¡Torneo Finalizado!
+                                    </Badge>
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap items-center text-sm text-neutral-400 font-medium mt-3 gap-4">
+                            <span className="flex items-center"><CalendarDays className="w-4 h-4 mr-1.5 text-neutral-500" />{new Date(torneo.fecha_inicio).toLocaleDateString('es-CO')} - {new Date(torneo.fecha_fin).toLocaleDateString('es-CO')}</span>
+                            <span className="flex items-center"><Swords className="w-4 h-4 mr-1.5 text-neutral-500" />Modalidad: {torneo.formato}</span>
+                        </div>
                     </div>
-                    <div className="flex flex-wrap items-center text-sm text-neutral-400 font-medium mt-3 gap-4">
-                        <span className="flex items-center"><CalendarDays className="w-4 h-4 mr-1.5 text-neutral-500" />{new Date(torneo.fecha_inicio).toLocaleDateString('es-CO')} - {new Date(torneo.fecha_fin).toLocaleDateString('es-CO')}</span>
-                        <span className="flex items-center"><Swords className="w-4 h-4 mr-1.5 text-neutral-500" />Modalidad: {torneo.formato}</span>
-                    </div>
+
+                    {campeon && (
+                        <div className="bg-neutral-900 border border-amber-500/30 p-4 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-right duration-500">
+                            <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/20">
+                                <Trophy className="w-6 h-6 text-amber-500" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest leading-none mb-1">Campeón</p>
+                                <p className="text-lg font-black text-white uppercase italic tracking-tighter leading-none mb-1">{campeon}</p>
+                                <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-tighter">Subcampeón: {subcampeon}</p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -335,11 +380,18 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
 
                                     {/* CENTRO: LA COPA */}
                                     <div className="flex flex-col items-center justify-center py-12 relative group">
-                                        <div className="absolute inset-0 bg-amber-500/20 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-                                        <div className="w-32 h-32 lg:w-48 lg:h-48 rounded-full bg-gradient-to-tr from-amber-600 to-amber-300 flex items-center justify-center shadow-[0_0_50px_rgba(245,158,11,0.4)] relative z-10 mb-6">
+                                        <div className="absolute inset-0 bg-amber-500/20 blur-3xl rounded-full opacity-100 transition-opacity duration-1000" />
+                                        <div className={`w-32 h-32 lg:w-48 lg:h-48 rounded-full bg-gradient-to-tr from-amber-600 to-amber-300 flex items-center justify-center shadow-[0_0_50px_rgba(245,158,11,0.4)] relative z-10 mb-6 ${campeon ? 'animate-pulse scale-110' : ''}`}>
                                             <Trophy className="w-16 h-16 lg:w-24 lg:h-24 text-neutral-900 drop-shadow-2xl" />
                                         </div>
-                                        <h5 className="text-xl font-black text-amber-500 uppercase italic tracking-tighter drop-shadow-lg">Gran Final</h5>
+                                        <h5 className="text-xl font-black text-amber-500 uppercase italic tracking-tighter drop-shadow-lg mb-2">
+                                           {campeon ? '¡CAMPEÓN!' : 'Gran Final'}
+                                        </h5>
+                                        {campeon && (
+                                            <div className="bg-amber-500 text-black px-8 py-2 rounded-full font-black text-sm uppercase tracking-widest shadow-xl animate-in zoom-in duration-500 max-w-[200px] text-center truncate">
+                                                {campeon}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* COLUMNA FINAL (O la otra parte del cuadro) */}
