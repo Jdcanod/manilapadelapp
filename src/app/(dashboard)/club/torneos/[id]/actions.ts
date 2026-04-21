@@ -1,15 +1,9 @@
 "use server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
-import { distributeParticipantsIntoGroups, generateMatchesForGroup } from "@/lib/tournaments/logic";
+import { Participant, distributeParticipantsIntoGroups, generateMatchesForGroup } from "@/lib/tournaments/logic";
 import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
-
-interface InscripcionQuery {
-    id: string;
-    jugador1: { id: string; nombre: string; puntos_ranking: number } | null;
-    jugador2: { id: string; nombre: string; puntos_ranking: number } | null;
-}
 
 export async function generarFaseGrupos(torneoId: string, categoria: string) {
     const supabase = createClient();
@@ -38,7 +32,7 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
         .eq('torneo_id', torneoId)
         .eq('nivel', categoria);
 
-    const participants: any[] = [];
+    const participants: Participant[] = [];
 
     // Procesar Regulares
     (regulares || []).forEach(r => {
