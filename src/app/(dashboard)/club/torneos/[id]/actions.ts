@@ -1,8 +1,8 @@
 "use server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
-import { createClient } from "@/utils/supabase/server";
 import { distributeParticipantsIntoGroups, generateMatchesForGroup } from "@/lib/tournaments/logic";
+import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
 interface InscripcionQuery {
@@ -13,12 +13,22 @@ interface InscripcionQuery {
 
 export async function generarFaseGrupos(torneoId: string, categoria: string) {
     const supabase = createClient();
+    const supabaseAdmin = createAdminClient();
 
-    // 1. Obtener inscritos para esta categoría con sus rankings
-    // (Asumimos que por ahora el ranking viene del perfil del usuario)
-    // Para simplificar, traeremos a los inscritos Master y Regulares
+    // 1. Obtener participantes de ambas fuentes (Regular y Master)
     
-    const { data: inscripciones } = await supabase
+    // a. Regulares (torneo_parejas)
+    const { data: regulares } = await supabase
+        .from('torneo_parejas')
+        .select(`
+            id,
+            pareja:parejas(id, nombre_pareja, puntos_ranking)
+        `)
+        .eq('torneo_id', torneoId)
+        .eq('categoria', categoria);
+
+    // b. Master (inscripciones_torneo)
+    const { data: masters } = await supabase
         .from('inscripciones_torneo')
         .select(`
             id,
@@ -28,23 +38,65 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
         .eq('torneo_id', torneoId)
         .eq('nivel', categoria);
 
-    if (!inscripciones || inscripciones.length < 3) {
-        throw new Error("Se necesitan al menos 3 parejas para generar grupos.");
+    const participants: any[] = [];
+
+    // Procesar Regulares
+    (regulares || []).forEach(r => {
+        if (r.pareja) {
+            participants.push({
+                id: r.pareja.id,
+                nombre: r.pareja.nombre_pareja,
+                ranking: Number(r.pareja.puntos_ranking || 0),
+                pareja_id: r.pareja.id
+            });
+        }
+    });
+
+    // Procesar Masters (asegurando que tengan una pareja_id)
+    for (const m of (masters || [])) {
+        // Buscar o crear pareja para el modo Master
+        const j1Id = m.jugador1?.id;
+        const j2Id = m.jugador2?.id;
+        if (!j1Id || !j2Id) continue;
+
+        let { data: pareja } = await supabaseAdmin
+            .from('parejas')
+            .select('id, nombre_pareja')
+            .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
+            .maybeSingle();
+
+        if (!pareja) {
+            const { data: newPareja } = await supabaseAdmin
+                .from('parejas')
+                .insert({
+                    jugador1_id: j1Id,
+                    jugador2_id: j2Id,
+                    nombre_pareja: `${m.jugador1?.nombre?.split(' ')[0] || 'J1'} & ${m.jugador2?.nombre?.split(' ')[0] || 'J2'}`,
+                    activa: false
+                })
+                .select()
+                .single();
+            pareja = newPareja;
+        }
+
+        if (pareja) {
+            participants.push({
+                id: pareja.id,
+                nombre: pareja.nombre_pareja,
+                ranking: (Number(m.jugador1?.puntos_ranking || 0) + Number(m.jugador2?.puntos_ranking || 0)) / 2,
+                pareja_id: pareja.id
+            });
+        }
     }
 
-    // 2. Mapear a formato Participant para la lógica
+    if (participants.length < 3) {
+        throw new Error(`Se necesitan al menos 3 parejas en la categoría ${categoria} para generar grupos. Actualmente hay ${participants.length}.`);
+    }
 
-    const participants = ((inscripciones as unknown as InscripcionQuery[]) || []).map(i => ({
-        id: i.id,
-        nombre: `${i.jugador1?.nombre || 'Jugador'} & ${i.jugador2?.nombre || 'Jugador'}`,
-        ranking: (Number(i.jugador1?.puntos_ranking || 0) + Number(i.jugador2?.puntos_ranking || 0)) / 2,
-        pareja_id: i.id
-    }));
-
-    // 3. Ejecutar algoritmo de sorteo
+    // 2. Ejecutar algoritmo de sorteo
     const groupDistributions = distributeParticipantsIntoGroups(participants);
 
-    // 4. Guardar grupos y partidos en la DB
+    // 3. Guardar grupos y partidos en la DB
     for (let i = 0; i < groupDistributions.length; i++) {
         const nombreGrupo = `Grupo ${String.fromCharCode(65 + i)}`;
         
@@ -61,10 +113,10 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
 
         if (groupError) continue;
 
-        // Generar partidos Round Robin para el grupo
+        // Generar partidos Round Robin para el grupo (usando pareja_id real)
         const matchData = generateMatchesForGroup(
             group.id, 
-            groupDistributions[i].map(p => p.id.toString()), 
+            groupDistributions[i].map(p => p.pareja_id!.toString()), 
             torneoId
         );
 
@@ -73,7 +125,9 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
 
     revalidatePath(`/club/torneos/${torneoId}`);
     return { success: true };
-}export async function inscribirParejaManual(torneoId: string, jugador1Sel: string, jugador2Sel: string, categoria: string, esMaster: boolean) {
+}
+
+export async function inscribirParejaManual(torneoId: string, jugador1Sel: string, jugador2Sel: string, categoria: string, esMaster: boolean) {
     try {
         // Create admin client directly to be 100% sure about bypassing RLS and not relying on cookies
         const supabaseAdmin = createSupabaseClient(
