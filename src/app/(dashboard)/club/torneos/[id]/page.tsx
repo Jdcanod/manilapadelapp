@@ -184,6 +184,8 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         namesData?.forEach(n => parejaNamesMap.set(n.id, n.nombre_pareja));
     }
 
+    const hasStarted = (rawPartidos || []).length > 0;
+
     // Inyectar nombres manualmente desde el mapa
     const partidosReales = (rawPartidos || []).map(p => ({
         ...p,
@@ -301,7 +303,9 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                 <TabsContent value="inscripciones" className="mt-6">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-bold text-white">Listado de Inscritos</h3>
-                        <AddTournamentPlayerModal torneoId={params.id} categorias={categorias} esMaster={torneo.tipo === 'master'} />
+                        {(rawPartidos || []).length === 0 && (
+                            <AddTournamentPlayerModal torneoId={params.id} categorias={categorias} esMaster={torneo.tipo === 'master'} />
+                        )}
                     </div>
                     {/* View for inscriptions */}
                     {allParticipants.length === 0 ? (
@@ -336,7 +340,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                                 </Badge>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <AdminParticipantActions id={tp.id.toString()} tipo={tp.tipo} torneoId={params.id} />
+                                                <AdminParticipantActions id={tp.id.toString()} tipo={tp.tipo} torneoId={params.id} hasStarted={hasStarted} />
                                             </td>
                                         </tr>
                                     ))}

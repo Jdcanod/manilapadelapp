@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { eliminarInscripcion } from "@/app/(dashboard)/club/torneos/[id]/actions";
 
-export function AdminParticipantActions({ id, tipo, torneoId }: { id: string, tipo: 'master' | 'regular', torneoId: string }) {
+export function AdminParticipantActions({ id, tipo, torneoId, hasStarted }: { id: string, tipo: 'master' | 'regular', torneoId: string, hasStarted: boolean }) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
 
@@ -24,13 +24,15 @@ export function AdminParticipantActions({ id, tipo, torneoId }: { id: string, ti
     return (
         <div className="flex gap-2 justify-end">
             <button className="text-blue-400 hover:text-blue-300 font-medium text-xs hidden">Marcar Pago</button>
-            <button 
-                onClick={handleEliminar} 
-                disabled={isPending}
-                className="text-red-400 hover:text-red-300 font-bold uppercase text-xs"
-            >
-                {isPending ? "..." : "Dar de baja"}
-            </button>
+            {!hasStarted && (
+                <button 
+                    onClick={handleEliminar} 
+                    disabled={isPending}
+                    className="text-red-400 hover:text-red-300 font-bold uppercase text-xs"
+                >
+                    {isPending ? "..." : "Dar de baja"}
+                </button>
+            )}
         </div>
     );
 }

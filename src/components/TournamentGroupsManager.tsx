@@ -151,22 +151,25 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                 </div>
                 
                 <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-                    <Button 
-                        onClick={onGenerate}
-                        disabled={isPending}
-                        variant="outline"
-                        className="bg-neutral-950 border-neutral-800 text-white hover:bg-neutral-800 font-bold"
-                    >
-                        {isPending ? "..." : "Sorteo Grupos"}
-                    </Button>
-                    <Button 
-                        onClick={onGeneratePlayoffs}
-                        disabled={isPending || gruposCategoria.length === 0}
-                        className="bg-amber-600 hover:bg-amber-500 text-white font-bold"
-                    >
-                        <Trophy className="w-4 h-4 mr-2" />
-                        {isPending ? "Generando..." : "Sorteo Eliminatorias"}
-                    </Button>
+                    {gruposCategoria.length === 0 ? (
+                        <Button 
+                            onClick={onGenerate}
+                            disabled={isPending}
+                            variant="outline"
+                            className="bg-neutral-950 border-neutral-800 text-white hover:bg-neutral-800 font-bold"
+                        >
+                            {isPending ? "..." : "Sorteo Grupos"}
+                        </Button>
+                    ) : (
+                        <Button 
+                            onClick={onGeneratePlayoffs}
+                            disabled={isPending || partidos.some(p => !p.torneo_grupo_id && p.lugar?.toLowerCase().includes('final'))}
+                            className="bg-amber-600 hover:bg-amber-500 text-white font-bold"
+                        >
+                            <Trophy className="w-4 h-4 mr-2" />
+                            {isPending ? "Generando..." : "Sorteo Eliminatorias"}
+                        </Button>
+                    )}
                 </div>
             </div>
 
