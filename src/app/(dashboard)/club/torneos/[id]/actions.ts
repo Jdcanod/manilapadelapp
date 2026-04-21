@@ -311,15 +311,23 @@ export async function registrarResultadoPorClub(matchId: string, resultado: stri
     try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        
         const supabaseAdmin = createAdminClient();
         
+        // Verificar si el usuario existe en la tabla pública 'users' para evitar fallos de llave foránea
+        const { data: dbUser } = await supabaseAdmin
+            .from('users')
+            .select('id')
+            .eq('id', user?.id)
+            .single();
+
+        const registradoPorId = dbUser ? user?.id : null;
+
         const { error } = await supabaseAdmin
             .from('partidos')
             .update({
                 resultado: resultado,
-                resultado_registrado_por: user?.id,
-                resultado_confirmado_por: user?.id,
+                resultado_registrado_por: registradoPorId,
+                resultado_confirmado_por: registradoPorId,
                 resultado_registrado_at: new Date().toISOString(),
                 estado_resultado: 'confirmado',
                 estado: 'jugado'
