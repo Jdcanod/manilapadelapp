@@ -214,7 +214,7 @@ export async function registrarResultadoPorJugador(matchId: string, resultado: s
         }
 
         // Si ya está confirmado, no se puede cambiar por jugador
-        if (match.estado === 'jugado' && match.resultado && match.estado_resultado !== 'pendiente_confirmacion') {
+        if (match.estado === 'jugado' && match.resultado && match.estado_resultado === 'confirmado') {
             return { success: false, message: "Este resultado ya ha sido verificado y no puede modificarse." };
         }
         
@@ -224,7 +224,7 @@ export async function registrarResultadoPorJugador(matchId: string, resultado: s
                 resultado: resultado,
                 estado: 'jugado',
                 resultado_registrado_at: new Date().toISOString(),
-                estado_resultado: 'pendiente_confirmacion',
+                estado_resultado: 'pendiente',
                 resultado_registrado_por: internalUserId
             })
             .eq('id', matchId);

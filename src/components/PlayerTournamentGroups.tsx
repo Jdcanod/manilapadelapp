@@ -161,7 +161,7 @@ export function PlayerTournamentGroups({ torneoId, grupos, partidos, playerPairI
                                         const isMyMatch = (match.pareja1_id && playerPairIds.includes(match.pareja1_id)) || 
                                                        (match.pareja2_id && playerPairIds.includes(match.pareja2_id));
                                         
-                                        const isPending = match.estado_resultado === 'pendiente_confirmacion';
+                                        const isPending = match.estado_resultado === 'pendiente';
                                         // Determinar si yo soy el que debe confirmar (soy del partido pero no soy el que reportó)
                                         // Para simplificar, si soy del partido y está pendiente, puedo confirmar o corregir.
                                         
