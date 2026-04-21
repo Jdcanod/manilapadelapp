@@ -23,12 +23,35 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
     const addSet = () => setSets([...sets, { p1: "", p2: "" }]);
 
     const onSave = () => {
-        const resultadoFinal = sets
-            .filter(s => s.p1.trim() !== "" && s.p2.trim() !== "")
+        const validSets = sets.filter(s => s.p1.trim() !== "" && s.p2.trim() !== "");
+        
+        if (validSets.length === 0) return alert("Ingresa al menos un set completo");
+
+        // Validar reglas de Padel para cada set
+        for (const set of validSets) {
+            const p1 = parseInt(set.p1);
+            const p2 = parseInt(set.p2);
+
+            if (p1 > 7 || p2 > 7) {
+                return alert("Error: Ningún equipo puede tener más de 7 puntos en un set.");
+            }
+
+            const max = Math.max(p1, p2);
+            const min = Math.min(p1, p2);
+
+            // Caso estándar: Se gana con 6 y diferencia de 2
+            if (max === 6 && min <= 4) continue;
+            
+            // Caso de desempate: 7-5 o 7-6
+            if (max === 7 && (min === 5 || min === 6)) continue;
+
+            // Si no cumple ninguno, es un marcador inválido
+            return alert(`El marcador ${p1}-${p2} no es válido. Un set debe terminar 6-0 a 6-4, 7-5 o 7-6.`);
+        }
+
+        const resultadoFinal = validSets
             .map(s => `${s.p1}-${s.p2}`)
             .join(", ");
-
-        if (!resultadoFinal) return alert("Ingresa al menos un set completo");
 
         startTransition(async () => {
             try {
