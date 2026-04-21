@@ -1,11 +1,15 @@
 "use client";
 import { useTransition, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Swords, Users, Trophy } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { generarFaseGrupos, generarFaseEliminatoria } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
+import { confirmarResultado } from "@/app/(dashboard)/torneos/actions";
+import { Check } from "lucide-react";
 
 interface Props {
     torneoId: string;
@@ -16,9 +20,10 @@ interface Props {
         torneo_grupo_id?: string;
         pareja1_id?: string;
         pareja2_id?: string;
+        estado_resultado?: string;
         estado?: string;
-        lugar?: string;
         resultado?: string;
+        lugar?: string;
         pareja1?: { nombre_pareja?: string };
         pareja2?: { nombre_pareja?: string };
     }[];
@@ -38,6 +43,7 @@ interface Standing {
 
 export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos }: Props) {
     const [isPending, startTransition] = useTransition();
+    const router = useRouter();
     const [selectedCat] = useState(categorias[0] || "General");
 
     const onGenerate = () => {
@@ -86,7 +92,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
             if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: m.pareja1?.nombre_pareja || "TBD", pj: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
             if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: m.pareja2?.nombre_pareja || "TBD", pj: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
 
-            if (m.estado === 'jugado' && m.resultado) {
+            if (m.estado === 'jugado' && m.resultado && m.estado_resultado === 'confirmado') {
                 const s1 = map.get(m.pareja1_id)!;
                 const s2 = map.get(m.pareja2_id)!;
                 
@@ -240,21 +246,45 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                             {match.pareja1?.nombre_pareja || "TBD"} vs {match.pareja2?.nombre_pareja || "TBD"}
                                                         </div>
                                                         {match.estado === 'jugado' ? (
-                                                            <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
-                                                                Resultado: {match.resultado}
+                                                            <div className={cn(
+                                                                "text-[10px] font-black uppercase tracking-widest flex items-center gap-2",
+                                                                match.estado_resultado === 'confirmado' ? "text-emerald-500" : "text-amber-500"
+                                                            )}>
+                                                                {match.estado_resultado === 'confirmado' ? 'Verificado: ' : 'Pendiente Confirmación: '} 
+                                                                {match.resultado}
                                                             </div>
                                                         ) : (
                                                             <div className="text-[10px] font-medium text-neutral-500 uppercase tracking-widest">
-                                                                Pendiente
+                                                                Programado
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <div className="w-full sm:w-32">
+                                                     <div className="w-full sm:w-32 flex flex-col gap-2">
                                                         <AdminTournamentResultModal 
                                                             matchId={match.id}
                                                             pareja1Nombre={match.pareja1?.nombre_pareja || "Pareja 1"}
                                                             pareja2Nombre={match.pareja2?.nombre_pareja || "Pareja 2"}
+                                                            initialResult={match.resultado}
                                                         />
+                                                        {match.estado === 'jugado' && match.estado_resultado === 'pendiente' && (
+                                                            <Button 
+                                                                size="sm"
+                                                                onClick={() => {
+                                                                    startTransition(async () => {
+                                                                        const res = await confirmarResultado(match.id);
+                                                                        if (res.success) {
+                                                                            router.refresh();
+                                                                        } else {
+                                                                            alert(res.message);
+                                                                        }
+                                                                    });
+                                                                }}
+                                                                disabled={isPending}
+                                                                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase h-8 rounded-xl"
+                                                            >
+                                                                <Check className="w-3 h-3 mr-1" /> Confirmar
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 </div>
                                             ))}

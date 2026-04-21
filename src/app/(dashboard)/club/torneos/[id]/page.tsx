@@ -160,8 +160,10 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     // Extraer categorías únicas para el selector de grupos y limpiar nulos
     const categorias = Array.from(new Set(allParticipants.map(p => p.categoria).filter(Boolean)));
 
+    const adminSupabase = createAdminClient();
+
     // Obtener partidos reales del torneo (Sin el join que falla si la DB no tiene los FKs explícitos)
-    const { data: rawPartidos } = await supabase
+    const { data: rawPartidos } = await adminSupabase
         .from('partidos')
         .select('*')
         .eq('torneo_id', params.id)
@@ -176,12 +178,12 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
 
     const parejaNamesMap = new Map<string, string>();
     if (pairIds.size > 0) {
-        const { data: namesData } = await supabase
+        const { data: namesData } = await adminSupabase
             .from('parejas')
             .select('id, nombre_pareja')
             .in('id', Array.from(pairIds));
         
-        namesData?.forEach(n => parejaNamesMap.set(n.id, n.nombre_pareja));
+        namesData?.forEach(n => parejaNamesMap.set(n.id, n.nombre_pareja || "Pareja sin nombre"));
     }
 
     const hasStarted = (rawPartidos || []).length > 0;

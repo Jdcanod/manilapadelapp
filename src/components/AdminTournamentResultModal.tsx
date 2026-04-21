@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -12,13 +12,35 @@ interface Props {
     matchId: string;
     pareja1Nombre: string;
     pareja2Nombre: string;
+    initialResult?: string | null;
 }
 
-export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre }: Props) {
+export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, initialResult }: Props) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
-    const [sets, setSets] = useState([{ p1: "", p2: "" }]);
     const router = useRouter();
+
+    const getInitialSets = useCallback(() => {
+        if (initialResult) {
+            try {
+                return initialResult.split(',').map(s => {
+                    const parts = s.trim().split('-');
+                    return { p1: parts[0] || "", p2: parts[1] || "" };
+                });
+            } catch {
+                return [{ p1: "", p2: "" }, { p1: "", p2: "" }];
+            }
+        }
+        return [{ p1: "", p2: "" }, { p1: "", p2: "" }];
+    }, [initialResult]);
+
+    const [sets, setSets] = useState(getInitialSets);
+
+    useEffect(() => {
+        if (open) {
+            setSets(getInitialSets());
+        }
+    }, [open, getInitialSets]);
 
     const addSet = () => setSets([...sets, { p1: "", p2: "" }]);
 
