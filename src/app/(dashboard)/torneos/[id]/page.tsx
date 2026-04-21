@@ -131,7 +131,6 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
     // Identificar Campeón
     const partidoFinal = partidosReales.find(p => p.lugar?.toLowerCase().includes('final') && !p.lugar?.toLowerCase().includes('semifinal'));
     let campeon = null;
-    let subcampeon = null;
     if (partidoFinal?.estado === 'jugado' && partidoFinal?.resultado) {
         const sets = partidoFinal.resultado.split(',').map(s => s.trim().split('-').map(Number));
         let p1 = 0, p2 = 0;
