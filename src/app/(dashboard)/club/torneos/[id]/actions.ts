@@ -313,15 +313,24 @@ export async function registrarResultadoPorClub(matchId: string, resultado: stri
         const { data: { user } } = await supabase.auth.getUser();
         const supabaseAdmin = createAdminClient();
         
-        const userId = user?.id;
-        if (!userId) throw new Error("No autenticado");
+        const authUserId = user?.id;
+        if (!authUserId) throw new Error("No autenticado");
+
+        // Buscar el perfil público correspondiente al usuario de Auth
+        const { data: profile } = await supabaseAdmin
+            .from('users')
+            .select('id')
+            .or(`id.eq.${authUserId},auth_id.eq.${authUserId}`)
+            .maybeSingle();
+
+        const finalUserId = profile?.id || authUserId;
 
         const { error } = await supabaseAdmin
             .from('partidos')
             .update({
                 resultado: resultado,
-                resultado_registrado_por: userId,
-                resultado_confirmado_por: userId,
+                resultado_registrado_por: finalUserId,
+                resultado_confirmado_por: finalUserId,
                 resultado_registrado_at: new Date().toISOString(),
                 estado_resultado: 'confirmado',
                 estado: 'jugado'
@@ -379,7 +388,7 @@ export async function registrarResultadoPorClub(matchId: string, resultado: stri
                     if (!existingFinal) {
                         await supabaseAdmin.from('partidos').insert([{
                             torneo_id: torneoId,
-                            creador_id: userId,
+                            creador_id: finalUserId,
                             club_id: currentMatch.club_id,
                             pareja1_id: winners[0],
                             pareja2_id: winners[1],
