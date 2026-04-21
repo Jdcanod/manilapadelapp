@@ -77,10 +77,11 @@ function BracketMatchCard({ match, playerPairIds }: { match: MatchItem, playerPa
 
 export default async function TorneoPlayerDetailsPage({ params }: { params: { id: string } }) {
     const supabase = createClient();
+    const adminSupabase = createAdminClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     // Obtener información del torneo
-    const { data: torneo } = await supabase
+    const { data: torneo } = await adminSupabase
         .from('torneos')
         .select(`
             *,
@@ -91,10 +92,10 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
 
     if (!torneo) notFound();
 
-    // Obtener el ID interno del usuario
+    // Obtener el ID interno del usuario y sus parejas usando el cliente admin para evitar RLS
     let playerPairIds: string[] = [];
     if (user) {
-        const { data: userData } = await supabase
+        const { data: userData } = await adminSupabase
             .from('users')
             .select('id')
             .eq('auth_id', user.id)
@@ -102,7 +103,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
 
         const finalUserId = userData?.id || user.id;
 
-        const { data: userPairs } = await supabase
+        const { data: userPairs } = await adminSupabase
             .from('parejas')
             .select('id')
             .or(`jugador1_id.eq.${finalUserId},jugador2_id.eq.${finalUserId}`);
