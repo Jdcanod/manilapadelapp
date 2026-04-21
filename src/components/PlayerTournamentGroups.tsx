@@ -34,7 +34,7 @@ interface Match {
 }
 
 interface Props {
-    torneoId: string;
+    torneoId?: string;
     grupos: { id: string; nombre_grupo: string; categoria: string }[];
     partidos: Match[];
     playerPairIds: string[];
