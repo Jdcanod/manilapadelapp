@@ -61,8 +61,8 @@ function BracketMatchCard({ match }: { match: MatchItem }) {
                     {match.estado !== 'jugado' && match.pareja1?.nombre_pareja !== "TBD" && match.pareja2?.nombre_pareja !== "TBD" && (
                         <AdminTournamentResultModal 
                             matchId={match.id} 
-                            pareja1Nombre={match.pareja1.nombre_pareja || "TBD"} 
-                            pareja2Nombre={match.pareja2.nombre_pareja || "TBD"} 
+                            pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"} 
+                            pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"} 
                         />
                     )}
                 </div>
