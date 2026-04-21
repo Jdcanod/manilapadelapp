@@ -371,14 +371,29 @@ export async function eliminarInscripcion(id: string, tipo: 'master' | 'regular'
 
 export async function generarFaseEliminatoria(torneoId: string, categoria: string) {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
+
+    const supabaseAdmin = createAdminClient();
+
+    // Obtener datos del torneo para campos obligatorios
+    const { data: torneo } = await supabaseAdmin
+        .from('torneos')
+        .select('club_id, nombre, fecha_inicio')
+        .eq('id', torneoId)
+        .single();
+
+    const clubId = torneo?.club_id || null;
+    const fechaTorneo = torneo?.fecha_inicio || new Date().toISOString();
+    const lugarBase = torneo?.nombre || 'Torneo';
     
-    const { data: grupos } = await supabase.from('torneo_grupos').select('id, nombre_grupo').eq('torneo_id', torneoId).eq('categoria', categoria);
+    const { data: grupos } = await supabaseAdmin.from('torneo_grupos').select('id, nombre_grupo').eq('torneo_id', torneoId).eq('categoria', categoria);
     if (!grupos || grupos.length === 0) throw new Error("No hay grupos en esta categoría.");
 
     const topTeams: { grupo: number, pos: number, parejaId: string }[] = [];
 
     for (let i = 0; i < grupos.length; i++) {
-        const { data: partidos } = await supabase.from('partidos').select('*').eq('torneo_grupo_id', grupos[i].id);
+        const { data: partidos } = await supabaseAdmin.from('partidos').select('*').eq('torneo_grupo_id', grupos[i].id);
         
         const map = new Map<string, { parejaId: string, pts: number, pg: number }>();
         (partidos || []).forEach(m => {
@@ -420,7 +435,6 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
     const rank1 = topTeams.filter(t => t.pos === 1);
     const rank2 = topTeams.filter(t => t.pos === 2);
 
-    const matchesToCreate = [];
     const numMatches = rank1.length;
     let rondaName = "Playoff";
     if (numMatches === 1) rondaName = "Final";
@@ -428,25 +442,35 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
     else if (numMatches === 4) rondaName = "Cuartos de Final";
     else if (numMatches === 8) rondaName = "Octavos de Final";
 
-    rank2.reverse(); // Mezclar grupos
+    rank2.reverse(); // Cruces 1ro vs 2do de otro grupo
 
+    const matchesToCreate = [];
     for (let i = 0; i < rank1.length; i++) {
         if (i < rank2.length) {
             matchesToCreate.push({
                 torneo_id: torneoId,
+                creador_id: userId || '00000000-0000-0000-0000-000000000000',
+                club_id: clubId,
                 pareja1_id: rank1[i].parejaId,
                 pareja2_id: rank2[i].parejaId,
                 estado: 'programado',
                 tipo_partido: 'torneo',
-                lugar: `${rondaName} - ${categoria}`
+                lugar: `${rondaName} - ${categoria}`,
+                fecha: fechaTorneo,
+                cupos_totales: 4,
+                cupos_disponibles: 0,
             });
         }
     }
     
     if (matchesToCreate.length > 0) {
-        await supabase.from('partidos').insert(matchesToCreate);
+        const { error } = await supabaseAdmin.from('partidos').insert(matchesToCreate);
+        if (error) {
+            console.error("Error insertando partidos eliminatorias:", error);
+            throw new Error("Error al crear partidos de eliminatorias: " + error.message);
+        }
     }
     
     revalidatePath(`/club/torneos/${torneoId}`);
-    return { success: true };
+    return { success: true, message: `Se generaron ${matchesToCreate.length} partidos de ${rondaName}.` };
 }

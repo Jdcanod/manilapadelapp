@@ -61,10 +61,10 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
         
         startTransition(async () => {
             try {
-                await generarFaseEliminatoria(torneoId, selectedCat);
-                alert("¡Fase eliminatoria generada con éxito! Revisa la pestaña de Cuadros de Juego.");
+                const result = await generarFaseEliminatoria(torneoId, selectedCat);
+                alert(result.message || "¡Fase eliminatoria generada con éxito! Revisa la pestaña de Cuadros de Juego.");
             } catch (err: unknown) {
-                alert(err instanceof Error ? err.message : "Error desconocido");
+                alert(err instanceof Error ? err.message : "Error desconocido al generar eliminatorias");
             }
         });
     };
