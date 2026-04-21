@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { registrarResultadoPorJugador } from "@/app/(dashboard)/torneos/actions";
 import { Swords } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 interface Props {
     matchId: string;
@@ -20,7 +19,6 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [sets, setSets] = useState([{ p1: "", p2: "" }, { p1: "", p2: "" }]);
-    const router = useRouter();
 
     const addSet = () => setSets([...sets, { p1: "", p2: "" }]);
 
