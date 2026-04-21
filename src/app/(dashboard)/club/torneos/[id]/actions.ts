@@ -178,9 +178,10 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
 
         revalidatePath(`/club/torneos/${torneoId}`);
         return { success: true };
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("Error en inscribirParejaManual:", err);
-        return { success: false, error: err.message || "Error desconocido" };
+        const errorMessage = err instanceof Error ? err.message : "Error desconocido";
+        return { success: false, error: errorMessage };
     }
 }
 
