@@ -24,17 +24,21 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
 
     const onSave = () => {
         const resultadoFinal = sets
-            .filter(s => s.p1 !== "" && s.p2 !== "")
+            .filter(s => s.p1.trim() !== "" && s.p2.trim() !== "")
             .map(s => `${s.p1}-${s.p2}`)
             .join(", ");
 
-        if (!resultadoFinal) return alert("Ingresa al menos un set");
+        if (!resultadoFinal) return alert("Ingresa al menos un set completo");
 
         startTransition(async () => {
             try {
-                await registrarResultadoPorClub(matchId, resultadoFinal);
-                setOpen(false);
-                router.refresh();
+                const result = await registrarResultadoPorClub(matchId, resultadoFinal);
+                if (result.success) {
+                    setOpen(false);
+                    router.refresh();
+                } else {
+                    alert(result.error || "Error al guardar el resultado");
+                }
             } catch (err: unknown) {
                 alert(err instanceof Error ? err.message : "Error desconocido");
             }

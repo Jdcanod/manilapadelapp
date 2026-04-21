@@ -327,10 +327,11 @@ export async function registrarResultadoPorClub(matchId: string, resultado: stri
             .eq('id', matchId);
 
         if (error) throw new Error(error.message);
+        
         return { success: true };
     } catch (err: unknown) {
         console.error("Error en registrarResultadoPorClub:", err);
-        throw err;
+        return { success: false, error: err instanceof Error ? err.message : "Error desconocido" };
     }
 }
 
