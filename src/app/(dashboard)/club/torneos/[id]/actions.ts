@@ -370,106 +370,131 @@ export async function eliminarInscripcion(id: string, tipo: 'master' | 'regular'
 }
 
 export async function generarFaseEliminatoria(torneoId: string, categoria: string) {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id;
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
 
-    const supabaseAdmin = createAdminClient();
+        const supabaseAdmin = createAdminClient();
 
-    // Obtener datos del torneo para campos obligatorios
-    const { data: torneo } = await supabaseAdmin
-        .from('torneos')
-        .select('club_id, nombre, fecha_inicio')
-        .eq('id', torneoId)
-        .single();
-
-    const clubId = torneo?.club_id || null;
-    const fechaTorneo = torneo?.fecha_inicio || new Date().toISOString();
-    
-    const { data: grupos } = await supabaseAdmin.from('torneo_grupos').select('id, nombre_grupo').eq('torneo_id', torneoId).eq('categoria', categoria);
-    if (!grupos || grupos.length === 0) throw new Error("No hay grupos en esta categoría.");
-
-    const topTeams: { grupo: number, pos: number, parejaId: string }[] = [];
-
-    for (let i = 0; i < grupos.length; i++) {
-        const { data: partidos } = await supabaseAdmin.from('partidos').select('*').eq('torneo_grupo_id', grupos[i].id);
-        
-        const map = new Map<string, { parejaId: string, pts: number, pg: number }>();
-        (partidos || []).forEach(m => {
-            if (!m.pareja1_id || !m.pareja2_id) return;
-            if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, pts: 0, pg: 0 });
-            if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, pts: 0, pg: 0 });
-
-            if (m.estado === 'jugado' && m.resultado) {
-                const s1 = map.get(m.pareja1_id)!;
-                const s2 = map.get(m.pareja2_id)!;
-                
-                const sets = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
-                let setsP1 = 0; let setsP2 = 0;
-                
-                sets.forEach((set: number[]) => {
-                    if (set.length === 2 && !isNaN(set[0]) && !isNaN(set[1])) {
-                        if (set[0] > set[1]) setsP1++;
-                        else if (set[1] > set[0]) setsP2++;
-                    }
-                });
-
-                if (setsP1 > setsP2) {
-                    s1.pg += 1;
-                    s1.pts += 3;
-                } else if (setsP2 > setsP1) {
-                    s2.pg += 1;
-                    s2.pts += 3;
-                }
+        // Verificar el usuario en la tabla pública para evitar FK violations
+        let creadorId = '00000000-0000-0000-0000-000000000000';
+        if (user?.id) {
+            const { data: dbUser } = await supabaseAdmin
+                .from('users')
+                .select('id')
+                .eq('id', user.id)
+                .maybeSingle();
+            
+            if (!dbUser) {
+                const { data: dbUserByAuth } = await supabaseAdmin
+                    .from('users')
+                    .select('id')
+                    .eq('auth_id', user.id)
+                    .maybeSingle();
+                if (dbUserByAuth) creadorId = dbUserByAuth.id;
+            } else {
+                creadorId = dbUser.id;
             }
-        });
+        }
 
-        const standings = Array.from(map.values()).sort((a, b) => b.pts - a.pts || b.pg - a.pg);
-        if (standings.length > 0) topTeams.push({ grupo: i, pos: 1, parejaId: standings[0].parejaId });
-        if (standings.length > 1) topTeams.push({ grupo: i, pos: 2, parejaId: standings[1].parejaId });
-    }
+        // Obtener datos del torneo para campos obligatorios
+        const { data: torneo } = await supabaseAdmin
+            .from('torneos')
+            .select('club_id, nombre, fecha_inicio')
+            .eq('id', torneoId)
+            .single();
 
-    if (topTeams.length < 2) throw new Error("No hay suficientes parejas con partidos jugados/asignados.");
+        const clubId = torneo?.club_id || null;
+        const fechaTorneo = torneo?.fecha_inicio || new Date().toISOString();
+        
+        const { data: grupos } = await supabaseAdmin.from('torneo_grupos').select('id, nombre_grupo').eq('torneo_id', torneoId).eq('categoria', categoria);
+        if (!grupos || grupos.length === 0) return { success: false, message: "No hay grupos en esta categoría." };
 
-    const rank1 = topTeams.filter(t => t.pos === 1);
-    const rank2 = topTeams.filter(t => t.pos === 2);
+        const topTeams: { grupo: number, pos: number, parejaId: string }[] = [];
 
-    const numMatches = rank1.length;
-    let rondaName = "Playoff";
-    if (numMatches === 1) rondaName = "Final";
-    else if (numMatches === 2) rondaName = "Semifinal";
-    else if (numMatches === 4) rondaName = "Cuartos de Final";
-    else if (numMatches === 8) rondaName = "Octavos de Final";
+        for (let i = 0; i < grupos.length; i++) {
+            const { data: partidos } = await supabaseAdmin.from('partidos').select('*').eq('torneo_grupo_id', grupos[i].id);
+            
+            const map = new Map<string, { parejaId: string, pts: number, pg: number }>();
+            (partidos || []).forEach(m => {
+                if (!m.pareja1_id || !m.pareja2_id) return;
+                if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, pts: 0, pg: 0 });
+                if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, pts: 0, pg: 0 });
 
-    rank2.reverse(); // Cruces 1ro vs 2do de otro grupo
+                if (m.estado === 'jugado' && m.resultado) {
+                    const s1 = map.get(m.pareja1_id)!;
+                    const s2 = map.get(m.pareja2_id)!;
+                    
+                    const sets = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
+                    let setsP1 = 0; let setsP2 = 0;
+                    
+                    sets.forEach((set: number[]) => {
+                        if (set.length === 2 && !isNaN(set[0]) && !isNaN(set[1])) {
+                            if (set[0] > set[1]) setsP1++;
+                            else if (set[1] > set[0]) setsP2++;
+                        }
+                    });
 
-    const matchesToCreate = [];
-    for (let i = 0; i < rank1.length; i++) {
-        if (i < rank2.length) {
-            matchesToCreate.push({
-                torneo_id: torneoId,
-                creador_id: userId || '00000000-0000-0000-0000-000000000000',
-                club_id: clubId,
-                pareja1_id: rank1[i].parejaId,
-                pareja2_id: rank2[i].parejaId,
-                estado: 'programado',
-                tipo_partido: 'torneo',
-                lugar: `${rondaName} - ${categoria}`,
-                fecha: fechaTorneo,
-                cupos_totales: 4,
-                cupos_disponibles: 0,
+                    if (setsP1 > setsP2) {
+                        s1.pg += 1;
+                        s1.pts += 3;
+                    } else if (setsP2 > setsP1) {
+                        s2.pg += 1;
+                        s2.pts += 3;
+                    }
+                }
             });
+
+            const standings = Array.from(map.values()).sort((a, b) => b.pts - a.pts || b.pg - a.pg);
+            if (standings.length > 0) topTeams.push({ grupo: i, pos: 1, parejaId: standings[0].parejaId });
+            if (standings.length > 1) topTeams.push({ grupo: i, pos: 2, parejaId: standings[1].parejaId });
         }
-    }
-    
-    if (matchesToCreate.length > 0) {
-        const { error } = await supabaseAdmin.from('partidos').insert(matchesToCreate);
-        if (error) {
-            console.error("Error insertando partidos eliminatorias:", error);
-            throw new Error("Error al crear partidos de eliminatorias: " + error.message);
+
+        if (topTeams.length < 2) return { success: false, message: "No hay suficientes parejas con partidos jugados." };
+
+        const rank1 = topTeams.filter(t => t.pos === 1);
+        const rank2 = topTeams.filter(t => t.pos === 2);
+
+        const numMatches = rank1.length;
+        let rondaName = "Playoff";
+        if (numMatches === 1) rondaName = "Final";
+        else if (numMatches === 2) rondaName = "Semifinal";
+        else if (numMatches === 4) rondaName = "Cuartos de Final";
+        else if (numMatches === 8) rondaName = "Octavos de Final";
+
+        rank2.reverse();
+
+        const matchesToCreate = [];
+        for (let i = 0; i < rank1.length; i++) {
+            if (i < rank2.length) {
+                matchesToCreate.push({
+                    torneo_id: torneoId,
+                    creador_id: creadorId,
+                    club_id: clubId,
+                    pareja1_id: rank1[i].parejaId,
+                    pareja2_id: rank2[i].parejaId,
+                    estado: 'programado',
+                    tipo_partido: 'torneo',
+                    lugar: `${rondaName} - ${categoria}`,
+                    fecha: fechaTorneo,
+                    cupos_totales: 4,
+                    cupos_disponibles: 0,
+                });
+            }
         }
+        
+        if (matchesToCreate.length > 0) {
+            const { error } = await supabaseAdmin.from('partidos').insert(matchesToCreate);
+            if (error) {
+                console.error("Error insertando partidos eliminatorias:", error);
+                return { success: false, message: "Error DB: " + error.message };
+            }
+        }
+        
+        revalidatePath(`/club/torneos/${torneoId}`);
+        return { success: true, message: `Se generaron ${matchesToCreate.length} partidos de ${rondaName}.` };
+    } catch (err: unknown) {
+        console.error("Error en generarFaseEliminatoria:", err);
+        return { success: false, message: err instanceof Error ? err.message : "Error desconocido" };
     }
-    
-    revalidatePath(`/club/torneos/${torneoId}`);
-    return { success: true, message: `Se generaron ${matchesToCreate.length} partidos de ${rondaName}.` };
 }

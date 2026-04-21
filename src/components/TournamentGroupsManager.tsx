@@ -57,12 +57,16 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
     };
 
     const onGeneratePlayoffs = () => {
-        if (!confirm(`¿Estás seguro de generar las ELIMINATORIAS (Octavos/Cuartos/Final) para la categoría ${selectedCat}? Se tomarán los dos mejores de cada grupo.`)) return;
+        if (!confirm(`¿Estás seguro de generar las ELIMINATORIAS para la categoría ${selectedCat}? Se tomarán los dos mejores de cada grupo.`)) return;
         
         startTransition(async () => {
             try {
                 const result = await generarFaseEliminatoria(torneoId, selectedCat);
-                alert(result.message || "¡Fase eliminatoria generada con éxito! Revisa la pestaña de Cuadros de Juego.");
+                if (result.success) {
+                    alert(result.message || "¡Fase eliminatoria generada! Revisa Cuadros de Juego.");
+                } else {
+                    alert("Error: " + (result.message || "No se pudieron generar las eliminatorias"));
+                }
             } catch (err: unknown) {
                 alert(err instanceof Error ? err.message : "Error desconocido al generar eliminatorias");
             }
