@@ -218,7 +218,7 @@ export async function registrarResultadoPorJugador(matchId: string, resultado: s
             return { success: false, message: "Este resultado ya ha sido verificado y no puede modificarse." };
         }
         
-        const { data: updatedData, error: updateError } = await admin
+        const { error: updateError } = await admin
             .from('partidos')
             .update({
                 resultado: resultado,
@@ -227,18 +227,12 @@ export async function registrarResultadoPorJugador(matchId: string, resultado: s
                 estado_resultado: 'pendiente',
                 resultado_registrado_por: internalUserId
             })
-            .eq('id', matchId)
-            .select();
+            .eq('id', matchId);
 
         if (updateError) throw new Error(updateError.message);
         
-        if (!updatedData || updatedData.length === 0) {
-            throw new Error("No se pudo actualizar el partido. Verifica que el ID sea correcto.");
-        }
-
-        const matchTorneoId = updatedData[0].torneo_id;
-        revalidatePath(`/torneos/${matchTorneoId}`);
-        revalidatePath(`/club/torneos/${matchTorneoId}`);
+        revalidatePath(`/torneos/${match.torneo_id}`);
+        revalidatePath(`/club/torneos/${match.torneo_id}`);
         revalidatePath(`/partidos`);
         
         return { success: true };
