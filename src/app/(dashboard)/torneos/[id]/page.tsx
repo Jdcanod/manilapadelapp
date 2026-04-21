@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { createClient } from "@/utils/supabase/server";
 import { notFound } from "next/navigation";
-import { ChevronLeft, CalendarDays, Swords, Trophy, MapPin, Users } from "lucide-react";
+import { ChevronLeft, CalendarDays, Trophy, MapPin } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -136,8 +136,8 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
         const sets = partidoFinal.resultado.split(',').map(s => s.trim().split('-').map(Number));
         let p1 = 0, p2 = 0;
         sets.forEach(s => s[0] > s[1] ? p1++ : p2++);
-        if (p1 > p2) { campeon = partidoFinal.pareja1?.nombre_pareja; subcampeon = partidoFinal.pareja2?.nombre_pareja; }
-        else { campeon = partidoFinal.pareja2?.nombre_pareja; subcampeon = partidoFinal.pareja1?.nombre_pareja; }
+        if (p1 > p2) { campeon = partidoFinal.pareja1?.nombre_pareja; }
+        else { campeon = partidoFinal.pareja2?.nombre_pareja; }
     }
 
     const isPast = new Date(torneo.fecha_fin) < new Date();

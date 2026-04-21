@@ -1,14 +1,11 @@
-import { createSupabaseClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
 /**
  * Verifica si las semifinales han terminado y genera la final automáticamente.
  */
 export async function verificarYGenerarFinal(torneoId: string, categoria: string, clubId: string | null, userId: string) {
-    const supabaseAdmin = createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabaseAdmin = createAdminClient();
 
     // 1. Buscar todas las semifinales de esta categoría
     const { data: allSemis } = await supabaseAdmin

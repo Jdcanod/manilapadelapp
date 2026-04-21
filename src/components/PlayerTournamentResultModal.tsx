@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { registrarResultadoPorJugador } from "@/app/(dashboard)/torneos/actions";
-import { Trophy, Swords } from "lucide-react";
+import { Swords } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface Props {

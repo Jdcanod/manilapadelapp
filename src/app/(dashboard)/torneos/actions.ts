@@ -126,9 +126,9 @@ export async function inscribirParejaTorneo(formData: FormData) {
         revalidatePath("/torneos");
         revalidatePath("/partidos");
         return { success: true };
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("Error en inscribirParejaTorneo:", err);
-        return { error: "Ocurrió un error inesperado: " + err.message };
+        return { error: "Ocurrió un error inesperado: " + (err instanceof Error ? err.message : String(err)) };
     }
 }
 
@@ -164,8 +164,6 @@ export async function registrarResultadoPorJugador(matchId: string, resultado: s
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { success: false, message: "No autenticado" };
-
-        const supabaseAdmin = createClient(); // Use standard client for initial check, or admin if RLS is tight
         
         // 1. Verificar que el jugador pertenece a una de las parejas del partido
         const { data: userPairs } = await supabase
@@ -191,11 +189,8 @@ export async function registrarResultadoPorJugador(matchId: string, resultado: s
         }
 
         // 2. Actualizar el resultado usando Admin
-        const { createSupabaseClient } = await import("@/utils/supabase/server");
-        const admin = createSupabaseClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
+        const { createAdminClient } = await import("@/utils/supabase/server");
+        const admin = createAdminClient();
         const { error } = await admin
             .from('partidos')
             .update({
