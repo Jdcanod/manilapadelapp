@@ -4,6 +4,7 @@ import { Trophy, CalendarDays, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { InscribirParejaDialog } from "./InscribirParejaDialog";
+import Link from "next/link";
 
 export default async function TorneosPage() {
     const supabase = createClient();
@@ -13,18 +14,21 @@ export default async function TorneosPage() {
         redirect("/login");
     }
 
-    // Get all tournaments that are public and upcoming
+    // Get all tournaments that are public and upcoming or ongoing
     const { data: torneos } = await supabase
         .from('torneos')
         .select(`
             *,
-            club:users(nombre),
+            club:users!torneos_club_id_fkey(nombre),
             torneo_parejas:torneo_parejas(count),
-            inscripciones:inscripciones_torneo(count)
+            inscripciones:inscripciones_torneo(count),
+            partidos(id, estado, lugar)
         `)
         .order('fecha_inicio', { ascending: true });
 
-    const torneosFiltrados = (torneos || []).filter(t => new Date(t.fecha_fin) >= new Date());
+    // Filter out tournaments completely finished more than 7 days ago if we want, but for now just show all or those not finished long ago.
+    // Let's just show tournaments that are active, upcoming, or recently finished.
+    const torneosFiltrados = (torneos || []).filter(t => new Date(t.fecha_fin).getTime() + 7 * 24 * 60 * 60 * 1000 > new Date().getTime());
 
     return (
         <div className="space-y-6">
@@ -41,20 +45,30 @@ export default async function TorneosPage() {
             {!torneosFiltrados || torneosFiltrados.length === 0 ? (
                 <div className="text-center py-12 text-neutral-500 border border-neutral-800 border-dashed rounded-xl bg-neutral-900/30">
                     <Trophy className="w-12 h-12 text-neutral-700 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-neutral-300 mb-2">No hay torneos próximos</h3>
+                    <h3 className="text-lg font-medium text-neutral-300 mb-2">No hay torneos recientes</h3>
                     <p className="mb-4">Mantente atento, pronto los clubes organizarán nuevos campeonatos.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                     {torneosFiltrados.map((torneo) => {
-                        const isUpcoming = new Date(torneo.fecha_inicio) > new Date();
+                        const hasPartidos = torneo.partidos && torneo.partidos.length > 0;
+                        const isFinalizado = hasPartidos && torneo.partidos.some((p: any) => p.lugar?.toLowerCase().includes('final') && !p.lugar?.toLowerCase().includes('semifinal') && p.estado === 'jugado');
 
-                        let statusColor = "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
-                        let statusText = "En Curso";
+                        let statusColor = "bg-blue-500/20 text-blue-400 border-blue-500/30";
+                        let statusText = "Inscripciones Abiertas";
+                        let canInscribe = true;
 
-                        if (isUpcoming) {
-                            statusColor = "bg-blue-500/20 text-blue-400 border-blue-500/30";
-                            statusText = "Próximo / Inscripciones";
+                        if (isFinalizado) {
+                            statusColor = "bg-neutral-500/20 text-neutral-400 border-neutral-500/30";
+                            statusText = "Finalizado";
+                            canInscribe = false;
+                        } else if (hasPartidos) {
+                            statusColor = "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
+                            statusText = "En Curso";
+                            canInscribe = false;
+                        } else if (new Date(torneo.fecha_inicio) <= new Date()) {
+                            statusColor = "bg-amber-500/20 text-amber-400 border-amber-500/30";
+                            statusText = "Por Iniciar";
                         }
 
                         const inscripcionesCount = (torneo.inscripciones && torneo.inscripciones[0]?.count) ? torneo.inscripciones[0].count : 0;
@@ -91,8 +105,17 @@ export default async function TorneosPage() {
                                         </div>
                                     </div>
 
-                                    <div className="mt-auto pt-4 border-t border-neutral-800">
-                                        <InscribirParejaDialog torneoId={torneo.id} torneoNombre={torneo.nombre} />
+                                    <div className="mt-auto pt-4 border-t border-neutral-800 flex gap-2">
+                                        {canInscribe && (
+                                            <div className="flex-1">
+                                                <InscribirParejaDialog torneoId={torneo.id} torneoNombre={torneo.nombre} />
+                                            </div>
+                                        )}
+                                        <Link href={`/torneos/${torneo.id}`} className="flex-1">
+                                            <div className="flex items-center justify-center w-full h-10 border border-neutral-700 bg-neutral-800/50 hover:bg-neutral-800 text-white text-sm font-bold rounded-md transition-colors">
+                                                Ver Detalles
+                                            </div>
+                                        </Link>
                                     </div>
                                 </CardContent>
                             </Card>

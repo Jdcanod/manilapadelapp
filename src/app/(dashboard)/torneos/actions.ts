@@ -18,7 +18,6 @@ export async function inscribirParejaTorneo(formData: FormData) {
         const torneoId = formData.get("torneo_id") as string;
         const emailCompanero = formData.get("email_companero") as string;
         const categoria = formData.get("categoria") as string;
-        const nombrePareja = formData.get("nombre_pareja") as string || "Pareja sin nombre";
 
         if (!torneoId || !emailCompanero || !categoria) {
             return { error: "Faltan campos obligatorios" };
@@ -27,7 +26,7 @@ export async function inscribirParejaTorneo(formData: FormData) {
         // 1. Get current user ID by auth_id
         const { data: currentUserData } = await admin
             .from('users')
-            .select('id, email')
+            .select('id, email, nombre')
             .eq('auth_id', user.id)
             .maybeSingle();
 
@@ -42,7 +41,7 @@ export async function inscribirParejaTorneo(formData: FormData) {
         // 2. Find the partner by email
         const { data: companeroData } = await admin
             .from('users')
-            .select('id')
+            .select('id, nombre')
             .eq('email', emailCompanero.trim().toLowerCase())
             .maybeSingle();
 
@@ -79,13 +78,15 @@ export async function inscribirParejaTorneo(formData: FormData) {
             await admin.from('parejas').update({ activa: false }).in('jugador1_id', [jugador1Id, jugador2Id]);
             await admin.from('parejas').update({ activa: false }).in('jugador2_id', [jugador1Id, jugador2Id]);
 
+            const autoNombrePareja = `${currentUserData.nombre.split(' ')[0]} & ${companeroData.nombre.split(' ')[0]}`;
+
             // Create new pareja
             const { data: newPareja, error: parejaError } = await admin
                 .from('parejas')
                 .insert({
                     jugador1_id: jugador1Id,
                     jugador2_id: jugador2Id,
-                    nombre_pareja: nombrePareja || "Nueva Pareja",
+                    nombre_pareja: autoNombrePareja,
                     activa: true
                 })
                 .select('id')

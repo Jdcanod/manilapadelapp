@@ -63,16 +63,7 @@ export default async function NuevaParejaPage() {
                     </CardHeader>
                     <CardContent className="space-y-6">
 
-                        <div className="space-y-2">
-                            <Label htmlFor="nombre_pareja" className="text-neutral-300">Nombre del Equipo / Pareja</Label>
-                            <Input
-                                id="nombre_pareja"
-                                name="nombre_pareja"
-                                placeholder="Ej: Los Galácticos"
-                                className="bg-neutral-950 border-neutral-800 text-white placeholder:text-neutral-600 focus-visible:ring-emerald-500"
-                                required
-                            />
-                        </div>
+
 
                         <div className="space-y-2">
                             <Label htmlFor="jugador2_id" className="text-neutral-300">Selecciona a tu Compañero</Label>

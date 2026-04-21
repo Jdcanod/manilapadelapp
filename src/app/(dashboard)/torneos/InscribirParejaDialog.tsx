@@ -201,15 +201,7 @@ export function InscribirParejaDialog({ torneoId, torneoNombre }: Props) {
                             </Select>
                         </div>
 
-                        <div className="space-y-2 pt-2 border-t border-neutral-800">
-                            <Label htmlFor="nombre_pareja">Nombre del Equipo (Opcional)</Label>
-                            <Input
-                                id="nombre_pareja"
-                                name="nombre_pareja"
-                                placeholder="Ej: Los Vengadores"
-                                className="bg-neutral-950 border-neutral-800 focus:border-emerald-500"
-                            />
-                        </div>
+
 
                         {error && (
                             <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-500 text-sm mt-4">
