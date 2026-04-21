@@ -214,7 +214,7 @@ export async function registrarResultadoPorJugador(matchId: string, resultado: s
         }
 
         // Si ya está confirmado, no se puede cambiar por jugador
-        if (match.estado_resultado === 'confirmado') {
+        if (match.estado === 'jugado' && match.resultado && match.estado_resultado !== 'pendiente_confirmacion') {
             return { success: false, message: "Este resultado ya ha sido verificado y no puede modificarse." };
         }
         
@@ -232,6 +232,8 @@ export async function registrarResultadoPorJugador(matchId: string, resultado: s
         if (error) throw new Error(error.message);
 
         revalidatePath(`/torneos/${match.torneo_id}`);
+        revalidatePath(`/club/torneos/${match.torneo_id}`);
+        revalidatePath(`/partidos`);
         return { success: true };
     } catch (err: unknown) {
         console.error("Error en registrarResultadoPorJugador:", err);
@@ -298,6 +300,7 @@ export async function confirmarResultado(matchId: string) {
 
         revalidatePath(`/torneos/${match.torneo_id}`);
         revalidatePath(`/club/torneos/${match.torneo_id}`);
+        revalidatePath(`/partidos`);
         return { success: true };
     } catch (err: unknown) {
         return { success: false, message: err instanceof Error ? err.message : "Error desconocido" };
