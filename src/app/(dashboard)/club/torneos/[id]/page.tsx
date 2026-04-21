@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { ChevronLeft, CalendarDays, Users, Swords } from "lucide-react";
+import { ChevronLeft, CalendarDays, Users, Swords, Trophy } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
