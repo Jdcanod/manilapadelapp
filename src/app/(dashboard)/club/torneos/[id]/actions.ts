@@ -449,6 +449,14 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
 
         rank2.reverse();
 
+        // Borrar partidos de eliminatoria anteriores para esta categoría
+        await supabaseAdmin
+            .from('partidos')
+            .delete()
+            .eq('torneo_id', torneoId)
+            .is('torneo_grupo_id', null)
+            .like('lugar', `% - ${categoria}`);
+
         const matchesToCreate = [];
         for (let i = 0; i < rank1.length; i++) {
             if (i < rank2.length) {
