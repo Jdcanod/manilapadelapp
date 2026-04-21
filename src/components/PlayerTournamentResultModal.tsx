@@ -13,9 +13,10 @@ interface Props {
     pareja1Nombre: string;
     pareja2Nombre: string;
     torneoId: string;
+    buttonText?: string;
 }
 
-export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre }: Props) {
+export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, buttonText }: Props) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [sets, setSets] = useState([{ p1: "", p2: "" }, { p1: "", p2: "" }]);
@@ -75,9 +76,9 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase tracking-widest h-9 py-0 shadow-lg shadow-emerald-900/20">
+                <Button className={`w-full ${buttonText === 'Corregir' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-emerald-600 hover:bg-emerald-500'} text-white font-black text-[10px] uppercase tracking-widest h-9 py-0 shadow-lg`}>
                     <Swords className="w-3 h-3 mr-2" />
-                    Subir Resultado
+                    {buttonText || "Subir Resultado"}
                 </Button>
             </DialogTrigger>
             <DialogContent className="bg-neutral-950 border-neutral-800 text-white max-w-sm rounded-3xl p-6">

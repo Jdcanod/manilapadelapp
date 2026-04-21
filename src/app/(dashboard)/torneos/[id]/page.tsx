@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlayerTournamentResultModal } from "@/components/PlayerTournamentResultModal";
+import { PlayerTournamentGroups } from "@/components/PlayerTournamentGroups";
 
 interface MatchItem {
     id: string;
@@ -90,18 +91,29 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
 
     if (!torneo) notFound();
 
-    // Obtener parejas asociadas al usuario logueado para habilitar edición
+    // Obtener el ID interno del usuario
     let playerPairIds: string[] = [];
     if (user) {
+        const { data: userData } = await supabase
+            .from('users')
+            .select('id')
+            .eq('auth_id', user.id)
+            .single();
+
+        const finalUserId = userData?.id || user.id;
+
         const { data: userPairs } = await supabase
             .from('parejas')
             .select('id')
-            .or(`jugador1_id.eq.${user.id},jugador2_id.eq.${user.id}`);
+            .or(`jugador1_id.eq.${finalUserId},jugador2_id.eq.${finalUserId}`);
         playerPairIds = (userPairs || []).map(p => p.id);
     }
 
-    // Obtener partidos y nombres de parejas
-    const { data: rawPartidos } = await supabase
+    const { createAdminClient } = await import("@/utils/supabase/server");
+    const admin = createAdminClient();
+
+    // Obtener partidos y nombres de parejas con permisos elevados para asegurar visibilidad
+    const { data: rawPartidos } = await admin
         .from('partidos')
         .select('*')
         .eq('torneo_id', params.id)
@@ -115,7 +127,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
 
     const parejaNamesMap = new Map<string, string>();
     if (pairIds.size > 0) {
-        const { data: namesData } = await supabase
+        const { data: namesData } = await admin
             .from('parejas')
             .select('id, nombre_pareja')
             .in('id', Array.from(pairIds));
@@ -138,6 +150,12 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
         if (p1 > p2) { campeon = partidoFinal.pareja1?.nombre_pareja; }
         else { campeon = partidoFinal.pareja2?.nombre_pareja; }
     }
+
+    // Obtener grupos del torneo con admin client
+    const { data: grupos } = await admin
+        .from('torneo_grupos')
+        .select('*')
+        .eq('torneo_id', params.id);
 
     const isPast = new Date(torneo.fecha_fin) < new Date();
 
@@ -181,19 +199,19 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                 )}
             </div>
 
-            <Tabs defaultValue="cuadros" className="w-full">
+            <Tabs defaultValue="grupos" className="w-full">
                 <TabsList className="bg-neutral-950 border border-neutral-800 p-2 h-auto w-full max-w-md mx-auto grid grid-cols-2 rounded-2xl">
                     <TabsTrigger value="grupos" className="data-[state=active]:bg-neutral-900 data-[state=active]:text-amber-500 font-bold uppercase text-xs tracking-widest h-10 rounded-xl">Grupos</TabsTrigger>
                     <TabsTrigger value="cuadros" className="data-[state=active]:bg-neutral-900 data-[state=active]:text-amber-500 font-bold uppercase text-xs tracking-widest h-10 rounded-xl">Eliminatorias</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="grupos" className="mt-8">
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {/* Aquí iría la lógica de grupos similar al componente Manager pero simplificada */}
-                        <div className="col-span-full py-20 text-center text-neutral-600 font-bold uppercase tracking-widest border-2 border-dashed border-neutral-900 rounded-3xl">
-                            La vista de grupos estará disponible pronto para los jugadores
-                        </div>
-                     </div>
+                     <PlayerTournamentGroups 
+                        torneoId={params.id}
+                        grupos={grupos || []}
+                        partidos={partidosReales}
+                        playerPairIds={playerPairIds}
+                     />
                 </TabsContent>
 
                 <TabsContent value="cuadros" className="mt-8">

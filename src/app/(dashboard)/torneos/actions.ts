@@ -179,15 +179,26 @@ export async function registrarResultadoPorJugador(matchId: string, resultado: s
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { success: false, message: "No autenticado" };
         
-        // 1. Verificar que el jugador pertenece a una de las parejas del partido
-        const { data: userPairs } = await supabase
+        const { createAdminClient } = await import("@/utils/supabase/server");
+        const admin = createAdminClient();
+
+        // Obtener el ID interno del usuario
+        const { data: userData } = await admin
+            .from('users')
+            .select('id')
+            .eq('auth_id', user.id)
+            .single();
+
+        const internalUserId = userData?.id || user.id;
+
+        const { data: userPairs } = await admin
             .from('parejas')
             .select('id')
-            .or(`jugador1_id.eq.${user.id},jugador2_id.eq.${user.id}`);
+            .or(`jugador1_id.eq.${internalUserId},jugador2_id.eq.${internalUserId}`);
         
         const myPairIds = (userPairs || []).map(p => p.id);
         
-        const { data: match } = await supabase
+        const { data: match } = await admin
             .from('partidos')
             .select('*')
             .eq('id', matchId)
@@ -202,31 +213,93 @@ export async function registrarResultadoPorJugador(matchId: string, resultado: s
             return { success: false, message: "No tienes permiso para reportar este resultado." };
         }
 
-        // 2. Actualizar el resultado usando Admin
-        const { createAdminClient } = await import("@/utils/supabase/server");
-        const admin = createAdminClient();
+        // Si ya está confirmado, no se puede cambiar por jugador
+        if (match.estado_resultado === 'confirmado') {
+            return { success: false, message: "Este resultado ya ha sido verificado y no puede modificarse." };
+        }
+        
         const { error } = await admin
             .from('partidos')
             .update({
                 resultado: resultado,
                 estado: 'jugado',
                 resultado_registrado_at: new Date().toISOString(),
-                estado_resultado: 'confirmado' // Autoconfirmado para agilidad
+                estado_resultado: 'pendiente_confirmacion',
+                resultado_registrado_por: internalUserId
             })
             .eq('id', matchId);
 
         if (error) throw new Error(error.message);
 
-        // 3. Verificar avance de fase (si era semifinal)
+        revalidatePath(`/torneos/${match.torneo_id}`);
+        return { success: true };
+    } catch (err: unknown) {
+        console.error("Error en registrarResultadoPorJugador:", err);
+        return { success: false, message: err instanceof Error ? err.message : "Error desconocido" };
+    }
+}
+
+export async function confirmarResultado(matchId: string) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado" };
+
+        const { createAdminClient } = await import("@/utils/supabase/server");
+        const admin = createAdminClient();
+
+        // Obtener el ID interno del usuario
+        const { data: userData } = await admin
+            .from('users')
+            .select('id')
+            .eq('auth_id', user.id)
+            .single();
+
+        const internalUserId = userData?.id || user.id;
+
+        const { data: match } = await admin
+            .from('partidos')
+            .select('*')
+            .eq('id', matchId)
+            .single();
+
+        if (!match) return { success: false, message: "Partido no encontrado" };
+
+        // Verificar si el usuario es del club o el rival
+        const { data: userPairs } = await admin
+            .from('parejas')
+            .select('id')
+            .or(`jugador1_id.eq.${internalUserId},jugador2_id.eq.${internalUserId}`);
+        const myPairIds = (userPairs || []).map(p => p.id);
+
+        const isClubAdmin = (user.app_metadata?.rol === 'admin_club' || user.app_metadata?.rol === 'superadmin') && (match.club_id === internalUserId || match.club_id === user.id);
+        const isRival = (match.pareja1_id && myPairIds.includes(match.pareja1_id) && match.resultado_registrado_por !== internalUserId) || 
+                        (match.pareja2_id && myPairIds.includes(match.pareja2_id) && match.resultado_registrado_por !== internalUserId);
+
+        if (!isClubAdmin && !isRival) {
+            return { success: false, message: "No tienes permiso para confirmar este resultado." };
+        }
+        
+        const { error } = await admin
+            .from('partidos')
+            .update({
+                estado_resultado: 'confirmado',
+                resultado_confirmado_por: internalUserId
+            })
+            .eq('id', matchId);
+
+        if (error) throw new Error(error.message);
+
+        // Si se confirma, verificar avance de fase
         if (!match.torneo_grupo_id && match.lugar?.toLowerCase().includes('semifinal')) {
             const { verificarYGenerarFinal } = await import("@/lib/tournaments/progression");
             await verificarYGenerarFinal(match.torneo_id, match.nivel, match.club_id, user.id);
         }
 
         revalidatePath(`/torneos/${match.torneo_id}`);
+        revalidatePath(`/club/torneos/${match.torneo_id}`);
         return { success: true };
     } catch (err: unknown) {
-        console.error("Error en registrarResultadoPorJugador:", err);
         return { success: false, message: err instanceof Error ? err.message : "Error desconocido" };
     }
 }
