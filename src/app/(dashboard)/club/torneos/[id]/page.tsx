@@ -266,7 +266,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                         <CardContent className="p-0">
                                             <div className="flex justify-between items-center p-3 border-b border-neutral-800/50 bg-neutral-900/50">
                                                 <span className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">
-                                                    Match {match.id.toString().substring(0,4)} • {new Date(match.fecha).toLocaleDateString()}
+                                                    Match {match.id.toString().substring(0,4)} • {match.fecha ? new Date(match.fecha).toLocaleDateString() : 'Por definir'}
                                                 </span>
                                                 <Badge variant="secondary" className={`${match.estado === 'jugado' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-blue-500/10 text-blue-400'} text-[10px] uppercase`}>
                                                     {match.estado}
