@@ -168,11 +168,16 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
                 ...m,
                 creador_id: userId,
                 club_id: torneoInfo?.club_id,
-                tipo_partido_oficial: 'torneo'
+                tipo_partido_oficial: 'torneo',
+                nivel: categoria,
+                sexo: 'Mixto'
             }));
 
             const { error: matchError } = await supabaseAdmin.from('partidos').insert(finalMatches);
-            if (matchError) console.error("Error inserting matches:", matchError);
+            if (matchError) {
+                console.error("Error inserting matches:", matchError);
+                throw new Error(`Error al insertar partidos: ${matchError.message}`);
+            }
         }
 
         revalidatePath(`/club/torneos/${torneoId}`);
