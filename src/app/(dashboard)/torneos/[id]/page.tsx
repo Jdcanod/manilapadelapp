@@ -1,6 +1,5 @@
 export const dynamic = 'force-dynamic';
-import { createClient } from "@/utils/supabase/server";
-import { createAdminClient } from "@/utils/supabase/admin";
+import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { notFound } from "next/navigation";
 import { ChevronLeft, CalendarDays, Trophy, MapPin } from "lucide-react";
 import Link from "next/link";
