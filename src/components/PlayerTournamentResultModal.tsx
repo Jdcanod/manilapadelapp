@@ -19,6 +19,7 @@ interface Props {
 export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, buttonText, initialResult }: Props & { initialResult?: string | null }) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
+    const [statusMsg, setStatusMsg] = useState<string | null>(null);
     const router = useRouter();
     
     // Inicializar sets desde initialResult si existe (formato "6-4, 6-2")
@@ -79,18 +80,30 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
         }
 
         const resultadoFinal = validSets.map(s => `${s.p1}-${s.p2}`).join(", ");
+        console.log("[PlayerResultModal] Submitting:", { matchId, resultadoFinal });
+        setStatusMsg(null);
 
         startTransition(async () => {
             try {
                 const result = await registrarResultadoPorJugador(matchId, resultadoFinal);
+                console.log("[PlayerResultModal] Server response:", result);
                 if (result.success) {
-                    setOpen(false);
-                    router.refresh();
+                    setStatusMsg("✅ Resultado guardado correctamente. Pendiente de verificación.");
+                    setTimeout(() => {
+                        setOpen(false);
+                        setStatusMsg(null);
+                        router.refresh();
+                    }, 2000); // Dar tiempo al usuario de leer
                 } else {
-                    alert(result.message || "Error al guardar el resultado");
+                    const errorMsg = result.message || "Error al guardar el resultado";
+                    setStatusMsg("❌ " + errorMsg);
+                    alert(errorMsg);
                 }
             } catch (err: unknown) {
-                alert(err instanceof Error ? err.message : "Error desconocido");
+                const errorMsg = err instanceof Error ? err.message : "Error desconocido";
+                console.error("[PlayerResultModal] exception:", err);
+                setStatusMsg("❌ " + errorMsg);
+                alert(errorMsg);
             }
         });
     };
