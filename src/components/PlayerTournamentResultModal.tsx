@@ -26,7 +26,7 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
                     const parts = s.trim().split('-');
                     return { p1: parts[0] || "", p2: parts[1] || "" };
                 });
-            } catch (_e) {
+            } catch {
                 return [{ p1: "", p2: "" }, { p1: "", p2: "" }];
             }
         }
