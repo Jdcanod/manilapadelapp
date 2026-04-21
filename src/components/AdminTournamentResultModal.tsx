@@ -25,7 +25,7 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
     const onSave = () => {
         const potentialSets = sets.filter(s => s.p1.trim() !== "" || s.p2.trim() !== "");
         
-        if (potentialSets.length === 0) return alert("Ingresa al menos un set");
+        if (potentialSets.length < 2) return alert("Error: Los partidos deben tener al menos 2 sets registrados.");
 
         const validSets = [];
 

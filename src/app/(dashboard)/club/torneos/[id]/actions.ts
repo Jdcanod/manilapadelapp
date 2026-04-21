@@ -313,21 +313,15 @@ export async function registrarResultadoPorClub(matchId: string, resultado: stri
         const { data: { user } } = await supabase.auth.getUser();
         const supabaseAdmin = createAdminClient();
         
-        // Verificar si el usuario existe en la tabla pública 'users' para evitar fallos de llave foránea
-        const { data: dbUser } = await supabaseAdmin
-            .from('users')
-            .select('id')
-            .eq('id', user?.id)
-            .single();
-
-        const registradoPorId = dbUser ? user?.id : null;
+        const userId = user?.id;
+        if (!userId) throw new Error("No autenticado");
 
         const { error } = await supabaseAdmin
             .from('partidos')
             .update({
                 resultado: resultado,
-                resultado_registrado_por: registradoPorId,
-                resultado_confirmado_por: registradoPorId,
+                resultado_registrado_por: userId,
+                resultado_confirmado_por: userId,
                 resultado_registrado_at: new Date().toISOString(),
                 estado_resultado: 'confirmado',
                 estado: 'jugado'
@@ -335,7 +329,74 @@ export async function registrarResultadoPorClub(matchId: string, resultado: stri
             .eq('id', matchId);
 
         if (error) throw new Error(error.message);
+
+        // --- Lógica de Avance en Eliminatorias ---
+        // 1. Obtener detalles del partido actualizado
+        const { data: currentMatch } = await supabaseAdmin
+            .from('partidos')
+            .select('*')
+            .eq('id', matchId)
+            .single();
+
+        if (currentMatch && !currentMatch.torneo_grupo_id && currentMatch.lugar?.toLowerCase().includes('semifinal')) {
+            const torneoId = currentMatch.torneo_id;
+            const categoria = currentMatch.nivel;
+
+            // 2. Buscar todas las semifinales de esta categoría
+            const { data: allSemis } = await supabaseAdmin
+                .from('partidos')
+                .select('*')
+                .eq('torneo_id', torneoId)
+                .eq('nivel', categoria)
+                .is('torneo_grupo_id', null)
+                .like('lugar', '%emifinal%');
+
+            const allPlayed = allSemis?.every(m => m.estado === 'jugado' && m.resultado);
+            
+            if (allPlayed && allSemis?.length === 2) {
+                // 3. Determinar ganadores
+                const winners = allSemis.map(m => {
+                    const setsArr = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
+                    let p1Wins = 0, p2Wins = 0;
+                    setsArr.forEach((s: number[]) => {
+                        if (s[0] > s[1]) p1Wins++;
+                        else if (s[1] > s[0]) p2Wins++;
+                    });
+                    return p1Wins > p2Wins ? m.pareja1_id : m.pareja2_id;
+                });
+
+                if (winners.every(w => w !== null)) {
+                    // 4. Crear el partido de la Final (si no existe ya)
+                    const { data: existingFinal } = await supabaseAdmin
+                        .from('partidos')
+                        .select('id')
+                        .eq('torneo_id', torneoId)
+                        .eq('nivel', categoria)
+                        .is('torneo_grupo_id', null)
+                        .eq('lugar', `Final - ${categoria}`)
+                        .maybeSingle();
+
+                    if (!existingFinal) {
+                        await supabaseAdmin.from('partidos').insert([{
+                            torneo_id: torneoId,
+                            creador_id: userId,
+                            club_id: currentMatch.club_id,
+                            pareja1_id: winners[0],
+                            pareja2_id: winners[1],
+                            estado: 'programado',
+                            tipo_partido: 'torneo',
+                            nivel: categoria,
+                            lugar: `Final - ${categoria}`,
+                            fecha: currentMatch.fecha,
+                            cupos_totales: 4,
+                            cupos_disponibles: 0
+                        }]);
+                    }
+                }
+            }
+        }
         
+        revalidatePath(`/club/torneos/${currentMatch?.torneo_id || ''}`);
         return { success: true };
     } catch (err: unknown) {
         console.error("Error en registrarResultadoPorClub:", err);
