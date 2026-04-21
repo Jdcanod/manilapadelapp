@@ -38,8 +38,12 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
         
         startTransition(async () => {
             try {
-                await generarFaseGrupos(torneoId, selectedCat);
-                alert("¡Fase de grupos generada con éxito!");
+                const result = await generarFaseGrupos(torneoId, selectedCat);
+                if (result.success) {
+                    alert(result.message || "¡Fase de grupos generada con éxito!");
+                } else {
+                    alert(result.error || "Error al generar grupos");
+                }
             } catch (err: unknown) {
                 alert(err instanceof Error ? err.message : "Error desconocido");
             }

@@ -17,142 +17,150 @@ interface MasterResult {
 }
 
 export async function generarFaseGrupos(torneoId: string, categoria: string) {
-    const supabaseAdmin = createAdminClient();
+    try {
+        const supabaseAdmin = createAdminClient();
 
-    // 1. Limpieza de datos previos (grupos y sus partidos) para esta categoría
-    const { data: oldGroups } = await supabaseAdmin
-        .from('torneo_grupos')
-        .select('id')
-        .eq('torneo_id', torneoId)
-        .eq('categoria', categoria);
+        // 1. Limpieza de datos previos (grupos y sus partidos) para esta categoría
+        const { data: oldGroups } = await supabaseAdmin
+            .from('torneo_grupos')
+            .select('id')
+            .eq('torneo_id', torneoId)
+            .eq('categoria', categoria);
 
-    if (oldGroups && oldGroups.length > 0) {
-        const groupIds = oldGroups.map(g => g.id);
-        // Borrar partidos asociados a esos grupos (tipo torneo)
-        await supabaseAdmin.from('partidos').delete().in('torneo_grupo_id', groupIds);
-        // Borrar los grupos
-        await supabaseAdmin.from('torneo_grupos').delete().in('id', groupIds);
-    }
-
-    // 2. Obtener participantes de ambas fuentes (Regular y Master)
-    
-    // a. Regulares (torneo_parejas)
-    const { data: regularesRaw } = await supabaseAdmin
-        .from('torneo_parejas')
-        .select(`
-            id,
-            pareja:parejas(id, nombre_pareja, puntos_ranking)
-        `)
-        .eq('torneo_id', torneoId)
-        .eq('categoria', categoria);
-    
-    const regulares = (regularesRaw as unknown as RegularResult[]) || [];
-
-    // b. Master (inscripciones_torneo)
-    const { data: mastersRaw } = await supabaseAdmin
-        .from('inscripciones_torneo')
-        .select(`
-            id,
-            jugador1:users!jugador1_id(id, nombre, puntos_ranking),
-            jugador2:users!jugador2_id(id, nombre, puntos_ranking)
-        `)
-        .eq('torneo_id', torneoId)
-        .eq('nivel', categoria);
-    
-    const masters = (mastersRaw as unknown as MasterResult[]) || [];
-
-    const participants: Participant[] = [];
-
-    // Procesar Regulares
-    regulares.forEach(r => {
-        const p = Array.isArray(r.pareja) ? r.pareja[0] : r.pareja;
-        if (p) {
-            participants.push({
-                id: p.id,
-                nombre: p.nombre_pareja,
-                ranking: Number(p.puntos_ranking || 0),
-                pareja_id: p.id
-            });
+        if (oldGroups && oldGroups.length > 0) {
+            const groupIds = oldGroups.map(g => g.id);
+            // Borrar partidos asociados a esos grupos (tipo torneo)
+            await supabaseAdmin.from('partidos').delete().in('torneo_grupo_id', groupIds);
+            // Borrar los grupos
+            await supabaseAdmin.from('torneo_grupos').delete().in('id', groupIds);
         }
-    });
 
-    // Procesar Masters (asegurando que tengan una pareja_id)
-    for (const m of masters) {
-        const j1Id = m.jugador1?.id;
-        const j2Id = m.jugador2?.id;
-        if (!j1Id || !j2Id) continue;
+        // 2. Obtener participantes de ambas fuentes (Regular y Master)
+        
+        // a. Regulares (torneo_parejas)
+        const { data: regularesRaw } = await supabaseAdmin
+            .from('torneo_parejas')
+            .select(`
+                id,
+                pareja:parejas(id, nombre_pareja, puntos_ranking)
+            `)
+            .eq('torneo_id', torneoId)
+            .eq('categoria', categoria);
+        
+        const regulares = (regularesRaw as unknown as RegularResult[]) || [];
 
-        let { data: pareja } = await supabaseAdmin
-            .from('parejas')
-            .select('id, nombre_pareja')
-            .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
-            .maybeSingle();
+        // b. Master (inscripciones_torneo)
+        const { data: mastersRaw } = await supabaseAdmin
+            .from('inscripciones_torneo')
+            .select(`
+                id,
+                jugador1:users!jugador1_id(id, nombre, puntos_ranking),
+                jugador2:users!jugador2_id(id, nombre, puntos_ranking)
+            `)
+            .eq('torneo_id', torneoId)
+            .eq('nivel', categoria);
+        
+        const masters = (mastersRaw as unknown as MasterResult[]) || [];
 
-        if (!pareja) {
-            const { data: newPareja, error: pErr } = await supabaseAdmin
+        const participants: Participant[] = [];
+
+        // Procesar Regulares
+        regulares.forEach(r => {
+            const p = Array.isArray(r.pareja) ? r.pareja[0] : r.pareja;
+            if (p) {
+                participants.push({
+                    id: p.id,
+                    nombre: p.nombre_pareja,
+                    ranking: Number(p.puntos_ranking || 0),
+                    pareja_id: p.id
+                });
+            }
+        });
+
+        // Procesar Masters (asegurando que tengan una pareja_id)
+        for (const m of masters) {
+            const j1Id = m.jugador1?.id;
+            const j2Id = m.jugador2?.id;
+            if (!j1Id || !j2Id) continue;
+
+            let { data: pareja } = await supabaseAdmin
                 .from('parejas')
+                .select('id, nombre_pareja')
+                .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
+                .maybeSingle();
+
+            if (!pareja) {
+                const { data: newPareja, error: pErr } = await supabaseAdmin
+                    .from('parejas')
+                    .insert({
+                        jugador1_id: j1Id,
+                        jugador2_id: j2Id,
+                        nombre_pareja: `${m.jugador1?.nombre?.split(' ')[0] || 'J1'} & ${m.jugador2?.nombre?.split(' ')[0] || 'J2'}`,
+                        activa: false
+                    })
+                    .select()
+                    .single();
+                if (pErr) console.error("Error creating phantom pareja:", pErr);
+                pareja = newPareja;
+            }
+
+            if (pareja) {
+                participants.push({
+                    id: pareja.id,
+                    nombre: pareja.nombre_pareja,
+                    ranking: (Number(m.jugador1?.puntos_ranking || 0) + Number(m.jugador2?.puntos_ranking || 0)) / 2,
+                    pareja_id: pareja.id
+                });
+            }
+        }
+
+        if (participants.length < 3) {
+            throw new Error(`Se necesitan al menos 3 parejas en la categoría ${categoria} para generar grupos. Actualmente hay ${participants.length}.`);
+        }
+
+        // 3. Ejecutar algoritmo de sorteo
+        const groupDistributions = distributeParticipantsIntoGroups(participants);
+
+        // 4. Guardar grupos y partidos en la DB
+        for (let i = 0; i < groupDistributions.length; i++) {
+            const nombreGrupo = `Grupo ${String.fromCharCode(65 + i)}`;
+            
+            // Crear el grupo
+            const { data: group, error: groupError } = await supabaseAdmin
+                .from('torneo_grupos')
                 .insert({
-                    jugador1_id: j1Id,
-                    jugador2_id: j2Id,
-                    nombre_pareja: `${m.jugador1?.nombre?.split(' ')[0] || 'J1'} & ${m.jugador2?.nombre?.split(' ')[0] || 'J2'}`,
-                    activa: false
+                    torneo_id: torneoId,
+                    nombre_grupo: nombreGrupo,
+                    categoria: categoria
                 })
                 .select()
                 .single();
-            if (pErr) console.error("Error creating phantom pareja:", pErr);
-            pareja = newPareja;
+
+            if (groupError) {
+                console.error("Error creating group:", groupError);
+                continue;
+            }
+
+            // Generar partidos Round Robin para el grupo (usando pareja_id real)
+            const matchData = generateMatchesForGroup(
+                group.id, 
+                groupDistributions[i].map(p => p.id!.toString()), 
+                torneoId
+            );
+
+            const { error: matchError } = await supabaseAdmin.from('partidos').insert(matchData);
+            if (matchError) console.error("Error inserting matches:", matchError);
         }
 
-        if (pareja) {
-            participants.push({
-                id: pareja.id,
-                nombre: pareja.nombre_pareja,
-                ranking: (Number(m.jugador1?.puntos_ranking || 0) + Number(m.jugador2?.puntos_ranking || 0)) / 2,
-                pareja_id: pareja.id
-            });
-        }
+        revalidatePath(`/club/torneos/${torneoId}`);
+        return { 
+            success: true, 
+            message: `Se generaron ${groupDistributions.length} grupos con ${participants.length} participantes.` 
+        };
+    } catch (err: unknown) {
+        console.error("Error en generarFaseGrupos:", err);
+        return { success: false, error: err instanceof Error ? err.message : "Error desconocido" };
     }
-
-    if (participants.length < 3) {
-        throw new Error(`Se necesitan al menos 3 parejas en la categoría ${categoria} para generar grupos. Actualmente hay ${participants.length}.`);
-    }
-
-    // 3. Ejecutar algoritmo de sorteo
-    const groupDistributions = distributeParticipantsIntoGroups(participants);
-
-    // 4. Guardar grupos y partidos en la DB
-    for (let i = 0; i < groupDistributions.length; i++) {
-        const nombreGrupo = `Grupo ${String.fromCharCode(65 + i)}`;
-        
-        // Crear el grupo
-        const { data: group, error: groupError } = await supabaseAdmin
-            .from('torneo_grupos')
-            .insert({
-                torneo_id: torneoId,
-                nombre_grupo: nombreGrupo,
-                categoria: categoria
-            })
-            .select()
-            .single();
-
-        if (groupError) {
-            console.error("Error creating group:", groupError);
-            continue;
-        }
-
-        // Generar partidos Round Robin para el grupo (usando pareja_id real)
-        const matchData = generateMatchesForGroup(
-            group.id, 
-            groupDistributions[i].map(p => p.id!.toString()), 
-            torneoId
-        );
-
-        const { error: matchError } = await supabaseAdmin.from('partidos').insert(matchData);
-        if (matchError) console.error("Error inserting matches:", matchError);
-    }
-
-    revalidatePath(`/club/torneos/${torneoId}`);
-    return { success: true };
 }
 
 export async function inscribirParejaManual(torneoId: string, jugador1Sel: string, jugador2Sel: string, categoria: string, esMaster: boolean) {
