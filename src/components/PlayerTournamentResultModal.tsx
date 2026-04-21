@@ -63,7 +63,7 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
                 const result = await registrarResultadoPorJugador(matchId, resultadoFinal);
                 if (result.success) {
                     setOpen(false);
-                    router.refresh();
+                    window.location.reload();
                 } else {
                     alert(result.message || "Error al guardar el resultado");
                 }
