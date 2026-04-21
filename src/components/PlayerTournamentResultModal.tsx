@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { registrarResultadoPorJugador } from "@/app/(dashboard)/torneos/actions";
 import { Swords } from "lucide-react";
 
+import { useRouter } from "next/navigation";
+
 interface Props {
     matchId: string;
     pareja1Nombre: string;
@@ -17,6 +19,7 @@ interface Props {
 export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, buttonText, initialResult }: Props & { initialResult?: string | null }) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
+    const router = useRouter();
     
     // Inicializar sets desde initialResult si existe (formato "6-4, 6-2")
     const getInitialSets = useCallback(() => {
@@ -36,8 +39,10 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
     const [sets, setSets] = useState(getInitialSets);
 
     useEffect(() => {
-        setSets(getInitialSets());
-    }, [getInitialSets]);
+        if (open) {
+            setSets(getInitialSets());
+        }
+    }, [open, getInitialSets]);
 
     const addSet = () => setSets([...sets, { p1: "", p2: "" }]);
 
@@ -80,7 +85,7 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
                 const result = await registrarResultadoPorJugador(matchId, resultadoFinal);
                 if (result.success) {
                     setOpen(false);
-                    window.location.reload();
+                    router.refresh();
                 } else {
                     alert(result.message || "Error al guardar el resultado");
                 }
