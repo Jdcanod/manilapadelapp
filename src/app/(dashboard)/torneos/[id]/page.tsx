@@ -66,7 +66,8 @@ function BracketMatchCard({ match, playerPairIds }: { match: MatchItem, playerPa
                             matchId={match.id}
                             pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"}
                             pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
-                            torneoId={match.torneo_grupo_id || ""} // Pass relevant ID for revalidation
+                            torneoId={match.torneo_id || ""} 
+                            initialResult={match.resultado}
                         />
                     </div>
                 )}

@@ -220,6 +220,7 @@ export function PlayerTournamentGroups({ torneoId, grupos, partidos, playerPairI
                                                                     pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"}
                                                                     pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
                                                                     torneoId={torneoId}
+                                                                    initialResult={match.resultado}
                                                                 />
                                                             )}
                                                         </div>
@@ -246,6 +247,7 @@ export function PlayerTournamentGroups({ torneoId, grupos, partidos, playerPairI
                                                                     pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
                                                                     torneoId={torneoId}
                                                                     buttonText="Corregir"
+                                                                    initialResult={match.resultado}
                                                                 />
                                                             </div>
                                                         </div>
