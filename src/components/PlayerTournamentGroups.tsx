@@ -1,12 +1,13 @@
 "use client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Swords, Users } from "lucide-react";
+import { Swords, Users, Trophy } from "lucide-react";
 import { PlayerTournamentResultModal } from "@/components/PlayerTournamentResultModal";
 import { confirmarResultado } from "@/app/(dashboard)/torneos/actions";
 import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 interface Standing {
     parejaId: string;
@@ -126,14 +127,26 @@ export function PlayerTournamentGroups({ torneoId, grupos, partidos, playerPairI
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {standings.map((team) => (
-                                            <tr key={team.parejaId} className="border-b border-neutral-900/50 hover:bg-neutral-900/30 transition-colors">
-                                                <td className="px-4 py-4 font-bold text-white max-w-[150px] truncate">{team.nombre}</td>
-                                                <td className="px-2 py-4 text-center text-neutral-400">{team.pj}</td>
-                                                <td className="px-2 py-4 text-center text-emerald-500/80 font-bold">{team.sg - team.sp}</td>
-                                                <td className="px-4 py-4 text-center font-black text-amber-500">{team.pts}</td>
-                                            </tr>
-                                        ))}
+                                        {standings.map((team, index) => {
+                                            const isMyTeam = playerPairIds.includes(team.parejaId);
+                                            return (
+                                                <tr key={team.parejaId} className={cn(
+                                                    "border-b border-neutral-900/50 transition-colors",
+                                                    isMyTeam ? "bg-amber-500/10 hover:bg-amber-500/20" : "hover:bg-neutral-900/30"
+                                                )}>
+                                                    <td className={cn(
+                                                        "px-4 py-4 font-bold max-w-[150px] truncate",
+                                                        isMyTeam ? "text-amber-500" : "text-white"
+                                                    )}>
+                                                        {team.nombre}
+                                                        {isMyTeam && <span className="ml-2 text-[10px] font-black text-amber-600 bg-amber-500/10 px-1 rounded">TÚ</span>}
+                                                    </td>
+                                                    <td className="px-2 py-4 text-center text-neutral-400">{team.pj}</td>
+                                                    <td className="px-2 py-4 text-center text-emerald-500/80 font-bold">{team.sg - team.sp}</td>
+                                                    <td className="px-4 py-4 text-center font-black text-amber-500">{team.pts}</td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
@@ -152,22 +165,46 @@ export function PlayerTournamentGroups({ torneoId, grupos, partidos, playerPairI
                                         // Para simplificar, si soy del partido y está pendiente, puedo confirmar o corregir.
                                         
                                         return (
-                                            <div key={match.id} className="bg-neutral-900/40 border border-neutral-900 rounded-2xl p-4 transition-all hover:border-neutral-800">
+                                            <div 
+                                                key={match.id} 
+                                                className={cn(
+                                                    "bg-neutral-900/40 border rounded-2xl p-4 transition-all hover:border-neutral-700",
+                                                    isMyMatch ? "border-amber-500/50 bg-amber-500/5 shadow-[0_0_20px_rgba(245,158,11,0.05)]" : "border-neutral-900"
+                                                )}
+                                            >
                                                 <div className="flex justify-between items-center mb-4">
                                                      <div className="flex flex-col gap-1 flex-1">
                                                         <div className="flex justify-between items-center">
-                                                            <span className="text-xs font-bold text-white uppercase truncate pr-2">{match.pareja1?.nombre_pareja || "TBD"}</span>
+                                                            <span className={cn(
+                                                                "text-xs font-bold uppercase truncate pr-2",
+                                                                match.pareja1_id && playerPairIds.includes(match.pareja1_id) ? "text-amber-500" : "text-white"
+                                                            )}>
+                                                                {match.pareja1?.nombre_pareja || "TBD"}
+                                                            </span>
                                                             {match.resultado && (
                                                                 <span className="text-xs font-black text-amber-500">{match.resultado.split(',')[0].split('-')[0]}</span>
                                                             )}
                                                         </div>
                                                         <div className="flex justify-between items-center">
-                                                            <span className="text-xs font-bold text-white uppercase truncate pr-2">{match.pareja2?.nombre_pareja || "TBD"}</span>
+                                                            <span className={cn(
+                                                                "text-xs font-bold uppercase truncate pr-2",
+                                                                match.pareja2_id && playerPairIds.includes(match.pareja2_id) ? "text-amber-500" : "text-white"
+                                                            )}>
+                                                                {match.pareja2?.nombre_pareja || "TBD"}
+                                                            </span>
                                                             {match.resultado && (
                                                                 <span className="text-xs font-black text-amber-500">{match.resultado.split(',')[0].split('-')[1]}</span>
                                                             )}
                                                         </div>
                                                      </div>
+                                                     {isMyMatch && (
+                                                        <div className="ml-4 flex flex-col items-end">
+                                                            <div className="flex items-center gap-1.5 bg-amber-500 text-black px-2 py-0.5 rounded-full">
+                                                                <Trophy className="w-2.5 h-2.5" />
+                                                                <span className="text-[9px] font-black uppercase tracking-tighter">Tu Partido</span>
+                                                            </div>
+                                                        </div>
+                                                     )}
                                                 </div>
                                                 
                                                 {isMyMatch && !match.estado_resultado && (
@@ -204,7 +241,7 @@ export function PlayerTournamentGroups({ torneoId, grupos, partidos, playerPairI
                                                 {match.estado_resultado === 'confirmado' && (
                                                     <div className="flex items-center justify-center gap-2 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
                                                         <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
-                                                            Confirmado: {match.resultado}
+                                                            {isMyMatch ? "✓ RESULTADO VERIFICADO: " : "Confirmado: "} {match.resultado}
                                                         </span>
                                                     </div>
                                                 )}
