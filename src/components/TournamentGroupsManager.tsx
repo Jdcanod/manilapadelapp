@@ -5,12 +5,14 @@ import { Swords, Users, Trophy } from "lucide-react";
 import { generarFaseGrupos, generarFaseEliminatoria } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 
 interface Props {
     torneoId: string;
     categorias: string[];
     gruposExistentes: { id: string; nombre_grupo: string; categoria: string }[];
     partidos: {
+        id: string;
         torneo_grupo_id?: string;
         pareja1_id?: string;
         pareja2_id?: string;
@@ -184,6 +186,39 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                 )}
                                             </tbody>
                                         </table>
+                                    </div>
+                                    <div className="p-4 border-t border-neutral-800 bg-neutral-900/50">
+                                        <h5 className="text-xs font-bold text-neutral-500 uppercase tracking-tighter mb-3 flex items-center gap-2">
+                                            <Swords className="w-3 h-3" />
+                                            Partidos del Grupo
+                                        </h5>
+                                        <div className="space-y-2">
+                                            {partidos.filter(p => p.torneo_grupo_id === grupo.id).map((match) => (
+                                                <div key={match.id} className="flex flex-col sm:flex-row items-center justify-between p-3 bg-neutral-950 border border-neutral-800 rounded-lg gap-3">
+                                                    <div className="flex-1 text-center sm:text-left">
+                                                        <div className="text-xs font-bold text-white mb-1">
+                                                            {match.pareja1?.nombre_pareja || "TBD"} vs {match.pareja2?.nombre_pareja || "TBD"}
+                                                        </div>
+                                                        {match.estado === 'jugado' ? (
+                                                            <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
+                                                                Resultado: {match.resultado}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-[10px] font-medium text-neutral-500 uppercase tracking-widest">
+                                                                Pendiente
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="w-full sm:w-32">
+                                                        <AdminTournamentResultModal 
+                                                            matchId={match.id}
+                                                            pareja1Nombre={match.pareja1?.nombre_pareja || "Pareja 1"}
+                                                            pareja2Nombre={match.pareja2?.nombre_pareja || "Pareja 2"}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
