@@ -40,7 +40,7 @@ interface Props {
     playerPairIds: string[];
 }
 
-export function PlayerTournamentGroups({ torneoId, grupos, partidos, playerPairIds }: Props) {
+export function PlayerTournamentGroups({ grupos, partidos, playerPairIds }: Props) {
     const [isPendingAction, startTransition] = useTransition();
     const router = useRouter();
 
