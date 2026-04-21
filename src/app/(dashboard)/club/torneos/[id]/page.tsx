@@ -12,7 +12,18 @@ import { TournamentGroupsManager } from "@/components/TournamentGroupsManager";
 import { AddTournamentPlayerModal } from "@/components/AddTournamentPlayerModal";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 
-function BracketMatchCard({ match }: { match: any }) {
+interface MatchItem {
+    id: string | number;
+    lugar: string | null;
+    estado: string;
+    fecha: string | null;
+    pareja1: { nombre_pareja: string | null } | null;
+    pareja2: { nombre_pareja: string | null } | null;
+    resultado: string | null;
+    torneo_grupo_id: string | number | null;
+}
+
+function BracketMatchCard({ match }: { match: MatchItem }) {
     return (
         <Card className="bg-neutral-950 border-neutral-800 border-l-4 border-l-amber-500 shadow-2xl overflow-hidden hover:border-neutral-700 transition-all group">
             <CardContent className="p-0">
