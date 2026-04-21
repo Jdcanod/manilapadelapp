@@ -205,7 +205,6 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
 
                 <TabsContent value="grupos" className="mt-8">
                      <PlayerTournamentGroups 
-                        torneoId={params.id}
                         grupos={grupos || []}
                         partidos={partidosReales}
                         playerPairIds={playerPairIds}
