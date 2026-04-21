@@ -132,9 +132,9 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
     const partidoFinal = partidosReales.find(p => p.lugar?.toLowerCase().includes('final') && !p.lugar?.toLowerCase().includes('semifinal'));
     let campeon = null;
     if (partidoFinal?.estado === 'jugado' && partidoFinal?.resultado) {
-        const sets = partidoFinal.resultado.split(',').map(s => s.trim().split('-').map(Number));
+        const sets = partidoFinal.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
         let p1 = 0, p2 = 0;
-        sets.forEach(s => s[0] > s[1] ? p1++ : p2++);
+        sets.forEach((s: number[]) => s[0] > s[1] ? p1++ : p2++);
         if (p1 > p2) { campeon = partidoFinal.pareja1?.nombre_pareja; }
         else { campeon = partidoFinal.pareja2?.nombre_pareja; }
     }
