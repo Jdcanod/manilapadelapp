@@ -54,13 +54,25 @@ export async function inscribirParejaTorneo(formData: FormData) {
         const jugador2Id = companeroData.id;
 
         // 3. Find or Create the 'Pareja'
-        const { data: existingPareja } = await admin
+        // Search both combinations sequentially for reliability
+        const { data: pair1 } = await admin
             .from('parejas')
             .select('id')
-            .or(`and(jugador1_id.eq.${jugador1Id},jugador2_id.eq.${jugador2Id}),and(jugador1_id.eq.${jugador2Id},jugador2_id.eq.${jugador1Id})`)
+            .eq('jugador1_id', jugador1Id)
+            .eq('jugador2_id', jugador2Id)
             .maybeSingle();
 
-        let parejaId = existingPareja?.id;
+        let parejaId = pair1?.id;
+
+        if (!parejaId) {
+            const { data: pair2 } = await admin
+                .from('parejas')
+                .select('id')
+                .eq('jugador1_id', jugador2Id)
+                .eq('jugador2_id', jugador1Id)
+                .maybeSingle();
+            parejaId = pair2?.id;
+        }
 
         if (!parejaId) {
             // Create new pareja
