@@ -374,7 +374,10 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
 
-        const supabaseAdmin = createAdminClient();
+        const supabaseAdmin = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
 
         // Verificar el usuario en la tabla pública para evitar FK violations
         let creadorId = '00000000-0000-0000-0000-000000000000';
