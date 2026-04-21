@@ -65,7 +65,7 @@ export function PlayerTournamentGroups({ torneoId, grupos, partidos, playerPairI
             if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: m.pareja1?.nombre_pareja || "TBD", pj: 0, pg: 0, sg: 0, sp: 0, pts: 0 });
             if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: m.pareja2?.nombre_pareja || "TBD", pj: 0, pg: 0, sg: 0, sp: 0, pts: 0 });
 
-            if (m.estado === 'jugado' && m.resultado) {
+            if (m.estado === 'jugado' && m.resultado && m.estado_resultado === 'confirmado') {
                 const s1 = map.get(m.pareja1_id)!;
                 const s2 = map.get(m.pareja2_id)!;
                 
@@ -161,7 +161,7 @@ export function PlayerTournamentGroups({ torneoId, grupos, partidos, playerPairI
                                         const isMyMatch = (match.pareja1_id && playerPairIds.includes(match.pareja1_id)) || 
                                                        (match.pareja2_id && playerPairIds.includes(match.pareja2_id));
                                         
-                                        const isPending = match.estado_resultado === 'pendiente';
+                                        const isPending = match.estado === 'jugado' && !!match.resultado && match.estado_resultado === 'pendiente';
                                         // Determinar si yo soy el que debe confirmar (soy del partido pero no soy el que reportó)
                                         // Para simplificar, si soy del partido y está pendiente, puedo confirmar o corregir.
                                         
@@ -183,7 +183,12 @@ export function PlayerTournamentGroups({ torneoId, grupos, partidos, playerPairI
                                                                 {match.pareja1?.nombre_pareja || "TBD"}
                                                             </span>
                                                             {match.resultado && (
-                                                                <span className="text-xs font-black text-amber-500">{match.resultado.split(',')[0].split('-')[0]}</span>
+                                                                <span className={cn(
+                                                                    "text-xs font-black",
+                                                                    match.estado_resultado === 'confirmado' ? "text-emerald-500" : "text-amber-500"
+                                                                )}>
+                                                                    {match.resultado.split(',')[0].split('-')[0]}
+                                                                </span>
                                                             )}
                                                         </div>
                                                         <div className="flex justify-between items-center">
@@ -194,7 +199,12 @@ export function PlayerTournamentGroups({ torneoId, grupos, partidos, playerPairI
                                                                 {match.pareja2?.nombre_pareja || "TBD"}
                                                             </span>
                                                             {match.resultado && (
-                                                                <span className="text-xs font-black text-amber-500">{match.resultado.split(',')[0].split('-')[1]}</span>
+                                                                <span className={cn(
+                                                                    "text-xs font-black",
+                                                                    match.estado_resultado === 'confirmado' ? "text-emerald-500" : "text-amber-500"
+                                                                )}>
+                                                                    {match.resultado.split(',')[0].split('-')[1]}
+                                                                </span>
                                                             )}
                                                         </div>
                                                      </div>
@@ -204,7 +214,7 @@ export function PlayerTournamentGroups({ torneoId, grupos, partidos, playerPairI
                                                                 <Trophy className="w-2.5 h-2.5" />
                                                                 <span className="text-[9px] font-black uppercase tracking-tighter">Tu Partido</span>
                                                             </div>
-                                                            {match.estado_resultado !== 'confirmado' && !isPending && (
+                                                            {match.estado !== 'jugado' && (
                                                                 <PlayerTournamentResultModal 
                                                                     matchId={match.id}
                                                                     pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"}
