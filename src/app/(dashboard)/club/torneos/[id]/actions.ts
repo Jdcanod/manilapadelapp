@@ -121,6 +121,13 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
         // 3. Ejecutar algoritmo de sorteo
         const groupDistributions = distributeParticipantsIntoGroups(participants);
 
+        // Get tournament info for inherited fields
+        const { data: torneoInfo } = await supabaseAdmin
+            .from('torneos')
+            .select('club_id, creador_id')
+            .eq('id', torneoId)
+            .single();
+
         // 4. Guardar grupos y partidos en la DB
         for (let i = 0; i < groupDistributions.length; i++) {
             const nombreGrupo = `Grupo ${String.fromCharCode(65 + i)}`;
@@ -142,13 +149,21 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
             }
 
             // Generar partidos Round Robin para el grupo (usando pareja_id real)
-            const matchData = generateMatchesForGroup(
+            const baseMatches = generateMatchesForGroup(
                 group.id, 
                 groupDistributions[i].map(p => p.id!.toString()), 
                 torneoId
             );
 
-            const { error: matchError } = await supabaseAdmin.from('partidos').insert(matchData);
+            // Inyectar campos obligatorios
+            const finalMatches = baseMatches.map(m => ({
+                ...m,
+                creador_id: torneoInfo?.creador_id,
+                club_id: torneoInfo?.club_id,
+                tipo_partido_oficial: 'torneo'
+            }));
+
+            const { error: matchError } = await supabaseAdmin.from('partidos').insert(finalMatches);
             if (matchError) console.error("Error inserting matches:", matchError);
         }
 
