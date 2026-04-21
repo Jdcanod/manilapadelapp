@@ -66,13 +66,19 @@ export function InscribirParejaDialog({ torneoId, torneoNombre }: Props) {
 
         startTransition(async () => {
             try {
-                await inscribirParejaTorneo(formData);
-                setSuccess(true);
-                // Cerrar modal automáticamente después de 2.5s
-                setTimeout(() => {
-                    setOpen(false);
-                    setSuccess(false);
-                }, 2500);
+                const response = await inscribirParejaTorneo(formData);
+                if (response && 'error' in response) {
+                    setError(response.error);
+                } else if (response && response.success) {
+                    setSuccess(true);
+                    // Cerrar modal automáticamente después de 2.5s
+                    setTimeout(() => {
+                        setOpen(false);
+                        setSuccess(false);
+                    }, 2500);
+                } else {
+                    setError("Ocurrió un error inesperado al procesar la solicitud.");
+                }
             } catch (err: unknown) {
                 const errorMessage = err instanceof Error ? err.message : "Ocurrió un error al inscribirse";
                 setError(errorMessage);
