@@ -243,67 +243,96 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                 </TabsContent>
 
                 <TabsContent value="cuadros" className="mt-6">
-                    <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-                        <div className="flex items-center justify-between mb-8">
-                            <div>
-                                <h3 className="text-xl font-bold text-white mb-1">Encuentros del Torneo</h3>
-                                <p className="text-sm text-neutral-400">Listado de partidos reales programados</p>
+                    <div className="space-y-12">
+                        {/* SECCIÓN FASE FINAL / PLAYOFFS */}
+                        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-10">
+                                <Trophy className="w-24 h-24 text-amber-500" />
                             </div>
-                            <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">
-                                Oficial
-                            </Badge>
-                        </div>
+                            <div className="flex items-center justify-between mb-8 relative z-10">
+                                <div>
+                                    <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-1">Fase Final • Playoffs</h3>
+                                    <p className="text-sm text-neutral-400">Cuadro de eliminación directa</p>
+                                </div>
+                                <Badge className="bg-amber-500 text-black font-black px-4 py-1">ÉLITE</Badge>
+                            </div>
 
-                        {!partidosReales || partidosReales.length === 0 ? (
-                            <div className="text-center py-12 text-neutral-500 border border-neutral-800 border-dashed rounded-xl bg-neutral-950/50">
-                                <Swords className="w-12 h-12 text-neutral-800 mx-auto mb-4" />
-                                <h3 className="text-lg font-medium text-neutral-400 mb-2">Cuadros no generados</h3>
-                                <p className="max-w-sm mx-auto text-sm">Una vez cierren las inscripciones, podrás generar los encuentros desde el panel de control o crearlos manualmente como partidos oficiales.</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {partidosReales.map((match) => (
-                                    <Card key={match.id} className="bg-neutral-950 border-neutral-800 shadow-xl overflow-hidden hover:border-neutral-700 transition-all">
-                                        <CardContent className="p-0">
-                                            <div className="flex justify-between items-center p-3 border-b border-neutral-800/50 bg-neutral-900/50">
-                                                <span className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">
-                                                    Match {match.id.toString().substring(0,4)} • {match.fecha ? new Date(match.fecha).toLocaleDateString() : 'Por definir'}
-                                                </span>
-                                                <Badge variant="secondary" className={`${match.estado === 'jugado' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-blue-500/10 text-blue-400'} text-[10px] uppercase`}>
-                                                    {match.estado}
-                                                </Badge>
-                                            </div>
-                                            <div className="p-4 space-y-3">
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-white text-sm font-bold">{match.pareja1?.nombre_pareja || "TBD"}</span>
-                                                    <span className="w-6 h-6 flex items-center justify-center bg-neutral-800 text-white font-bold text-xs rounded">
-                                                        {match.resultado?.split('-')[0] || '-'}
-                                                    </span>
+                            {partidosReales.filter(p => !p.torneo_grupo_id).length === 0 ? (
+                                <div className="text-center py-16 text-neutral-500 border-2 border-neutral-800 border-dashed rounded-2xl bg-neutral-950/50">
+                                    <Trophy className="w-16 h-16 text-neutral-800 mx-auto mb-4" />
+                                    <p className="max-w-xs mx-auto text-sm font-medium">La fase final aparecerá aquí una vez que realices el sorteo de eliminatorias desde la pestaña de grupos.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+                                    {partidosReales.filter(p => !p.torneo_grupo_id).map((match) => (
+                                        <Card key={match.id} className="bg-neutral-950 border-neutral-800 border-l-4 border-l-amber-500 shadow-2xl overflow-hidden hover:border-neutral-700 transition-all group">
+                                            <CardContent className="p-0">
+                                                <div className="flex justify-between items-center p-4 border-b border-neutral-800/50 bg-neutral-900/50">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] text-amber-500 uppercase tracking-widest font-black mb-0.5">
+                                                            {match.lugar || "Fase Final"}
+                                                        </span>
+                                                        <span className="text-[10px] text-neutral-500 font-bold uppercase">
+                                                            {match.fecha ? new Date(match.fecha).toLocaleDateString() : 'Programado'}
+                                                        </span>
+                                                    </div>
+                                                    <Badge variant="secondary" className={`${match.estado === 'jugado' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'} text-[10px] uppercase font-black px-3`}>
+                                                        {match.estado}
+                                                    </Badge>
                                                 </div>
-                                                <div className="flex justify-between items-center border-t border-neutral-900 pt-3">
-                                                    <span className="text-white text-sm font-bold">{match.pareja2?.nombre_pareja || "TBD"}</span>
-                                                    <span className="w-6 h-6 flex items-center justify-center bg-neutral-800 text-white font-bold text-xs rounded">
-                                                        {match.resultado?.split('-')[1] || '-'}
-                                                    </span>
+                                                <div className="p-6 space-y-6">
+                                                    <div className="flex justify-between items-center group-hover:translate-x-1 transition-transform">
+                                                        <span className="text-base font-black text-white uppercase tracking-tight">{match.pareja1?.nombre_pareja || "TBD"}</span>
+                                                        <div className="flex gap-1.5">
+                                                            {(match.resultado || "").split(',').map((setStr: string, idx: number) => (
+                                                                <span key={idx} className="w-8 h-8 flex items-center justify-center bg-neutral-900 text-white font-black text-sm rounded-lg border border-neutral-800">
+                                                                    {setStr.split('-')[0] || '-'}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex justify-between items-center group-hover:translate-x-1 transition-transform border-t border-neutral-900/50 pt-6">
+                                                        <span className="text-base font-black text-white uppercase tracking-tight">{match.pareja2?.nombre_pareja || "TBD"}</span>
+                                                        <div className="flex gap-1.5">
+                                                            {(match.resultado || "").split(',').map((setStr: string, idx: number) => (
+                                                                <span key={idx} className="w-8 h-8 flex items-center justify-center bg-neutral-800 text-neutral-400 font-black text-sm rounded-lg border border-neutral-800">
+                                                                    {setStr.split('-')[1] || '-'}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className="bg-neutral-900 p-2 border-t border-neutral-800">
-                                                {match.estado !== 'jugado' && match.pareja1 && match.pareja2 && (
-                                                    <div className="mb-2">
+                                                <div className="bg-neutral-900/80 p-3 border-t border-neutral-800">
+                                                    {match.estado !== 'jugado' && match.pareja1?.nombre_pareja !== "TBD" && match.pareja2?.nombre_pareja !== "TBD" && (
                                                         <AdminTournamentResultModal 
                                                             matchId={match.id} 
                                                             pareja1Nombre={match.pareja1.nombre_pareja || "TBD"} 
                                                             pareja2Nombre={match.pareja2.nombre_pareja || "TBD"} 
                                                         />
-                                                    </div>
-                                                )}
-                                                <button className="text-[10px] text-neutral-500 hover:text-white font-bold uppercase tracking-widest transition-colors w-full text-center">Ver Detalles</button>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
+                                                    )}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* SECCIÓN HISTORIAL DE GRUPOS */}
+                        <div className="opacity-60 hover:opacity-100 transition-opacity">
+                            <h3 className="text-lg font-bold text-neutral-500 mb-6 uppercase tracking-widest pl-2 border-l-2 border-neutral-800">Historial de Fase de Grupos</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {partidosReales.filter(p => p.torneo_grupo_id).map((match) => (
+                                    <div key={match.id} className="bg-neutral-900/50 border border-neutral-800/50 rounded-xl p-4 flex justify-between items-center">
+                                        <div className="flex-1">
+                                            <div className="text-[10px] text-neutral-600 font-bold mb-1 uppercase italic">{match.pareja1?.nombre_pareja} vs {match.pareja2?.nombre_pareja}</div>
+                                            <div className="text-xs font-black text-emerald-500 tracking-tighter">{match.resultado || "Pendiente"}</div>
+                                        </div>
+                                        <Badge className="bg-neutral-800 text-neutral-500 text-[8px] uppercase">{match.estado}</Badge>
+                                    </div>
                                 ))}
                             </div>
-                        )}
+                        </div>
                     </div>
                 </TabsContent>
             </Tabs>
