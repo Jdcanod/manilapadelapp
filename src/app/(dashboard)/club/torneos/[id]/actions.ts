@@ -43,13 +43,6 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
             await supabaseAdmin.from('torneo_grupos').delete().in('id', groupIds);
         }
 
-        // Get tournament info for inherited fields
-        const { data: torneoInfo } = await supabaseAdmin
-            .from('torneos')
-            .select('club_id')
-            .eq('id', torneoId)
-            .single();
-
         // 2. Obtener participantes de ambas fuentes (Regular y Master)
         
         // a. Regulares (torneo_parejas)
@@ -139,7 +132,7 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
         // Get tournament info for inherited fields
         const { data: torneoInfo } = await supabaseAdmin
             .from('torneos')
-            .select('club_id, creador_id')
+            .select('club_id')
             .eq('id', torneoId)
             .single();
 
