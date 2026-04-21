@@ -132,7 +132,7 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
                     jugador1_id: j1Id,
                     jugador2_id: j2Id,
                     nombre_pareja: `${j1?.nombre?.split(' ')[0] || 'J1'} & ${j2?.nombre?.split(' ')[0] || 'J2'}`,
-                    activa: true,
+                    activa: false,
                     categoria: categoria // Agregamos la categoría a la pareja
                 })
                 .select('id')
