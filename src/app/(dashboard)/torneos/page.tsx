@@ -52,7 +52,7 @@ export default async function TorneosPage() {
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                     {torneosFiltrados.map((torneo) => {
                         const hasPartidos = torneo.partidos && torneo.partidos.length > 0;
-                        const isFinalizado = hasPartidos && torneo.partidos.some((p: any) => p.lugar?.toLowerCase().includes('final') && !p.lugar?.toLowerCase().includes('semifinal') && p.estado === 'jugado');
+                        const isFinalizado = hasPartidos && torneo.partidos.some((p: { lugar?: string | null, estado?: string }) => p.lugar?.toLowerCase().includes('final') && !p.lugar?.toLowerCase().includes('semifinal') && p.estado === 'jugado');
 
                         let statusColor = "bg-blue-500/20 text-blue-400 border-blue-500/30";
                         let statusText = "Inscripciones Abiertas";
