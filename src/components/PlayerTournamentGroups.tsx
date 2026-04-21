@@ -127,7 +127,7 @@ export function PlayerTournamentGroups({ torneoId, grupos, partidos, playerPairI
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {standings.map((team, index) => {
+                                        {standings.map((team) => {
                                             const isMyTeam = playerPairIds.includes(team.parejaId);
                                             return (
                                                 <tr key={team.parejaId} className={cn(
