@@ -182,14 +182,43 @@ export async function registrarResultadoPorJugador(matchId: string, resultado: s
         const { createAdminClient } = await import("@/utils/supabase/server");
         const admin = createAdminClient();
 
-        // Obtener el ID interno del usuario
-        const { data: userData } = await admin
+        // Obtener el ID interno del usuario - intentar múltiples estrategias
+        let internalUserId: string | null = null;
+        
+        // Strategy 1: buscar por auth_id
+        const { data: byAuthId } = await admin
             .from('users')
             .select('id')
             .eq('auth_id', user.id)
-            .single();
+            .maybeSingle();
+        
+        if (byAuthId) {
+            internalUserId = byAuthId.id;
+        } else {
+            // Strategy 2: buscar por id directo (por si auth_id == users.id)
+            const { data: byId } = await admin
+                .from('users')
+                .select('id')
+                .eq('id', user.id)
+                .maybeSingle();
+            
+            if (byId) {
+                internalUserId = byId.id;
+            } else {
+                // Strategy 3: buscar por email
+                const { data: byEmail } = await admin
+                    .from('users')
+                    .select('id')
+                    .eq('email', user.email || '')
+                    .maybeSingle();
+                
+                internalUserId = byEmail?.id || null;
+            }
+        }
 
-        const internalUserId = userData?.id || user.id;
+        if (!internalUserId) {
+            return { success: false, message: "No se encontró tu perfil de usuario en el sistema." };
+        }
 
         const { data: userPairs } = await admin
             .from('parejas')
@@ -214,7 +243,7 @@ export async function registrarResultadoPorJugador(matchId: string, resultado: s
         }
 
         // Si ya está confirmado, no se puede cambiar por jugador
-        if (match.estado === 'jugado' && match.resultado && match.estado_resultado === 'confirmado') {
+        if (match.estado_resultado === 'confirmado') {
             return { success: false, message: "Este resultado ya ha sido verificado y no puede modificarse." };
         }
         
@@ -229,7 +258,10 @@ export async function registrarResultadoPorJugador(matchId: string, resultado: s
             })
             .eq('id', matchId);
 
-        if (updateError) throw new Error(updateError.message);
+        if (updateError) {
+            console.error("DB update error:", updateError);
+            return { success: false, message: "Error al guardar: " + updateError.message };
+        }
         
         revalidatePath(`/torneos/${match.torneo_id}`);
         revalidatePath(`/club/torneos/${match.torneo_id}`);
@@ -251,14 +283,40 @@ export async function confirmarResultado(matchId: string) {
         const { createAdminClient } = await import("@/utils/supabase/server");
         const admin = createAdminClient();
 
-        // Obtener el ID interno del usuario
-        const { data: userData } = await admin
+        // Obtener el ID interno del usuario - múltiples estrategias
+        let internalUserId: string | null = null;
+        
+        const { data: byAuthId } = await admin
             .from('users')
             .select('id')
             .eq('auth_id', user.id)
-            .single();
+            .maybeSingle();
+        
+        if (byAuthId) {
+            internalUserId = byAuthId.id;
+        } else {
+            const { data: byId } = await admin
+                .from('users')
+                .select('id')
+                .eq('id', user.id)
+                .maybeSingle();
+            
+            if (byId) {
+                internalUserId = byId.id;
+            } else {
+                const { data: byEmail } = await admin
+                    .from('users')
+                    .select('id')
+                    .eq('email', user.email || '')
+                    .maybeSingle();
+                
+                internalUserId = byEmail?.id || null;
+            }
+        }
 
-        const internalUserId = userData?.id || user.id;
+        if (!internalUserId) {
+            return { success: false, message: "No se encontró tu perfil de usuario." };
+        }
 
         const { data: match } = await admin
             .from('partidos')
