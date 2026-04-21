@@ -379,26 +379,8 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
-        // Verificar el usuario en la tabla pública para evitar FK violations
-        let creadorId = '00000000-0000-0000-0000-000000000000';
-        if (user?.id) {
-            const { data: dbUser } = await supabaseAdmin
-                .from('users')
-                .select('id')
-                .eq('id', user.id)
-                .maybeSingle();
-            
-            if (!dbUser) {
-                const { data: dbUserByAuth } = await supabaseAdmin
-                    .from('users')
-                    .select('id')
-                    .eq('auth_id', user.id)
-                    .maybeSingle();
-                if (dbUserByAuth) creadorId = dbUserByAuth.id;
-            } else {
-                creadorId = dbUser.id;
-            }
-        }
+        const userId = user?.id;
+        if (!userId) return { success: false, message: "Debes estar autenticado." };
 
         // Obtener datos del torneo para campos obligatorios
         const { data: torneo } = await supabaseAdmin
@@ -472,7 +454,7 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
             if (i < rank2.length) {
                 matchesToCreate.push({
                     torneo_id: torneoId,
-                    creador_id: creadorId,
+                    creador_id: userId,
                     club_id: clubId,
                     pareja1_id: rank1[i].parejaId,
                     pareja2_id: rank2[i].parejaId,
