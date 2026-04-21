@@ -308,28 +308,30 @@ export async function inscribirParejaManual(torneoId: string, jugador1Sel: strin
 }
 
 export async function registrarResultadoPorClub(matchId: string, resultado: string) {
-    const supabase = createClient();
-    
-    // Obtenemos el ID del club actual (por auditoría)
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    const { error } = await supabase
-        .from('partidos')
-        .update({
-            resultado: resultado,
-            resultado_registrado_por: user?.id,
-            resultado_confirmado_por: user?.id,
-            resultado_registrado_at: new Date().toISOString(),
-            estado_resultado: 'confirmado',
-            estado: 'jugado' // El club registra, es oficial y finalizado
-        })
-        .eq('id', matchId);
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        const supabaseAdmin = createAdminClient();
+        
+        const { error } = await supabaseAdmin
+            .from('partidos')
+            .update({
+                resultado: resultado,
+                resultado_registrado_por: user?.id,
+                resultado_confirmado_por: user?.id,
+                resultado_registrado_at: new Date().toISOString(),
+                estado_resultado: 'confirmado',
+                estado: 'jugado'
+            })
+            .eq('id', matchId);
 
-    if (error) throw new Error(error.message);
-    
-    // Asumimos que podemos estar en cualquier página, pero revalidamos de forma general o no hacemos nada específico de path
-    // Quien lo llama se encarga de revalidar su path.
-    return { success: true };
+        if (error) throw new Error(error.message);
+        return { success: true };
+    } catch (err: unknown) {
+        console.error("Error en registrarResultadoPorClub:", err);
+        throw err;
+    }
 }
 
 export async function obtenerTodosJugadores() {
