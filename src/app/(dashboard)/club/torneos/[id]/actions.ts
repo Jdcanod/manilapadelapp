@@ -478,6 +478,7 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
                     pareja2_id: rank2[i].parejaId,
                     estado: 'programado',
                     tipo_partido: 'torneo',
+                    nivel: categoria || 'no_especificado',
                     lugar: `${rondaName} - ${categoria}`,
                     fecha: fechaTorneo,
                     cupos_totales: 4,
