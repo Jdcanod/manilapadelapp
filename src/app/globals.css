@@ -66,45 +66,31 @@
   }
 }
 @layer components {
-  /* Contenedor de la columna de la ronda */
   .bracket-column {
     @apply flex flex-col justify-around gap-16 relative py-12;
   }
 
-  /* Wrapper de cada partido */
-  .match-wrapper {
-    @apply relative;
+  /* Contenedor de una pareja de partidos */
+  .bracket-pair-container {
+    @apply relative flex flex-col gap-12;
   }
 
-  /* Línea que sale hacia la derecha (hacia la siguiente ronda) */
-  .match-wrapper.has-next::after {
+  /* Línea vertical que une la pareja */
+  .bracket-pair-container::after {
     content: '';
-    @apply absolute -right-8 top-1/2 w-8 h-[2px] bg-neutral-700;
+    @apply absolute -right-8 top-[25%] bottom-[25%] w-[2px] bg-neutral-700;
   }
 
-  /* Línea vertical que une parejas */
-  /* El de arriba lanza línea hacia abajo */
-  .match-wrapper.has-next:nth-child(odd)::before {
-    content: '';
-    @apply absolute -right-8 top-1/2 w-[2px] h-[calc(50%+3rem)] bg-neutral-700;
-  }
-  /* El de abajo lanza línea hacia arriba */
-  .match-wrapper.has-next:nth-child(even)::before {
-    content: '';
-    @apply absolute -right-8 top-[calc(50%-3rem)] w-[2px] h-[calc(50%+3rem)] bg-neutral-700;
+  /* Línea horizontal que sale de la pareja hacia la derecha */
+  .bracket-pair-connector-out {
+    @apply absolute -right-16 top-1/2 w-8 h-[2px] bg-neutral-700;
   }
 
-  /* Línea horizontal central que va al siguiente partido */
-  /* Solo la dibujamos una vez por pareja (en el impar) */
-  .match-wrapper.has-next:nth-child(odd) .match-connector-out {
-    @apply absolute -right-16 top-[calc(50%+3rem)] w-8 h-[2px] bg-neutral-700;
-  }
-
-  /* Línea que recibe por la izquierda */
-  .match-wrapper.has-prev::before {
-    content: '';
+  /* Línea horizontal que entra a un partido desde la izquierda */
+  .bracket-match-connector-in {
     @apply absolute -left-8 top-1/2 w-8 h-[2px] bg-neutral-700;
   }
 }
+
 
 

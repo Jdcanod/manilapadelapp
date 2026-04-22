@@ -166,16 +166,25 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                             {partidosReales.some(p => p.lugar?.toLowerCase().startsWith('octavos')) && (
                                 <div className="bracket-column min-w-[280px]">
                                     <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Octavos</h4>
-                                    {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('octavos')).map((match) => (
-                                        <div key={match.id} className="match-wrapper has-next">
-                                            <BracketMatchCardClient 
-                                                match={match} 
-                                                playerPairIds={playerPairIds} 
-                                                currentUserId={finalUserId}
-                                            />
-                                            <div className="match-connector-out" />
-                                        </div>
-                                    ))}
+                                    {(() => {
+                                        const matches = partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('octavos'));
+                                        const pairs = [];
+                                        for (let i = 0; i < matches.length; i += 2) pairs.push(matches.slice(i, i + 2));
+                                        return pairs.map((pair, pIdx) => (
+                                            <div key={pIdx} className="bracket-pair-container">
+                                                {pair.map(match => (
+                                                    <div key={match.id} className="relative">
+                                                        <BracketMatchCardClient 
+                                                            match={match} 
+                                                            playerPairIds={playerPairIds} 
+                                                            currentUserId={finalUserId}
+                                                        />
+                                                    </div>
+                                                ))}
+                                                <div className="bracket-pair-connector-out" />
+                                            </div>
+                                        ));
+                                    })()}
                                 </div>
                             )}
 
@@ -183,16 +192,26 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                             {partidosReales.some(p => p.lugar?.toLowerCase().startsWith('cuartos')) && (
                                 <div className="bracket-column min-w-[280px]">
                                     <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Cuartos</h4>
-                                    {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('cuartos')).map((match) => (
-                                        <div key={match.id} className="match-wrapper has-next has-prev">
-                                            <BracketMatchCardClient 
-                                                match={match} 
-                                                playerPairIds={playerPairIds} 
-                                                currentUserId={finalUserId}
-                                            />
-                                            <div className="match-connector-out" />
-                                        </div>
-                                    ))}
+                                    {(() => {
+                                        const matches = partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('cuartos'));
+                                        const pairs = [];
+                                        for (let i = 0; i < matches.length; i += 2) pairs.push(matches.slice(i, i + 2));
+                                        return pairs.map((pair, pIdx) => (
+                                            <div key={pIdx} className="bracket-pair-container">
+                                                {pair.map(match => (
+                                                    <div key={match.id} className="relative">
+                                                        <div className="bracket-match-connector-in" />
+                                                        <BracketMatchCardClient 
+                                                            match={match} 
+                                                            playerPairIds={playerPairIds} 
+                                                            currentUserId={finalUserId}
+                                                        />
+                                                    </div>
+                                                ))}
+                                                <div className="bracket-pair-connector-out" />
+                                            </div>
+                                        ));
+                                    })()}
                                 </div>
                             )}
 
@@ -200,16 +219,26 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                             {partidosReales.some(p => p.lugar?.toLowerCase().startsWith('semifinal')) && (
                                 <div className="bracket-column min-w-[280px]">
                                     <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Semifinales</h4>
-                                    {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('semifinal')).map((match) => (
-                                        <div key={match.id} className="match-wrapper has-next has-prev">
-                                            <BracketMatchCardClient 
-                                                match={match} 
-                                                playerPairIds={playerPairIds} 
-                                                currentUserId={finalUserId}
-                                            />
-                                            <div className="match-connector-out" />
-                                        </div>
-                                    ))}
+                                    {(() => {
+                                        const matches = partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('semifinal'));
+                                        const pairs = [];
+                                        for (let i = 0; i < matches.length; i += 2) pairs.push(matches.slice(i, i + 2));
+                                        return pairs.map((pair, pIdx) => (
+                                            <div key={pIdx} className="bracket-pair-container">
+                                                {pair.map(match => (
+                                                    <div key={match.id} className="relative">
+                                                        <div className="bracket-match-connector-in" />
+                                                        <BracketMatchCardClient 
+                                                            match={match} 
+                                                            playerPairIds={playerPairIds} 
+                                                            currentUserId={finalUserId}
+                                                        />
+                                                    </div>
+                                                ))}
+                                                <div className="bracket-pair-connector-out" />
+                                            </div>
+                                        ));
+                                    })()}
                                 </div>
                             )}
 
@@ -217,7 +246,8 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                             <div className="flex flex-col gap-12 min-w-[320px] items-center py-12">
                                 <div className="w-full">
                                     <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-8">Gran Final</h4>
-                                    <div className="match-wrapper has-prev">
+                                    <div className="relative">
+                                        <div className="bracket-match-connector-in" />
                                         {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('final')).map((match) => (
                                             <BracketMatchCardClient 
                                                 key={match.id} 
