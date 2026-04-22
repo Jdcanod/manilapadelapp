@@ -167,7 +167,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                                 <div className="flex flex-col gap-8 min-w-[280px]">
                                     <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Octavos</h4>
                                     <div className="flex flex-col gap-8">
-                                        {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('octavos')).map((match, idx) => (
+                                        {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('octavos')).map((match) => (
                                             <div key={match.id} className="bracket-node-right-link">
                                                 <BracketMatchCardClient 
                                                     match={match} 
@@ -185,7 +185,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                                 <div className="flex flex-col gap-8 min-w-[280px]">
                                     <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Cuartos</h4>
                                     <div className="flex flex-col gap-16 mt-8">
-                                        {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('cuartos')).map((match, idx) => (
+                                        {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('cuartos')).map((match) => (
                                             <div key={match.id} className="bracket-node-right-link bracket-node-left-link">
                                                 <BracketMatchCardClient 
                                                     match={match} 
@@ -203,7 +203,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                                 <div className="flex flex-col gap-8 min-w-[280px]">
                                     <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Semifinales</h4>
                                     <div className="flex flex-col gap-32 mt-16">
-                                        {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('semifinal')).map((match, idx) => (
+                                        {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('semifinal')).map((match) => (
                                             <div key={match.id} className="bracket-node-right-link bracket-node-left-link">
                                                 <BracketMatchCardClient 
                                                     match={match} 
