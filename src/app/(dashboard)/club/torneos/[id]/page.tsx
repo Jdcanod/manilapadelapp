@@ -400,42 +400,42 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                 </div>
                             ) : (
                                 <div className="relative z-10 flex flex-wrap items-start justify-center gap-8 lg:gap-12">
-                                    
+                                     
                                      {/* Octavos de Final */}
-                                     {partidosReales.some(p => p.lugar?.toLowerCase().includes('octavos')) && (
+                                     {partidosReales.some(p => p.lugar?.toLowerCase().startsWith('octavos')) && (
                                          <div className="flex flex-col gap-6 w-full max-w-[280px]">
                                              <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-2">Octavos</h4>
-                                             {partidosReales.filter(p => p.lugar?.toLowerCase().includes('octavos')).map((match) => (
+                                             {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('octavos')).map((match) => (
                                                  <BracketMatchCard key={match.id} match={match} />
                                              ))}
                                          </div>
                                      )}
 
                                      {/* Cuartos de Final */}
-                                     {partidosReales.some(p => p.lugar?.toLowerCase().includes('cuartos')) && (
+                                     {partidosReales.some(p => p.lugar?.toLowerCase().startsWith('cuartos')) && (
                                          <div className="flex flex-col gap-6 w-full max-w-[280px]">
                                              <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-2">Cuartos</h4>
-                                             {partidosReales.filter(p => p.lugar?.toLowerCase().includes('cuartos')).map((match) => (
+                                             {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('cuartos')).map((match) => (
                                                  <BracketMatchCard key={match.id} match={match} />
                                              ))}
                                          </div>
                                      )}
 
                                      {/* Playoffs / Otros */}
-                                     {partidosReales.some(p => p.lugar?.toLowerCase().includes('playoff')) && (
+                                     {partidosReales.some(p => p.lugar?.toLowerCase().startsWith('playoff')) && (
                                          <div className="flex flex-col gap-6 w-full max-w-[280px]">
                                              <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-2">Playoffs</h4>
-                                             {partidosReales.filter(p => p.lugar?.toLowerCase().includes('playoff')).map((match) => (
+                                             {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('playoff')).map((match) => (
                                                  <BracketMatchCard key={match.id} match={match} />
                                              ))}
                                          </div>
                                      )}
 
                                      {/* Semifinales */}
-                                     {partidosReales.some(p => p.lugar?.toLowerCase().includes('semifinal')) && (
+                                     {partidosReales.some(p => p.lugar?.toLowerCase().startsWith('semifinal')) && (
                                          <div className="flex flex-col gap-6 w-full max-w-[280px]">
                                              <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-2">Semifinales</h4>
-                                             {partidosReales.filter(p => p.lugar?.toLowerCase().includes('semifinal')).map((match) => (
+                                             {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('semifinal')).map((match) => (
                                                  <BracketMatchCard key={match.id} match={match} />
                                              ))}
                                          </div>
@@ -458,10 +458,10 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                      </div>
 
                                      {/* Final */}
-                                     {partidosReales.some(p => p.lugar?.toLowerCase().includes('final') && !p.lugar?.toLowerCase().includes('semifinal')) && (
+                                     {partidosReales.some(p => p.lugar?.toLowerCase().startsWith('final')) && (
                                          <div className="flex flex-col gap-6 w-full max-w-[280px]">
                                              <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-2">Final</h4>
-                                             {partidosReales.filter(p => p.lugar?.toLowerCase().includes('final') && !p.lugar?.toLowerCase().includes('semifinal')).map((match) => (
+                                             {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('final')).map((match) => (
                                                  <BracketMatchCard key={match.id} match={match} />
                                              ))}
                                          </div>

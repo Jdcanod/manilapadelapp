@@ -504,10 +504,19 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
         else if (numMatches === 8) rondaName = "Octavos de Final";
         else if (numMatches === 16) rondaName = "16vos de Final";
 
-        // Emparejamiento: 1 vs N, 2 vs N-1, etc.
-        const matchesToCreate = [];
+        // 1. Borrar partidos de eliminatoria anteriores para esta categoría
+        await supabaseAdmin
+            .from('partidos')
+            .delete()
+            .eq('torneo_id', torneoId)
+            .is('torneo_grupo_id', null)
+            .like('lugar', `% - ${categoria}`);
+
+        const allMatchesToCreate = [];
+
+        // 2. Crear los partidos de la ronda inicial (con parejas ya clasificadas)
         for (let i = 0; i < numMatches; i++) {
-            matchesToCreate.push({
+            allMatchesToCreate.push({
                 torneo_id: torneoId,
                 creador_id: userId,
                 club_id: clubId,
@@ -523,16 +532,37 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
             });
         }
 
-        // Borrar partidos de eliminatoria anteriores para esta categoría
-        await supabaseAdmin
-            .from('partidos')
-            .delete()
-            .eq('torneo_id', torneoId)
-            .is('torneo_grupo_id', null)
-            .like('lugar', `% - ${categoria}`);
+        // 3. Generar rondas futuras vacías (Semis, Final, etc.) para visualización del bracket
+        let currentRondaMatches = numMatches;
+        let currentRondaName = rondaName;
 
-        if (matchesToCreate.length > 0) {
-            const { error } = await supabaseAdmin.from('partidos').insert(matchesToCreate);
+        while (currentRondaMatches > 1) {
+            currentRondaMatches /= 2;
+            if (currentRondaMatches === 8) currentRondaName = "Octavos de Final";
+            else if (currentRondaMatches === 4) currentRondaName = "Cuartos de Final";
+            else if (currentRondaMatches === 2) currentRondaName = "Semifinal";
+            else if (currentRondaMatches === 1) currentRondaName = "Final";
+
+            for (let i = 0; i < currentRondaMatches; i++) {
+                allMatchesToCreate.push({
+                    torneo_id: torneoId,
+                    creador_id: userId,
+                    club_id: clubId,
+                    pareja1_id: null,
+                    pareja2_id: null,
+                    estado: 'programado',
+                    tipo_partido: 'torneo',
+                    nivel: categoria || 'no_especificado',
+                    lugar: `${currentRondaName} - ${categoria}`,
+                    fecha: fechaTorneo,
+                    cupos_totales: 4,
+                    cupos_disponibles: 0,
+                });
+            }
+        }
+
+        if (allMatchesToCreate.length > 0) {
+            const { error } = await supabaseAdmin.from('partidos').insert(allMatchesToCreate);
             if (error) {
                 console.error("Error insertando partidos eliminatorias:", error);
                 return { success: false, message: "Error DB: " + error.message };
@@ -540,7 +570,7 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
         }
         
         revalidatePath(`/club/torneos/${torneoId}`);
-        return { success: true, message: `Se generaron ${matchesToCreate.length} partidos de ${rondaName} con ${targetTeams} parejas.` };
+        return { success: true, message: `Se generó el cuadro completo de ${rondaName} con ${targetTeams} parejas.` };
     } catch (err: unknown) {
         console.error("Error en generarFaseEliminatoria:", err);
         return { success: false, message: err instanceof Error ? err.message : "Error desconocido" };
