@@ -49,6 +49,8 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
         
         if (potentialSets.length < 2) return alert("Error: Los partidos deben tener al menos 2 sets registrados.");
 
+        let p1Sets = 0;
+        let p2Sets = 0;
         const validSets = [];
 
         // Validar reglas de Padel para cada set, tratando vacíos como 0
@@ -63,19 +65,39 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
             const max = Math.max(p1, p2);
             const min = Math.min(p1, p2);
 
+            let setValido = false;
             // Caso estándar: Se gana con 6 y diferencia de 2
             if (max === 6 && min <= 4) {
-                validSets.push({ p1, p2 });
-                continue;
-            }
-            
-            // Caso de desempate: 7-5 o 7-6
-            if (max === 7 && (min === 5 || min === 6)) {
-                validSets.push({ p1, p2 });
-                continue;
+                setValido = true;
+            } else if (max === 7 && (min === 5 || min === 6)) {
+                // Caso de desempate: 7-5 o 7-6
+                setValido = true;
             }
 
-            return alert(`El marcador ${p1}-${p2} no es válido. Un set debe terminar 6-0 a 6-4, 7-5 o 7-6.`);
+            if (!setValido) {
+                return alert(`El marcador ${p1}-${p2} no es válido. Un set debe terminar 6-0 a 6-4, 7-5 o 7-6.`);
+            }
+
+            validSets.push({ p1, p2 });
+            if (p1 > p2) p1Sets++;
+            else p2Sets++;
+        }
+
+        // Validar que haya un ganador claro (2 sets ganados por uno de los dos)
+        if (p1Sets < 2 && p2Sets < 2) {
+            return alert("Error: Un equipo debe ganar al menos 2 sets para terminar el partido.");
+        }
+
+        if (p1Sets === 2 && p2Sets === 2) {
+            return alert("Error: No puede haber un empate en sets (2-2). El pádel se juega a ganar 2 de 3 sets.");
+        }
+
+        if ((p1Sets === 2 && p2Sets > 1) || (p2Sets === 2 && p1Sets > 1)) {
+            return alert("Error: El resultado no es coherente. Un equipo debe ganar 2-0 o 2-1 en sets.");
+        }
+
+        if (p1Sets > 2 || p2Sets > 2) {
+            return alert("Error: Ningún equipo puede ganar más de 2 sets.");
         }
 
         const resultadoFinal = validSets

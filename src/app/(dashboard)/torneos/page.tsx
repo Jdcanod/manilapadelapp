@@ -22,7 +22,7 @@ export default async function TorneosPage() {
             club:users!torneos_club_id_fkey(nombre),
             torneo_parejas:torneo_parejas(count),
             inscripciones:inscripciones_torneo(count),
-            partidos(id, estado, lugar)
+            partidos(id, estado, lugar, estado_resultado)
         `)
         .order('fecha_inicio', { ascending: true });
 
@@ -52,7 +52,12 @@ export default async function TorneosPage() {
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                     {torneosFiltrados.map((torneo) => {
                         const hasPartidos = torneo.partidos && torneo.partidos.length > 0;
-                        const isFinalizado = hasPartidos && torneo.partidos.some((p: { lugar?: string | null, estado?: string }) => p.lugar?.toLowerCase().includes('final') && !p.lugar?.toLowerCase().includes('semifinal') && p.estado === 'jugado');
+                        const isFinalizado = hasPartidos && torneo.partidos.some((p: { lugar?: string | null, estado?: string, estado_resultado?: string }) => 
+                            p.lugar?.toLowerCase().includes('final') && 
+                            !p.lugar?.toLowerCase().includes('semifinal') && 
+                            p.estado === 'jugado' &&
+                            p.estado_resultado === 'confirmado'
+                        );
 
                         let statusColor = "bg-blue-500/20 text-blue-400 border-blue-500/30";
                         let statusText = "Inscripciones Abiertas";

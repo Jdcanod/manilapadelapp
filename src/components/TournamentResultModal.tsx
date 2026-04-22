@@ -22,12 +22,61 @@ export function TournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, u
     const addSet = () => setSets([...sets, { p1: "", p2: "" }]);
 
     const onSave = () => {
-        const resultadoFinal = sets
-            .filter(s => s.p1 !== "" && s.p2 !== "")
-            .map(s => `${s.p1}-${s.p2}`)
-            .join(", ");
+        const potentialSets = sets.filter(s => s.p1.trim() !== "" || s.p2.trim() !== "");
+        
+        if (potentialSets.length < 2) {
+            return alert("Error: Los partidos deben tener al menos 2 sets registrados.");
+        }
 
-        if (!resultadoFinal) return alert("Ingresa al menos un set");
+        let p1Sets = 0;
+        let p2Sets = 0;
+        const validSets = [];
+
+        for (const set of potentialSets) {
+            const p1 = parseInt(set.p1 || "0");
+            const p2 = parseInt(set.p2 || "0");
+
+            if (p1 > 7 || p2 > 7) {
+                return alert("Error: Ningún equipo puede tener más de 7 puntos en un set.");
+            }
+
+            const max = Math.max(p1, p2);
+            const min = Math.min(p1, p2);
+
+            let setValido = false;
+            if (max === 6 && min <= 4) {
+                setValido = true;
+            } else if (max === 7 && (min === 5 || min === 6)) {
+                setValido = true;
+            }
+
+            if (!setValido) {
+                return alert(`El marcador ${p1}-${p2} no es válido. Un set debe terminar 6-0 a 6-4, 7-5 o 7-6.`);
+            }
+
+            validSets.push({ p1, p2 });
+            if (p1 > p2) p1Sets++;
+            else p2Sets++;
+        }
+
+        // Validar que haya un ganador claro (2 sets ganados por uno de los dos)
+        if (p1Sets < 2 && p2Sets < 2) {
+            return alert("Error: Un equipo debe ganar al menos 2 sets para terminar el partido.");
+        }
+
+        if (p1Sets === 2 && p2Sets === 2) {
+            return alert("Error: No puede haber un empate en sets (2-2). El pádel se juega a ganar 2 de 3 sets.");
+        }
+
+        if ((p1Sets === 2 && p2Sets > 1) || (p2Sets === 2 && p1Sets > 1)) {
+            return alert("Error: El resultado no es coherente. Un equipo debe ganar 2-0 o 2-1 en sets.");
+        }
+
+        if (p1Sets > 2 || p2Sets > 2) {
+            return alert("Error: Ningún equipo puede ganar más de 2 sets.");
+        }
+
+        const resultadoFinal = validSets.map(s => `${s.p1}-${s.p2}`).join(", ");
 
         startTransition(async () => {
             try {

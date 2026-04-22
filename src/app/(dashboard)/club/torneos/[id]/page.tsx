@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { ChevronLeft, CalendarDays, Users, Swords, Trophy } from "lucide-react";
+import { ChevronLeft, CalendarDays, Users, Swords, Trophy, Check } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { TournamentGroupsManager } from "@/components/TournamentGroupsManager";
 import { AddTournamentPlayerModal } from "@/components/AddTournamentPlayerModal";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
+import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton";
 
 interface MatchItem {
     id: string;
@@ -21,6 +22,7 @@ interface MatchItem {
     pareja2: { nombre_pareja: string | null } | null;
     resultado: string | null;
     torneo_grupo_id: string | null;
+    estado_resultado?: string | null;
 }
 
 function BracketMatchCard({ match }: { match: MatchItem }) {
@@ -57,7 +59,24 @@ function BracketMatchCard({ match }: { match: MatchItem }) {
                         </div>
                     </div>
                 </div>
-                <div className="bg-neutral-900/80 p-2 border-t border-neutral-800">
+                <div className="bg-neutral-900/80 p-2 border-t border-neutral-800 space-y-2">
+                    {match.estado === 'jugado' && match.estado_resultado === 'pendiente' && (
+                        <>
+                            <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-center">
+                                <p className="text-[9px] text-amber-500 font-black uppercase tracking-tighter">
+                                    Resultado por Confirmar
+                                </p>
+                            </div>
+                            <AdminConfirmResultButton matchId={match.id} />
+                        </>
+                    )}
+                    
+                    {match.estado_resultado === 'confirmado' && (
+                        <div className="flex items-center justify-center gap-2 text-emerald-500 font-black text-[10px] uppercase bg-emerald-500/5 p-2 rounded-lg border border-emerald-500/10">
+                            <Check className="w-3 h-3" /> Resultado Verificado
+                        </div>
+                    )}
+
                     {match.estado !== 'jugado' && match.pareja1?.nombre_pareja !== "TBD" && match.pareja2?.nombre_pareja !== "TBD" && (
                         <AdminTournamentResultModal 
                             matchId={match.id} 
@@ -195,26 +214,12 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         pareja2: { nombre_pareja: parejaNamesMap.get(p.pareja2_id) || "TBD" }
     }));
 
-    const isPast = new Date(torneo.fecha_fin) < new Date();
-    const isUpcoming = new Date(torneo.fecha_inicio) > new Date();
-
-    let statusColor = "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
-    let statusText = "Torneo En Curso";
-
-    if (isPast) {
-        statusColor = "bg-neutral-800 text-neutral-400 border-neutral-700";
-        statusText = "Finalizado";
-    } else if (isUpcoming) {
-        statusColor = "bg-blue-500/20 text-blue-400 border-blue-500/30";
-        statusText = "Próximo";
-    }
-
     // Identificar Ganador y Finalista del torneo
     const partidoFinal = partidosReales.find(p => p.lugar?.toLowerCase().includes('final') && !p.lugar?.toLowerCase().includes('semifinal'));
     let campeon = null;
     let subcampeon = null;
     
-    if (partidoFinal && partidoFinal.estado === 'jugado' && partidoFinal.resultado) {
+    if (partidoFinal && partidoFinal.estado === 'jugado' && partidoFinal.resultado && partidoFinal.estado_resultado === 'confirmado') {
         const setsFinal = partidoFinal.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
         let p1Wins = 0;
         let p2Wins = 0;
@@ -230,6 +235,23 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
             campeon = partidoFinal.pareja2?.nombre_pareja;
             subcampeon = partidoFinal.pareja1?.nombre_pareja;
         }
+    }
+
+    const isPast = new Date(torneo.fecha_fin) < new Date();
+    const isUpcoming = new Date(torneo.fecha_inicio) > new Date();
+
+    let statusColor = "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
+    let statusText = "Torneo En Curso";
+
+    if (campeon) {
+        statusColor = "bg-neutral-800 text-neutral-400 border-neutral-700";
+        statusText = "Finalizado";
+    } else if (isPast) {
+        statusColor = "bg-amber-500/20 text-amber-400 border-amber-500/30";
+        statusText = "Finalizando (Resultados Pendientes)";
+    } else if (isUpcoming) {
+        statusColor = "bg-blue-500/20 text-blue-400 border-blue-500/30";
+        statusText = "Próximo";
     }
 
     return (

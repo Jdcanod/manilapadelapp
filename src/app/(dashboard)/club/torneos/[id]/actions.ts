@@ -126,6 +126,23 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
             throw new Error(`Se necesitan al menos 3 parejas en la categoría ${categoria} para generar grupos. Actualmente hay ${participants.length}.`);
         }
 
+        // 2b. Limpiar partidos de fase de grupos previos para esta categoría para evitar duplicados
+        await supabaseAdmin
+            .from('partidos')
+            .delete()
+            .eq('torneo_id', torneoId)
+            .eq('nivel', categoria)
+            .not('torneo_grupo_id', 'is', null);
+
+        // También limpiar partidos que pudieron quedar huérfanos (sin grupo) pero que son del torneo y categoría
+        await supabaseAdmin
+            .from('partidos')
+            .delete()
+            .eq('torneo_id', torneoId)
+            .eq('nivel', categoria)
+            .is('torneo_grupo_id', null)
+            .like('lugar', 'Canchas - %');
+
         // 3. Ejecutar algoritmo de sorteo
         const groupDistributions = distributeParticipantsIntoGroups(participants);
 
@@ -347,10 +364,10 @@ export async function registrarResultadoPorClub(matchId: string, resultado: stri
             .eq('id', matchId)
             .single();
 
-        // 3. Verificar avance de fase (Automático para Semifinales)
-        if (currentMatch && !currentMatch.torneo_grupo_id && currentMatch.lugar?.toLowerCase().includes('semifinal')) {
-            const { verificarYGenerarFinal } = await import("@/lib/tournaments/progression");
-            await verificarYGenerarFinal(currentMatch.torneo_id, currentMatch.nivel, currentMatch.club_id, finalUserId);
+        // 3. Verificar avance de fase (Automático para Eliminatorias)
+        if (currentMatch && !currentMatch.torneo_grupo_id) {
+            const { procesarAvanceCuadros } = await import("@/lib/tournaments/progression");
+            await procesarAvanceCuadros(currentMatch.torneo_id, currentMatch.nivel, currentMatch.club_id, finalUserId);
         }
         
         revalidatePath(`/club/torneos/${currentMatch?.torneo_id || ''}`);

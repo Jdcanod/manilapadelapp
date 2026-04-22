@@ -5,92 +5,16 @@ import { ChevronLeft, CalendarDays, Trophy, MapPin } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
-import { PlayerTournamentResultModal } from "@/components/PlayerTournamentResultModal";
 import { PlayerTournamentGroups } from "@/components/PlayerTournamentGroups";
+import { BracketMatchCardClient } from "@/components/BracketMatchCardClient";
+import { cn } from "@/lib/utils";
 
-interface MatchItem {
-    id: string;
-    lugar: string | null;
-    estado: string;
-    fecha: string | null;
-    pareja1_id: string | null;
-    pareja2_id: string | null;
-    pareja1: { nombre_pareja: string | null } | null;
-    pareja2: { nombre_pareja: string | null } | null;
-    resultado: string | null;
-    torneo_grupo_id: string | null;
-    nivel: string | null;
-}
 
-function BracketMatchCard({ match, playerPairIds }: { match: MatchItem, playerPairIds: string[] }) {
-    const isParticipant = (match.pareja1_id && playerPairIds.includes(match.pareja1_id)) || 
-                          (match.pareja2_id && playerPairIds.includes(match.pareja2_id));
-
-    return (
-        <Card className="bg-neutral-950 border-neutral-800 border-l-4 border-l-amber-500 shadow-2xl overflow-hidden hover:border-neutral-700 transition-all group">
-            <CardContent className="p-0">
-                <div className="flex justify-between items-center p-3 border-b border-neutral-800/50 bg-neutral-900/50">
-                    <span className="text-[10px] text-amber-500 uppercase tracking-widest font-black">
-                        {match.lugar || "Fase Final"}
-                    </span>
-                    <Badge variant="secondary" className={`${match.estado === 'jugado' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'} text-[10px] uppercase font-black px-2 py-0 h-4`}>
-                        {match.estado}
-                    </Badge>
-                </div>
-                <div className="p-4 space-y-4">
-                    <div className="flex justify-between items-center">
-                        <span className="text-sm font-black text-white uppercase truncate pr-2">{match.pareja1?.nombre_pareja || "TBD"}</span>
-                        <div className="flex gap-1">
-                            {(match.resultado || "-").split(',').map((setStr: string, idx: number) => (
-                                <span key={idx} className="w-6 h-6 flex items-center justify-center bg-neutral-900 text-white font-black text-[10px] rounded border border-neutral-800">
-                                    {setStr.split('-')[0] || '-'}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="flex justify-between items-center border-t border-neutral-900/50 pt-4">
-                        <span className="text-sm font-black text-white uppercase truncate pr-2">{match.pareja2?.nombre_pareja || "TBD"}</span>
-                        <div className="flex gap-1">
-                            {(match.resultado || "-").split(',').map((setStr: string, idx: number) => (
-                                <span key={idx} className="w-6 h-6 flex items-center justify-center bg-neutral-800 text-neutral-400 font-black text-[10px] rounded border border-neutral-800">
-                                    {setStr.split('-')[1] || '-'}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-                {match.estado !== 'jugado' && isParticipant && match.pareja1?.nombre_pareja !== "TBD" && match.pareja2?.nombre_pareja !== "TBD" && (
-                    <div className="p-3 bg-neutral-900/80 border-t border-neutral-800">
-                        <PlayerTournamentResultModal 
-                            matchId={match.id}
-                            pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"}
-                            pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
-                            initialResult={match.resultado}
-                        />
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    );
-}
 
 export default async function TorneoPlayerDetailsPage({ params }: { params: { id: string } }) {
     const supabase = createClient();
     const adminSupabase = createAdminClient();
     const { data: { user } } = await supabase.auth.getUser();
-
-    // Obtener información del torneo
-    const { data: torneo } = await adminSupabase
-        .from('torneos')
-        .select(`
-            *,
-            club:users!club_id(nombre)
-        `)
-        .eq('id', params.id)
-        .single();
-
-    if (!torneo) notFound();
 
     // Obtener el ID interno del usuario y sus parejas usando el cliente admin para evitar RLS
     let playerPairIds: string[] = [];
@@ -104,12 +28,25 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
 
         finalUserId = userData?.id || user.id;
 
+        // Buscar IDs de parejas donde el usuario participa
         const { data: userPairs } = await adminSupabase
             .from('parejas')
             .select('id')
             .or(`jugador1_id.eq.${finalUserId},jugador2_id.eq.${finalUserId}`);
         playerPairIds = (userPairs || []).map(p => p.id);
     }
+
+    // Obtener información del torneo
+    const { data: torneo } = await adminSupabase
+        .from('torneos')
+        .select(`
+            *,
+            club:users!club_id(nombre)
+        `)
+        .eq('id', params.id)
+        .single();
+
+    if (!torneo) notFound();
 
     // Obtener partidos y nombres de parejas con permisos elevados para asegurar visibilidad
     const { data: rawPartidos } = await adminSupabase
@@ -142,7 +79,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
     // Identificar Campeón
     const partidoFinal = partidosReales.find(p => p.lugar?.toLowerCase().includes('final') && !p.lugar?.toLowerCase().includes('semifinal'));
     let campeon = null;
-    if (partidoFinal?.estado === 'jugado' && partidoFinal?.resultado) {
+    if (partidoFinal?.estado === 'jugado' && partidoFinal?.resultado && partidoFinal?.estado_resultado === 'confirmado') {
         const sets = partidoFinal.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
         let p1 = 0, p2 = 0;
         sets.forEach((s: number[]) => s[0] > s[1] ? p1++ : p2++);
@@ -171,8 +108,11 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                              <Link href="/torneos" className="text-xs font-bold text-neutral-500 hover:text-white uppercase tracking-widest flex items-center gap-1 transition-colors">
                                 <ChevronLeft className="w-3 h-3" /> Volver
                              </Link>
-                             <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/5 text-[10px] uppercase font-black px-3">
-                                {isPast ? "Finalizado" : "En Curso"}
+                             <Badge variant="outline" className={cn(
+                                 "text-[10px] uppercase font-black px-3",
+                                 campeon ? "border-neutral-700 text-neutral-400 bg-neutral-800/10" : "border-emerald-500/30 text-emerald-400 bg-emerald-500/5"
+                             )}>
+                                 {campeon ? "Finalizado" : (isPast ? "Finalizando" : "En Curso")}
                              </Badge>
                         </div>
                         <h1 className="text-4xl lg:text-5xl font-black text-white uppercase italic tracking-tighter leading-tight mb-2">
@@ -226,7 +166,12 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                             <div className="flex flex-col gap-8 w-full max-w-sm">
                                 <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.5em] mb-4">Semifinales</h4>
                                 {partidosReales.filter(p => p.lugar?.toLowerCase().includes('semifinal')).map((match) => (
-                                    <BracketMatchCard key={match.id} match={match} playerPairIds={playerPairIds} />
+                                    <BracketMatchCardClient 
+                                        key={match.id} 
+                                        match={match} 
+                                        playerPairIds={playerPairIds} 
+                                        currentUserId={finalUserId}
+                                    />
                                 ))}
                             </div>
 
@@ -244,7 +189,12 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                             <div className="flex flex-col gap-8 w-full max-w-sm">
                                 <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.5em] mb-4">Final</h4>
                                 {partidosReales.filter(p => p.lugar?.toLowerCase().includes('final') && !p.lugar?.toLowerCase().includes('semifinal')).map((match) => (
-                                    <BracketMatchCard key={match.id} match={match} playerPairIds={playerPairIds} />
+                                    <BracketMatchCardClient 
+                                        key={match.id} 
+                                        match={match} 
+                                        playerPairIds={playerPairIds} 
+                                        currentUserId={finalUserId}
+                                    />
                                 ))}
                             </div>
                         </div>
