@@ -170,7 +170,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                     ) : (
                         <Button 
                             onClick={onGeneratePlayoffs}
-                            disabled={isPending || partidos.some(p => !p.torneo_grupo_id && p.lugar?.toLowerCase().includes('final'))}
+                            disabled={isPending}
                             className="bg-amber-600 hover:bg-amber-500 text-white font-bold"
                         >
                             <Trophy className="w-4 h-4 mr-2" />
