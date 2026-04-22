@@ -430,18 +430,18 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
         const { data: grupos } = await supabaseAdmin.from('torneo_grupos').select('id, nombre_grupo').eq('torneo_id', torneoId).eq('categoria', categoria);
         if (!grupos || grupos.length === 0) return { success: false, message: "No hay grupos en esta categoría." };
 
-        const topTeams: { grupo: number, pos: number, parejaId: string }[] = [];
+        const allStandings: { parejaId: string, pos: number, pts: number, pg: number, sg: number, sp: number, gg: number, gp: number }[] = [];
 
         for (let i = 0; i < grupos.length; i++) {
             const { data: partidos } = await supabaseAdmin.from('partidos').select('*').eq('torneo_grupo_id', grupos[i].id);
             
-            const map = new Map<string, { parejaId: string, pts: number, pg: number }>();
+            const map = new Map<string, { parejaId: string, pts: number, pg: number, sg: number, sp: number, gg: number, gp: number }>();
             (partidos || []).forEach(m => {
                 if (!m.pareja1_id || !m.pareja2_id) return;
-                if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, pts: 0, pg: 0 });
-                if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, pts: 0, pg: 0 });
+                if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, pts: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0 });
+                if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, pts: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0 });
 
-                if (m.estado === 'jugado' && m.resultado) {
+                if (m.estado === 'jugado' && m.resultado && m.estado_resultado === 'confirmado') {
                     const s1 = map.get(m.pareja1_id)!;
                     const s2 = map.get(m.pareja2_id)!;
                     
@@ -450,39 +450,78 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
                     
                     sets.forEach((set: number[]) => {
                         if (set.length === 2 && !isNaN(set[0]) && !isNaN(set[1])) {
-                            if (set[0] > set[1]) setsP1++;
-                            else if (set[1] > set[0]) setsP2++;
+                            s1.gg += set[0]; s1.gp += set[1];
+                            s2.gg += set[1]; s2.gp += set[0];
+
+                            if (set[0] > set[1]) { setsP1++; s1.sg++; s2.sp++; }
+                            else if (set[1] > set[0]) { setsP2++; s2.sg++; s1.sp++; }
                         }
                     });
 
-                    if (setsP1 > setsP2) {
-                        s1.pg += 1;
-                        s1.pts += 3;
-                    } else if (setsP2 > setsP1) {
-                        s2.pg += 1;
-                        s2.pts += 3;
-                    }
+                    if (setsP1 > setsP2) { s1.pg++; s1.pts += 3; }
+                    else if (setsP2 > setsP1) { s2.pg++; s2.pts += 3; }
                 }
             });
 
-            const standings = Array.from(map.values()).sort((a, b) => b.pts - a.pts || b.pg - a.pg);
-            if (standings.length > 0) topTeams.push({ grupo: i, pos: 1, parejaId: standings[0].parejaId });
-            if (standings.length > 1) topTeams.push({ grupo: i, pos: 2, parejaId: standings[1].parejaId });
+            // Ordenar standings del grupo para asignar posición
+            const groupSorted = Array.from(map.values()).sort((a, b) => b.pts - a.pts || b.pg - a.pg || (b.sg - b.sp) - (a.sg - a.sp));
+            groupSorted.forEach((team, idx) => {
+                allStandings.push({ ...team, pos: idx + 1 });
+            });
         }
 
-        if (topTeams.length < 2) return { success: false, message: "No hay suficientes parejas con partidos jugados." };
+        if (allStandings.length < 2) return { success: false, message: "No hay suficientes parejas con partidos jugados." };
 
-        const rank1 = topTeams.filter(t => t.pos === 1);
-        const rank2 = topTeams.filter(t => t.pos === 2);
+        // Ordenar globalmente: Primero por posición en el grupo, luego por puntos, etc.
+        const globalRank = allStandings.sort((a, b) => {
+            if (a.pos !== b.pos) return a.pos - b.pos;
+            if (b.pts !== a.pts) return b.pts - a.pts;
+            if (b.pg !== a.pg) return b.pg - a.pg;
+            return (b.sg - b.sp) - (a.sg - a.sp);
+        });
 
-        const numMatches = rank1.length;
+        // Determinar tamaño del cuadro (potencia de 2)
+        // Por defecto queremos al menos 2 por grupo, pero redondeando a la potencia de 2 superior
+        let targetTeams = 2;
+        const baseClassified = grupos.length * 2;
+        while (targetTeams < baseClassified) {
+            targetTeams *= 2;
+        }
+
+        // Si no hay suficientes equipos en total, bajamos al nivel anterior
+        if (globalRank.length < targetTeams) {
+            targetTeams /= 2;
+            if (targetTeams < 2) targetTeams = 2;
+        }
+
+        const classifiedTeams = globalRank.slice(0, targetTeams);
+        const numMatches = targetTeams / 2;
+
         let rondaName = "Playoff";
         if (numMatches === 1) rondaName = "Final";
         else if (numMatches === 2) rondaName = "Semifinal";
         else if (numMatches === 4) rondaName = "Cuartos de Final";
         else if (numMatches === 8) rondaName = "Octavos de Final";
+        else if (numMatches === 16) rondaName = "16vos de Final";
 
-        rank2.reverse();
+        // Emparejamiento: 1 vs N, 2 vs N-1, etc.
+        const matchesToCreate = [];
+        for (let i = 0; i < numMatches; i++) {
+            matchesToCreate.push({
+                torneo_id: torneoId,
+                creador_id: userId,
+                club_id: clubId,
+                pareja1_id: classifiedTeams[i].parejaId,
+                pareja2_id: classifiedTeams[targetTeams - 1 - i].parejaId,
+                estado: 'programado',
+                tipo_partido: 'torneo',
+                nivel: categoria || 'no_especificado',
+                lugar: `${rondaName} - ${categoria}`,
+                fecha: fechaTorneo,
+                cupos_totales: 4,
+                cupos_disponibles: 0,
+            });
+        }
 
         // Borrar partidos de eliminatoria anteriores para esta categoría
         await supabaseAdmin
@@ -492,26 +531,6 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
             .is('torneo_grupo_id', null)
             .like('lugar', `% - ${categoria}`);
 
-        const matchesToCreate = [];
-        for (let i = 0; i < rank1.length; i++) {
-            if (i < rank2.length) {
-                matchesToCreate.push({
-                    torneo_id: torneoId,
-                    creador_id: userId,
-                    club_id: clubId,
-                    pareja1_id: rank1[i].parejaId,
-                    pareja2_id: rank2[i].parejaId,
-                    estado: 'programado',
-                    tipo_partido: 'torneo',
-                    nivel: categoria || 'no_especificado',
-                    lugar: `${rondaName} - ${categoria}`,
-                    fecha: fechaTorneo,
-                    cupos_totales: 4,
-                    cupos_disponibles: 0,
-                });
-            }
-        }
-        
         if (matchesToCreate.length > 0) {
             const { error } = await supabaseAdmin.from('partidos').insert(matchesToCreate);
             if (error) {
@@ -521,7 +540,7 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
         }
         
         revalidatePath(`/club/torneos/${torneoId}`);
-        return { success: true, message: `Se generaron ${matchesToCreate.length} partidos de ${rondaName}.` };
+        return { success: true, message: `Se generaron ${matchesToCreate.length} partidos de ${rondaName} con ${targetTeams} parejas.` };
     } catch (err: unknown) {
         console.error("Error en generarFaseEliminatoria:", err);
         return { success: false, message: err instanceof Error ? err.message : "Error desconocido" };
