@@ -94,6 +94,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
 
     // Obtener el ID interno del usuario y sus parejas usando el cliente admin para evitar RLS
     let playerPairIds: string[] = [];
+    let finalUserId: string | undefined = undefined;
     if (user) {
         const { data: userData } = await adminSupabase
             .from('users')
@@ -101,7 +102,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
             .eq('auth_id', user.id)
             .single();
 
-        const finalUserId = userData?.id || user.id;
+        finalUserId = userData?.id || user.id;
 
         const { data: userPairs } = await adminSupabase
             .from('parejas')
@@ -204,11 +205,13 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                 </TabsList>
 
                 <TabsContent value="grupos" className="mt-8">
-                     <PlayerTournamentGroups 
-                        grupos={grupos || []}
-                        partidos={partidosReales}
-                        playerPairIds={playerPairIds}
-                     />
+                        <PlayerTournamentGroups 
+                            torneoId={params.id}
+                            grupos={grupos || []} 
+                            partidos={partidosReales || []} 
+                            playerPairIds={playerPairIds} 
+                            currentUserId={typeof finalUserId !== 'undefined' ? finalUserId : undefined}
+                        />
                 </TabsContent>
 
                 <TabsContent value="cuadros" className="mt-8">

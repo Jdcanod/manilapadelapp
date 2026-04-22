@@ -38,9 +38,10 @@ interface Props {
     grupos: { id: string; nombre_grupo: string; categoria: string }[];
     partidos: Match[];
     playerPairIds: string[];
+    currentUserId?: string;
 }
 
-export function PlayerTournamentGroups({ grupos, partidos, playerPairIds }: Props) {
+export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId }: Props) {
     const [isPendingAction, startTransition] = useTransition();
     const router = useRouter();
 
@@ -232,6 +233,11 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds }: Prop
                                                             Resultado Pendiente de Confirmación
                                                         </p>
                                                         <div className="flex gap-2">
+                                                        {match.resultado_registrado_por === currentUserId ? (
+                                                            <div className="flex-1 bg-amber-500/20 text-amber-500 font-bold text-[10px] uppercase h-9 rounded-lg flex items-center justify-center text-center leading-tight px-2">
+                                                                Esperando verificación
+                                                            </div>
+                                                        ) : (
                                                             <Button 
                                                                 onClick={() => handleConfirm(match.id)}
                                                                 disabled={isPendingAction}
@@ -239,6 +245,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds }: Prop
                                                             >
                                                                 {isPendingAction ? "..." : "Confirmar Resultado"}
                                                             </Button>
+                                                        )}
                                                             <div className="flex-1">
                                                                 <PlayerTournamentResultModal 
                                                                     matchId={match.id}
