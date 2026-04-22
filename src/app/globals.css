@@ -65,3 +65,17 @@
     --chart-5: 340 75% 55%;
   }
 }
+@layer components {
+  .bracket-connector-vertical {
+    @apply absolute right-[-24px] w-[2px] bg-neutral-800 top-[50%] -translate-y-1/2;
+  }
+  .bracket-connector-horizontal {
+    @apply absolute right-[-48px] h-[2px] bg-neutral-800 top-[50%];
+  }
+  .bracket-node-left {
+    @apply relative after:content-[''] after:absolute after:right-[-24px] after:top-[50%] after:w-[24px] after:h-[2px] after:bg-neutral-800;
+  }
+  .bracket-node-right {
+    @apply relative before:content-[''] before:absolute before:left-[-24px] before:top-[50%] before:w-[24px] before:h-[2px] before:bg-neutral-800;
+  }
+}

@@ -22,13 +22,10 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
     if (!allMatches || allMatches.length === 0) return;
 
     // Clasificar partidos por ronda basándose en el nombre (lugar)
-    const filterRonda = (text: string) => allMatches.filter(m => m.lugar?.toLowerCase().includes(text.toLowerCase()));
-    
-    // El orden es crucial: Octavos -> Cuartos -> Semifinal -> Final
-    const octavos = filterRonda('octavos');
-    const cuartos = filterRonda('cuartos');
-    const semis = filterRonda('semifinal');
-    const final = filterRonda('final').filter(m => !m.lugar?.toLowerCase().includes('semifinal') && !m.lugar?.toLowerCase().includes('cuartos'));
+    const octavos = allMatches.filter(m => m.lugar?.toLowerCase().startsWith('octavos'));
+    const cuartos = allMatches.filter(m => m.lugar?.toLowerCase().startsWith('cuartos'));
+    const semis = allMatches.filter(m => m.lugar?.toLowerCase().startsWith('semifinal'));
+    const final = allMatches.filter(m => m.lugar?.toLowerCase().startsWith('final'));
 
     const getWinner = (m: { estado: string; estado_resultado?: string | null; resultado?: string | null; pareja1_id?: string | null; pareja2_id?: string | null }) => {
         if (m.estado !== 'jugado' || m.estado_resultado !== 'confirmado' || !m.resultado) return null;
