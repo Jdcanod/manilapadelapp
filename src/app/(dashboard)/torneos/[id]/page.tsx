@@ -161,77 +161,75 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                             <div className="h-1 w-20 bg-amber-500 rounded-full" />
                         </div>
 
-                        <div className="relative z-10 flex flex-nowrap items-start justify-center gap-16 overflow-x-auto pb-12 px-4 scrollbar-hide">
+                        <div className="relative z-10 flex flex-nowrap items-center justify-center gap-16 overflow-x-auto pb-12 px-4 scrollbar-hide">
                             {/* Octavos de Final */}
                             {partidosReales.some(p => p.lugar?.toLowerCase().startsWith('octavos')) && (
-                                <div className="flex flex-col gap-8 min-w-[280px]">
+                                <div className="bracket-column min-w-[280px]">
                                     <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Octavos</h4>
-                                    <div className="flex flex-col gap-8">
-                                        {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('octavos')).map((match) => (
-                                            <div key={match.id} className="bracket-node-right-link">
-                                                <BracketMatchCardClient 
-                                                    match={match} 
-                                                    playerPairIds={playerPairIds} 
-                                                    currentUserId={finalUserId}
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
+                                    {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('octavos')).map((match) => (
+                                        <div key={match.id} className="match-wrapper has-next">
+                                            <BracketMatchCardClient 
+                                                match={match} 
+                                                playerPairIds={playerPairIds} 
+                                                currentUserId={finalUserId}
+                                            />
+                                            <div className="match-connector-out" />
+                                        </div>
+                                    ))}
                                 </div>
                             )}
 
                             {/* Cuartos de Final */}
                             {partidosReales.some(p => p.lugar?.toLowerCase().startsWith('cuartos')) && (
-                                <div className="flex flex-col gap-8 min-w-[280px]">
+                                <div className="bracket-column min-w-[280px]">
                                     <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Cuartos</h4>
-                                    <div className="flex flex-col gap-16 mt-8">
-                                        {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('cuartos')).map((match) => (
-                                            <div key={match.id} className="bracket-node-right-link bracket-node-left-link">
-                                                <BracketMatchCardClient 
-                                                    match={match} 
-                                                    playerPairIds={playerPairIds} 
-                                                    currentUserId={finalUserId}
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
+                                    {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('cuartos')).map((match) => (
+                                        <div key={match.id} className="match-wrapper has-next has-prev">
+                                            <BracketMatchCardClient 
+                                                match={match} 
+                                                playerPairIds={playerPairIds} 
+                                                currentUserId={finalUserId}
+                                            />
+                                            <div className="match-connector-out" />
+                                        </div>
+                                    ))}
                                 </div>
                             )}
 
                             {/* Semifinales */}
                             {partidosReales.some(p => p.lugar?.toLowerCase().startsWith('semifinal')) && (
-                                <div className="flex flex-col gap-8 min-w-[280px]">
+                                <div className="bracket-column min-w-[280px]">
                                     <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Semifinales</h4>
-                                    <div className="flex flex-col gap-32 mt-16">
-                                        {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('semifinal')).map((match) => (
-                                            <div key={match.id} className="bracket-node-right-link bracket-node-left-link">
-                                                <BracketMatchCardClient 
-                                                    match={match} 
-                                                    playerPairIds={playerPairIds} 
-                                                    currentUserId={finalUserId}
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
+                                    {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('semifinal')).map((match) => (
+                                        <div key={match.id} className="match-wrapper has-next has-prev">
+                                            <BracketMatchCardClient 
+                                                match={match} 
+                                                playerPairIds={playerPairIds} 
+                                                currentUserId={finalUserId}
+                                            />
+                                            <div className="match-connector-out" />
+                                        </div>
+                                    ))}
                                 </div>
                             )}
 
                             {/* Final y Campeón */}
-                            <div className="flex flex-col gap-8 min-w-[320px] items-center">
-                                <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Gran Final</h4>
-                                
-                                <div className="mt-24 w-full bracket-node-left-link">
-                                    {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('final')).map((match) => (
-                                        <BracketMatchCardClient 
-                                            key={match.id} 
-                                            match={match} 
-                                            playerPairIds={playerPairIds} 
-                                            currentUserId={finalUserId}
-                                        />
-                                    ))}
+                            <div className="flex flex-col gap-12 min-w-[320px] items-center py-12">
+                                <div className="w-full">
+                                    <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-8">Gran Final</h4>
+                                    <div className="match-wrapper has-prev">
+                                        {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('final')).map((match) => (
+                                            <BracketMatchCardClient 
+                                                key={match.id} 
+                                                match={match} 
+                                                playerPairIds={playerPairIds} 
+                                                currentUserId={finalUserId}
+                                            />
+                                        ))}
+                                    </div>
                                 </div>
 
-                                <div className="mt-20 flex flex-col items-center">
+                                <div className="flex flex-col items-center">
                                     <div className={`w-32 h-32 lg:w-40 lg:h-40 rounded-full bg-gradient-to-tr from-amber-600 to-amber-300 flex items-center justify-center shadow-[0_0_50px_rgba(245,158,11,0.3)] relative ${campeon ? 'animate-pulse scale-110 shadow-[0_0_80px_rgba(245,158,11,0.5)]' : ''}`}>
                                         <Trophy className="w-16 h-16 lg:w-20 lg:h-20 text-neutral-900" />
                                         {campeon && (
