@@ -210,6 +210,13 @@ export default async function PartidosPage() {
                 </div>
             </div>
 
+            <div className="bg-red-900/20 p-4 text-xs text-white break-all mb-4">
+                DEBUG INFO:
+                <br/>currentProfileId: {currentProfileId}
+                <br/>misParejasIds ({misParejasIds.length}): {misParejasIds.join(', ')}
+                <br/>tournamentMatchIds ({myTournamentMatches.length}): {myTournamentMatches.map(m => m.id).join(', ')}
+            </div>
+
             <Tabs defaultValue="buscar" className="w-full">
                 <TabsList className="bg-neutral-900 border border-neutral-800 p-1 w-full sm:w-auto mb-6">
                     <TabsTrigger value="buscar" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">

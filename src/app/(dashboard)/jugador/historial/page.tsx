@@ -94,6 +94,14 @@ export default async function HistorialPartidosPage() {
             </div>
 
             <div className="grid gap-4">
+                <div className="bg-red-900/20 p-4 text-xs text-white break-all">
+                    DEBUG INFO:
+                    <br/>Auth ID: {user.id}
+                    <br/>User ID: {userData?.id}
+                    <br/>misParejasIds ({misParejasIds.length}): {misParejasIds.join(', ')}
+                    <br/>tournamentMatchIds ({tournamentMatchIds.length}): {tournamentMatchIds.join(', ')}
+                    <br/>ids ({ids.length}): {ids.join(', ')}
+                </div>
                 {!partidos || partidos.length === 0 ? (
                     <p className="text-neutral-500 text-center py-20">No has completado partidos todavía.</p>
                 ) : (
