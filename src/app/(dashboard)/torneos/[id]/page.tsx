@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlayerTournamentGroups } from "@/components/PlayerTournamentGroups";
 import { BracketMatchCardClient } from "@/components/BracketMatchCardClient";
 import { cn } from "@/lib/utils";
+import { TournamentChronogram } from "@/components/TournamentChronogram";
 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -191,20 +192,29 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
         if (p.pareja2_id) pairIds.add(p.pareja2_id);
     });
 
-    const parejaNamesMap = new Map<string, string>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parejaDataMap = new Map<string, any>();
     if (pairIds.size > 0) {
         const { data: namesData } = await adminSupabase
             .from('parejas')
-            .select('id, nombre_pareja')
+            .select('id, nombre_pareja, jugador1_id, jugador2_id')
             .in('id', Array.from(pairIds));
-        namesData?.forEach(n => parejaNamesMap.set(n.id, n.nombre_pareja));
+        namesData?.forEach(n => parejaDataMap.set(n.id, n));
     }
 
-    const partidosReales = (rawPartidos || []).map(p => ({
-        ...p,
-        pareja1: { nombre_pareja: parejaNamesMap.get(p.pareja1_id) || "TBD" },
-        pareja2: { nombre_pareja: parejaNamesMap.get(p.pareja2_id) || "TBD" }
-    }));
+    const partidosReales = (rawPartidos || []).map(p => {
+        const p1 = parejaDataMap.get(p.pareja1_id);
+        const p2 = parejaDataMap.get(p.pareja2_id);
+        return {
+            ...p,
+            pareja1: { nombre_pareja: p1?.nombre_pareja || "TBD" },
+            pareja2: { nombre_pareja: p2?.nombre_pareja || "TBD" },
+            jugador1_id: p1?.jugador1_id,
+            jugador2_id: p1?.jugador2_id,
+            jugador3_id: p2?.jugador1_id,
+            jugador4_id: p2?.jugador2_id
+        };
+    });
 
     // Identificar Campeón
     const { data: inscritos } = await supabase
@@ -277,9 +287,10 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
             </div>
 
             <Tabs defaultValue="grupos" className="w-full">
-                <TabsList className="bg-neutral-950 border border-neutral-800 p-2 h-auto w-full max-w-md mx-auto grid grid-cols-2 rounded-2xl">
-                    <TabsTrigger value="grupos" className="data-[state=active]:bg-neutral-900 data-[state=active]:text-amber-500 font-bold uppercase text-xs tracking-widest h-10 rounded-xl">Grupos</TabsTrigger>
-                    <TabsTrigger value="cuadros" className="data-[state=active]:bg-neutral-900 data-[state=active]:text-amber-500 font-bold uppercase text-xs tracking-widest h-10 rounded-xl">Eliminatorias</TabsTrigger>
+                <TabsList className="bg-neutral-950 border border-neutral-800 p-2 h-auto w-full max-w-md mx-auto grid grid-cols-3 rounded-2xl">
+                    <TabsTrigger value="grupos" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none uppercase text-[10px] font-black tracking-widest">Fase de Grupos</TabsTrigger>
+                    <TabsTrigger value="cuadros" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none uppercase text-[10px] font-black tracking-widest">Cuadros de Juego</TabsTrigger>
+                    <TabsTrigger value="cronograma" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none uppercase text-[10px] font-black tracking-widest">Cronograma</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="grupos" className="mt-8">
@@ -317,6 +328,19 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                             ))
                         )}
                     </div>
+                </TabsContent>
+
+                <TabsContent value="cronograma" className="mt-6">
+                    <TournamentChronogram 
+                        torneoId={torneo.id}
+                        matches={partidosReales}
+                        config={{
+                            duracion: torneo.reglas_puntuacion?.config_duracion || 60,
+                            canchas: torneo.reglas_puntuacion?.config_canchas || 1
+                        }}
+                        isAdmin={false}
+                        currentUserId={finalUserId}
+                    />
                 </TabsContent>
             </Tabs>
         </div>

@@ -330,24 +330,33 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         if (p.pareja2_id) pairIds.add(p.pareja2_id);
     });
 
-    const parejaNamesMap = new Map<string, string>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parejaDataMap = new Map<string, any>();
     if (pairIds.size > 0) {
         const { data: namesData } = await adminSupabase
             .from('parejas')
-            .select('id, nombre_pareja')
+            .select('id, nombre_pareja, jugador1_id, jugador2_id')
             .in('id', Array.from(pairIds));
         
-        namesData?.forEach(n => parejaNamesMap.set(n.id, n.nombre_pareja || "Pareja sin nombre"));
+        namesData?.forEach(n => parejaDataMap.set(n.id, n));
     }
 
     const hasStarted = (rawPartidos || []).length > 0;
 
-    // Inyectar nombres manualmente desde el mapa
-    const partidosReales = (rawPartidos || []).map(p => ({
-        ...p,
-        pareja1: { nombre_pareja: parejaNamesMap.get(p.pareja1_id) || "TBD" },
-        pareja2: { nombre_pareja: parejaNamesMap.get(p.pareja2_id) || "TBD" }
-    }));
+    // Inyectar nombres y IDs de jugadores manualmente desde el mapa
+    const partidosReales = (rawPartidos || []).map(p => {
+        const p1 = parejaDataMap.get(p.pareja1_id);
+        const p2 = parejaDataMap.get(p.pareja2_id);
+        return {
+            ...p,
+            pareja1: { nombre_pareja: p1?.nombre_pareja || "TBD" },
+            pareja2: { nombre_pareja: p2?.nombre_pareja || "TBD" },
+            jugador1_id: p1?.jugador1_id,
+            jugador2_id: p1?.jugador2_id,
+            jugador3_id: p2?.jugador1_id,
+            jugador4_id: p2?.jugador2_id
+        };
+    });
 
     // Identificar Ganador y Finalista del torneo
     const partidoFinal = partidosReales.find(p => p.lugar?.toLowerCase().startsWith('final'));

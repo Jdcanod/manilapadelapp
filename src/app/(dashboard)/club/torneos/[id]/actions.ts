@@ -611,30 +611,61 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
     }
 }
 
-export async function updateMatchSchedule(matchId: string, fecha: string, cancha: string) {
+export async function updateMatchSchedule(matchId: string, fecha: string, cancha: string, torneoId: string) {
     const supabase = createAdminClient();
+    
+    // 1. Obtener el lugar actual para preservar la fase (ej: Final, Semifinal)
+    const { data: partido } = await supabase
+        .from('partidos')
+        .select('lugar')
+        .eq('id', matchId)
+        .single();
+
+    let nuevoLugar = cancha;
+    if (partido?.lugar && !partido.lugar.includes('Cancha')) {
+        // Preservar la fase si existe (ej: "Final - Torneo" -> "Cancha 1 | Final")
+        const fase = partido.lugar.split('-')[0].trim();
+        nuevoLugar = `${cancha} | ${fase}`;
+    }
+
     const { error } = await supabase
         .from('partidos')
         .update({
             fecha,
-            lugar: cancha
+            lugar: nuevoLugar
         })
         .eq('id', matchId);
 
     if (error) throw new Error(error.message);
-    revalidatePath(`/club/torneos/`, "layout");
+    revalidatePath(`/club/torneos/${torneoId}`);
+    revalidatePath(`/torneos/${torneoId}`);
 }
 
-export async function unscheduleMatch(matchId: string) {
+export async function unscheduleMatch(matchId: string, torneoId: string) {
     const supabase = createAdminClient();
+
+    // 1. Obtener el lugar actual para restaurar la fase original
+    const { data: partido } = await supabase
+        .from('partidos')
+        .select('lugar')
+        .eq('id', matchId)
+        .single();
+
+    let restaurarLugar = null;
+    if (partido?.lugar && partido.lugar.includes('|')) {
+        // "Cancha 1 | Final" -> "Final"
+        restaurarLugar = partido.lugar.split('|')[1].trim();
+    }
+
     const { error } = await supabase
         .from('partidos')
         .update({
             fecha: null,
-            lugar: null
+            lugar: restaurarLugar
         })
         .eq('id', matchId);
 
     if (error) throw new Error(error.message);
-    revalidatePath(`/club/torneos/`, "layout");
+    revalidatePath(`/club/torneos/${torneoId}`);
+    revalidatePath(`/torneos/${torneoId}`);
 }
