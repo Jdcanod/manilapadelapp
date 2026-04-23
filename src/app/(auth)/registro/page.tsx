@@ -10,6 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Trophy, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/utils/supabase/client";
+import { crearPerfilUsuarioAction } from "./actions";
 
 export default function RegistroPage() {
     const router = useRouter();
@@ -79,8 +80,9 @@ export default function RegistroPage() {
             }
 
             if (authData?.user) {
-                // 2. Guardar su perfil en la tabla pública "users"
-                const { error: dbError } = await supabase.from('users').insert({
+                // 2. Guardar su perfil en la tabla pública "users" usando una acción de servidor (Admin)
+                // Esto evita el error de RLS ya que el usuario aún no ha confirmado su email
+                const { success, error: dbError } = await crearPerfilUsuarioAction({
                     auth_id: authData.user.id,
                     nombre: nombreCompleto,
                     apellido: apellido,
@@ -91,20 +93,20 @@ export default function RegistroPage() {
                     fecha_nacimiento: fecha_nacimiento || null,
                     club_preferencia: club_preferencia || null,
                     categoria: categoria,
-                    nivel: nivelValidado // Usa el nivel mapeado ('amateur', 'intermedio', 'avanzado')
+                    nivel: nivelValidado
                 });
 
-                if (dbError) {
+                if (!success) {
                     console.error("Profile saving error:", dbError);
                     toast({
                         title: "Aviso",
-                        description: "Cuenta creada pero hubo un problema configurando tu perfil: " + dbError.message,
+                        description: "Cuenta creada pero hubo un problema configurando tu perfil: " + dbError,
                         variant: "destructive"
                     });
                 } else {
                     toast({
                         title: "¡Bienvenido a ManilaPadel!",
-                        description: "Tu cuenta fue creada con éxito. Revisa tu correo si la verificación está activa.",
+                        description: "Tu cuenta fue creada con éxito. Revisa tu correo para confirmar tu cuenta y poder ingresar.",
                     });
                 }
 
