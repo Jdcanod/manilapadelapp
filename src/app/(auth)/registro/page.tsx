@@ -35,6 +35,14 @@ export default function RegistroPage() {
 
         const nombreCompleto = `${name} ${apellido}`.trim();
 
+        // Mapear categoría a nivel válido (amateur, intermedio, avanzado)
+        let nivelValidado = "amateur";
+        if (["1ra", "2da", "3ra"].includes(categoria)) {
+            nivelValidado = "avanzado";
+        } else if (["4ta", "5ta"].includes(categoria)) {
+            nivelValidado = "intermedio";
+        }
+
         try {
             console.log("Iniciando registro con supabase: ", { email, role: userRole, url: process.env.NEXT_PUBLIC_SUPABASE_URL });
 
@@ -52,7 +60,8 @@ export default function RegistroPage() {
                         ciudad: ciudad,
                         rol: userRole,
                         telefono: telefono,
-                        categoria: categoria
+                        categoria: categoria,
+                        nivel: nivelValidado
                     }
                 }
             });
@@ -82,7 +91,7 @@ export default function RegistroPage() {
                     fecha_nacimiento: fecha_nacimiento || null,
                     club_preferencia: club_preferencia || null,
                     categoria: categoria,
-                    nivel: categoria // Sincronizamos nivel con categoría para compatibilidad
+                    nivel: nivelValidado // Usa el nivel mapeado ('amateur', 'intermedio', 'avanzado')
                 });
 
                 if (dbError) {
