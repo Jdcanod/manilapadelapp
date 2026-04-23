@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Clock, Trash2, Info, AlertCircle, MousePointer2, ChevronRight, ChevronLeft, Star, GripVertical } from "lucide-react";
+import { CalendarDays, Clock, Trash2, AlertCircle, ChevronRight, ChevronLeft, Star, GripVertical } from "lucide-react";
 import { format, addMinutes, startOfDay, parseISO, addDays } from "date-fns";
 import { updateMatchSchedule, unscheduleMatch } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { useToast } from "@/hooks/use-toast";
@@ -82,6 +82,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
     const pendingMatches = matches.filter(m => !isScheduled(m));
 
     const handleAssign = useCallback(async (matchId: string, time: string, cancha: number) => {
+        if (isUpdating) return;
         setIsUpdating(true);
         try {
             const [hours, minutes] = time.split(":").map(Number);
@@ -89,7 +90,6 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
             finalDate.setHours(hours, minutes, 0, 0);
             const canchaStr = `Cancha ${cancha}`;
 
-            // Optimistic update
             setMatches(prev => prev.map(m => m.id === matchId 
                 ? { ...m, fecha: finalDate.toISOString(), lugar: canchaStr }
                 : m
@@ -111,9 +111,10 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
         } finally {
             setIsUpdating(false);
         }
-    }, [selectedDate, torneoId, initialMatches, router, toast]);
+    }, [selectedDate, torneoId, initialMatches, router, toast, isUpdating]);
 
     const handleUnschedule = useCallback(async (matchId: string) => {
+        if (isUpdating) return;
         setIsUpdating(true);
         try {
             setMatches(prev => prev.map(m => m.id === matchId
@@ -135,7 +136,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
         } finally {
             setIsUpdating(false);
         }
-    }, [torneoId, initialMatches, router, toast]);
+    }, [torneoId, initialMatches, router, toast, isUpdating]);
 
     const isPlayerInMatch = (m: Match) => {
         if (!currentUserId) return false;
@@ -147,22 +148,21 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
         );
     };
 
-    // Handlers para Drag and Drop
     const onDragStart = (e: React.DragEvent, matchId: string) => {
-        if (!isAdmin) return;
+        if (!isAdmin || isUpdating) return;
         setDraggedMatchId(matchId);
         e.dataTransfer.setData("matchId", matchId);
         e.dataTransfer.effectAllowed = "move";
     };
 
     const onDragOver = (e: React.DragEvent) => {
-        if (!isAdmin) return;
+        if (!isAdmin || isUpdating) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
     };
 
     const onDrop = (e: React.DragEvent, time: string, cancha: number) => {
-        if (!isAdmin) return;
+        if (!isAdmin || isUpdating) return;
         e.preventDefault();
         const matchId = e.dataTransfer.getData("matchId");
         if (matchId) {
@@ -194,11 +194,12 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                 pendingMatches.map(match => (
                                     <div 
                                         key={match.id} 
-                                        draggable={isAdmin}
+                                        draggable={isAdmin && !isUpdating}
                                         onDragStart={(e) => onDragStart(e, match.id)}
-                                        onClick={() => setSelectedMatchId(selectedMatchId === match.id ? null : match.id)}
+                                        onClick={() => !isUpdating && setSelectedMatchId(selectedMatchId === match.id ? null : match.id)}
                                         className={`
-                                            relative overflow-hidden p-4 rounded-2xl border-2 transition-all cursor-grab active:cursor-grabbing group
+                                            relative overflow-hidden p-4 rounded-2xl border-2 transition-all group
+                                            ${isAdmin && !isUpdating ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed opacity-50'}
                                             ${selectedMatchId === match.id 
                                                 ? 'bg-amber-500/20 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]' 
                                                 : 'bg-neutral-950 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900'}
@@ -256,7 +257,10 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                 <div className="overflow-x-auto rounded-3xl border border-neutral-800 bg-neutral-950 shadow-2xl">
                     <div className="min-w-[900px]">
                         {/* Encabezado Canchas */}
-                        <div className="grid grid-cols-[100px_repeat(var(--canchas),1fr)] sticky top-0 z-20 bg-neutral-900 border-b border-neutral-800" style={{ "--canchas": config.canchas } as any}>
+                        <div 
+                            className="grid grid-cols-[100px_repeat(var(--canchas),1fr)] sticky top-0 z-20 bg-neutral-900 border-b border-neutral-800" 
+                            style={{ "--canchas": config.canchas } as React.CSSProperties}
+                        >
                             <div className="p-5 border-r border-neutral-800 flex items-center justify-center">
                                 <Clock className="w-4 h-4 text-neutral-600" />
                             </div>
@@ -271,7 +275,11 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                         {/* Cuerpo del Cronograma */}
                         <div className="relative">
                             {timeSlots.map(time => (
-                                <div key={time} className="grid grid-cols-[100px_repeat(var(--canchas),1fr)] border-b border-neutral-800/30" style={{ "--canchas": config.canchas } as any}>
+                                <div 
+                                    key={time} 
+                                    className="grid grid-cols-[100px_repeat(var(--canchas),1fr)] border-b border-neutral-800/30" 
+                                    style={{ "--canchas": config.canchas } as React.CSSProperties}
+                                >
                                     <div className="p-4 text-center border-r border-neutral-800 bg-neutral-900/30 flex items-center justify-center">
                                         <span className="text-[11px] font-black text-neutral-400 tracking-tighter">{time}</span>
                                     </div>
@@ -306,10 +314,10 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                             >
                                                 {matchInSlot ? (
                                                     <div 
-                                                        draggable={isAdmin}
+                                                        draggable={isAdmin && !isUpdating}
                                                         onDragStart={(e) => onDragStart(e, matchInSlot.id)}
                                                         onClick={(e) => {
-                                                            if (isAdmin) {
+                                                            if (isAdmin && !isUpdating) {
                                                                 e.stopPropagation();
                                                                 setSelectedMatchId(isSelected ? null : matchInSlot.id);
                                                             }
@@ -319,7 +327,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                             ${isSelected ? 'border-amber-500 ring-2 ring-amber-500/20 scale-[1.02] z-10' : 'border-emerald-500/30 hover:border-emerald-500'}
                                                             ${isMine ? 'border-amber-500' : ''}
                                                             ${isBeingDragged ? 'opacity-40 grayscale' : 'opacity-100'}
-                                                            ${isAdmin ? 'cursor-grab active:cursor-grabbing' : ''}
+                                                            ${isAdmin && !isUpdating ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed'}
                                                         `}
                                                     >
                                                         {isMine && (
@@ -329,8 +337,9 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                         )}
                                                         <div className="absolute top-0 right-0 p-2 opacity-0 group-hover/match:opacity-100 transition-all">
                                                             <button 
+                                                                disabled={isUpdating}
                                                                 onClick={(e) => { e.stopPropagation(); handleUnschedule(matchInSlot.id); }}
-                                                                className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors"
+                                                                className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors disabled:opacity-30"
                                                             >
                                                                 <Trash2 className="w-3 h-3" />
                                                             </button>
