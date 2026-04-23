@@ -28,26 +28,26 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <div className="relative z-10 flex flex-col items-center text-center max-w-4xl px-4 mt-20">
+      <div className="relative z-10 flex flex-col items-center text-center max-w-5xl px-4 mt-20 md:mt-32">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-800/50 border border-neutral-700/50 backdrop-blur-md mb-8">
           <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
-          <span className="text-xs font-medium text-neutral-300 uppercase tracking-widest">La primera app de pádel en Manizales</span>
+          <span className="text-xs font-bold text-neutral-300 uppercase tracking-widest">La primera app de pádel en Manizales</span>
         </div>
 
-        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-white via-neutral-200 to-neutral-500 mb-6 drop-shadow-sm">
+        <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-neutral-200 to-neutral-500 mb-6 drop-shadow-sm leading-[1.1]">
           Eleva tu nivel,<br /> domina la cancha.
         </h1>
 
-        <p className="text-lg md:text-xl text-neutral-400 max-w-2xl mb-10 leading-relaxed font-light">
+        <p className="text-lg md:text-2xl text-neutral-400 max-w-3xl mb-12 leading-relaxed font-light">
           Encuentra parejas de tu nivel, reserva en los mejores clubes de Manizales y compite en el ranking más vibrante de la ciudad. Sin excusas, puro pádel.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
-          <Link href="/partidos" className="group flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-full font-semibold shadow-xl shadow-green-600/20 hover:shadow-green-600/40 transition-all hover:-translate-y-1 active:scale-95">
+          <Link href="/partidos" className="group flex items-center justify-center gap-2 px-10 py-5 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-full font-bold shadow-2xl shadow-green-600/30 hover:shadow-green-600/50 transition-all hover:-translate-y-1 active:scale-95">
             Explorar Partidos
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
-          <Link href="/ranking" className="flex items-center justify-center gap-2 px-8 py-4 bg-neutral-900/50 border border-neutral-800 text-white rounded-full font-medium backdrop-blur-md hover:bg-neutral-800/80 transition-all hover:-translate-y-1">
+          <Link href="/ranking" className="flex items-center justify-center gap-2 px-10 py-5 bg-neutral-900/50 border border-neutral-800 text-white rounded-full font-bold backdrop-blur-md hover:bg-neutral-800/80 transition-all hover:-translate-y-1">
             <Trophy className="w-4 h-4 text-amber-400" />
             Ver Ranking de Parejas
           </Link>
@@ -55,7 +55,7 @@ export default function Home() {
       </div>
 
       {/* Feature Grid */}
-      <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl px-6 mt-24 pb-20">
+      <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-7xl px-6 mt-32 pb-32">
         {[
           { icon: Users, title: "Ranking Dinámico ELO", desc: "Supera a parejas con mejor ranking y escala más rápido. Sistema justo y competitivo.", color: "text-blue-400" },
           { icon: MapPin, title: "Clubes en tu zona", desc: "Mapa interactivo de canchas panorámicas y techadas en todo Manizales.", color: "text-emerald-400" },

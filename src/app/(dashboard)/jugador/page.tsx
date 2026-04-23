@@ -158,43 +158,46 @@ export default async function JugadorDashboard() {
     return (
         <div className="space-y-6">
             {/* Header Profile Summary */}
-            <div className="flex flex-col md:flex-row items-center md:items-start gap-6 bg-neutral-900/50 p-6 rounded-3xl border border-neutral-800">
-                <Avatar className="w-24 h-24 border-4 border-neutral-800 shadow-xl">
-                    <AvatarFallback className="text-2xl bg-gradient-to-tr from-emerald-600 to-green-400 text-white">{iniciales}</AvatarFallback>
+            <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8 bg-neutral-900/50 p-6 md:p-10 rounded-[2.5rem] border border-neutral-800 backdrop-blur-md">
+                <Avatar className="w-28 h-28 md:w-32 md:h-32 border-4 border-neutral-800 shadow-2xl">
+                    <AvatarFallback className="text-3xl md:text-4xl bg-gradient-to-tr from-emerald-600 to-green-400 text-white font-black">{iniciales}</AvatarFallback>
                 </Avatar>
-                <div className="text-center md:text-left flex-1">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="text-center lg:text-left flex-1 w-full">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                         <div>
-                            <h1 className="text-3xl font-bold tracking-tight text-white mb-1">{nombreReal}</h1>
-                            <p className="text-neutral-400 font-medium capitalize">{userData?.nivel || 'Jugador'}</p>
+                            <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white mb-2">{nombreReal}</h1>
+                            <p className="text-neutral-400 text-lg font-medium capitalize flex items-center justify-center lg:justify-start gap-2">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                {userData?.nivel || 'Jugador'}
+                            </p>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 px-3 py-1">
+                        <div className="flex items-center justify-center gap-4">
+                            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 px-4 py-1.5 text-sm font-bold">
                                 {userData?.nivel || 'N/A'}
                             </Badge>
-                            <div className="flex items-center gap-1 bg-neutral-950 px-3 py-1.5 rounded-full border border-neutral-800">
-                                <Trophy className="w-4 h-4 text-amber-400 mb-0.5" />
-                                <span className="font-bold text-white">#{myRank || '-'}</span>
+                            <div className="flex items-center gap-2 bg-neutral-950 px-4 py-2 rounded-2xl border border-neutral-800 shadow-inner">
+                                <Trophy className="w-5 h-5 text-amber-400" />
+                                <span className="font-black text-xl text-white">#{myRank || '-'}</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-neutral-950/50 p-3 rounded-2xl border border-neutral-800/60">
-                            <div className="text-xs text-neutral-500 mb-1 flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Puntos ELO</div>
-                            <div className="text-2xl font-black text-white">{userData?.elo?.toLocaleString() || '1,000'}</div>
+                    <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                        <div className="bg-neutral-950/50 p-5 rounded-3xl border border-neutral-800/60 hover:bg-neutral-900 transition-colors">
+                            <div className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-blue-400" /> Puntos ELO</div>
+                            <div className="text-3xl font-black text-white">{userData?.elo?.toLocaleString() || '1,000'}</div>
                         </div>
-                        <div className="bg-neutral-950/50 p-3 rounded-2xl border border-neutral-800/60">
-                            <div className="text-xs text-neutral-500 mb-1 flex items-center gap-1"><Activity className="w-3 h-3" /> Win Rate</div>
-                            <div className="text-2xl font-black text-white">{winRate}%</div>
+                        <div className="bg-neutral-950/50 p-5 rounded-3xl border border-neutral-800/60 hover:bg-neutral-900 transition-colors">
+                            <div className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2 flex items-center gap-2"><Activity className="w-4 h-4 text-emerald-400" /> Win Rate</div>
+                            <div className="text-3xl font-black text-white">{winRate}%</div>
                         </div>
-                        <div className="bg-neutral-950/50 p-3 rounded-2xl border border-neutral-800/60">
-                            <div className="text-xs text-neutral-500 mb-1 flex items-center gap-1"><Star className="w-3 h-3" /> Pareja Actual</div>
-                            <div className="text-sm font-semibold text-emerald-400 mt-1 line-clamp-1">{parejaActual}</div>
+                        <div className="bg-neutral-950/50 p-5 rounded-3xl border border-neutral-800/60 hover:bg-neutral-900 transition-colors">
+                            <div className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2 flex items-center gap-2"><Star className="w-4 h-4 text-amber-400" /> Pareja</div>
+                            <div className="text-lg font-black text-emerald-400 mt-1 line-clamp-1 truncate">{parejaActual}</div>
                         </div>
-                        <div className="bg-neutral-950/50 p-3 rounded-2xl border border-neutral-800/60">
-                            <div className="text-xs text-neutral-500 mb-1 flex items-center gap-1"><Trophy className="w-3 h-3" /> Torneos</div>
-                            <div className="text-2xl font-black text-white">{numTorneos} <span className="text-sm text-neutral-500 font-normal">jugados</span></div>
+                        <div className="bg-neutral-950/50 p-5 rounded-3xl border border-neutral-800/60 hover:bg-neutral-900 transition-colors">
+                            <div className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2 flex items-center gap-2"><Trophy className="w-4 h-4 text-purple-400" /> Torneos</div>
+                            <div className="text-3xl font-black text-white">{numTorneos} <span className="text-sm text-neutral-500 font-normal uppercase">PJ</span></div>
                         </div>
                     </div>
                 </div>

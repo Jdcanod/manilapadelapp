@@ -40,7 +40,7 @@ export default async function DashboardLayout({
         <div className="min-h-screen bg-neutral-950 text-neutral-50 pb-20 md:pb-0 md:flex flex-col">
             {/* Mobile Top Header */}
             <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-neutral-950/80 border-b border-neutral-800">
-                <div className="flex h-16 items-center justify-between px-4 md:px-6">
+                <div className="max-w-7xl mx-auto w-full flex h-16 items-center justify-between px-4 md:px-6">
                     <Link href={rolUsuario === "jugador" ? "/jugador" : "/club"} className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-green-400 to-emerald-600 flex items-center justify-center shadow-sm">
                             <Trophy className="w-4 h-4 text-white" />
@@ -54,8 +54,8 @@ export default async function DashboardLayout({
                                 <Link href="/partidos" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">Partidos</Link>
                                 <Link href="/torneos" className="text-sm font-medium text-amber-500 hover:text-amber-400 transition-colors">Torneos</Link>
                                 <Link href="/clubes" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">Clubes</Link>
-                                <Link href="/ranking" className="text-sm font-medium text-emerald-500 hover:text-emerald-400 transition-colors">Ranking ELO</Link>
-                                <Link href="/novedades" className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors">Novedades</Link>
+                                <Link href="/ranking" className="text-sm font-medium text-emerald-500 hover:text-emerald-400 transition-colors font-semibold">Ranking ELO</Link>
+                                <Link href="/novedades" className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors">Muro</Link>
                             </>
                         ) : rolUsuario === "superadmin" ? (
                             <>
@@ -77,9 +77,6 @@ export default async function DashboardLayout({
                         {rolUsuario === "superadmin" && (
                             <div className="hidden lg:flex items-center gap-3 mr-4 border-r border-neutral-800 pr-4">
                                 <Link href="/superadmin" className="text-xs font-semibold text-red-500 hover:text-red-400 border border-red-500/30 px-2 py-1 rounded bg-red-500/10">Admin Panel</Link>
-                                <Link href="/superadmin/torneos" className="text-xs font-semibold text-neutral-400 hover:text-white transition-colors">Torneos</Link>
-                                <Link href="/superadmin/jugadores" className="text-xs font-semibold text-neutral-400 hover:text-white transition-colors">Jugadores</Link>
-                                <Link href="/superadmin/clubes" className="text-xs font-semibold text-neutral-400 hover:text-white transition-colors">Clubes</Link>
                                 <form action={cerrarSesionAction} className="inline">
                                     <button type="submit" className="text-xs font-semibold text-neutral-500 hover:text-red-400 transition-colors ml-2 flex items-center gap-1">
                                         <LogOut className="w-3 h-3" /> Salir
@@ -89,14 +86,14 @@ export default async function DashboardLayout({
                         )}
 
                         <div className="flex flex-col text-right">
-                            <span className="text-sm font-medium text-white line-clamp-1 max-w-[120px]">{nombreReal}</span>
+                            <span className="text-sm font-bold text-white line-clamp-1 max-w-[120px]">{nombreReal}</span>
                             {rolUsuario === "jugador" && (
-                                <span className="text-xs text-green-400 font-semibold">{puntosUsuario} pts</span>
+                                <span className="text-xs text-green-400 font-black">{puntosUsuario} pts</span>
                             )}
                         </div>
                         <Link href={rolUsuario === "jugador" ? "/jugador/perfil" : rolUsuario === "admin_club" ? "/club/configuracion" : "/superadmin"}>
-                            <Avatar className="h-9 w-9 border border-neutral-800 hover:border-emerald-500/50 transition-colors cursor-pointer">
-                                <AvatarFallback className="bg-neutral-800 text-neutral-300">{iniciales}</AvatarFallback>
+                            <Avatar className="h-9 w-9 border-2 border-neutral-800 hover:border-emerald-500 transition-all cursor-pointer ring-2 ring-transparent hover:ring-emerald-500/20">
+                                <AvatarFallback className="bg-neutral-800 text-neutral-300 font-bold">{iniciales}</AvatarFallback>
                             </Avatar>
                         </Link>
                     </div>
@@ -104,38 +101,34 @@ export default async function DashboardLayout({
             </header>
 
             {/* Main Content Area */}
-            <main className="flex-1 w-full max-w-5xl mx-auto p-4 md:p-6 lg:p-8">
+            <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-10">
                 {children}
             </main>
 
-            {/* Mobile Bottom Navigation Bar */}
-            <nav className="fixed bottom-0 w-full z-40 bg-neutral-950/90 backdrop-blur-lg border-t border-neutral-800 md:hidden pb-safe">
-                <div className="flex justify-around items-center h-16">
+            {/* Mobile Bottom Navigation Bar - Optimized spacing and items */}
+            <nav className="fixed bottom-0 w-full z-40 bg-neutral-950/90 backdrop-blur-xl border-t border-neutral-800 md:hidden pb-safe">
+                <div className="flex justify-between items-center h-16 px-2">
                     {rolUsuario === "jugador" ? (
                         <>
-                            <Link href="/jugador" className="flex flex-col items-center justify-center w-full h-full text-emerald-500">
+                            <Link href="/jugador" className="flex flex-col items-center justify-center flex-1 h-full text-emerald-500">
                                 <Home className="w-5 h-5 mb-1" />
-                                <span className="text-[10px] font-medium">Inicio</span>
+                                <span className="text-[9px] font-bold uppercase tracking-tighter">Inicio</span>
                             </Link>
-                            <Link href="/partidos" className="flex flex-col items-center justify-center w-full h-full text-neutral-400 hover:text-neutral-200 transition-colors">
+                            <Link href="/partidos" className="flex flex-col items-center justify-center flex-1 h-full text-neutral-400">
                                 <Calendar className="w-5 h-5 mb-1" />
-                                <span className="text-[10px] font-medium">Partidos</span>
+                                <span className="text-[9px] font-bold uppercase tracking-tighter">Partidos</span>
                             </Link>
-                            <Link href="/torneos" className="flex flex-col items-center justify-center w-full h-full text-amber-500 hover:text-amber-400 transition-colors">
+                            <Link href="/torneos" className="flex flex-col items-center justify-center flex-1 h-full text-amber-500">
                                 <Trophy className="w-5 h-5 mb-1" />
-                                <span className="text-[10px] font-medium">Torneos</span>
+                                <span className="text-[9px] font-bold uppercase tracking-tighter">Torneos</span>
                             </Link>
-                            <Link href="/clubes" className="flex flex-col items-center justify-center w-full h-full text-neutral-400 hover:text-white transition-colors">
+                            <Link href="/clubes" className="flex flex-col items-center justify-center flex-1 h-full text-neutral-400">
                                 <MapPin className="w-5 h-5 mb-1" />
-                                <span className="text-[10px] font-medium">Clubes</span>
+                                <span className="text-[9px] font-bold uppercase tracking-tighter">Clubes</span>
                             </Link>
-                            <Link href="/novedades" className="flex flex-col items-center justify-center w-full h-full text-blue-400 hover:text-blue-300 transition-colors">
-                                <Megaphone className="w-5 h-5 mb-1" />
-                                <span className="text-[10px] font-medium">Muro</span>
-                            </Link>
-                            <Link href="/jugador/perfil" className="flex flex-col items-center justify-center w-full h-full text-neutral-400 hover:text-neutral-200 transition-colors">
+                            <Link href="/jugador/perfil" className="flex flex-col items-center justify-center flex-1 h-full text-neutral-400">
                                 <User className="w-5 h-5 mb-1" />
-                                <span className="text-[10px] font-medium">Perfil</span>
+                                <span className="text-[9px] font-bold uppercase tracking-tighter">Perfil</span>
                             </Link>
                         </>
                     ) : rolUsuario === "superadmin" ? (
