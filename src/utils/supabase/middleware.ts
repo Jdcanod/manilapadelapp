@@ -77,30 +77,27 @@ export async function updateSession(request: NextRequest) {
         }
 
         // Protecciones de Rutas
-        const playerRoutes = ['/jugador', '/partidos', '/torneos', '/clubes', '/ranking']
-        const clubRoutes = ['/club']
-        const adminRoutes = ['/superadmin']
+        const isPlayerRoute = pathname.startsWith('/jugador') || pathname.startsWith('/partidos') || pathname.startsWith('/torneos') || pathname.startsWith('/clubes') || pathname.startsWith('/ranking')
+        const isClubRoute = pathname === '/club' || pathname.startsWith('/club/')
+        const isAdminRoute = pathname.startsWith('/superadmin')
 
-        // Superadmin no puede entrar a rutas de jugador o club (excepto compartidas como /novedades si las hubiera)
+        // Superadmin no puede entrar a rutas de jugador o club
         if (userRol === 'superadmin') {
-            const isForbidden = playerRoutes.some(r => pathname.startsWith(r)) || clubRoutes.some(r => pathname.startsWith(r))
-            if (isForbidden) {
+            if (isPlayerRoute || isClubRoute) {
                 url.pathname = '/superadmin'
                 return NextResponse.redirect(url)
             }
         } 
         // Admin Club no puede entrar a jugador ni admin
         else if (userRol === 'admin_club') {
-            const isForbidden = playerRoutes.some(r => pathname.startsWith(r)) || adminRoutes.some(r => pathname.startsWith(r))
-            if (isForbidden) {
+            if (isPlayerRoute || isAdminRoute) {
                 url.pathname = '/club'
                 return NextResponse.redirect(url)
             }
         }
         // Jugador no puede entrar a club ni admin
         else if (userRol === 'jugador') {
-            const isForbidden = clubRoutes.some(r => pathname.startsWith(r)) || adminRoutes.some(r => pathname.startsWith(r))
-            if (isForbidden) {
+            if (isClubRoute || isAdminRoute) {
                 url.pathname = '/jugador'
                 return NextResponse.redirect(url)
             }
