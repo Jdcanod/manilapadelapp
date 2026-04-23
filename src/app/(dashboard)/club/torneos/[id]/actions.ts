@@ -649,14 +649,22 @@ export async function unscheduleMatch(matchId: string, torneoId: string) {
     try {
         const supabase = createAdminClient();
 
-        // Obtener el lugar actual para restaurar la fase original si tiene pipe
+        // 1. Obtener la fecha de inicio del torneo para usarla como fallback (evitar error NOT NULL)
+        const { data: torneo } = await supabase
+            .from('torneos')
+            .select('fecha_inicio')
+            .eq('id', torneoId)
+            .single();
+
+        const fallbackDate = torneo?.fecha_inicio || new Date().toISOString();
+
+        // 2. Obtener el lugar actual para restaurar la fase original si tiene pipe
         const { data: partido } = await supabase
             .from('partidos')
             .select('lugar')
             .eq('id', matchId)
             .single();
 
-        // "Cancha 1 | Final" -> restaurar a "Final"; si no hay pipe, poner null
         let restaurarLugar: string | null = null;
         if (partido?.lugar && partido.lugar.includes('|')) {
             restaurarLugar = partido.lugar.split('|')[1].trim();
@@ -664,7 +672,10 @@ export async function unscheduleMatch(matchId: string, torneoId: string) {
 
         const { error } = await supabase
             .from('partidos')
-            .update({ fecha: null, lugar: restaurarLugar })
+            .update({ 
+                fecha: fallbackDate, // Usar fecha del torneo en lugar de null
+                lugar: restaurarLugar 
+            })
             .eq('id', matchId);
 
         if (error) return { success: false, message: error.message };
