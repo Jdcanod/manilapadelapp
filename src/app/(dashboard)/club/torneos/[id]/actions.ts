@@ -36,7 +36,7 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
             .eq('categoria', categoria);
 
         if (oldGroups && oldGroups.length > 0) {
-            const groupIds = oldGroups.map(g => g.id);
+            const groupIds = oldGroups.map((g: { id: string }) => g.id);
             // Borrar partidos asociados a esos grupos (tipo torneo)
             await supabaseAdmin.from('partidos').delete().in('torneo_grupo_id', groupIds);
             // Borrar los grupos

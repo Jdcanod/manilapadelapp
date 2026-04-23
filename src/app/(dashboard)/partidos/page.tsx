@@ -70,15 +70,16 @@ export default async function PartidosPage() {
         .order('fecha', { ascending: true });
 
     // --- NUEVO: Buscar inscripciones a Torneos ---
-    const { createAdminClient } = await import("@/utils/supabase/server");
-    const adminSupabase = createAdminClient();
+    const { createPureAdminClient } = await import("@/utils/supabase/server");
+    const adminSupabase = createPureAdminClient();
 
     const { data: misParejas } = await adminSupabase
         .from('parejas')
         .select('id')
         .or(`jugador1_id.eq.${currentProfileId},jugador2_id.eq.${currentProfileId}`);
 
-    const misParejasIds = misParejas?.map(p => p.id) || [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const misParejasIds: string[] = misParejas?.map((p: any) => p.id as string) || [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let torneosInscritos: any[] = [];
 

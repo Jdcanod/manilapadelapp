@@ -24,8 +24,8 @@ export default async function HistorialPartidosPage() {
         .eq('jugador_id', user.id); // Usamos auth_id que es lo que guarda partido_jugadores
 
     // --- USO DE ADMIN SUPABASE PARA EVITAR RLS ---
-    const { createAdminClient } = await import("@/utils/supabase/server");
-    const adminSupabase = createAdminClient();
+    const { createPureAdminClient } = await import("@/utils/supabase/server");
+    const adminSupabase = createPureAdminClient();
 
     // 2. Obtener IDs de parejas donde participo (usamos adminSupabase)
     const { data: misParejas } = await adminSupabase
@@ -33,7 +33,8 @@ export default async function HistorialPartidosPage() {
         .select('id')
         .or(`jugador1_id.eq.${userData?.id},jugador2_id.eq.${userData?.id}`);
 
-    const misParejasIds = misParejas?.map(p => p.id) || [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const misParejasIds = misParejas?.map((p: any) => p.id as string) || [];
 
     // 3. Obtener IDs de partidos de torneo donde participo mi pareja (usamos adminSupabase)
     let tournamentMatchIds: string[] = [];
@@ -42,8 +43,10 @@ export default async function HistorialPartidosPage() {
             adminSupabase.from('partidos').select('id').in('pareja1_id', misParejasIds),
             adminSupabase.from('partidos').select('id').in('pareja2_id', misParejasIds)
         ]);
-        const m1 = matches1?.map(m => m.id) || [];
-        const m2 = matches2?.map(m => m.id) || [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const m1: string[] = matches1?.map((m: any) => m.id) || [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const m2: string[] = matches2?.map((m: any) => m.id) || [];
         tournamentMatchIds = [...m1, ...m2];
     }
 
@@ -66,7 +69,7 @@ export default async function HistorialPartidosPage() {
     }
 
     // Traer detalles de esos partidos (usamos adminSupabase para ver partidos de torneo)
-    const { data: partidos } = await adminSupabase
+    const { data: rawPartidos } = await adminSupabase
         .from('partidos')
         .select(`
             *,
@@ -75,6 +78,8 @@ export default async function HistorialPartidosPage() {
         .in('id', ids)
         .eq('estado', 'jugado')
         .order('fecha', { ascending: false });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const partidos = (rawPartidos || []) as any[];
 
     return (
         <div className="space-y-6 pb-20">
