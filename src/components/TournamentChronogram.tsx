@@ -295,11 +295,15 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                     </div>
                                     {Array.from({ length: config.canchas }).map((_, i) => {
                                         const canchaNum = i + 1;
-                                        const matchInSlot = scheduledMatches.find(m => {
-                                            const mDate = new Date(m.fecha!);
-                                            return getCanchaFromLugar(m.lugar) === canchaNum && 
-                                                   format(mDate, "HH:mm") === time &&
-                                                   isSameDay(mDate, selectedDate);
+                                        const slotStart = new Date(selectedDate);
+                                        const [h, m] = time.split(":").map(Number);
+                                        slotStart.setHours(h, m, 0, 0);
+                                        const slotEnd = addMinutes(slotStart, slotInterval);
+
+                                        const matchInSlot = scheduledMatches.find(match => {
+                                            const mDate = new Date(match.fecha!);
+                                            return getCanchaFromLugar(match.lugar) === canchaNum && 
+                                                   mDate >= slotStart && mDate < slotEnd;
                                         });
 
                                         const isMine = matchInSlot && isPlayerInMatch(matchInSlot);
@@ -310,12 +314,11 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                 key={i} 
                                                 className={`
                                                     p-1.5 min-h-[100px] border-r border-neutral-800/30 last:border-r-0 relative transition-all
-                                                    ${!matchInSlot && selectedMatchId && isAdmin ? 'hover:bg-amber-500/5 cursor-pointer' : 'hover:bg-neutral-900/20'}
+                                                    ${!matchInSlot && selectedMatchId && isAdmin ? 'hover:bg-amber-500/10 cursor-pointer bg-amber-500/5' : 'hover:bg-neutral-900/20'}
                                                 `}
                                                 onClick={() => {
                                                     if (!matchInSlot && selectedMatchId && isAdmin) {
-                                                        const customTime = prompt(`¿Confirmar hora para este slot en Cancha ${canchaNum}?`, time);
-                                                        if (customTime) handleAssign(selectedMatchId, customTime, canchaNum);
+                                                        handleAssign(selectedMatchId, time, canchaNum);
                                                     }
                                                 }}
                                             >
