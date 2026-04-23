@@ -15,11 +15,12 @@ export default async function DashboardLayout({
     let nombreReal = "Usuario";
     let iniciales = "US";
     let rolUsuario = "jugador";
+    let puntosUsuario = 1000;
 
     if (user) {
         const { data: userData } = await supabase
             .from('users')
-            .select('nombre, rol')
+            .select('nombre, rol, puntos_ranking')
             .eq('auth_id', user.id)
             .single();
 
@@ -30,6 +31,9 @@ export default async function DashboardLayout({
         }
         if (userData?.rol) {
             rolUsuario = userData.rol;
+        }
+        if (userData?.puntos_ranking !== undefined && userData?.puntos_ranking !== null) {
+            puntosUsuario = userData.puntos_ranking;
         }
     }
     return (
@@ -87,7 +91,7 @@ export default async function DashboardLayout({
                         <div className="flex flex-col text-right">
                             <span className="text-sm font-medium text-white line-clamp-1 max-w-[120px]">{nombreReal}</span>
                             {rolUsuario === "jugador" && (
-                                <span className="text-xs text-green-400 font-semibold">1450 pts</span>
+                                <span className="text-xs text-green-400 font-semibold">{puntosUsuario} pts</span>
                             )}
                         </div>
                         <Link href={rolUsuario === "jugador" ? "/jugador/perfil" : rolUsuario === "admin_club" ? "/club/configuracion" : "/superadmin"}>
