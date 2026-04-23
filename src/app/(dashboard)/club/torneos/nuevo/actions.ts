@@ -37,7 +37,9 @@ export async function crearTorneoCentral(formData: FormData) {
         juegos: parseInt(formData.get("juegos") as string) || 6,
         ventaja: formData.get("ventaja") as string || "oro",
         tipo_desempate: formData.get("tipo_desempate") as string || "tercer_set",
-        categorias_habilitadas: formData.getAll("categorias") as string[]
+        categorias_habilitadas: formData.getAll("categorias") as string[],
+        config_duracion: parseInt(formData.get("config_duracion") as string) || 60,
+        config_canchas: parseInt(formData.get("config_canchas") as string) || 1
     };
 
     const { data, error } = await supabase
@@ -50,9 +52,7 @@ export async function crearTorneoCentral(formData: FormData) {
             formato,
             participantes: [],
             resultados: {},
-            reglas_puntuacion: reglasPuntuacion,
-            config_duracion: parseInt(formData.get("config_duracion") as string) || 60,
-            config_canchas: parseInt(formData.get("config_canchas") as string) || 1
+            reglas_puntuacion: reglasPuntuacion
         })
         .select()
         .single();

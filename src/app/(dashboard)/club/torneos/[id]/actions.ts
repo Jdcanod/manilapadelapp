@@ -617,7 +617,7 @@ export async function updateMatchSchedule(matchId: string, fecha: string, cancha
         .from('partidos')
         .update({
             fecha,
-            cancha_numero: canchaNumero
+            lugar: `Cancha ${canchaNumero}`
         })
         .eq('id', matchId);
 
@@ -631,7 +631,7 @@ export async function unscheduleMatch(matchId: string) {
         .from('partidos')
         .update({
             fecha: null,
-            cancha_numero: null
+            lugar: null
         })
         .eq('id', matchId);
 

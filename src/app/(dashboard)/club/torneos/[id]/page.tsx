@@ -468,8 +468,8 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                         torneoId={params.id}
                         matches={partidosReales}
                         config={{
-                            duracion: torneo.config_duracion || 60,
-                            canchas: torneo.config_canchas || 1
+                            duracion: torneo.reglas_puntuacion?.config_duracion || 60,
+                            canchas: torneo.reglas_puntuacion?.config_canchas || 1
                         }}
                     />
                 </TabsContent>

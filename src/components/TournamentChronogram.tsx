@@ -38,8 +38,8 @@ export function TournamentChronogram({ matches, config }: ChronogramProps) {
     const [isUpdating, setIsUpdating] = useState(false);
 
     // Filtrar partidos
-    const scheduledMatches = matches.filter(m => m.fecha && m.cancha_numero);
-    const pendingMatches = matches.filter(m => !m.fecha || !m.cancha_numero);
+    const scheduledMatches = matches.filter(m => m.fecha && m.lugar?.startsWith('Cancha'));
+    const pendingMatches = matches.filter(m => !m.fecha || !m.lugar?.startsWith('Cancha'));
 
     // Generar horas del día (ej. de 7am a 11pm)
     const timeSlots: string[] = [];
@@ -227,7 +227,8 @@ export function TournamentChronogram({ matches, config }: ChronogramProps) {
                                         const canchaNum = i + 1;
                                         const matchInSlot = scheduledMatches.find(m => {
                                             const mDate = new Date(m.fecha!);
-                                            return m.cancha_numero === canchaNum && 
+                                            const canchaFromLugar = parseInt(m.lugar?.split(' ')[1] || '0');
+                                            return canchaFromLugar === canchaNum && 
                                                    format(mDate, "HH:mm") === time &&
                                                    isSameDay(mDate, selectedDate);
                                         });
