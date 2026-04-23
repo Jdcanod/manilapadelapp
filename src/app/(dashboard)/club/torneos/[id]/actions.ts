@@ -612,60 +612,66 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
 }
 
 export async function updateMatchSchedule(matchId: string, fecha: string, cancha: string, torneoId: string) {
-    const supabase = createAdminClient();
-    
-    // 1. Obtener el lugar actual para preservar la fase (ej: Final, Semifinal)
-    const { data: partido } = await supabase
-        .from('partidos')
-        .select('lugar')
-        .eq('id', matchId)
-        .single();
+    try {
+        const supabase = createAdminClient();
+        
+        // Obtener el lugar actual para preservar la fase (ej: Final, Semifinal)
+        const { data: partido } = await supabase
+            .from('partidos')
+            .select('lugar')
+            .eq('id', matchId)
+            .single();
 
-    let nuevoLugar = cancha;
-    if (partido?.lugar && !partido.lugar.includes('Cancha')) {
-        // Preservar la fase si existe (ej: "Final - Torneo" -> "Cancha 1 | Final")
-        const fase = partido.lugar.split('-')[0].trim();
-        nuevoLugar = `${cancha} | ${fase}`;
+        let nuevoLugar = cancha;
+        if (partido?.lugar && !partido.lugar.includes('Cancha')) {
+            // Preservar la fase si existe (ej: "Final" -> "Cancha 1 | Final")
+            const fase = partido.lugar.split('|').pop()?.trim() || partido.lugar.split('-')[0].trim();
+            if (fase && fase.length > 0 && fase.toLowerCase() !== cancha.toLowerCase()) {
+                nuevoLugar = `${cancha} | ${fase}`;
+            }
+        }
+
+        const { error } = await supabase
+            .from('partidos')
+            .update({ fecha, lugar: nuevoLugar })
+            .eq('id', matchId);
+
+        if (error) return { success: false, message: error.message };
+        
+        revalidatePath(`/club/torneos/${torneoId}`, 'page');
+        return { success: true };
+    } catch (err) {
+        return { success: false, message: err instanceof Error ? err.message : 'Error desconocido' };
     }
-
-    const { error } = await supabase
-        .from('partidos')
-        .update({
-            fecha,
-            lugar: nuevoLugar
-        })
-        .eq('id', matchId);
-
-    if (error) throw new Error(error.message);
-    revalidatePath(`/club/torneos/${torneoId}`);
-    revalidatePath(`/torneos/${torneoId}`);
 }
 
 export async function unscheduleMatch(matchId: string, torneoId: string) {
-    const supabase = createAdminClient();
+    try {
+        const supabase = createAdminClient();
 
-    // 1. Obtener el lugar actual para restaurar la fase original
-    const { data: partido } = await supabase
-        .from('partidos')
-        .select('lugar')
-        .eq('id', matchId)
-        .single();
+        // Obtener el lugar actual para restaurar la fase original si tiene pipe
+        const { data: partido } = await supabase
+            .from('partidos')
+            .select('lugar')
+            .eq('id', matchId)
+            .single();
 
-    let restaurarLugar = null;
-    if (partido?.lugar && partido.lugar.includes('|')) {
-        // "Cancha 1 | Final" -> "Final"
-        restaurarLugar = partido.lugar.split('|')[1].trim();
+        // "Cancha 1 | Final" -> restaurar a "Final"; si no hay pipe, poner null
+        let restaurarLugar: string | null = null;
+        if (partido?.lugar && partido.lugar.includes('|')) {
+            restaurarLugar = partido.lugar.split('|')[1].trim();
+        }
+
+        const { error } = await supabase
+            .from('partidos')
+            .update({ fecha: null, lugar: restaurarLugar })
+            .eq('id', matchId);
+
+        if (error) return { success: false, message: error.message };
+        
+        revalidatePath(`/club/torneos/${torneoId}`, 'page');
+        return { success: true };
+    } catch (err) {
+        return { success: false, message: err instanceof Error ? err.message : 'Error desconocido' };
     }
-
-    const { error } = await supabase
-        .from('partidos')
-        .update({
-            fecha: null,
-            lugar: restaurarLugar
-        })
-        .eq('id', matchId);
-
-    if (error) throw new Error(error.message);
-    revalidatePath(`/club/torneos/${torneoId}`);
-    revalidatePath(`/torneos/${torneoId}`);
 }

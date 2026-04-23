@@ -1,6 +1,7 @@
 "use client";
 // Force redeploy - Sync fix
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,8 +38,10 @@ interface ChronogramProps {
     currentUserId?: string;
 }
 
-export function TournamentChronogram({ torneoId, matches, config, isAdmin = true, currentUserId }: ChronogramProps) {
+export function TournamentChronogram({ torneoId, matches: initialMatches, config, isAdmin = true, currentUserId }: ChronogramProps) {
     const { toast } = useToast();
+    const router = useRouter();
+    const [matches, setMatches] = useState(initialMatches);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
@@ -81,34 +84,63 @@ export function TournamentChronogram({ torneoId, matches, config, isAdmin = true
     const scheduledMatches = matches.filter(isScheduled);
     const pendingMatches = matches.filter(m => !isScheduled(m));
 
-    const handleAssign = async (matchId: string, time: string, cancha: number) => {
+    const handleAssign = useCallback(async (matchId: string, time: string, cancha: number) => {
         setIsUpdating(true);
         try {
             const [hours, minutes] = time.split(":").map(Number);
             const finalDate = new Date(selectedDate);
             finalDate.setHours(hours, minutes, 0, 0);
+            const canchaStr = `Cancha ${cancha}`;
 
-            await updateMatchSchedule(matchId, finalDate.toISOString(), `Cancha ${cancha}`, torneoId);
+            // Optimistic update: update local state immediately
+            setMatches(prev => prev.map(m => m.id === matchId 
+                ? { ...m, fecha: finalDate.toISOString(), lugar: canchaStr }
+                : m
+            ));
             setSelectedMatchId(null);
-            toast({ title: "Programado", description: `Partido asignado a las ${time} en Cancha ${cancha}.` });
-        } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+
+            const result = await updateMatchSchedule(matchId, finalDate.toISOString(), canchaStr, torneoId);
+            if (result?.success === false) {
+                // Revert on failure
+                setMatches(initialMatches);
+                toast({ title: "Error", description: result.message, variant: "destructive" });
+            } else {
+                toast({ title: "Programado", description: `Partido asignado a las ${time} en Cancha ${cancha}.` });
+                router.refresh();
+            }
+        } catch (error: unknown) {
+            setMatches(initialMatches);
+            toast({ title: "Error", description: error instanceof Error ? error.message : 'Error desconocido', variant: "destructive" });
         } finally {
             setIsUpdating(false);
         }
-    };
+    }, [selectedDate, torneoId, initialMatches, router, toast]);
 
-    const handleUnschedule = async (matchId: string) => {
+    const handleUnschedule = useCallback(async (matchId: string) => {
         setIsUpdating(true);
         try {
-            await unscheduleMatch(matchId, torneoId);
-            toast({ title: "Removido", description: "Partido regresado a la bolsa de pendientes." });
-        } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+            // Optimistic update: remove from grid immediately
+            setMatches(prev => prev.map(m => m.id === matchId
+                ? { ...m, fecha: null, lugar: null }
+                : m
+            ));
+
+            const result = await unscheduleMatch(matchId, torneoId);
+            if (result?.success === false) {
+                // Revert on failure
+                setMatches(initialMatches);
+                toast({ title: "Error", description: result.message, variant: "destructive" });
+            } else {
+                toast({ title: "Removido", description: "Partido regresado a la bolsa de pendientes." });
+                router.refresh();
+            }
+        } catch (error: unknown) {
+            setMatches(initialMatches);
+            toast({ title: "Error", description: error instanceof Error ? error.message : 'Error desconocido', variant: "destructive" });
         } finally {
             setIsUpdating(false);
         }
-    };
+    }, [torneoId, initialMatches, router, toast]);
 
     const selectedMatch = pendingMatches.find(m => m.id === selectedMatchId);
 

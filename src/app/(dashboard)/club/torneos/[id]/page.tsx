@@ -358,13 +358,17 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         };
     });
 
-    // Identificar Ganador y Finalista del torneo
-    const partidoFinal = partidosReales.find(p => p.lugar?.toLowerCase().startsWith('final'));
+    // Identificar Ganador y Finalista del torneo (buscar la final sin importar si tiene cancha asignada)
+    const partidoFinal = partidosReales.find(p => 
+        p.lugar?.toLowerCase().includes('final') && 
+        !p.lugar?.toLowerCase().includes('semifinal') &&
+        p.estado === 'jugado'
+    );
     let campeon = null;
     let subcampeon = null;
     
     if (partidoFinal && partidoFinal.estado === 'jugado' && partidoFinal.resultado && partidoFinal.estado_resultado === 'confirmado') {
-        const setsFinal = partidoFinal.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
+        const setsFinal = String(partidoFinal.resultado).split(',').map((s: string) => s.trim().split('-').map(Number));
         let p1Wins = 0;
         let p2Wins = 0;
         setsFinal.forEach((s: number[]) => {
