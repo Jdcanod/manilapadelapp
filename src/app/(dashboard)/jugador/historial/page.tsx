@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { History as HistoryIcon, MapPin, Trophy, Users, ChevronLeft } from "lucide-react";
+import { History as HistoryIcon, Trophy, Users, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 
 export default async function HistorialPartidosPage() {
@@ -92,21 +92,24 @@ export default async function HistorialPartidosPage() {
                                 <div className="flex flex-col sm:flex-row justify-between gap-4">
                                     <div className="space-y-2">
                                         <div className="flex items-center gap-2">
-                                            <Badge className={partido.tipo_partido === 'torneo' ? 'bg-amber-500/10 text-amber-500' : 'bg-blue-500/10 text-blue-500'}>
-                                                {partido.tipo_partido === 'torneo' ? 'Torneo' : 'Amistoso'}
+                                            <Badge className={partido.torneo_id || partido.tipo_partido === 'torneo' || partido.tipo_partido_oficial === 'torneo' ? 'bg-amber-500/10 text-amber-500' : 'bg-blue-500/10 text-blue-500'}>
+                                                {partido.torneo_id || partido.tipo_partido === 'torneo' || partido.tipo_partido_oficial === 'torneo' ? 'Torneo' : 'Amistoso'}
                                             </Badge>
                                             <span className="text-xs text-neutral-500">
                                                 {new Date(partido.fecha).toLocaleDateString()}
                                             </span>
                                         </div>
                                         <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                            <MapPin className="w-4 h-4 text-neutral-500" />
+                                            <Trophy className="w-4 h-4 text-neutral-500" />
                                             {partido.club?.nombre || partido.lugar}
                                         </h3>
                                         <div className="flex items-center gap-4 text-sm text-neutral-400">
                                             <span className="flex items-center gap-1">
-                                                <Users className="w-4 h-4" />
-                                                4 Jugadores
+                                                {partido.torneo_id ? (
+                                                    <span className="text-amber-500/80 font-bold">Categoría: {partido.nivel || 'N/A'}</span>
+                                                ) : (
+                                                    <span className="flex items-center gap-1"><Users className="w-4 h-4" /> 4 Jugadores</span>
+                                                )}
                                             </span>
                                         </div>
                                     </div>

@@ -87,13 +87,21 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                 const sets = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
                 let setsP1InMatch = 0, setsP2InMatch = 0;
                 
-                sets.forEach((set: number[]) => {
+                sets.forEach((set: number[], idx: number) => {
                     if (set.length === 2 && !isNaN(set[0]) && !isNaN(set[1])) {
-                        // Sumar games
-                        s1.gg += set[0];
-                        s1.gp += set[1];
-                        s2.gg += set[1];
-                        s2.gp += set[0];
+                        // Sumar games (Si es STB, contar como 1-0 en games para no desbalancear DG)
+                        if (idx === 2 && tipoDesempate === 'super_tiebreak') {
+                            const p1Won = set[0] > set[1];
+                            s1.gg += p1Won ? 1 : 0;
+                            s1.gp += p1Won ? 0 : 1;
+                            s2.gg += p1Won ? 0 : 1;
+                            s2.gp += p1Won ? 1 : 0;
+                        } else {
+                            s1.gg += set[0];
+                            s1.gp += set[1];
+                            s2.gg += set[1];
+                            s2.gp += set[0];
+                        }
 
                         // Sumar sets
                         if (set[0] > set[1]) { setsP1InMatch++; s1.sg++; s2.sp++; } 

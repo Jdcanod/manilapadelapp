@@ -282,6 +282,40 @@ export async function inscribirParejaManual(torneoId: string, jugador1Sel: strin
             }
             parejaId = newPareja.id;
         }
+        
+        // --- NUEVA VALIDACIÓN: Impedir inscripción duplicada en la misma categoría (Manual) ---
+        // 1. Verificar en torneos regulares
+        const { data: existingReg } = await supabaseAdmin
+            .from('torneo_parejas')
+            .select('id, pareja:parejas(jugador1_id, jugador2_id)')
+            .eq('torneo_id', torneoId)
+            .eq('categoria', categoria);
+
+        if (existingReg) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const alreadyRegistered = existingReg.some((reg: any) => {
+                const p = reg.pareja;
+                if (!p) return false;
+                return p.jugador1_id === j1Id || p.jugador2_id === j1Id || 
+                       p.jugador1_id === j2Id || p.jugador2_id === j2Id;
+            });
+            if (alreadyRegistered) {
+                throw new Error(`Uno de los jugadores ya está inscrito en la categoría ${categoria}`);
+            }
+        }
+
+        // 2. Verificar en torneos master
+        const { data: existingMaster } = await supabaseAdmin
+            .from('inscripciones_torneo')
+            .select('id')
+            .eq('torneo_id', torneoId)
+            .eq('nivel', categoria)
+            .or(`jugador1_id.in.(${j1Id},${j2Id}),jugador2_id.in.(${j1Id},${j2Id})`);
+
+        if (existingMaster && existingMaster.length > 0) {
+            throw new Error(`Uno de los jugadores ya está inscrito en la categoría ${categoria}`);
+        }
+        // --------------------------------------------------------------------------------------
 
         // 3. Perform inscription using Admin to bypass RLS
         if (esMaster) {

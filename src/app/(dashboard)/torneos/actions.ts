@@ -98,6 +98,40 @@ export async function inscribirParejaTorneo(formData: FormData) {
             parejaId = newPareja.id;
         }
 
+        // --- NUEVA VALIDACIÓN: Impedir inscripción duplicada en la misma categoría ---
+        // 1. Verificar en torneos regulares
+        const { data: existingReg } = await admin
+            .from('torneo_parejas')
+            .select('id, pareja:parejas(jugador1_id, jugador2_id)')
+            .eq('torneo_id', torneoId)
+            .eq('categoria', categoria);
+
+        if (existingReg) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const alreadyRegistered = existingReg.some((reg: any) => {
+                const p = reg.pareja;
+                if (!p) return false;
+                return p.jugador1_id === jugador1Id || p.jugador2_id === jugador1Id || 
+                       p.jugador1_id === jugador2Id || p.jugador2_id === jugador2Id;
+            });
+            if (alreadyRegistered) {
+                return { error: `Uno de los jugadores ya está inscrito en la categoría ${categoria}` };
+            }
+        }
+
+        // 2. Verificar en torneos master
+        const { data: existingMaster } = await admin
+            .from('inscripciones_torneo')
+            .select('id')
+            .eq('torneo_id', torneoId)
+            .eq('nivel', categoria)
+            .or(`jugador1_id.in.(${jugador1Id},${jugador2Id}),jugador2_id.in.(${jugador1Id},${jugador2Id})`);
+
+        if (existingMaster && existingMaster.length > 0) {
+            return { error: `Uno de los jugadores ya está inscrito en la categoría ${categoria}` };
+        }
+        // ----------------------------------------------------------------------------
+
         // 4. Determinar si el torneo es "master"
         const { data: torneoDetalle } = await admin.from('torneos').select('tipo').eq('id', torneoId).single();
         const esMaster = torneoDetalle?.tipo === 'master';
