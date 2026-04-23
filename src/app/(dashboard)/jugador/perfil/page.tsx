@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { LogOut, User, Settings, Shield, Mail, MapPin } from "lucide-react";
+import { LogOut, User, Shield, Mail, MapPin, Building } from "lucide-react";
 import { cerrarSesionAction } from "./actions";
+import { EditarPerfilDialog } from "./EditarPerfilDialog";
 
 export default async function PerfilJugadorPage() {
     const supabase = createClient();
@@ -44,7 +45,7 @@ export default async function PerfilJugadorPage() {
                     <CardTitle className="text-2xl font-bold text-white">{nombreReal}</CardTitle>
                     {!esClub && (
                         <CardDescription className="text-neutral-400 flex items-center gap-1 justify-center mt-1">
-                            <Shield className="w-3 h-3 text-emerald-500" /> Nivel {userData?.nivel || 'Amateur'}
+                            <Shield className="w-3 h-3 text-emerald-500" /> Categoría {userData?.categoria || userData?.nivel || 'Amateur'}
                         </CardDescription>
                     )}
                 </CardHeader>
@@ -70,18 +71,16 @@ export default async function PerfilJugadorPage() {
 
                         <div className="flex items-center justify-between py-3">
                             <div className="flex items-center gap-3">
-                                <Settings className="w-4 h-4 text-neutral-500" />
-                                <span className="text-sm font-medium text-neutral-300">Rol</span>
+                                <Building className="w-4 h-4 text-neutral-500" />
+                                <span className="text-sm font-medium text-neutral-300">Club de Preferencia</span>
                             </div>
-                            <span className="text-sm text-neutral-500 capitalize">{userData?.rol || 'Jugador'}</span>
+                            <span className="text-sm text-neutral-500 capitalize">{userData?.club_preferencia || 'Ninguno'}</span>
                         </div>
                     </div>
                 </CardContent>
 
                 <CardFooter className="bg-neutral-950/30 border-t border-neutral-800/50 p-6 flex flex-col sm:flex-row justify-between gap-4 rounded-b-xl">
-                    <Button variant="outline" className="w-full sm:w-auto bg-transparent border-neutral-800 text-neutral-300 hover:bg-neutral-800 hover:text-white" disabled>
-                        Editar Perfil
-                    </Button>
+                    <EditarPerfilDialog usuario={userData || {}} />
 
                     <form action={cerrarSesionAction} className="w-full sm:w-auto">
                         <Button type="submit" variant="destructive" className="w-full bg-red-500/10 text-red-500 hover:bg-red-500/20 border-red-500/50 shadow-none">
