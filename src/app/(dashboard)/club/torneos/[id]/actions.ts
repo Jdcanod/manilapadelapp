@@ -665,15 +665,17 @@ export async function unscheduleMatch(matchId: string, torneoId: string) {
             .eq('id', matchId)
             .single();
 
-        let restaurarLugar: string | null = null;
+        let restaurarLugar = "Sin Asignar";
         if (partido?.lugar && partido.lugar.includes('|')) {
             restaurarLugar = partido.lugar.split('|')[1].trim();
+        } else if (partido?.lugar && !partido.lugar.includes('Cancha')) {
+            restaurarLugar = partido.lugar;
         }
 
         const { error } = await supabase
             .from('partidos')
             .update({ 
-                fecha: fallbackDate, // Usar fecha del torneo en lugar de null
+                fecha: fallbackDate, 
                 lugar: restaurarLugar 
             })
             .eq('id', matchId);
