@@ -34,11 +34,13 @@ export default async function HistorialPartidosPage() {
     // 3. Obtener IDs de partidos de torneo donde participo mi pareja
     let tournamentMatchIds: string[] = [];
     if (misParejasIds.length > 0) {
-        const { data: matches } = await supabase
-            .from('partidos')
-            .select('id')
-            .or(`pareja1_id.in.(${misParejasIds.join(',')}),pareja2_id.in.(${misParejasIds.join(',')})`);
-        tournamentMatchIds = matches?.map(m => m.id) || [];
+        const [ { data: matches1 }, { data: matches2 } ] = await Promise.all([
+            supabase.from('partidos').select('id').in('pareja1_id', misParejasIds),
+            supabase.from('partidos').select('id').in('pareja2_id', misParejasIds)
+        ]);
+        const m1 = matches1?.map(m => m.id) || [];
+        const m2 = matches2?.map(m => m.id) || [];
+        tournamentMatchIds = [...m1, ...m2];
     }
 
     const ids = Array.from(new Set([

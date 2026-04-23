@@ -140,8 +140,59 @@ export default async function PartidosPage() {
         };
     });
 
+    // --- OBTENER PARTIDOS INDIVIDUALES DE TORNEO ---
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let myTournamentMatches: any[] = [];
+    if (misParejasIds.length > 0) {
+        const [ { data: m1 }, { data: m2 } ] = await Promise.all([
+            supabase.from('partidos').select('*, creador:users!creador_id(nombre), pareja1:parejas!pareja1_id(nombre_pareja), pareja2:parejas!pareja2_id(nombre_pareja)').in('pareja1_id', misParejasIds),
+            supabase.from('partidos').select('*, creador:users!creador_id(nombre), pareja1:parejas!pareja1_id(nombre_pareja), pareja2:parejas!pareja2_id(nombre_pareja)').in('pareja2_id', misParejasIds)
+        ]);
+        const allTMatches = [...(m1 || []), ...(m2 || [])];
+        const uniqueIds = new Set();
+        myTournamentMatches = allTMatches.filter(m => {
+            if (!uniqueIds.has(m.id)) {
+                uniqueIds.add(m.id);
+                return true;
+            }
+            return false;
+        });
+    }
+
+    const myTourneyMatchesMap = myTournamentMatches.map(p => {
+        const dt = new Date(p.fecha);
+        const timeStr = dt.toLocaleString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const isPast = dt < new Date();
+
+        let statusDisplay = 'En Curso';
+        if (p.estado === 'abierto') statusDisplay = 'Pendiente';
+        else if (p.estado === 'cerrado') statusDisplay = 'Cerrado';
+        else if (p.estado === 'jugado') statusDisplay = 'Jugado';
+        
+        if (isPast && p.estado !== 'jugado') statusDisplay = 'Cerrado';
+
+        const myPairId = misParejasIds.find(id => id === p.pareja1_id || id === p.pareja2_id);
+        const opponentPairName = p.pareja1_id === myPairId ? (p.pareja2?.nombre_pareja || "TBD") : (p.pareja1?.nombre_pareja || "TBD");
+
+        return {
+            ...p,
+            id: p.id,
+            club: p.lugar,
+            time: timeStr,
+            type: `Torneo - Nivel ${p.nivel}`,
+            status: statusDisplay,
+            opponents: opponentPairName,
+            estado_original: p.estado,
+            isPast,
+            isTournament: false,
+            isTournamentMatch: true // flag to prevent showing cancel/join buttons
+        };
+    });
+
     // Unimos los partidos estándar con los torneos para renderizarlos en la misma lista
-    const allMyEntries = [...myMatches, ...misTorneosMap];
+    const allMyEntries = [...myMatches, ...myTourneyMatchesMap, ...misTorneosMap].sort((a, b) => {
+        return new Date(a.fecha || a.time).getTime() - new Date(b.fecha || b.time).getTime();
+    });
 
     return (
         <div className="space-y-6">
@@ -335,20 +386,20 @@ export default async function PartidosPage() {
                                                     <Button variant="secondary" className="w-full bg-neutral-800 hover:bg-neutral-700 text-white">Detalles</Button>
                                                 }
                                             />
-                                            {match.isPast && match.creador_id === user.id && (
+                                            {match.isPast && match.creador_id === user.id && !match.isTournamentMatch && (
                                                 <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20 hidden group-hover:flex">
                                                     <Swords className="w-4 h-4 mr-2" />
                                                     Confirmar Resultado
                                                 </Button>
                                             )}
-                                            {!match.isPast && match.creador_id === user.id && (
+                                            {!match.isPast && match.creador_id === user.id && !match.isTournamentMatch && (
                                                 <BotonCancelarPartido
                                                     partidoId={match.id}
                                                     partidoFecha={match.fecha}
                                                     fullWidth={true}
                                                 />
                                             )}
-                                            {!match.isPast && match.creador_id !== user.id && (
+                                            {!match.isPast && match.creador_id !== user.id && !match.isTournamentMatch && (
                                                 <BotonUnirsePartido
                                                     partidoId={match.id}
                                                     userId={user.id}
