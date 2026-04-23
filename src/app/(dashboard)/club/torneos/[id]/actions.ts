@@ -189,7 +189,7 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
                 nivel: categoria,
                 sexo: 'Mixto',
                 fecha: torneoInfo?.fecha_inicio || new Date().toISOString(),
-                lugar: `Canchas - ${torneoInfo?.nombre || 'Torneo'}`,
+                lugar: null, // Cambiado de "Canchas - ..." a null para que aparezca en pendientes
                 cupos_totales: 4,
                 cupos_disponibles: 0
             }));

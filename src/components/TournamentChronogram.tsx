@@ -50,7 +50,11 @@ export function TournamentChronogram({ matches, config }: ChronogramProps) {
         currentTime = addMinutes(currentTime, slotInterval);
     }
 
-    const isScheduled = (m: Match) => m.fecha && m.lugar && m.lugar.startsWith('Cancha');
+    const isScheduled = (m: Match) => {
+        if (!m.fecha || !m.lugar) return false;
+        // Solo es programado si coincide exactamente con el patrón "Cancha X"
+        return /^Cancha \d+$/.test(m.lugar);
+    };
 
     // Filtrar partidos
     const scheduledMatches = matches.filter(isScheduled);
