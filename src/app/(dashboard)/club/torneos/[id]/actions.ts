@@ -610,3 +610,31 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
         return { success: false, message: err instanceof Error ? err.message : "Error desconocido" };
     }
 }
+
+export async function updateMatchSchedule(matchId: string, fecha: string, canchaNumero: number) {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+        .from('partidos')
+        .update({
+            fecha,
+            cancha_numero: canchaNumero
+        })
+        .eq('id', matchId);
+
+    if (error) throw new Error(error.message);
+    revalidatePath("/club/torneos/[id]", "page");
+}
+
+export async function unscheduleMatch(matchId: string) {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+        .from('partidos')
+        .update({
+            fecha: null,
+            cancha_numero: null
+        })
+        .eq('id', matchId);
+
+    if (error) throw new Error(error.message);
+    revalidatePath("/club/torneos/[id]", "page");
+}

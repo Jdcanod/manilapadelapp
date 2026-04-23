@@ -12,6 +12,7 @@ import { TournamentGroupsManager } from "@/components/TournamentGroupsManager";
 import { AddTournamentPlayerModal } from "@/components/AddTournamentPlayerModal";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton";
+import { TournamentChronogram } from "@/components/TournamentChronogram";
 
 interface MatchItem {
     id: string;
@@ -447,6 +448,9 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                     <TabsTrigger value="cuadros" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
                         Cuadros de Juego
                     </TabsTrigger>
+                    <TabsTrigger value="cronograma" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
+                        Cronograma
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="grupos" className="mt-6">
@@ -456,6 +460,17 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                         gruposExistentes={gruposExistentes || []}
                         partidos={partidosReales || []}
                         tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
+                    />
+                </TabsContent>
+
+                <TabsContent value="cronograma" className="mt-6">
+                    <TournamentChronogram 
+                        torneoId={params.id}
+                        matches={partidosReales}
+                        config={{
+                            duracion: torneo.config_duracion || 60,
+                            canchas: torneo.config_canchas || 1
+                        }}
                     />
                 </TabsContent>
 

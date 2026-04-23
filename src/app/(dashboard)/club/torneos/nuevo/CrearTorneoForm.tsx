@@ -176,6 +176,37 @@ export function CrearTorneoForm() {
                         ))}
                     </div>
                 </div>
+
+                <div className="pt-4 border-t border-neutral-800 space-y-4">
+                    <h3 className="text-sm font-bold text-emerald-500 uppercase tracking-wider">Configuración del Cronograma</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="config_duracion" className="text-white">Duración de Partidos</Label>
+                            <Select name="config_duracion" defaultValue="60">
+                                <SelectTrigger className="bg-neutral-900 border-neutral-800 text-white">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+                                    <SelectItem value="45">45 Minutos</SelectItem>
+                                    <SelectItem value="60">60 Minutos</SelectItem>
+                                    <SelectItem value="90">90 Minutos</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="config_canchas" className="text-white">Canchas Habilitadas</Label>
+                            <Input
+                                id="config_canchas"
+                                name="config_canchas"
+                                type="number"
+                                min="1"
+                                max="20"
+                                defaultValue="2"
+                                className="bg-neutral-900 border-neutral-800 text-white focus:border-emerald-500"
+                            />
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {error && (

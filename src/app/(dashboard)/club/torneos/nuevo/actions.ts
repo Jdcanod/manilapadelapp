@@ -50,7 +50,9 @@ export async function crearTorneoCentral(formData: FormData) {
             formato,
             participantes: [],
             resultados: {},
-            reglas_puntuacion: reglasPuntuacion
+            reglas_puntuacion: reglasPuntuacion,
+            config_duracion: parseInt(formData.get("config_duracion") as string) || 60,
+            config_canchas: parseInt(formData.get("config_canchas") as string) || 1
         })
         .select()
         .single();
