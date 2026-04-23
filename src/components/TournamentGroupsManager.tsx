@@ -207,6 +207,8 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                     <th className="px-2 py-2 font-bold text-center">PJ</th>
                                                     <th className="px-2 py-2 font-bold text-center">SG</th>
                                                     <th className="px-2 py-2 font-bold text-center">SP</th>
+                                                    <th className="px-2 py-2 font-bold text-center">GG</th>
+                                                    <th className="px-2 py-2 font-bold text-center">GP</th>
                                                     <th className="px-2 py-2 font-black text-center text-emerald-400">DS</th>
                                                     <th className="px-4 py-2 font-black text-center text-emerald-400">PTS</th>
                                                 </tr>
@@ -221,6 +223,8 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                         <td className="px-2 py-3 text-center text-neutral-300">{team.pj}</td>
                                                         <td className="px-2 py-3 text-center text-neutral-400 text-xs">{team.sg}</td>
                                                         <td className="px-2 py-3 text-center text-neutral-400 text-xs">{team.sp}</td>
+                                                        <td className="px-2 py-3 text-center text-neutral-400 text-xs">{team.gg}</td>
+                                                        <td className="px-2 py-3 text-center text-neutral-400 text-xs">{team.gp}</td>
                                                         <td className="px-2 py-3 text-center font-bold text-emerald-500/80">{team.sg - team.sp}</td>
                                                         <td className="px-4 py-3 text-center font-black text-emerald-400">{team.pts}</td>
                                                     </tr>

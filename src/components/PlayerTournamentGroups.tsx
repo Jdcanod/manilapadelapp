@@ -16,6 +16,8 @@ interface Standing {
     pg: number;
     sg: number;
     sp: number;
+    gg: number;
+    gp: number;
     pts: number;
 }
 
@@ -63,8 +65,8 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
         matches.forEach(m => {
             if (!m.pareja1_id || !m.pareja2_id) return;
             
-            if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: m.pareja1?.nombre_pareja || "TBD", pj: 0, pg: 0, sg: 0, sp: 0, pts: 0 });
-            if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: m.pareja2?.nombre_pareja || "TBD", pj: 0, pg: 0, sg: 0, sp: 0, pts: 0 });
+            if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: m.pareja1?.nombre_pareja || "TBD", pj: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
+            if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: m.pareja2?.nombre_pareja || "TBD", pj: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
 
             if (m.estado === 'jugado' && m.resultado && m.estado_resultado === 'confirmado') {
                 const s1 = map.get(m.pareja1_id)!;
@@ -77,6 +79,13 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                 
                 sets.forEach((set: number[]) => {
                     if (set.length === 2 && !isNaN(set[0]) && !isNaN(set[1])) {
+                        // Sumar games
+                        s1.gg += set[0];
+                        s1.gp += set[1];
+                        s2.gg += set[1];
+                        s2.gp += set[0];
+
+                        // Sumar sets
                         if (set[0] > set[1]) { setsP1InMatch++; s1.sg++; s2.sp++; } 
                         else if (set[1] > set[0]) { setsP2InMatch++; s2.sg++; s1.sp++; }
                     }
@@ -89,7 +98,12 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
 
         return Array.from(map.values()).sort((a, b) => {
             if (b.pts !== a.pts) return b.pts - a.pts;
-            return (b.sg - b.sp) - (a.sg - a.sp);
+            const diffSetsA = a.sg - a.sp;
+            const diffSetsB = b.sg - b.sp;
+            if (diffSetsB !== diffSetsA) return diffSetsB - diffSetsA;
+            const diffGamesA = a.gg - a.gp;
+            const diffGamesB = b.gg - b.gp;
+            return diffGamesB - diffGamesA;
         });
     };
 
@@ -124,7 +138,12 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                         <tr>
                                             <th className="px-4 py-3 text-[10px] font-black text-neutral-500 uppercase tracking-widest">Pareja</th>
                                             <th className="px-2 py-3 text-center text-[10px] font-black text-neutral-500">PJ</th>
+                                            <th className="px-2 py-3 text-center text-[10px] font-black text-neutral-500">SG</th>
+                                            <th className="px-2 py-3 text-center text-[10px] font-black text-neutral-500">SP</th>
                                             <th className="px-2 py-3 text-center text-[10px] font-black text-emerald-500">DS</th>
+                                            <th className="px-2 py-3 text-center text-[10px] font-black text-neutral-500">GG</th>
+                                            <th className="px-2 py-3 text-center text-[10px] font-black text-neutral-500">GP</th>
+                                            <th className="px-2 py-3 text-center text-[10px] font-black text-emerald-500">DG</th>
                                             <th className="px-4 py-3 text-center text-[10px] font-black text-amber-500">PTS</th>
                                         </tr>
                                     </thead>
@@ -144,7 +163,12 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                         {isMyTeam && <span className="ml-2 text-[10px] font-black text-amber-600 bg-amber-500/10 px-1 rounded">TÚ</span>}
                                                     </td>
                                                     <td className="px-2 py-4 text-center text-neutral-400">{team.pj}</td>
+                                                    <td className="px-2 py-4 text-center text-neutral-500 text-xs">{team.sg}</td>
+                                                    <td className="px-2 py-4 text-center text-neutral-500 text-xs">{team.sp}</td>
                                                     <td className="px-2 py-4 text-center text-emerald-500/80 font-bold">{team.sg - team.sp}</td>
+                                                    <td className="px-2 py-4 text-center text-neutral-500 text-xs">{team.gg}</td>
+                                                    <td className="px-2 py-4 text-center text-neutral-500 text-xs">{team.gp}</td>
+                                                    <td className="px-2 py-4 text-center text-emerald-500/80 font-bold">{team.gg - team.gp}</td>
                                                     <td className="px-4 py-4 text-center font-black text-amber-500">{team.pts}</td>
                                                 </tr>
                                             );
