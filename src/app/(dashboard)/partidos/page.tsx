@@ -70,7 +70,10 @@ export default async function PartidosPage() {
         .order('fecha', { ascending: true });
 
     // --- NUEVO: Buscar inscripciones a Torneos ---
-    const { data: misParejas } = await supabase
+    const { createAdminClient } = await import("@/utils/supabase/server");
+    const adminSupabase = createAdminClient();
+
+    const { data: misParejas } = await adminSupabase
         .from('parejas')
         .select('id')
         .or(`jugador1_id.eq.${currentProfileId},jugador2_id.eq.${currentProfileId}`);
@@ -80,7 +83,7 @@ export default async function PartidosPage() {
     let torneosInscritos: any[] = [];
 
     if (misParejasIds.length > 0) {
-        const { data: inscripcionesTorneo } = await supabase
+        const { data: inscripcionesTorneo } = await adminSupabase
             .from('torneo_parejas')
             .select(`
                 *,
@@ -145,8 +148,8 @@ export default async function PartidosPage() {
     let myTournamentMatches: any[] = [];
     if (misParejasIds.length > 0) {
         const [ { data: m1 }, { data: m2 } ] = await Promise.all([
-            supabase.from('partidos').select('*, creador:users!creador_id(nombre), pareja1:parejas!pareja1_id(nombre_pareja), pareja2:parejas!pareja2_id(nombre_pareja)').in('pareja1_id', misParejasIds),
-            supabase.from('partidos').select('*, creador:users!creador_id(nombre), pareja1:parejas!pareja1_id(nombre_pareja), pareja2:parejas!pareja2_id(nombre_pareja)').in('pareja2_id', misParejasIds)
+            adminSupabase.from('partidos').select('*, creador:users!creador_id(nombre), pareja1:parejas!pareja1_id(nombre_pareja), pareja2:parejas!pareja2_id(nombre_pareja)').in('pareja1_id', misParejasIds),
+            adminSupabase.from('partidos').select('*, creador:users!creador_id(nombre), pareja1:parejas!pareja1_id(nombre_pareja), pareja2:parejas!pareja2_id(nombre_pareja)').in('pareja2_id', misParejasIds)
         ]);
         const allTMatches = [...(m1 || []), ...(m2 || [])];
         const uniqueIds = new Set();

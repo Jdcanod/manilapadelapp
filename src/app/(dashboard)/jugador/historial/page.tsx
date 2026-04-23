@@ -23,20 +23,24 @@ export default async function HistorialPartidosPage() {
         .select('partido_id')
         .eq('jugador_id', user.id); // Usamos auth_id que es lo que guarda partido_jugadores
 
-    // 2. Obtener IDs de parejas donde participo
-    const { data: misParejas } = await supabase
+    // --- USO DE ADMIN SUPABASE PARA EVITAR RLS ---
+    const { createAdminClient } = await import("@/utils/supabase/server");
+    const adminSupabase = createAdminClient();
+
+    // 2. Obtener IDs de parejas donde participo (usamos adminSupabase)
+    const { data: misParejas } = await adminSupabase
         .from('parejas')
         .select('id')
         .or(`jugador1_id.eq.${userData?.id},jugador2_id.eq.${userData?.id}`);
 
     const misParejasIds = misParejas?.map(p => p.id) || [];
 
-    // 3. Obtener IDs de partidos de torneo donde participo mi pareja
+    // 3. Obtener IDs de partidos de torneo donde participo mi pareja (usamos adminSupabase)
     let tournamentMatchIds: string[] = [];
     if (misParejasIds.length > 0) {
         const [ { data: matches1 }, { data: matches2 } ] = await Promise.all([
-            supabase.from('partidos').select('id').in('pareja1_id', misParejasIds),
-            supabase.from('partidos').select('id').in('pareja2_id', misParejasIds)
+            adminSupabase.from('partidos').select('id').in('pareja1_id', misParejasIds),
+            adminSupabase.from('partidos').select('id').in('pareja2_id', misParejasIds)
         ]);
         const m1 = matches1?.map(m => m.id) || [];
         const m2 = matches2?.map(m => m.id) || [];
