@@ -65,8 +65,8 @@ export default async function HistorialPartidosPage() {
         );
     }
 
-    // Traer detalles de esos partidos
-    const { data: partidos } = await supabase
+    // Traer detalles de esos partidos (usamos adminSupabase para ver partidos de torneo)
+    const { data: partidos } = await adminSupabase
         .from('partidos')
         .select(`
             *,
