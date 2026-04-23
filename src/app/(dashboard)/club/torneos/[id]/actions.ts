@@ -611,18 +611,18 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
     }
 }
 
-export async function updateMatchSchedule(matchId: string, fecha: string, canchaNumero: number) {
+export async function updateMatchSchedule(matchId: string, fecha: string, cancha: string) {
     const supabase = createAdminClient();
     const { error } = await supabase
         .from('partidos')
         .update({
             fecha,
-            lugar: `Cancha ${canchaNumero}`
+            lugar: cancha
         })
         .eq('id', matchId);
 
     if (error) throw new Error(error.message);
-    revalidatePath("/club/torneos/[id]", "page");
+    revalidatePath(`/club/torneos/`, "layout");
 }
 
 export async function unscheduleMatch(matchId: string) {
@@ -636,5 +636,5 @@ export async function unscheduleMatch(matchId: string) {
         .eq('id', matchId);
 
     if (error) throw new Error(error.message);
-    revalidatePath("/club/torneos/[id]", "page");
+    revalidatePath(`/club/torneos/`, "layout");
 }

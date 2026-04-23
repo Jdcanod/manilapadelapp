@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input";
 interface Match {
     id: string;
     fecha: string | null;
-    cancha_numero: number | null;
     pareja1: { nombre_pareja: string | null } | null;
     pareja2: { nombre_pareja: string | null } | null;
     lugar: string | null;
@@ -64,7 +63,7 @@ export function TournamentChronogram({ matches, config }: ChronogramProps) {
             const finalDate = new Date(selectedDate);
             finalDate.setHours(hours, minutes, 0, 0);
 
-            await updateMatchSchedule(matchId, finalDate.toISOString(), cancha);
+            await updateMatchSchedule(matchId, finalDate.toISOString(), `Cancha ${cancha}`);
             setSelectedMatchId(null);
             toast({ title: "Programado", description: `Partido asignado a las ${time} en Cancha ${cancha}.` });
         } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
