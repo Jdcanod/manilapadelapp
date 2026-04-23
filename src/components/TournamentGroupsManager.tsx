@@ -45,7 +45,7 @@ interface Standing {
 export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set" }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
-    const [selectedCat] = useState(categorias[0] || "General");
+    const [selectedCat, setSelectedCat] = useState(categorias[0] || "General");
 
     const onGenerate = () => {
         if (!confirm(`¿Estás seguro de generar el sorteo de GRUPOS para la categoría ${selectedCat}?`)) return;
@@ -151,11 +151,27 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-neutral-900 p-4 border border-neutral-800 rounded-xl">
                 <div>
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2">
                         <Swords className="w-5 h-5 text-emerald-500" />
                         Sorteos de Torneo
                     </h3>
-                    <p className="text-sm text-neutral-400">Genera grupos o arma el cuadro de eliminatorias.</p>
+                    <p className="text-sm text-neutral-400 mb-4">Genera grupos o arma el cuadro de eliminatorias para cada categoría.</p>
+                    <div className="flex flex-wrap gap-2">
+                        {categorias.map(cat => (
+                            <button
+                                key={cat}
+                                onClick={() => setSelectedCat(cat)}
+                                className={cn(
+                                    "px-3 py-1.5 text-xs font-black uppercase tracking-widest rounded-lg border transition-colors",
+                                    selectedCat === cat 
+                                        ? "bg-emerald-500 text-black border-emerald-500" 
+                                        : "bg-neutral-950 text-neutral-500 border-neutral-800 hover:bg-neutral-800"
+                                )}
+                            >
+                                {cat}
+                            </button>
+                        ))}
+                    </div>
                 </div>
                 
                 <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">

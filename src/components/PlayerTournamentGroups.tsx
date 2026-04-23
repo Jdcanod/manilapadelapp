@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Swords, Users, Trophy } from "lucide-react";
 import { PlayerTournamentResultModal } from "@/components/PlayerTournamentResultModal";
 import { confirmarResultado } from "@/app/(dashboard)/torneos/actions";
-import { useTransition } from "react";
+import { useTransition, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -46,6 +46,15 @@ interface Props {
 export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId }: Props) {
     const [isPendingAction, startTransition] = useTransition();
     const router = useRouter();
+
+    const uniqueCategorias = Array.from(new Set(grupos.map(g => g.categoria))).sort();
+    const [selectedCat, setSelectedCat] = useState<string>("");
+
+    useEffect(() => {
+        if (uniqueCategorias.length > 0 && !selectedCat) {
+            setSelectedCat(uniqueCategorias[0]);
+        }
+    }, [uniqueCategorias, selectedCat]);
 
     const handleConfirm = (matchId: string) => {
         startTransition(async () => {
@@ -116,9 +125,31 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
         );
     }
 
+    const filteredGrupos = grupos.filter(g => g.categoria === selectedCat);
+
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {grupos.map((grupo) => {
+        <div className="space-y-6">
+            {uniqueCategorias.length > 1 && (
+                <div className="flex flex-wrap gap-2 mb-6">
+                    {uniqueCategorias.map(cat => (
+                        <button
+                            key={cat}
+                            onClick={() => setSelectedCat(cat)}
+                            className={cn(
+                                "px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-sm border",
+                                selectedCat === cat 
+                                    ? "bg-amber-500 text-black border-amber-500" 
+                                    : "bg-neutral-900 text-neutral-400 border-neutral-800 hover:bg-neutral-800 hover:text-white"
+                            )}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {filteredGrupos.map((grupo) => {
                 const standings = getStandings(grupo.id);
                 const grupoMatches = partidos.filter(p => p.torneo_grupo_id === grupo.id);
 
@@ -302,6 +333,12 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                     </Card>
                 );
             })}
+            {filteredGrupos.length === 0 && selectedCat && (
+                <div className="col-span-full text-center py-12 text-neutral-500">
+                    No hay grupos en esta categoría.
+                </div>
+            )}
+            </div>
         </div>
     );
 }
