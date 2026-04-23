@@ -18,7 +18,7 @@ export async function actualizarPerfilAction(formData: FormData) {
     const clubPreferencia = formData.get("club_preferencia")?.toString() || null;
     const categoria = formData.get("categoria")?.toString() || null;
 
-    const updates: any = {};
+    const updates: Record<string, string> = {};
     if (clubPreferencia !== null) updates.club_preferencia = clubPreferencia;
     if (categoria !== null) updates.categoria = categoria;
 

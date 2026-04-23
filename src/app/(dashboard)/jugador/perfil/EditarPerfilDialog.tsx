@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 export function EditarPerfilDialog({ 
     usuario 
 }: { 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     usuario: any 
 }) {
     const [open, setOpen] = useState(false);
@@ -42,6 +43,7 @@ export function EditarPerfilDialog({
             });
             setOpen(false);
             router.refresh();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             toast({
                 title: "Error al actualizar",
