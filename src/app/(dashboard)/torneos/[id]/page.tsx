@@ -178,6 +178,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                                                             match={match} 
                                                             playerPairIds={playerPairIds} 
                                                             currentUserId={finalUserId}
+                                                            tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                                                         />
                                                     </div>
                                                 ))}
@@ -205,6 +206,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                                                             match={match} 
                                                             playerPairIds={playerPairIds} 
                                                             currentUserId={finalUserId}
+                                                            tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                                                         />
                                                     </div>
                                                 ))}
@@ -232,6 +234,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                                                             match={match} 
                                                             playerPairIds={playerPairIds} 
                                                             currentUserId={finalUserId}
+                                                            tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                                                         />
                                                     </div>
                                                 ))}
@@ -254,6 +257,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                                                 match={match} 
                                                 playerPairIds={playerPairIds} 
                                                 currentUserId={finalUserId}
+                                                tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                                             />
                                         ))}
                                     </div>

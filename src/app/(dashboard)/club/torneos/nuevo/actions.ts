@@ -35,7 +35,9 @@ export async function crearTorneoCentral(formData: FormData) {
     const reglasPuntuacion = {
         sets: parseInt(formData.get("sets") as string) || 3,
         juegos: parseInt(formData.get("juegos") as string) || 6,
-        ventaja: formData.get("ventaja") as string || "oro"
+        ventaja: formData.get("ventaja") as string || "oro",
+        tipo_desempate: formData.get("tipo_desempate") as string || "tercer_set",
+        categorias_habilitadas: formData.getAll("categorias") as string[]
     };
 
     const { data, error } = await supabase

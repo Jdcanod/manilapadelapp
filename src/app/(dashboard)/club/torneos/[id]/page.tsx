@@ -25,7 +25,7 @@ interface MatchItem {
     estado_resultado?: string | null;
 }
 
-function BracketMatchCard({ match }: { match: MatchItem }) {
+function BracketMatchCard({ match, tipoDesempate }: { match: MatchItem, tipoDesempate?: string }) {
     return (
         <Card className="bg-neutral-950 border-neutral-800 border-l-4 border-l-amber-500 shadow-2xl overflow-hidden hover:border-neutral-700 transition-all group">
             <CardContent className="p-0">
@@ -82,6 +82,7 @@ function BracketMatchCard({ match }: { match: MatchItem }) {
                             matchId={match.id} 
                             pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"} 
                             pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"} 
+                            tipoDesempate={tipoDesempate}
                         />
                     )}
                 </div>
@@ -177,7 +178,8 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     }
 
     // Extraer categorías únicas para el selector de grupos y limpiar nulos
-    const categorias = Array.from(new Set(allParticipants.map(p => p.categoria).filter(Boolean)));
+    const categoriasConInscritos = Array.from(new Set(allParticipants.map(p => p.categoria).filter(Boolean)));
+    const categoriasHabilitadas = torneo.reglas_puntuacion?.categorias_habilitadas || ['2da', '3ra', '4ta', '5ta', '6ta', '7ma', 'Mixto A', 'Mixto B', 'Mixto C'];
 
     const adminSupabase = createAdminClient();
 
@@ -318,9 +320,10 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                 <TabsContent value="grupos" className="mt-6">
                     <TournamentGroupsManager 
                         torneoId={params.id} 
-                        categorias={categorias} 
+                        categorias={categoriasConInscritos.length > 0 ? categoriasConInscritos : categoriasHabilitadas} 
                         gruposExistentes={gruposExistentes || []}
                         partidos={partidosReales || []}
+                        tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                     />
                 </TabsContent>
 
@@ -328,7 +331,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-bold text-white">Listado de Inscritos</h3>
                         {(rawPartidos || []).length === 0 && (
-                            <AddTournamentPlayerModal torneoId={params.id} categorias={categorias} esMaster={torneo.tipo === 'master'} />
+                            <AddTournamentPlayerModal torneoId={params.id} categorias={categoriasHabilitadas} esMaster={torneo.tipo === 'master'} />
                         )}
                     </div>
                     {/* View for inscriptions */}
@@ -413,7 +416,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                                      <div key={pIdx} className="bracket-pair-container">
                                                          {pair.map(match => (
                                                              <div key={match.id} className="relative">
-                                                                 <BracketMatchCard match={match} />
+                                                                 <BracketMatchCard match={match} tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate} />
                                                              </div>
                                                          ))}
                                                          <div className="bracket-pair-connector-out" />
@@ -436,7 +439,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                                          {pair.map(match => (
                                                              <div key={match.id} className="relative">
                                                                  <div className="bracket-match-connector-in" />
-                                                                 <BracketMatchCard match={match} />
+                                                                 <BracketMatchCard match={match} tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate} />
                                                              </div>
                                                          ))}
                                                          <div className="bracket-pair-connector-out" />
@@ -459,7 +462,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                                          {pair.map(match => (
                                                              <div key={match.id} className="relative">
                                                                  <div className="bracket-match-connector-in" />
-                                                                 <BracketMatchCard match={match} />
+                                                                 <BracketMatchCard match={match} tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate} />
                                                              </div>
                                                          ))}
                                                          <div className="bracket-pair-connector-out" />
@@ -476,7 +479,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                              <div className="relative">
                                                  <div className="bracket-match-connector-in" />
                                                  {partidosReales.filter(p => p.lugar?.toLowerCase().startsWith('final')).map((match) => (
-                                                     <BracketMatchCard key={match.id} match={match} />
+                                                     <BracketMatchCard key={match.id} match={match} tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate} />
                                                  ))}
                                              </div>
                                          </div>

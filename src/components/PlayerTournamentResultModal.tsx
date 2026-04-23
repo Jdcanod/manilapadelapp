@@ -12,9 +12,10 @@ interface Props {
     pareja1Nombre: string;
     pareja2Nombre: string;
     buttonText?: string;
+    tipoDesempate?: string;
 }
 
-export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, buttonText, initialResult }: Props & { initialResult?: string | null }) {
+export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, buttonText, initialResult, tipoDesempate = "tercer_set" }: Props & { initialResult?: string | null }) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [statusMsg, setStatusMsg] = useState<string | null>(null);
@@ -55,26 +56,40 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
         let p2Sets = 0;
         const validSets = [];
 
-        for (const set of potentialSets) {
+        for (let idx = 0; idx < potentialSets.length; idx++) {
+            const set = potentialSets[idx];
             const p1 = parseInt(set.p1 || "0");
             const p2 = parseInt(set.p2 || "0");
-
-            if (p1 > 7 || p2 > 7) {
-                return alert("Error: Ningún equipo puede tener más de 7 puntos en un set.");
-            }
 
             const max = Math.max(p1, p2);
             const min = Math.min(p1, p2);
 
             let setValido = false;
-            if (max === 6 && min <= 4) {
+
+            if (idx === 2 && tipoDesempate === 'super_tiebreak') {
+                if (max < 10) {
+                    return alert(`El 3er set es un Super Tie-break. El ganador debe llegar a 10 puntos (Ingresado: ${p1}-${p2}).`);
+                }
+                if (max - min < 2) {
+                    return alert(`En el Super Tie-break debe haber una diferencia de 2 puntos (Ingresado: ${p1}-${p2}).`);
+                }
+                if (max > 10 && max - min !== 2) {
+                    return alert(`El marcador extendido del Super Tie-break es inválido. Si supera los 10 puntos, la diferencia debe ser exactamente 2 (Ej: 12-10).`);
+                }
                 setValido = true;
-            } else if (max === 7 && (min === 5 || min === 6)) {
-                setValido = true;
+            } else {
+                if (p1 > 7 || p2 > 7) {
+                    return alert(`Error en set ${idx + 1}: Ningún equipo puede tener más de 7 juegos en un set normal.`);
+                }
+                if (max === 6 && min <= 4) {
+                    setValido = true;
+                } else if (max === 7 && (min === 5 || min === 6)) {
+                    setValido = true;
+                }
             }
 
             if (!setValido) {
-                return alert(`El marcador ${p1}-${p2} no es válido. Un set debe terminar 6-0 a 6-4, 7-5 o 7-6.`);
+                return alert(`El marcador ${p1}-${p2} en el set ${idx + 1} no es válido.`);
             }
 
             validSets.push({ p1, p2 });

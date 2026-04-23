@@ -29,9 +29,10 @@ interface BracketMatchCardClientProps {
     match: MatchItem;
     playerPairIds: string[];
     currentUserId?: string;
+    tipoDesempate?: string;
 }
 
-export function BracketMatchCardClient({ match, playerPairIds, currentUserId }: BracketMatchCardClientProps) {
+export function BracketMatchCardClient({ match, playerPairIds, currentUserId, tipoDesempate = "tercer_set" }: BracketMatchCardClientProps) {
     const [isPendingAction, startTransition] = useTransition();
 
     const isParticipant = (match.pareja1_id && playerPairIds.includes(match.pareja1_id)) || 
@@ -128,6 +129,7 @@ export function BracketMatchCardClient({ match, playerPairIds, currentUserId }: 
                                 pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"}
                                 pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
                                 initialResult={match.resultado}
+                                tipoDesempate={tipoDesempate}
                             />
                         )}
 
@@ -170,6 +172,7 @@ export function BracketMatchCardClient({ match, playerPairIds, currentUserId }: 
                                             pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
                                             initialResult={match.resultado}
                                             buttonText="Corregir"
+                                            tipoDesempate={tipoDesempate}
                                         />
                                     </div>
                                 </div>

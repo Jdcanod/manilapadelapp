@@ -27,6 +27,7 @@ interface Props {
         pareja1?: { nombre_pareja?: string };
         pareja2?: { nombre_pareja?: string };
     }[];
+    tipoDesempate?: string;
 }
 
 interface Standing {
@@ -41,7 +42,7 @@ interface Standing {
     pts: number;
 }
 
-export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos }: Props) {
+export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set" }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const [selectedCat] = useState(categorias[0] || "General");
@@ -271,6 +272,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                             pareja1Nombre={match.pareja1?.nombre_pareja || "Pareja 1"}
                                                             pareja2Nombre={match.pareja2?.nombre_pareja || "Pareja 2"}
                                                             initialResult={match.resultado}
+                                                            tipoDesempate={tipoDesempate}
                                                         />
                                                         {match.estado === 'jugado' && match.estado_resultado === 'pendiente' && (
                                                             <Button 
