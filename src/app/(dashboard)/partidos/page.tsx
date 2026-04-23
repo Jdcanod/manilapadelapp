@@ -149,8 +149,8 @@ export default async function PartidosPage() {
     let myTournamentMatches: any[] = [];
     if (misParejasIds.length > 0) {
         const [ { data: m1 }, { data: m2 } ] = await Promise.all([
-            adminSupabase.from('partidos').select('*, creador:users!creador_id(nombre), pareja1:parejas!pareja1_id(nombre_pareja), pareja2:parejas!pareja2_id(nombre_pareja)').in('pareja1_id', misParejasIds),
-            adminSupabase.from('partidos').select('*, creador:users!creador_id(nombre), pareja1:parejas!pareja1_id(nombre_pareja), pareja2:parejas!pareja2_id(nombre_pareja)').in('pareja2_id', misParejasIds)
+            adminSupabase.from('partidos').select('*').in('pareja1_id', misParejasIds),
+            adminSupabase.from('partidos').select('*').in('pareja2_id', misParejasIds)
         ]);
         const allTMatches = [...(m1 || []), ...(m2 || [])];
         const uniqueIds = new Set();
@@ -161,6 +161,31 @@ export default async function PartidosPage() {
             }
             return false;
         });
+        
+        // Cargar nombres de parejas
+        const pairIdsToFetch = new Set<string>();
+        myTournamentMatches.forEach(m => {
+            if (m.pareja1_id) pairIdsToFetch.add(m.pareja1_id);
+            if (m.pareja2_id) pairIdsToFetch.add(m.pareja2_id);
+        });
+        
+        const parejaNamesMap = new Map<string, string>();
+        if (pairIdsToFetch.size > 0) {
+            const { data: namesData } = await adminSupabase
+                .from('parejas')
+                .select('id, nombre_pareja')
+                .in('id', Array.from(pairIdsToFetch));
+            
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            namesData?.forEach((n: any) => parejaNamesMap.set(n.id, n.nombre_pareja || "Pareja sin nombre"));
+        }
+        
+        // Inyectar los nombres
+        myTournamentMatches = myTournamentMatches.map(m => ({
+            ...m,
+            pareja1: { nombre_pareja: parejaNamesMap.get(m.pareja1_id) },
+            pareja2: { nombre_pareja: parejaNamesMap.get(m.pareja2_id) }
+        }));
     }
 
     const myTourneyMatchesMap = myTournamentMatches.map(p => {

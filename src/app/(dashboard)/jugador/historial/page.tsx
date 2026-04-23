@@ -71,10 +71,7 @@ export default async function HistorialPartidosPage() {
     // Traer detalles de esos partidos (usamos adminSupabase para ver partidos de torneo)
     const { data: rawPartidos } = await adminSupabase
         .from('partidos')
-        .select(`
-            *,
-            club:users!club_id(nombre)
-        `)
+        .select('*')
         .in('id', ids)
         .eq('estado', 'jugado')
         .order('fecha', { ascending: false });
