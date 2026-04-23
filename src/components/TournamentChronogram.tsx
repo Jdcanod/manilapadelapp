@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, Clock, Trash2, Info, AlertCircle, MousePointer2, ChevronRight, ChevronLeft, Star } from "lucide-react";
-import { format, addMinutes, startOfDay, parseISO, isSameDay, addDays } from "date-fns";
+import { format, addMinutes, startOfDay, parseISO, addDays } from "date-fns";
 import { updateMatchSchedule, unscheduleMatch } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
