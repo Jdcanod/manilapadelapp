@@ -289,6 +289,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                             partidos={partidosReales || []} 
                             playerPairIds={playerPairIds} 
                             currentUserId={typeof finalUserId !== 'undefined' ? finalUserId : undefined}
+                            tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                         />
                 </TabsContent>
                 <TabsContent value="cuadros" className="mt-8">

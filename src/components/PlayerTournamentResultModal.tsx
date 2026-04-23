@@ -165,7 +165,9 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
                     <div className="space-y-3">
                         {sets.map((set, idx) => (
                             <div key={idx} className="flex items-center gap-3 bg-neutral-900/50 p-3 rounded-2xl border border-neutral-800/50">
-                                <span className="text-[10px] font-black text-neutral-600 w-8">SET {idx + 1}</span>
+                                <span className="text-[10px] font-black text-neutral-600 w-8">
+                                    {idx === 2 && tipoDesempate === 'super_tiebreak' ? 'STB' : `SET ${idx + 1}`}
+                                </span>
                                 <Input 
                                     placeholder="0" 
                                     type="number" 

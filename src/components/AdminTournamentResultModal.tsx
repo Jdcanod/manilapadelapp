@@ -152,6 +152,9 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                     </div>
                     {sets.map((set, idx) => (
                         <div key={idx} className="flex items-center gap-3">
+                            <span className="text-[10px] font-black text-neutral-600 w-12 shrink-0">
+                                {idx === 2 && tipoDesempate === 'super_tiebreak' ? 'STB' : `SET ${idx + 1}`}
+                            </span>
                             <Input 
                                 placeholder="0" 
                                 type="number"

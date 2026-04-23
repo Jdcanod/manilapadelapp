@@ -41,9 +41,10 @@ interface Props {
     partidos: Match[];
     playerPairIds: string[];
     currentUserId?: string;
+    tipoDesempate?: string;
 }
 
-export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId }: Props) {
+export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId, tipoDesempate = "tercer_set" }: Props) {
     const [isPendingAction, startTransition] = useTransition();
     const router = useRouter();
 
@@ -276,6 +277,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                     pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"}
                                                                     pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
                                                                     initialResult={match.resultado}
+                                                                    tipoDesempate={tipoDesempate}
                                                                 />
                                                             )}
                                                         </div>
