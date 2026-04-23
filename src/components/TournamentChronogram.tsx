@@ -37,21 +37,25 @@ export function TournamentChronogram({ matches, config }: ChronogramProps) {
     const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
 
-    // Filtrar partidos
-    const scheduledMatches = matches.filter(m => m.fecha && m.lugar?.startsWith('Cancha'));
-    const pendingMatches = matches.filter(m => !m.fecha || !m.lugar?.startsWith('Cancha'));
-
-    // Generar horas del día (ej. de 7am a 11pm)
+    // Generar horas del día basadas en la duración configurada
     const timeSlots: string[] = [];
     let currentTime = startOfDay(new Date());
     currentTime.setHours(7, 0, 0);
     const endTime = new Date(currentTime);
     endTime.setHours(23, 0, 0);
 
+    const slotInterval = config.duracion || 60;
+
     while (currentTime <= endTime) {
         timeSlots.push(format(currentTime, "HH:mm"));
-        currentTime = addMinutes(currentTime, 30);
+        currentTime = addMinutes(currentTime, slotInterval);
     }
+
+    const isScheduled = (m: Match) => m.fecha && m.lugar && m.lugar.startsWith('Cancha');
+
+    // Filtrar partidos
+    const scheduledMatches = matches.filter(isScheduled);
+    const pendingMatches = matches.filter(m => !isScheduled(m));
 
     const handleAssign = async (matchId: string, time: string, cancha: number) => {
         setIsUpdating(true);
