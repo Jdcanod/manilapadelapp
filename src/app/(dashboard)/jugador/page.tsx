@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Trophy, TrendingUp, Calendar, MapPin, Activity, Star, UserPlus, History as HistoryIcon } from "lucide-react";
+import { Trophy, TrendingUp, Calendar, MapPin, Activity, Star, History as HistoryIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -94,6 +94,67 @@ export default async function JugadorDashboard() {
         club_nombre: typeof item.users === 'object' && item.users ? ((item.users as { nombre?: string }).nombre || 'Club') : 'Club'
     }));
 
+    // --- LOGICA FUNCIONAL DE ESTADISTICAS ---
+    const { createPureAdminClient } = await import("@/utils/supabase/server");
+    const adminSupabase = createPureAdminClient();
+
+    // 1. Ranking Global
+    const { data: rankingData } = await adminSupabase
+        .from('users')
+        .select('id, elo')
+        .eq('rol', 'jugador')
+        .order('elo', { ascending: false });
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const myRank = rankingData ? rankingData.findIndex((u: any) => (u as any).id === userData?.id) + 1 : 0;
+
+    // 2. Parejas y Partidos para Win Rate / Torneos
+    const { data: misParejas } = await adminSupabase
+        .from('parejas')
+        .select('id, nombre_pareja')
+        .or(`jugador1_id.eq.${userData?.id},jugador2_id.eq.${userData?.id}`);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const misParejasIds = misParejas?.map((p: any) => (p as any).id) || [];
+    
+    let totalJugados = 0;
+    let ganados = 0;
+    let numTorneos = 0;
+    let parejaActual = "Ninguna";
+
+    if (misParejasIds.length > 0 || userData?.id) {
+        // Obtenemos partidos donde participo como pareja o individualmente
+        const { data: partidosJugados } = await adminSupabase
+            .from('partidos')
+            .select('*')
+            .or(`pareja1_id.in.(${misParejasIds.length > 0 ? misParejasIds.join(',') : '00000000-0000-0000-0000-000000000000'}),pareja2_id.in.(${misParejasIds.length > 0 ? misParejasIds.join(',') : '00000000-0000-0000-0000-000000000000'}),creador_id.eq.${user.id}`)
+            .eq('estado', 'jugado');
+
+        totalJugados = partidosJugados?.length || 0;
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        partidosJugados?.forEach((p: any) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const match = p as any;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const myPairId = misParejasIds.find((id: any) => id === match.pareja1_id || id === match.pareja2_id);
+            if (match.ganador_pareja_id && myPairId && match.ganador_pareja_id === myPairId) {
+                ganados++;
+            } else if (match.ganador_id && match.ganador_id === user.id) {
+                ganados++;
+            }
+        });
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const torneosUnicos = new Set(partidosJugados?.filter((p: any) => (p as any).torneo_id).map((p: any) => (p as any).torneo_id));
+        numTorneos = torneosUnicos.size;
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        parejaActual = misParejas && misParejas.length > 0 ? (misParejas[misParejas.length - 1] as any).nombre_pareja : "Ninguna";
+    }
+
+    const winRate = totalJugados > 0 ? Math.round((ganados / totalJugados) * 100) : 0;
+
     return (
         <div className="space-y-6">
             {/* Header Profile Summary */}
@@ -105,41 +166,35 @@ export default async function JugadorDashboard() {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
                             <h1 className="text-3xl font-bold tracking-tight text-white mb-1">{nombreReal}</h1>
-                            <p className="text-neutral-400 font-medium">Jugador de revés agresivo.</p>
+                            <p className="text-neutral-400 font-medium capitalize">{userData?.nivel || 'Jugador'}</p>
                         </div>
                         <div className="flex items-center gap-3">
                             <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 px-3 py-1">
-                                Avanzado
+                                {userData?.nivel || 'N/A'}
                             </Badge>
                             <div className="flex items-center gap-1 bg-neutral-950 px-3 py-1.5 rounded-full border border-neutral-800">
                                 <Trophy className="w-4 h-4 text-amber-400 mb-0.5" />
-                                <span className="font-bold text-white">#4</span>
+                                <span className="font-bold text-white">#{myRank || '-'}</span>
                             </div>
                         </div>
-                    </div>
-
-                    <div className="mt-4 flex gap-3">
-                        <Link href="/jugador/pareja/nueva" className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors shadow-lg shadow-emerald-900/20">
-                            <UserPlus className="w-4 h-4" /> Formar Pareja
-                        </Link>
                     </div>
 
                     <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="bg-neutral-950/50 p-3 rounded-2xl border border-neutral-800/60">
                             <div className="text-xs text-neutral-500 mb-1 flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Puntos ELO</div>
-                            <div className="text-2xl font-black text-white">1,450</div>
+                            <div className="text-2xl font-black text-white">{userData?.elo?.toLocaleString() || '1,000'}</div>
                         </div>
                         <div className="bg-neutral-950/50 p-3 rounded-2xl border border-neutral-800/60">
                             <div className="text-xs text-neutral-500 mb-1 flex items-center gap-1"><Activity className="w-3 h-3" /> Win Rate</div>
-                            <div className="text-2xl font-black text-white">68%</div>
+                            <div className="text-2xl font-black text-white">{winRate}%</div>
                         </div>
                         <div className="bg-neutral-950/50 p-3 rounded-2xl border border-neutral-800/60">
                             <div className="text-xs text-neutral-500 mb-1 flex items-center gap-1"><Star className="w-3 h-3" /> Pareja Actual</div>
-                            <div className="text-sm font-semibold text-emerald-400 mt-1 line-clamp-1">Los Paisas Pro</div>
+                            <div className="text-sm font-semibold text-emerald-400 mt-1 line-clamp-1">{parejaActual}</div>
                         </div>
                         <div className="bg-neutral-950/50 p-3 rounded-2xl border border-neutral-800/60">
                             <div className="text-xs text-neutral-500 mb-1 flex items-center gap-1"><Trophy className="w-3 h-3" /> Torneos</div>
-                            <div className="text-2xl font-black text-white">2 <span className="text-sm text-neutral-500 font-normal">jugados</span></div>
+                            <div className="text-2xl font-black text-white">{numTorneos} <span className="text-sm text-neutral-500 font-normal">jugados</span></div>
                         </div>
                     </div>
                 </div>
