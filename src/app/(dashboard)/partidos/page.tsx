@@ -180,11 +180,28 @@ export default async function PartidosPage() {
             namesData?.forEach((n: any) => parejaNamesMap.set(n.id, n.nombre_pareja || "Pareja sin nombre"));
         }
         
+        // Cargar torneos
+        const torneoIdsToFetch = new Set<string>();
+        myTournamentMatches.forEach(m => {
+            if (m.torneo_id) torneoIdsToFetch.add(m.torneo_id);
+        });
+        
+        const torneosNamesMap = new Map<string, string>();
+        if (torneoIdsToFetch.size > 0) {
+            const { data: tData } = await adminSupabase
+                .from('torneos')
+                .select('id, nombre')
+                .in('id', Array.from(torneoIdsToFetch));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            tData?.forEach((t: any) => torneosNamesMap.set(t.id, t.nombre));
+        }
+        
         // Inyectar los nombres
         myTournamentMatches = myTournamentMatches.map(m => ({
             ...m,
             pareja1: { nombre_pareja: parejaNamesMap.get(m.pareja1_id) },
-            pareja2: { nombre_pareja: parejaNamesMap.get(m.pareja2_id) }
+            pareja2: { nombre_pareja: parejaNamesMap.get(m.pareja2_id) },
+            torneo_nombre: torneosNamesMap.get(m.torneo_id)
         }));
     }
 
@@ -208,7 +225,7 @@ export default async function PartidosPage() {
             id: p.id,
             club: p.lugar,
             time: timeStr,
-            type: `Torneo - Nivel ${p.nivel}`,
+            type: p.torneo_nombre ? `Torneo: ${p.torneo_nombre}` : `Torneo - Nivel ${p.nivel}`,
             status: statusDisplay,
             opponents: opponentPairName,
             estado_original: p.estado,
@@ -220,7 +237,7 @@ export default async function PartidosPage() {
 
     // Unimos los partidos estándar con los torneos para renderizarlos en la misma lista
     const allMyEntries = [...myMatches, ...myTourneyMatchesMap, ...misTorneosMap].sort((a, b) => {
-        return new Date(a.fecha || a.time).getTime() - new Date(b.fecha || b.time).getTime();
+        return new Date(b.fecha || b.time).getTime() - new Date(a.fecha || a.time).getTime();
     });
 
     return (
@@ -233,13 +250,6 @@ export default async function PartidosPage() {
                 <div className="w-full sm:w-auto">
                     <OrganizarPartidoDialog userId={user.id} />
                 </div>
-            </div>
-
-            <div className="bg-red-900/20 p-4 text-xs text-white break-all mb-4">
-                DEBUG INFO:
-                <br/>currentProfileId: {currentProfileId}
-                <br/>misParejasIds ({misParejasIds.length}): {misParejasIds.join(', ')}
-                <br/>tournamentMatchIds ({myTournamentMatches.length}): {myTournamentMatches.map(m => m.id).join(', ')}
             </div>
 
             <Tabs defaultValue="buscar" className="w-full">
@@ -387,16 +397,28 @@ export default async function PartidosPage() {
                             }
 
                             // Render normal para Partidos Estándar
+                            const isJugado = match.estado_original === 'jugado';
+                            const isCerrado = match.status === 'Cerrado';
+                            const bgAccent = isJugado ? 'bg-emerald-500' : isCerrado ? 'bg-neutral-600' : 'bg-blue-500';
+                            const badgeBg = isJugado ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' : isCerrado ? 'bg-neutral-500/20 text-neutral-400' : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30';
+                            
                             return (
-                                <Card key={match.id} className="bg-neutral-900/80 border-neutral-800 relative overflow-hidden group hover:bg-neutral-900 transition-colors">
-                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
+                                <Card key={match.id} className={`bg-neutral-900/80 border-neutral-800 relative overflow-hidden group hover:bg-neutral-900 transition-colors ${isJugado ? 'border-emerald-900/50' : ''}`}>
+                                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${bgAccent}`} />
                                     <CardContent className="p-6 flex flex-col md:flex-row justify-between items-center gap-6">
                                         <div className="flex-1 w-full text-center md:text-left">
                                             <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-                                                <Badge className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-0">{match.status}</Badge>
-                                                <Badge variant="outline" className="border-neutral-700 text-neutral-400">{match.type}</Badge>
+                                                <Badge className={`${badgeBg} border-0`}>{match.status}</Badge>
+                                                <Badge variant="outline" className={`border-neutral-700 ${isJugado ? 'text-emerald-500/70' : 'text-neutral-400'}`}>{match.type}</Badge>
                                             </div>
-                                            <h3 className="text-xl font-bold text-white mb-1">vs {match.opponents}</h3>
+                                            {match.isTournamentMatch && match.torneo_nombre ? (
+                                                <>
+                                                    <h3 className="text-xl font-bold text-white mb-1">{match.torneo_nombre}</h3>
+                                                    <div className="text-sm font-bold text-emerald-400 mb-1">vs {match.opponents}</div>
+                                                </>
+                                            ) : (
+                                                <h3 className="text-xl font-bold text-white mb-1">vs {match.opponents}</h3>
+                                            )}
                                             <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 sm:gap-6 text-sm text-neutral-400">
                                                 <span className="flex items-center"><Calendar className="w-4 h-4 mr-1.5" /> {match.time}</span>
                                                 <span className="flex items-center"><MapPin className="w-4 h-4 mr-1.5" /> {match.club}</span>

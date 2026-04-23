@@ -78,6 +78,23 @@ export default async function HistorialPartidosPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const partidos = (rawPartidos || []) as any[];
 
+    // Cargar nombres de torneos si existen
+    const torneoIds = new Set<string>();
+    partidos.forEach(p => {
+        if (p.torneo_id) torneoIds.add(p.torneo_id);
+    });
+
+    const torneoNamesMap = new Map<string, string>();
+    if (torneoIds.size > 0) {
+        const { data: torneosData } = await adminSupabase
+            .from('torneos')
+            .select('id, nombre')
+            .in('id', Array.from(torneoIds));
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        torneosData?.forEach((t: any) => torneoNamesMap.set(t.id, t.nombre));
+    }
+
     return (
         <div className="space-y-6 pb-20">
             <div className="flex items-center gap-4">
@@ -91,38 +108,39 @@ export default async function HistorialPartidosPage() {
             </div>
 
             <div className="grid gap-4">
-                <div className="bg-red-900/20 p-4 text-xs text-white break-all">
-                    DEBUG INFO:
-                    <br/>Auth ID: {user.id}
-                    <br/>User ID: {userData?.id}
-                    <br/>misParejasIds ({misParejasIds.length}): {misParejasIds.join(', ')}
-                    <br/>tournamentMatchIds ({tournamentMatchIds.length}): {tournamentMatchIds.join(', ')}
-                    <br/>ids ({ids.length}): {ids.join(', ')}
-                </div>
                 {!partidos || partidos.length === 0 ? (
                     <p className="text-neutral-500 text-center py-20">No has completado partidos todavía.</p>
                 ) : (
-                    partidos.map((partido) => (
-                        <Card key={partido.id} className="bg-neutral-900 border-neutral-800 hover:border-neutral-700 transition-colors">
+                    partidos.map((partido) => {
+                        const isTorneo = partido.torneo_id || partido.tipo_partido === 'torneo' || partido.tipo_partido_oficial === 'torneo';
+                        const torneoName = partido.torneo_id ? torneoNamesMap.get(partido.torneo_id) : null;
+                        
+                        return (
+                        <Card key={partido.id} className="bg-neutral-900 border-neutral-800 hover:border-emerald-900/50 transition-colors">
                             <CardContent className="p-5">
                                 <div className="flex flex-col sm:flex-row justify-between gap-4">
                                     <div className="space-y-2">
                                         <div className="flex items-center gap-2">
-                                            <Badge className={partido.torneo_id || partido.tipo_partido === 'torneo' || partido.tipo_partido_oficial === 'torneo' ? 'bg-amber-500/10 text-amber-500' : 'bg-blue-500/10 text-blue-500'}>
-                                                {partido.torneo_id || partido.tipo_partido === 'torneo' || partido.tipo_partido_oficial === 'torneo' ? 'Torneo' : 'Amistoso'}
+                                            <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
+                                                Jugado - {isTorneo ? 'Torneo' : 'Amistoso'}
                                             </Badge>
                                             <span className="text-xs text-neutral-500">
                                                 {new Date(partido.fecha).toLocaleDateString()}
                                             </span>
                                         </div>
-                                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                            <Trophy className="w-4 h-4 text-neutral-500" />
-                                            {partido.club?.nombre || partido.lugar}
+                                        <h3 className="text-lg font-bold text-white flex flex-col gap-1">
+                                            {isTorneo && torneoName && (
+                                                <span className="text-xl text-white">{torneoName}</span>
+                                            )}
+                                            <span className="flex items-center gap-2 text-neutral-400 text-sm font-normal">
+                                                <Trophy className="w-4 h-4 text-neutral-500" />
+                                                {partido.lugar || 'Cancha por definir'}
+                                            </span>
                                         </h3>
                                         <div className="flex items-center gap-4 text-sm text-neutral-400">
                                             <span className="flex items-center gap-1">
-                                                {partido.torneo_id ? (
-                                                    <span className="text-amber-500/80 font-bold">Categoría: {partido.nivel || 'N/A'}</span>
+                                                {isTorneo ? (
+                                                    <span className="text-emerald-500/80 font-bold">Categoría: {partido.nivel || 'N/A'}</span>
                                                 ) : (
                                                     <span className="flex items-center gap-1"><Users className="w-4 h-4" /> 4 Jugadores</span>
                                                 )}
@@ -131,16 +149,16 @@ export default async function HistorialPartidosPage() {
                                     </div>
 
                                     <div className="flex flex-col items-center sm:items-end justify-center bg-neutral-950 p-4 rounded-xl border border-neutral-800 min-w-[120px]">
-                                        <div className="text-[10px] text-neutral-500 uppercase font-black mb-1">Resultado Final</div>
+                                        <div className="text-[10px] text-emerald-500 uppercase font-black mb-1">Resultado Final</div>
                                         <div className="text-2xl font-black text-white tracking-widest">
                                             {partido.resultado || "0-0"}
                                         </div>
-                                        <Trophy className="w-4 h-4 text-amber-500 mt-2" />
+                                        <Trophy className="w-4 h-4 text-emerald-500 mt-2" />
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
-                    ))
+                    )})
                 )}
             </div>
         </div>
