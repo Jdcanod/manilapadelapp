@@ -23,10 +23,17 @@ export default function RegistroPage() {
 
         const formData = new FormData(e.currentTarget);
         const name = formData.get("name") as string;
+        const apellido = formData.get("apellido") as string;
         const email = formData.get("email") as string;
         const password = formData.get("password") as string;
+        const telefono = formData.get("telefono") as string;
+        const fecha_nacimiento = formData.get("fecha_nacimiento") as string;
+        const club_preferencia = formData.get("club_preferencia") as string;
+        const categoria = formData.get("categoria") as string;
         const ciudad = formData.get("ciudad") as string || "Manizales";
         const userRole = formData.get("role") as string || "jugador";
+
+        const nombreCompleto = `${name} ${apellido}`.trim();
 
         try {
             console.log("Iniciando registro con supabase: ", { email, role: userRole, url: process.env.NEXT_PUBLIC_SUPABASE_URL });
@@ -41,9 +48,11 @@ export default function RegistroPage() {
                 password,
                 options: {
                     data: {
-                        nombre: name,
+                        nombre: nombreCompleto,
                         ciudad: ciudad,
                         rol: userRole,
+                        telefono: telefono,
+                        categoria: categoria
                     }
                 }
             });
@@ -64,10 +73,16 @@ export default function RegistroPage() {
                 // 2. Guardar su perfil en la tabla pública "users"
                 const { error: dbError } = await supabase.from('users').insert({
                     auth_id: authData.user.id,
-                    nombre: name,
+                    nombre: nombreCompleto,
+                    apellido: apellido,
                     email: email,
                     ciudad: ciudad,
                     rol: userRole,
+                    telefono: telefono,
+                    fecha_nacimiento: fecha_nacimiento || null,
+                    club_preferencia: club_preferencia || null,
+                    categoria: categoria,
+                    nivel: categoria // Sincronizamos nivel con categoría para compatibilidad
                 });
 
                 if (dbError) {
@@ -80,7 +95,7 @@ export default function RegistroPage() {
                 } else {
                     toast({
                         title: "¡Bienvenido a ManilaPadel!",
-                        description: "Tu cuenta fue creada con éxito.",
+                        description: "Tu cuenta fue creada con éxito. Revisa tu correo si la verificación está activa.",
                     });
                 }
 
@@ -132,16 +147,96 @@ export default function RegistroPage() {
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <input type="hidden" name="role" value="jugador" />
 
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="name" className="text-neutral-300">Nombre</Label>
+                                <Input
+                                    id="name"
+                                    name="name"
+                                    placeholder="Ej. Juan"
+                                    required
+                                    className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="apellido" className="text-neutral-300">Apellido</Label>
+                                <Input
+                                    id="apellido"
+                                    name="apellido"
+                                    placeholder="Ej. Pérez"
+                                    required
+                                    className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
+                                />
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="email" className="text-neutral-300">Correo Electrónico</Label>
+                                <Input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    placeholder="juan@ejemplo.com"
+                                    required
+                                    className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="telefono" className="text-neutral-300">Teléfono</Label>
+                                <Input
+                                    id="telefono"
+                                    name="telefono"
+                                    type="tel"
+                                    placeholder="Ej. 3001234567"
+                                    required
+                                    className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="fecha_nacimiento" className="text-neutral-300">Fecha de Nac.</Label>
+                                <Input
+                                    id="fecha_nacimiento"
+                                    name="fecha_nacimiento"
+                                    type="date"
+                                    required
+                                    className="bg-neutral-950 border-neutral-800 text-neutral-100 [color-scheme:dark]"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="categoria" className="text-neutral-300">Categoría</Label>
+                                <select 
+                                    id="categoria" 
+                                    name="categoria" 
+                                    required
+                                    className="flex h-10 w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="" disabled selected>Selecciona...</option>
+                                    <option value="1ra">1ra Categoría</option>
+                                    <option value="2da">2da Categoría</option>
+                                    <option value="3ra">3ra Categoría</option>
+                                    <option value="4ta">4ta Categoría</option>
+                                    <option value="5ta">5ta Categoría</option>
+                                    <option value="6ta">6ta Categoría</option>
+                                    <option value="7ma">7ma Categoría</option>
+                                    <option value="Iniciacion">Iniciación</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div className="space-y-2">
-                            <Label htmlFor="name" className="text-neutral-300">Nombre Completo</Label>
+                            <Label htmlFor="club_preferencia" className="text-neutral-300">Club de Preferencia (Opcional)</Label>
                             <Input
-                                id="name"
-                                name="name"
-                                placeholder="Ej. Juan Pérez"
-                                required
+                                id="club_preferencia"
+                                name="club_preferencia"
+                                placeholder="Ej. Manila Padel Club"
                                 className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
                             />
                         </div>
+
                         <div className="space-y-2">
                             <Label htmlFor="ciudad" className="text-neutral-300">Ciudad</Label>
                             <Input
@@ -153,17 +248,7 @@ export default function RegistroPage() {
                                 className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
                             />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email" className="text-neutral-300">Correo Electrónico</Label>
-                            <Input
-                                id="email"
-                                name="email"
-                                type="email"
-                                placeholder="juan@ejemplo.com"
-                                required
-                                className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
-                            />
-                        </div>
+
                         <div className="space-y-2">
                             <Label htmlFor="password" className="text-neutral-300">Contraseña</Label>
                             <Input
