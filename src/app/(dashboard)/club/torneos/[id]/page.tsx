@@ -374,6 +374,22 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         });
     }
 
+    // SINCRONIZACIÓN CRÍTICA: Algunos participantes no tienen el grupo_id en su registro, 
+    // pero sí están en los partidos de un grupo. Vamos a mapearlos como hace la web.
+    if (rawPartidos) {
+        rawPartidos.forEach((m: any) => {
+            if (m.torneo_grupo_id) {
+                const gId = String(m.torneo_grupo_id);
+                // Buscar participantes que coincidan con las parejas de este partido
+                allParticipants.forEach(p => {
+                    if (p.pareja_id === m.pareja1_id || p.pareja_id === m.pareja2_id) {
+                        if (!p.grupo_id) p.grupo_id = gId;
+                    }
+                });
+            }
+        });
+    }
+
     // Extraer categorías únicas para el selector de grupos y limpiar nulos
     const categoriasConInscritos = Array.from(new Set(allParticipants.map(p => p.categoria).filter(Boolean)));
     const categoriasHabilitadas = torneo.reglas_puntuacion?.categorias_habilitadas || ['2da', '3ra', '4ta', '5ta', '6ta', '7ma', 'Mixto A', 'Mixto B', 'Mixto C'];
