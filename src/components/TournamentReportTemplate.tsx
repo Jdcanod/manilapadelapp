@@ -60,11 +60,11 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
             {/* SECCIÓN DE GRUPOS */}
             <div className="mb-10">
                 <h3 className="text-lg font-bold bg-gray-100 p-2 mb-4 uppercase border-l-4 border-blue-900">Configuración de Grupos</h3>
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 gap-4">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {grupos.map((grupo: any) => (
-                        <div key={grupo.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                            <div className="bg-gray-800 text-white p-2 text-sm font-bold text-center">
+                        <div key={grupo.id} className="border border-gray-200 rounded-lg overflow-hidden mb-4" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                            <div className="bg-gray-800 text-white p-2 text-center font-bold text-xs">
                                 {grupo.nombre_grupo} - {grupo.categoria}
                             </div>
                             <table className="w-full text-xs">
@@ -145,7 +145,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
             <div className="mb-10">
                 <h3 className="text-lg font-bold bg-gray-100 p-2 mb-4 uppercase border-l-4 border-blue-900">Parrilla (Programación)</h3>
                 {fechasOrdenadas.map(fechaKey => (
-                    <div key={fechaKey} className="mb-6">
+                    <div key={fechaKey} className="mb-6" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                         <div className="bg-blue-900 text-white px-4 py-1 text-sm font-bold uppercase mb-2">
                             {fechaKey === "Pendiente" ? "Fechas por Programar" : format(new Date(fechaKey), "EEEE dd 'de' MMMM", { locale: es })}
                         </div>
