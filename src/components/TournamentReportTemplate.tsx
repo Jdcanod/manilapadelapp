@@ -134,9 +134,9 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
 
                                         s1.pj++; s2.pj++;
                                         let setsP1 = 0, setsP2 = 0;
-                                        const sets = (m.resultado || "").split(',').map((s: any) => s.split('-').map(Number));
+                                        const sets = (m.resultado || "").split(',').map((s: string) => s.split('-').map(Number));
                                         
-                                        sets.forEach((set: any) => {
+                                        sets.forEach((set: number[]) => {
                                             if (set.length === 2) {
                                                 s1.gg += set[0]; s1.gp += set[1];
                                                 s2.gg += set[1]; s2.gp += set[0];
