@@ -136,11 +136,9 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
             });
             const timeIndex = timeSlots.indexOf(timeStr);
             const lugarStr = tp.lugar || "";
-            // El lugar puede ser "Cancha 1 | Fase" o "Cancha 1 - 4ta", extraemos el número
             const matches = lugarStr.match(/cancha[_\s](\d+)/i);
             const courtIndex = matches ? parseInt(matches[1]) - 1 : -1;
 
-            // Usar el nombre del lugar como etiqueta del torneo
             const torneoNombre = (tp as { torneo?: { nombre?: string } }).torneo?.nombre || "Torneo";
             const label = tp.lugar?.split('|')[0]?.trim() || tp.lugar || "Partido Torneo";
 
@@ -148,7 +146,7 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                 id: tp.id,
                 courtIndex,
                 timeIndex,
-                span: 3,
+                span: 2, // 2 slots = 1 hora para no solapar con el siguiente partido
                 player: `🏆 ${torneoNombre} - ${label}`,
                 type: 'torneo',
                 status: tp.estado || 'pendiente'
