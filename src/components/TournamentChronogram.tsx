@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, Clock, Trash2, AlertCircle, ChevronRight, ChevronLeft, Star, GripVertical } from "lucide-react";
-import { format, addMinutes, startOfDay, parseISO, addDays } from "date-fns";
+import { format, addMinutes, startOfDay, parseISO, addDays, isSameDay } from "date-fns";
 import { updateMatchSchedule, unscheduleMatch } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -293,6 +293,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                         const matchStarting = scheduledMatches.find(match => {
                                             const mDate = new Date(match.fecha!);
                                             return getCanchaFromLugar(match.lugar) === canchaNum && 
+                                                   isSameDay(mDate, selectedDate) &&
                                                    format(mDate, "HH:mm") === time;
                                         });
 
@@ -302,6 +303,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                             const duracion = config.duracion || 60;
                                             const mEnd = addMinutes(mStart, duracion);
                                             return getCanchaFromLugar(match.lugar) === canchaNum && 
+                                                   isSameDay(mStart, selectedDate) &&
                                                    slotStart >= mStart && slotStart < mEnd &&
                                                    format(mStart, "HH:mm") !== time;
                                         });
