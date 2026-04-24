@@ -281,7 +281,6 @@ export async function inscribirParejaManual(torneoId: string, jugador1Sel: strin
 
         if (!parejaId) {
             // Use Admin to read names (anon client might still have RLS delay)
-            const formatName = (fullName: string) => {
             const formatName = (fullName: string) => fullName || '';
 
             const { data: j1 } = await supabaseAdmin.from('users').select('nombre').eq('id', j1Id).single();
