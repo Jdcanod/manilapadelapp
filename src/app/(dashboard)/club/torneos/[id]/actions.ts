@@ -950,3 +950,86 @@ export async function moverParejaAGrupo(torneoId: string, categoria: string, par
         return { success: false, message: err instanceof Error ? err.message : "Error desconocido" };
     }
 }
+
+export async function actualizarEstadoPago(id: string, tipo: 'master' | 'regular', nuevoEstado: string, torneoId: string) {
+    const supabase = createClient();
+    if (tipo === 'master') {
+        const { error } = await supabase.from('inscripciones_torneo').update({ estado: nuevoEstado }).eq('id', id);
+        if (error) throw new Error(error.message);
+    } else {
+        const { error } = await supabase.from('torneo_parejas').update({ estado_pago: nuevoEstado }).eq('id', id);
+        if (error) throw new Error(error.message);
+    }
+    revalidatePath(`/club/torneos/${torneoId}`);
+    return { success: true };
+}
+
+export async function editarParticipantesInscripcion(
+    id: string, 
+    tipo: 'master' | 'regular', 
+    parejaId: string,
+    j1Id: string, 
+    j2Id: string,
+    torneoId: string
+) {
+    const supabaseAdmin = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { data: players } = await supabaseAdmin
+        .from('users')
+        .select('id, nombre')
+        .in('id', [j1Id, j2Id]);
+    
+    const p1Name = players?.find(p => p.id === j1Id)?.nombre || "Jugador 1";
+    const p2Name = players?.find(p => p.id === j2Id)?.nombre || "Jugador 2";
+    const nuevoNombre = `${p1Name} & ${p2Name}`;
+
+    const { error: parejaError } = await supabaseAdmin
+        .from('parejas')
+        .update({ 
+            jugador1_id: j1Id, 
+            jugador2_id: j2Id,
+            nombre_pareja: nuevoNombre
+        })
+        .eq('id', parejaId);
+    
+    if (parejaError) throw new Error(parejaError.message);
+
+    if (tipo === 'master') {
+        const { error: insError } = await supabaseAdmin
+            .from('inscripciones_torneo')
+            .update({ jugador1_id: j1Id, jugador2_id: j2Id })
+            .eq('id', id);
+        if (insError) throw new Error(insError.message);
+    }
+
+    revalidatePath(`/club/torneos/${torneoId}`);
+    return { success: true };
+}
+
+export async function darDeBajaPareja(id: string, tipo: 'master' | 'regular', parejaId: string, torneoId: string) {
+    const supabaseAdmin = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { error: matchError } = await supabaseAdmin
+        .from('partidos')
+        .delete()
+        .eq('torneo_id', torneoId)
+        .eq('estado', 'programado')
+        .or(`pareja1_id.eq.${parejaId},pareja2_id.eq.${parejaId}`);
+    
+    if (matchError) console.error("Error al eliminar partidos:", matchError);
+
+    if (tipo === 'master') {
+        await supabaseAdmin.from('inscripciones_torneo').delete().eq('id', id);
+    } else {
+        await supabaseAdmin.from('torneo_parejas').delete().eq('id', id);
+    }
+
+    revalidatePath(`/club/torneos/${torneoId}`);
+    return { success: true };
+}

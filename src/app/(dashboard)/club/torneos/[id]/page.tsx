@@ -571,7 +571,16 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                                 </Badge>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <AdminParticipantActions id={tp.id.toString()} tipo={tp.tipo} torneoId={params.id} hasStarted={hasStarted} />
+                                                <AdminParticipantActions 
+                                                    id={tp.id.toString()} 
+                                                    parejaId={tp.pareja_id}
+                                                    tipo={tp.tipo} 
+                                                    torneoId={params.id} 
+                                                    hasStarted={hasStarted} 
+                                                    j1Id={tp.jugador1_id}
+                                                    j2Id={tp.jugador2_id}
+                                                    estadoPago={tp.estado_pago}
+                                                />
                                             </td>
                                         </tr>
                                     ))}
