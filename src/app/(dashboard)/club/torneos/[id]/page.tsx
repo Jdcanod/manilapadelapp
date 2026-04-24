@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic';
-import { createClient, createAdminClient } from "@/utils/supabase/server";
+import { createClient, createAdminClient, createPureAdminClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { ChevronLeft, CalendarDays, Users, Swords, Trophy, Check } from "lucide-react";
 import Link from "next/link";
@@ -315,14 +315,16 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     const categoriasAMostrar = categoriasConInscritos.length > 0 ? categoriasConInscritos : categoriasHabilitadas;
 
     const adminSupabase = createAdminClient();
+    // Usar el cliente puro (supabase-js) para garantizar que no haya límite de 1000 filas
+    const pureAdmin = createPureAdminClient();
 
-    // Obtener partidos reales del torneo (Sin el join que falla si la DB no tiene los FKs explícitos)
-    const { data: rawPartidos } = await adminSupabase
+    // Obtener TODOS los partidos del torneo sin límite de 1000 filas
+    const { data: rawPartidos } = await pureAdmin
         .from('partidos')
         .select('*')
         .eq('torneo_id', params.id)
         .order('fecha', { ascending: true })
-        .limit(10000);
+        .limit(5000);
 
     // Obtener nombres de las parejas involucradas en los partidos
     const pairIds = new Set<string>();
