@@ -23,9 +23,11 @@ interface Props {
 
 export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(({ torneo, clubInfo, partidos, participantes, grupos }, ref) => {
     
-    // Organizar partidos por fecha para el cronograma
+    // Organizar partidos por fecha para el cronograma (Deduplicando por ID)
+    const uniquePartidos = Array.from(new Map(partidos.map(p => [p.id, p])).values());
+    
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const partidosPorFecha = partidos.reduce((acc: any, partido: any) => {
+    const partidosPorFecha = uniquePartidos.reduce((acc: any, partido: any) => {
         const dateToUse = partido.fecha_ajustada || partido.fecha;
         let fecha = "Pendiente";
         if (dateToUse) {
