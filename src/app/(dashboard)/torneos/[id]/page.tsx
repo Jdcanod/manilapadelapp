@@ -5,6 +5,8 @@ import { ChevronLeft, CalendarDays, Trophy, MapPin } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { PlayerTournamentGroups } from "@/components/PlayerTournamentGroups";
 import { BracketMatchCardClient } from "@/components/BracketMatchCardClient";
 import { cn } from "@/lib/utils";
@@ -316,16 +318,34 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                                 <p className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">El bracket se generará al finalizar grupos</p>
                             </div>
                         ) : (
-                            categoriasAMostrar.map((cat: string) => (
-                                <BracketSectionClient
-                                    key={cat}
-                                    categoria={cat}
-                                    partidosReales={partidosReales}
-                                    playerPairIds={playerPairIds}
-                                    finalUserId={finalUserId}
-                                    tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
-                                />
-                            ))
+                            <div className="flex justify-center relative z-10 mt-8">
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" className="border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-black text-xs uppercase tracking-widest gap-2 rounded-xl transition-all shadow-sm px-8 py-6">
+                                            <Trophy className="w-5 h-5 text-emerald-500" /> Ver Cuadros de Eliminatorias
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-[95vw] w-full max-h-[90vh] bg-neutral-950 border-neutral-900 text-white overflow-y-auto overflow-x-auto rounded-3xl p-6">
+                                        <DialogHeader className="mb-8 pb-4 border-b border-neutral-900 sticky left-0">
+                                            <DialogTitle className="text-2xl font-black italic uppercase tracking-widest text-emerald-500 flex items-center gap-3">
+                                                <Trophy className="w-6 h-6" /> Cuadro del Torneo
+                                            </DialogTitle>
+                                        </DialogHeader>
+                                        <div className="min-w-max pb-10">
+                                            {categoriasAMostrar.map((cat: string) => (
+                                                <BracketSectionClient
+                                                    key={cat}
+                                                    categoria={cat}
+                                                    partidosReales={partidosReales}
+                                                    playerPairIds={playerPairIds}
+                                                    finalUserId={finalUserId}
+                                                    tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
+                                                />
+                                            ))}
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
                         )}
                     </div>
                 </TabsContent>

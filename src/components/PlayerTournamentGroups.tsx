@@ -6,8 +6,10 @@ import { PlayerTournamentResultModal } from "@/components/PlayerTournamentResult
 import { confirmarResultado } from "@/app/(dashboard)/torneos/actions";
 import { useTransition, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+
 
 interface Standing {
     parejaId: string;
@@ -219,153 +221,170 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                 </table>
                             </div>
 
-                            <div className="p-6 space-y-4">
-                                <h5 className="text-[10px] font-black text-neutral-600 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                    <Swords className="w-3 h-3" /> Partidos
-                                </h5>
-                                <div className="space-y-3">
-                                    {grupoMatches.map((match) => {
-                                        const isMyMatch = (match.pareja1_id && playerPairIds.includes(match.pareja1_id)) || 
-                                                       (match.pareja2_id && playerPairIds.includes(match.pareja2_id));
-                                        
-                                        const isPending = match.estado === 'jugado' && !!match.resultado && match.estado_resultado === 'pendiente';
-                                        // Determinar si yo soy el que debe confirmar (soy del partido pero no soy el que reportó)
-                                        // Para simplificar, si soy del partido y está pendiente, puedo confirmar o corregir.
-                                        
-                                        return (
-                                            <div 
-                                                key={match.id} 
-                                                className={cn(
-                                                    "bg-neutral-900/40 border rounded-2xl p-4 transition-all hover:border-neutral-700",
-                                                    isMyMatch ? "border-amber-500/50 bg-amber-500/5 shadow-[0_0_20px_rgba(245,158,11,0.05)]" : "border-neutral-900"
-                                                )}
-                                            >
-                                                <div className="flex justify-between items-center mb-4">
-                                                     <div className="flex flex-col gap-1 flex-1">
-                                                        <div className="flex justify-between items-center">
-                                                            <span className={cn(
-                                                                "text-xs font-bold uppercase truncate pr-2",
-                                                                match.pareja1_id && playerPairIds.includes(match.pareja1_id) ? "text-amber-500" : "text-white"
-                                                            )}>
-                                                                {match.pareja1?.nombre_pareja || "TBD"}
-                                                            </span>
-                                                            {match.resultado && (
-                                                                <span className={cn(
-                                                                    "text-xs font-black",
-                                                                    match.estado_resultado === 'confirmado' ? "text-emerald-500" : "text-amber-500"
-                                                                )}>
-                                                                    {match.resultado.split(',')[0].split('-')[0]}
-                                                                </span>
+                            <div className="p-4 border-t border-neutral-900/50 flex justify-center bg-neutral-950">
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" className="w-full sm:w-auto border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-black text-[10px] uppercase tracking-widest gap-2 rounded-xl transition-all shadow-sm">
+                                            <Swords className="w-3.5 h-3.5 text-amber-500" /> Ver Partidos del Grupo
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-md bg-neutral-950 border-neutral-900 text-white max-h-[85vh] overflow-y-auto rounded-3xl p-6">
+                                        <DialogHeader className="mb-4 pb-4 border-b border-neutral-900">
+                                            <DialogTitle className="text-xl font-black italic uppercase tracking-widest text-amber-500 flex items-center gap-3">
+                                                <Swords className="w-5 h-5" /> Partidos - {grupo.nombre_grupo}
+                                            </DialogTitle>
+                                        </DialogHeader>
+                                        <div className="space-y-4">
+                                            {grupoMatches.length === 0 ? (
+                                                <p className="text-center text-neutral-500 text-xs font-bold uppercase tracking-widest py-8">
+                                                    No hay partidos generados aún.
+                                                </p>
+                                            ) : (
+                                                grupoMatches.map((match) => {
+                                                    const isMyMatch = (match.pareja1_id && playerPairIds.includes(match.pareja1_id)) || 
+                                                                   (match.pareja2_id && playerPairIds.includes(match.pareja2_id));
+                                                    
+                                                    const isPending = match.estado === 'jugado' && !!match.resultado && match.estado_resultado === 'pendiente';
+                                                    
+                                                    return (
+                                                        <div 
+                                                            key={match.id} 
+                                                            className={cn(
+                                                                "bg-neutral-900/60 border rounded-2xl p-5 transition-all hover:border-neutral-700 shadow-sm",
+                                                                isMyMatch ? "border-amber-500/50 bg-amber-500/5 shadow-[0_0_20px_rgba(245,158,11,0.05)]" : "border-neutral-900"
                                                             )}
-                                                        </div>
-                                                        <div className="flex justify-between items-center">
-                                                            <span className={cn(
-                                                                "text-xs font-bold uppercase truncate pr-2",
-                                                                match.pareja2_id && playerPairIds.includes(match.pareja2_id) ? "text-amber-500" : "text-white"
-                                                            )}>
-                                                                {match.pareja2?.nombre_pareja || "TBD"}
-                                                            </span>
-                                                            {match.resultado && (
-                                                                <span className={cn(
-                                                                    "text-xs font-black",
-                                                                    match.estado_resultado === 'confirmado' ? "text-emerald-500" : "text-amber-500"
-                                                                )}>
-                                                                    {match.resultado.split(',')[0].split('-')[1]}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        
-                                                        {/* Fecha del partido */}
-                                                        {match.fecha && (
-                                                            <div className="mt-2 pt-2 border-t border-neutral-900/50 flex items-center gap-2">
-                                                                <span className="text-[10px] font-black text-neutral-500 uppercase tracking-tighter">
-                                                                    {(() => {
-                                                                        const isTimePending = match.lugar?.toLowerCase().includes('pendiente') || match.lugar?.toLowerCase().includes('definir');
-                                                                        if (isTimePending) return "Hora por definir";
-                                                                        return new Date(match.fecha).toLocaleString('es-CO', { 
-                                                                            timeZone: 'America/Bogota', 
-                                                                            weekday: 'short', 
-                                                                            day: 'numeric', 
-                                                                            hour: '2-digit', 
-                                                                            minute: '2-digit' 
-                                                                        });
-                                                                    })()}
-                                                                </span>
-                                                                {match.lugar && !match.lugar.toLowerCase().includes('pendiente') && !match.lugar.toLowerCase().includes('definir') && (
-                                                                    <span className="text-[10px] font-bold text-neutral-600 truncate max-w-[80px]">
-                                                                        • {match.lugar}
+                                                        >
+                                                            <div className="flex justify-between items-center mb-4">
+                                                                 <div className="flex flex-col gap-2 flex-1">
+                                                                    <div className="flex justify-between items-center bg-neutral-950/50 p-2 rounded-lg border border-neutral-900/50">
+                                                                        <span className={cn(
+                                                                            "text-xs font-bold uppercase truncate pr-2",
+                                                                            match.pareja1_id && playerPairIds.includes(match.pareja1_id) ? "text-amber-500" : "text-white"
+                                                                        )}>
+                                                                            {match.pareja1?.nombre_pareja || "TBD"}
+                                                                        </span>
+                                                                        {match.resultado && (
+                                                                            <span className={cn(
+                                                                                "text-sm font-black px-2 py-0.5 rounded-md",
+                                                                                match.estado_resultado === 'confirmado' ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
+                                                                            )}>
+                                                                                {match.resultado.split(',')[0].split('-')[0]}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center bg-neutral-950/50 p-2 rounded-lg border border-neutral-900/50">
+                                                                        <span className={cn(
+                                                                            "text-xs font-bold uppercase truncate pr-2",
+                                                                            match.pareja2_id && playerPairIds.includes(match.pareja2_id) ? "text-amber-500" : "text-white"
+                                                                        )}>
+                                                                            {match.pareja2?.nombre_pareja || "TBD"}
+                                                                        </span>
+                                                                        {match.resultado && (
+                                                                            <span className={cn(
+                                                                                "text-sm font-black px-2 py-0.5 rounded-md",
+                                                                                match.estado_resultado === 'confirmado' ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
+                                                                            )}>
+                                                                                {match.resultado.split(',')[0].split('-')[1]}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                 </div>
+                                                                 
+                                                                 {isMyMatch && (
+                                                                    <div className="ml-4 flex flex-col items-end gap-3">
+                                                                        <div className="flex items-center gap-1.5 bg-amber-500 text-black px-2.5 py-1 rounded-md shadow-sm">
+                                                                            <Trophy className="w-3 h-3" />
+                                                                            <span className="text-[9px] font-black uppercase tracking-tighter">Tu Partido</span>
+                                                                        </div>
+                                                                        {match.estado !== 'jugado' && (
+                                                                            <PlayerTournamentResultModal 
+                                                                                matchId={match.id}
+                                                                                pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"}
+                                                                                pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
+                                                                                initialResult={match.resultado}
+                                                                                tipoDesempate={tipoDesempate}
+                                                                            />
+                                                                        )}
+                                                                    </div>
+                                                                 )}
+                                                            </div>
+                                                            
+                                                            {/* Fecha del partido */}
+                                                            {match.fecha && (
+                                                                <div className="mt-4 pt-3 border-t border-neutral-900/50 flex items-center justify-between gap-2">
+                                                                    <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest bg-neutral-950 px-2 py-1 rounded">
+                                                                        {(() => {
+                                                                            const isTimePending = match.lugar?.toLowerCase().includes('pendiente') || match.lugar?.toLowerCase().includes('definir');
+                                                                            if (isTimePending) return "Hora por definir";
+                                                                            return new Date(match.fecha).toLocaleString('es-CO', { 
+                                                                                timeZone: 'America/Bogota', 
+                                                                                weekday: 'short', 
+                                                                                day: 'numeric', 
+                                                                                hour: '2-digit', 
+                                                                                minute: '2-digit' 
+                                                                            });
+                                                                        })()}
                                                                     </span>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                     </div>
-                                                     {isMyMatch && (
-                                                        <div className="ml-4 flex flex-col items-end gap-2">
-                                                            <div className="flex items-center gap-1.5 bg-amber-500 text-black px-2 py-0.5 rounded-full">
-                                                                <Trophy className="w-2.5 h-2.5" />
-                                                                <span className="text-[9px] font-black uppercase tracking-tighter">Tu Partido</span>
-                                                            </div>
-                                                            {match.estado !== 'jugado' && (
-                                                                <PlayerTournamentResultModal 
-                                                                    matchId={match.id}
-                                                                    pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"}
-                                                                    pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
-                                                                    initialResult={match.resultado}
-                                                                    tipoDesempate={tipoDesempate}
-                                                                />
+                                                                    {match.lugar && !match.lugar.toLowerCase().includes('pendiente') && !match.lugar.toLowerCase().includes('definir') && (
+                                                                        <span className="text-[10px] font-bold text-neutral-400 truncate max-w-[120px] bg-neutral-950 px-2 py-1 rounded">
+                                                                            {match.lugar}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            )}
+
+                                                            {isMyMatch && isPending && (
+                                                                <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-4">
+                                                                    <p className="text-[10px] text-amber-500 font-black uppercase text-center animate-pulse tracking-widest">
+                                                                        Resultado Pendiente de Confirmación
+                                                                    </p>
+                                                                    <div className="flex gap-2">
+                                                                    {match.resultado_registrado_por === currentUserId ? (
+                                                                        <div className="flex-1 bg-amber-500/20 text-amber-500 font-bold text-[10px] uppercase h-10 rounded-lg flex items-center justify-center text-center leading-tight px-2">
+                                                                            Esperando verificación
+                                                                        </div>
+                                                                    ) : (
+                                                                        <Button 
+                                                                            onClick={() => handleConfirm(match.id)}
+                                                                            disabled={isPendingAction}
+                                                                            className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase h-10 rounded-lg shadow-lg transition-all"
+                                                                        >
+                                                                            {isPendingAction ? "..." : "Confirmar Resultado"}
+                                                                        </Button>
+                                                                    )}
+                                                                        <div className="flex-1">
+                                                                            <PlayerTournamentResultModal 
+                                                                                matchId={match.id}
+                                                                                pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"}
+                                                                                pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
+                                                                                buttonText="Corregir"
+                                                                                initialResult={match.resultado}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {match.estado_resultado === 'confirmado' && (
+                                                                <div className="mt-4 flex items-center justify-center gap-2 py-2.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                                                                    <div className="flex items-center gap-2 text-emerald-500">
+                                                                        <Trophy className="w-3.5 h-3.5" />
+                                                                        <span className="text-[10px] font-black uppercase tracking-widest">
+                                                                            Resultado Verificado
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
                                                             )}
                                                         </div>
-                                                     )}
-                                                </div>
-                                                
-                                                {isMyMatch && isPending && (
-                                                    <div className="mt-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-3">
-                                                        <p className="text-[10px] text-amber-500 font-black uppercase text-center animate-pulse">
-                                                            Resultado Pendiente de Confirmación
-                                                        </p>
-                                                        <div className="flex gap-2">
-                                                        {match.resultado_registrado_por === currentUserId ? (
-                                                            <div className="flex-1 bg-amber-500/20 text-amber-500 font-bold text-[10px] uppercase h-9 rounded-lg flex items-center justify-center text-center leading-tight px-2">
-                                                                Esperando verificación
-                                                            </div>
-                                                        ) : (
-                                                            <Button 
-                                                                onClick={() => handleConfirm(match.id)}
-                                                                disabled={isPendingAction}
-                                                                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase h-9 rounded-lg shadow-lg"
-                                                            >
-                                                                {isPendingAction ? "..." : "Confirmar Resultado"}
-                                                            </Button>
-                                                        )}
-                                                            <div className="flex-1">
-                                                                <PlayerTournamentResultModal 
-                                                                    matchId={match.id}
-                                                                    pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"}
-                                                                    pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
-                                                                    buttonText="Corregir"
-                                                                    initialResult={match.resultado}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {match.estado_resultado === 'confirmado' && (
-                                                    <div className="mt-2 flex items-center justify-center gap-2 py-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-                                                        <div className="flex items-center gap-1.5 text-emerald-500">
-                                                            <Trophy className="w-3 h-3" />
-                                                            <span className="text-[10px] font-black uppercase tracking-widest italic">
-                                                                Resultado Verificado: {match.resultado}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
                             </div>
                         </CardContent>
+
                     </Card>
                 );
             })}
