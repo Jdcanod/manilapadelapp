@@ -349,19 +349,19 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
 
     interface MatchReal {
         id: string;
-        pareja1_id: string | null;
-        pareja2_id: string | null;
-        torneo_grupo_id: string | null;
-        torneo_fase_id: string | null;
-        estado: string;
-        estado_resultado: string;
-        resultado: string | null;
-        lugar: string | null;
-        nivel: string | null;
-        fecha: string | null;
-        club_id: string | null;
-        pareja1: { nombre_pareja: string };
-        pareja2: { nombre_pareja: string };
+        pareja1_id?: string;
+        pareja2_id?: string;
+        torneo_grupo_id?: string;
+        torneo_fase_id?: string;
+        estado?: string;
+        estado_resultado?: string;
+        resultado?: string;
+        lugar?: string;
+        nivel?: string;
+        fecha?: string;
+        club_id?: string;
+        pareja1?: { nombre_pareja: string };
+        pareja2?: { nombre_pareja: string };
         jugador1_id?: string;
         jugador2_id?: string;
         jugador3_id?: string;
