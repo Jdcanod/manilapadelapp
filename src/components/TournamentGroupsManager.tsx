@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Swords, Users, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { generarFaseGrupos, generarFaseEliminatoria } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { generarFaseGrupos, generarFaseEliminatoria, swapParejasDeGrupo } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
@@ -77,6 +77,22 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                 }
             } catch (err: unknown) {
                 alert(err instanceof Error ? err.message : "Error desconocido al generar eliminatorias");
+            }
+        });
+    };
+
+    const handleSwap = (parejaId1: string, parejaId2: string) => {
+        if (!confirm('¿Estás seguro de intercambiar estas dos parejas? Esto modificará los partidos asignados.')) return;
+        
+        startTransition(async () => {
+            try {
+                const result = await swapParejasDeGrupo(torneoId, selectedCat, parejaId1, parejaId2);
+                if (!result.success) {
+                    alert("Error al intercambiar: " + result.error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Error desconocido al intercambiar");
             }
         });
     };
@@ -243,7 +259,20 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                             </thead>
                                             <tbody>
                                                 {standings.map((team, idx) => (
-                                                    <tr key={team.parejaId} className="border-b border-neutral-800/50 hover:bg-neutral-800/30 transition-colors">
+                                                    <tr 
+                                                        key={team.parejaId} 
+                                                        draggable
+                                                        onDragStart={(e) => e.dataTransfer.setData("text/plain", team.parejaId)}
+                                                        onDragOver={(e) => e.preventDefault()}
+                                                        onDrop={(e) => {
+                                                            e.preventDefault();
+                                                            const sourceParejaId = e.dataTransfer.getData("text/plain");
+                                                            if (sourceParejaId && sourceParejaId !== team.parejaId) {
+                                                                handleSwap(sourceParejaId, team.parejaId);
+                                                            }
+                                                        }}
+                                                        className="border-b border-neutral-800/50 hover:bg-neutral-800/30 transition-colors cursor-move"
+                                                    >
                                                         <td className="px-4 py-3 text-center text-neutral-500 font-bold">{idx + 1}</td>
                                                         <td className="px-4 py-3 font-bold text-white max-w-[150px] truncate" title={team.nombre}>
                                                             {team.nombre}

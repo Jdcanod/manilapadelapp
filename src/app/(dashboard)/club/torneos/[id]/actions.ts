@@ -234,6 +234,59 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
     }
 }
 
+export async function swapParejasDeGrupo(torneoId: string, categoria: string, parejaId1: string, parejaId2: string) {
+    try {
+        const supabaseAdmin = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
+        // Buscar todos los partidos de fase de grupos para estas dos parejas
+        const { data: partidos } = await supabaseAdmin
+            .from('partidos')
+            .select('*')
+            .eq('torneo_id', torneoId)
+            .eq('nivel', categoria)
+            .not('torneo_grupo_id', 'is', null)
+            .or(`pareja1_id.in.("${parejaId1}","${parejaId2}"),pareja2_id.in.("${parejaId1}","${parejaId2}")`);
+            
+        if (!partidos || partidos.length === 0) return { success: false, error: "No se encontraron partidos para estas parejas." };
+
+        // Procesar los intercambios
+        for (const p of partidos) {
+            let updateNeeded = false;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const updateData: any = {};
+
+            if (p.pareja1_id === parejaId1) {
+                updateData.pareja1_id = parejaId2;
+                updateNeeded = true;
+            } else if (p.pareja1_id === parejaId2) {
+                updateData.pareja1_id = parejaId1;
+                updateNeeded = true;
+            }
+
+            if (p.pareja2_id === parejaId1) {
+                updateData.pareja2_id = parejaId2;
+                updateNeeded = true;
+            } else if (p.pareja2_id === parejaId2) {
+                updateData.pareja2_id = parejaId1;
+                updateNeeded = true;
+            }
+
+            if (updateNeeded) {
+                await supabaseAdmin.from('partidos').update(updateData).eq('id', p.id);
+            }
+        }
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        return { success: true };
+    } catch (err: unknown) {
+        console.error("Error swapping parejas:", err);
+        return { success: false, error: err instanceof Error ? err.message : "Error desconocido" };
+    }
+}
+
 export async function inscribirParejaManual(torneoId: string, jugador1Sel: string, jugador2Sel: string, categoria: string, esMaster: boolean) {
     try {
         // Create admin client directly to be 100% sure about bypassing RLS and not relying on cookies

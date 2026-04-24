@@ -13,30 +13,43 @@ export interface GroupConfig {
 
 /**
  * Lógica para distribuir parejas en grupos basándose en cabezas de serie (ranking)
+ * Prioriza grupos de 3 y realiza sorteo aleatorio verdadero dentro de los bombos.
  */
 export function distributeParticipantsIntoGroups(participants: Participant[]) {
-    // 1. Calcular número de grupos (preferencia grupos de 4)
     const total = participants.length;
-    const numGroups = Math.ceil(total / 4);
+    if (total === 0) return [];
+
+    // 1. Calcular número de grupos (priorizando grupos de 3)
+    let numGroups = Math.floor(total / 3);
+    if (numGroups === 0) numGroups = 1; // Fallback
     
-    // 2. Ordenar por ranking para definir cabezas de serie
+    // 2. Ordenar por ranking para crear los "bombos"
     const sorted = [...participants].sort((a, b) => b.ranking - a.ranking);
     
-    // 3. Los mejores N son cabezas de serie (donde N = numGroups)
-    const seeds = sorted.splice(0, numGroups);
-    const others = sorted;
+    const groups: Participant[][] = Array.from({ length: numGroups }, () => []);
     
-    // 4. Barajar el resto para aleatoriedad
-    const shuffledOthers = others.sort(() => Math.random() - 0.5);
-    
-    // 5. Crear estructura de grupos
-    const groups: Participant[][] = Array.from({ length: numGroups }, (_, i) => [seeds[i]]);
-    
-    // 6. Distribuir el resto en serpiente o circular
-    shuffledOthers.forEach((p, index) => {
-        const groupIndex = index % numGroups;
-        groups[groupIndex].push(p);
-    });
+    // 3. Distribuir por bombos (Pots)
+    // El bombo 1 tiene a los mejores N jugadores, el bombo 2 a los siguientes N, etc.
+    for (let i = 0; i < sorted.length; i += numGroups) {
+        // Tomar el siguiente bombo
+        const pot = sorted.slice(i, i + numGroups);
+        
+        // Mezclar el bombo usando Fisher-Yates para asegurar aleatoriedad total
+        for (let k = pot.length - 1; k > 0; k--) {
+            const j = Math.floor(Math.random() * (k + 1));
+            [pot[k], pot[j]] = [pot[j], pot[k]];
+        }
+        
+        // Asignar cada jugador del bombo mezclado a un grupo
+        pot.forEach((p, index) => {
+            if (groups[index]) {
+                groups[index].push(p);
+            } else {
+                // Si sobran jugadores (cuando no es múltiplo exacto), los metemos en los primeros grupos
+                groups[index % numGroups].push(p);
+            }
+        });
+    }
     
     return groups;
 }
