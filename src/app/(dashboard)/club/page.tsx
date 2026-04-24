@@ -81,44 +81,87 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
         .lte('fecha', endOfBogotaDay.toISOString())
         .neq('estado', 'cancelado'); // No mostrar cancelados
 
-    const reservations = (partidosData || []).map(p => {
-        const dt = new Date(p.fecha || new Date());
-        // Obtener hora en formato HH:mm usando la zona horaria de Colombia
-        const timeStr = dt.toLocaleString('en-GB', {
-            timeZone: 'America/Bogota',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-        const timeIndex = timeSlots.indexOf(timeStr);
+    // NUEVO: Obtener partidos de torneos del club para este día
+    const { data: torneosDelClub } = await supabase
+        .from('torneos')
+        .select('id')
+        .eq('club_id', userData.id);
+    
+    const torneoIds = (torneosDelClub || []).map(t => t.id);
+    
+    const { data: torneoPartidosData } = await supabase
+        .from('torneo_partidos')
+        .select(`
+            *,
+            torneo:torneos(nombre),
+            pareja1:torneo_parejas!pareja1_id(pareja:parejas(nombre_pareja)),
+            pareja2:torneo_parejas!pareja2_id(pareja:parejas(nombre_pareja))
+        `)
+        .in('torneo_id', torneoIds)
+        .gte('fecha', startOfBogotaDay.toISOString())
+        .lte('fecha', endOfBogotaDay.toISOString());
 
-        const lugarStr = p.lugar || "";
-        const matches = lugarStr.match(/cancha[_\s](\d+)/i);
-        const courtIndex = matches ? parseInt(matches[1]) - 1 : -1;
+    const reservations = [
+        ...(partidosData || []).map(p => {
+            const dt = new Date(p.fecha || new Date());
+            const timeStr = dt.toLocaleString('en-GB', {
+                timeZone: 'America/Bogota',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const timeIndex = timeSlots.indexOf(timeStr);
+            const lugarStr = p.lugar || "";
+            const matches = lugarStr.match(/cancha[_\s](\d+)/i);
+            const courtIndex = matches ? parseInt(matches[1]) - 1 : -1;
 
-        let playerName = "Reservado";
-        let span = 3; // Default padel duration is 90 mins (3 slots of 30 mins)
-        if (lugarStr.includes("60 min")) {
-            span = 2; // 60 mins
-        } else if (lugarStr.includes("90 min")) {
-            span = 3; // 90 mins
-        }
+            let playerName = "Reservado";
+            let span = 3;
+            if (lugarStr.includes("60 min")) span = 2;
+            else if (lugarStr.includes("90 min")) span = 3;
 
-        if (lugarStr.includes("a nombre de ")) {
-            playerName = lugarStr.split("a nombre de ")[1];
-        } else if (p.estado === 'abierto') {
-            playerName = "Partido Abierto";
-        }
+            if (lugarStr.includes("a nombre de ")) {
+                playerName = lugarStr.split("a nombre de ")[1];
+            } else if (p.estado === 'abierto') {
+                playerName = "Partido Abierto";
+            }
 
-        return {
-            id: p.id,
-            courtIndex,
-            timeIndex,
-            span,
-            player: playerName,
-            type: p.tipo_partido?.toLowerCase().includes('amistoso') ? 'partido_app' : 'manual',
-            status: p.estado
-        };
-    }).filter(r => r.courtIndex >= 0 && r.timeIndex >= 0);
+            return {
+                id: p.id,
+                courtIndex,
+                timeIndex,
+                span,
+                player: playerName,
+                type: p.tipo_partido?.toLowerCase().includes('amistoso') ? 'partido_app' : 'manual',
+                status: p.estado
+            };
+        }),
+        // Mapeo de partidos de TORNEO
+        ...(torneoPartidosData || []).map(tp => {
+            const dt = new Date(tp.fecha || new Date());
+            const timeStr = dt.toLocaleString('en-GB', {
+                timeZone: 'America/Bogota',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const timeIndex = timeSlots.indexOf(timeStr);
+            const lugarStr = tp.lugar || "";
+            const matches = lugarStr.match(/cancha[_\s](\d+)/i);
+            const courtIndex = matches ? parseInt(matches[1]) - 1 : -1;
+
+            const p1 = tp.pareja1?.pareja?.nombre_pareja || "TBD";
+            const p2 = tp.pareja2?.pareja?.nombre_pareja || "TBD";
+
+            return {
+                id: tp.id,
+                courtIndex,
+                timeIndex,
+                span: 3, // Torneo siempre 90 min por defecto
+                player: `🏆 ${tp.torneo?.nombre}: ${p1} vs ${p2}`,
+                type: 'torneo',
+                status: 'jugado'
+            };
+        })
+    ].filter(r => r.courtIndex >= 0 && r.timeIndex >= 0);
 
     // Format display strings
     const actualToday = new Date();

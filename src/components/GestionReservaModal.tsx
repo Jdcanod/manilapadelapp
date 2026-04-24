@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/utils/supabase/client";
-import { Loader2, Trash2, Edit, Save, Plus, Users } from "lucide-react";
+import { Loader2, Trash2, Edit, Save, Plus, Users, Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface Props {
@@ -83,6 +83,20 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
             setAddedName("");
             
             const fetchInfo = async () => {
+                // Verificar si es un partido de torneo primero consultando el array local de reservas
+                const localRes = reservations?.find(r => String(r.id) === String(reservationId));
+                if (localRes?.type === 'torneo') {
+                    setPartido({
+                        id: Number(reservationId),
+                        fecha: "", // Se usará la info del objeto local si es necesario
+                        lugar: localRes.player,
+                        tipo_partido: 'torneo',
+                        estado: 'confirmado'
+                    });
+                    setLoading(false);
+                    return;
+                }
+
                 const { data: pData } = await supabase.from('partidos').select('*').eq('id', reservationId).single();
                 setPartido(pData);
                 
@@ -353,8 +367,28 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
                         <div className="text-red-500 p-4">No se pudo cargar la reserva. Es posible que haya sido eliminada.</div>
                     ) : (
                         <div className="space-y-6 pt-2 pb-6">
-                            {/* Info Básica: Fecha y Horario */}
-                            <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800 space-y-3 text-sm shadow-inner">
+                            {partido?.tipo_partido === 'torneo' ? (
+                                <div className="bg-amber-500/10 border border-amber-500/30 p-6 rounded-2xl text-center space-y-4">
+                                    <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto">
+                                        <Trophy className="w-8 h-8 text-amber-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-amber-500">Partido de Torneo</h3>
+                                        <p className="text-sm text-neutral-400 mt-2 leading-relaxed">
+                                            Este bloque corresponde a un partido oficial. Los horarios y canchas de torneos se gestionan directamente desde su panel específico.
+                                        </p>
+                                    </div>
+                                    <Button 
+                                        onClick={() => router.push(`/club/torneos`)}
+                                        className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold"
+                                    >
+                                        Ir al Panel de Torneos
+                                    </Button>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Info Básica: Fecha y Horario */}
+                                    <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800 space-y-3 text-sm shadow-inner">
                                 <div className="flex flex-col gap-2">
                                     <span className="text-neutral-500 text-xs font-semibold uppercase tracking-wider">Fecha y Horario</span>
                                     <div className="flex gap-2">
@@ -494,7 +528,9 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
                                     {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
                                     Eliminar Reserva Completa
                                 </Button>
-                            </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     )}
                 </ScrollArea>
