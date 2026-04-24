@@ -70,8 +70,8 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
             if (ins.jugador2_id) playerIds.add(ins.jugador2_id);
         });
 
-        parejasTourney?.forEach((pt: any) => {
-            const p = pt.pareja;
+        parejasTourney?.forEach((pt) => {
+            const p = pt.pareja as unknown as { jugador1_id: string, jugador2_id: string } | null;
             if (p) {
                 if (p.jugador1_id) playerIds.add(p.jugador1_id);
                 if (p.jugador2_id) playerIds.add(p.jugador2_id);
