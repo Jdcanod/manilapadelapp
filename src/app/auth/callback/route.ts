@@ -4,17 +4,24 @@ import { createClient } from '@/utils/supabase/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  // if "next" is in search params, use it as the redirection URL
   const next = searchParams.get('next') ?? '/'
 
+  const supabase = createClient()
+
   if (code) {
-    const supabase = createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`)
     }
+
+    // Si hay un error al intercambiar el código, verificamos si el usuario ya está logueado
+    // Esto pasa si el enlace fue pre-clicado por un antivirus y la sesión ya se estableció
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      return NextResponse.redirect(`${origin}${next}`)
+    }
   }
 
-  // return the user to an error page with instructions
+  // Si llegamos aquí con un error real (o sin sesión), vamos a la página de error
   return NextResponse.redirect(`${origin}/auth/auth-code-error`)
 }
