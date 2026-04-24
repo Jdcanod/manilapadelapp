@@ -82,24 +82,15 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
         .neq('estado', 'cancelado'); // No mostrar cancelados
 
     // NUEVO: Obtener partidos de torneos del club para este día
-    const { data: torneosDelClub } = await supabase
-        .from('torneos')
-        .select('id')
-        .eq('club_id', userData.id);
-    
-    const torneoIds = (torneosDelClub || []).map(t => t.id);
-    
+    // Los partidos de torneo se guardan en la tabla 'partidos' con tipo_partido_oficial = 'torneo'
     const { data: torneoPartidosData } = await supabase
-        .from('torneo_partidos')
-        .select(`
-            *,
-            torneo:torneos(nombre),
-            pareja1:torneo_parejas!pareja1_id(pareja:parejas(nombre_pareja)),
-            pareja2:torneo_parejas!pareja2_id(pareja:parejas(nombre_pareja))
-        `)
-        .in('torneo_id', torneoIds)
+        .from('partidos')
+        .select('*, torneo:torneo_id(nombre)')
+        .eq('tipo_partido_oficial', 'torneo')
+        .eq('club_id', userData.id)
         .gte('fecha', startOfBogotaDay.toISOString())
-        .lte('fecha', endOfBogotaDay.toISOString());
+        .lte('fecha', endOfBogotaDay.toISOString())
+        .ilike('lugar', '%cancha%'); // Solo los que ya tienen cancha asignada
 
     const reservations = [
         ...(partidosData || []).map(p => {
@@ -135,7 +126,7 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                 status: p.estado
             };
         }),
-        // Mapeo de partidos de TORNEO
+        // Mapeo de partidos de TORNEO (vienen de tabla 'partidos')
         ...(torneoPartidosData || []).map(tp => {
             const dt = new Date(tp.fecha || new Date());
             const timeStr = dt.toLocaleString('en-GB', {
@@ -145,20 +136,22 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
             });
             const timeIndex = timeSlots.indexOf(timeStr);
             const lugarStr = tp.lugar || "";
+            // El lugar puede ser "Cancha 1 | Fase" o "Cancha 1 - 4ta", extraemos el número
             const matches = lugarStr.match(/cancha[_\s](\d+)/i);
             const courtIndex = matches ? parseInt(matches[1]) - 1 : -1;
 
-            const p1 = tp.pareja1?.pareja?.nombre_pareja || "TBD";
-            const p2 = tp.pareja2?.pareja?.nombre_pareja || "TBD";
+            // Usar el nombre del lugar como etiqueta del torneo
+            const torneoNombre = (tp as { torneo?: { nombre?: string } }).torneo?.nombre || "Torneo";
+            const label = tp.lugar?.split('|')[0]?.trim() || tp.lugar || "Partido Torneo";
 
             return {
                 id: tp.id,
                 courtIndex,
                 timeIndex,
-                span: 3, // Torneo siempre 90 min por defecto
-                player: `🏆 ${tp.torneo?.nombre}: ${p1} vs ${p2}`,
+                span: 3,
+                player: `🏆 ${torneoNombre} - ${label}`,
                 type: 'torneo',
-                status: 'jugado'
+                status: tp.estado || 'pendiente'
             };
         })
     ].filter(r => r.courtIndex >= 0 && r.timeIndex >= 0);
