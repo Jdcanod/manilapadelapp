@@ -150,6 +150,10 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
             const signature = [p.jugador1_id, p.jugador2_id].sort().join(':');
             parejasEnGruposSignatures.add(signature);
         }
+        if (p.jugador3_id && p.jugador4_id) {
+            const signature = [p.jugador3_id, p.jugador4_id].sort().join(':');
+            parejasEnGruposSignatures.add(signature);
+        }
     });
 
     const parejasSinGrupo = allParticipants.filter(p => {
