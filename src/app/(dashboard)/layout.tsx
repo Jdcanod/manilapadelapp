@@ -44,11 +44,12 @@ export default async function DashboardLayout({
             {/* Mobile Top Header */}
             <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-neutral-950/80 border-b border-neutral-800">
                 <div className="max-w-7xl mx-auto w-full flex h-16 items-center justify-between px-4 md:px-6">
-                    <Link href={rolUsuario === "jugador" ? "/jugador" : "/club"} className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-green-400 to-emerald-600 flex items-center justify-center shadow-sm">
-                            <Trophy className="w-4 h-4 text-white" />
+                    <Link href={rolUsuario === "jugador" ? "/jugador" : "/club"} className="flex items-center gap-3">
+                        <div className="w-10 h-10 overflow-hidden rounded-lg flex items-center justify-center bg-neutral-900 border border-neutral-800">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src="/images/logo.png" alt="Logo Manila" className="w-full h-full object-cover" />
                         </div>
-                        <span className="font-bold tracking-tight text-white hidden sm:inline-block">ManilaPadel</span>
+                        <span className="font-black tracking-tighter text-white text-xl hidden sm:inline-block">MANILA<span className="text-emerald-500">PADEL</span></span>
                     </Link>
                     <nav className="hidden md:flex items-center gap-6 ml-8">
                         {rolUsuario === "jugador" ? (
