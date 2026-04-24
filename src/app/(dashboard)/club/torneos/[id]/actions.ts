@@ -156,14 +156,15 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
             .eq('torneo_id', torneoId)
             .eq('categoria', categoria);
 
-        // También limpiar partidos que pudieron quedar huérfanos
+        // También limpiar partidos que pudieron quedar huérfanos en la bolsa (parrilla)
         await supabaseAdmin
             .from('partidos')
             .delete()
             .eq('torneo_id', torneoId)
             .eq('nivel', categoria)
+            .eq('estado', 'programado')
             .is('torneo_grupo_id', null)
-            .or('lugar.ilike.Pendiente,lugar.ilike.Canchas - %');
+            .is('torneo_fase_id', null);
 
         // 3. Ejecutar algoritmo de sorteo
         const groupDistributions = distributeParticipantsIntoGroups(participants);

@@ -321,7 +321,8 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         .from('partidos')
         .select('*')
         .eq('torneo_id', params.id)
-        .order('fecha', { ascending: true });
+        .order('fecha', { ascending: true })
+        .limit(10000);
 
     // Obtener nombres de las parejas involucradas en los partidos
     const pairIds = new Set<string>();
