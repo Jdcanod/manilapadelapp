@@ -499,11 +499,17 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                         </div>
                     </div>
 
+                    {/* Botón de Exportar con datos enriquecidos */}
                     <div className="flex items-center gap-2">
                         <TournamentExportButton 
                             torneo={torneo}
                             clubInfo={clubInfo}
-                            partidos={rawPartidos || []}
+                            partidos={(rawPartidos || []).map(p => ({
+                                ...p,
+                                hora: p.fecha ? format(new Date(p.fecha), "HH:mm") : null,
+                                pareja1: parejaDataMap.get(p.pareja1_id || ""),
+                                pareja2: parejaDataMap.get(p.pareja2_id || "")
+                            }))}
                             participantes={allParticipants}
                             grupos={gruposExistentes || []}
                         />
