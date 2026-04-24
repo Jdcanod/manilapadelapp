@@ -369,7 +369,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                 tipo: 'master',
                 jugador1_id: ins.jugador1_id,
                 jugador2_id: ins.jugador2_id,
-                grupo_id: ins.torneo_grupo_id
+                grupo_id: ins.torneo_grupo_id ? String(ins.torneo_grupo_id) : null
             });
         });
     }

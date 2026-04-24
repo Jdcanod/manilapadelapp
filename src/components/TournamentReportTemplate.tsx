@@ -76,15 +76,29 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {participantes
-                                        .filter(p => String(p.grupo_id) === String(grupo.id))
-                                        .map((p, idx) => (
+                                    {(() => {
+                                        const enGrupo = participantes.filter(p => 
+                                            p.grupo_id && String(p.grupo_id).trim() === String(grupo.id).trim()
+                                        );
+                                        
+                                        if (enGrupo.length === 0) {
+                                            return (
+                                                <tr>
+                                                    <td colSpan={3} className="p-4 text-center text-gray-400 italic">
+                                                        Sin parejas asignadas (ID: {String(grupo.id).substring(0,5)}...)
+                                                    </td>
+                                                </tr>
+                                            );
+                                        }
+
+                                        return enGrupo.map((p, idx) => (
                                             <tr key={idx} className="border-b border-gray-100">
-                                                <td className="p-2">{p.nombre}</td>
-                                                <td className="p-2 text-center font-bold">0</td>
+                                                <td className="p-2 font-medium">{p.nombre}</td>
+                                                <td className="p-2 text-center font-bold text-blue-900">0</td>
                                                 <td className="p-2 text-center">0</td>
                                             </tr>
-                                        ))}
+                                        ));
+                                    })()}
                                 </tbody>
                             </table>
                         </div>
