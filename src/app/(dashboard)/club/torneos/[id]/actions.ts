@@ -242,46 +242,87 @@ export async function swapParejasDeGrupo(torneoId: string, categoria: string, pa
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
-        // Buscar todos los partidos de fase de grupos para estas dos parejas
-        const { data: partidos } = await supabaseAdmin
+        // 1. Obtener todos los partidos de grupo de esta categoria
+        const { data: todosPartidosGrupo } = await supabaseAdmin
             .from('partidos')
-            .select('*')
+            .select('id, pareja1_id, pareja2_id, torneo_grupo_id, creador_id, club_id, nivel, sexo, fecha, lugar, cupos_totales, cupos_disponibles, tipo_partido_oficial')
             .eq('torneo_id', torneoId)
             .eq('nivel', categoria)
-            .not('torneo_grupo_id', 'is', null)
-            .or(`pareja1_id.in.("${parejaId1}","${parejaId2}"),pareja2_id.in.("${parejaId1}","${parejaId2}")`);
-            
-        if (!partidos || partidos.length === 0) return { success: false, error: "No se encontraron partidos para estas parejas." };
+            .not('torneo_grupo_id', 'is', null);
 
-        // Procesar los intercambios
-        for (const p of partidos) {
-            let updateNeeded = false;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const updateData: any = {};
-
-            if (p.pareja1_id === parejaId1) {
-                updateData.pareja1_id = parejaId2;
-                updateNeeded = true;
-            } else if (p.pareja1_id === parejaId2) {
-                updateData.pareja1_id = parejaId1;
-                updateNeeded = true;
-            }
-
-            if (p.pareja2_id === parejaId1) {
-                updateData.pareja2_id = parejaId2;
-                updateNeeded = true;
-            } else if (p.pareja2_id === parejaId2) {
-                updateData.pareja2_id = parejaId1;
-                updateNeeded = true;
-            }
-
-            if (updateNeeded) {
-                await supabaseAdmin.from('partidos').update(updateData).eq('id', p.id);
-            }
+        if (!todosPartidosGrupo || todosPartidosGrupo.length === 0) {
+            return { success: false, error: "No se encontraron partidos de grupo para esta categoria." };
         }
 
+        // 2. Detectar el grupo de cada pareja
+        const grupoDePareja1 = todosPartidosGrupo.find(
+            p => p.pareja1_id === parejaId1 || p.pareja2_id === parejaId1
+        )?.torneo_grupo_id;
+
+        const grupoDePareja2 = todosPartidosGrupo.find(
+            p => p.pareja1_id === parejaId2 || p.pareja2_id === parejaId2
+        )?.torneo_grupo_id;
+
+        if (!grupoDePareja1 || !grupoDePareja2) {
+            return { success: false, error: "No se pudo identificar el grupo de una o ambas parejas." };
+        }
+
+        if (grupoDePareja1 === grupoDePareja2) {
+            return { success: false, error: "Las dos parejas ya estan en el mismo grupo." };
+        }
+
+        // 3. Obtener IDs unicos de parejas en cada grupo
+        const getUniquePairs = (grupoId: string) => {
+            const ids = new Set<string>();
+            todosPartidosGrupo
+                .filter(p => p.torneo_grupo_id === grupoId)
+                .forEach(m => {
+                    if (m.pareja1_id) ids.add(m.pareja1_id);
+                    if (m.pareja2_id) ids.add(m.pareja2_id);
+                });
+            return Array.from(ids);
+        };
+
+        let parejasGrupo1 = getUniquePairs(grupoDePareja1);
+        let parejasGrupo2 = getUniquePairs(grupoDePareja2);
+
+        // 4. Intercambiar las dos parejas entre los grupos
+        parejasGrupo1 = parejasGrupo1.filter(id => id !== parejaId1);
+        parejasGrupo1.push(parejaId2);
+        parejasGrupo2 = parejasGrupo2.filter(id => id !== parejaId2);
+        parejasGrupo2.push(parejaId1);
+
+        // 5. Borrar TODOS los partidos de los dos grupos afectados
+        await supabaseAdmin.from('partidos').delete().in('torneo_grupo_id', [grupoDePareja1, grupoDePareja2]);
+
+        // 6. Heredar campos del primer partido de referencia
+        const ref = todosPartidosGrupo[0];
+
+        // 7. Regenerar partidos Round Robin para ambos grupos
+        const regenerar = async (grupoId: string, parejas: string[]) => {
+            const nuevos = generateMatchesForGroup(grupoId, parejas, torneoId).map(m => ({
+                ...m,
+                creador_id: ref.creador_id,
+                club_id: ref.club_id,
+                tipo_partido_oficial: ref.tipo_partido_oficial || 'torneo',
+                nivel: ref.nivel || categoria,
+                sexo: ref.sexo || 'Mixto',
+                fecha: ref.fecha,
+                lugar: 'Pendiente',
+                cupos_totales: 4,
+                cupos_disponibles: 0
+            }));
+            if (nuevos.length > 0) {
+                const { error } = await supabaseAdmin.from('partidos').insert(nuevos);
+                if (error) throw new Error(`Error regenerando partidos: ${error.message}`);
+            }
+        };
+
+        await regenerar(grupoDePareja1, parejasGrupo1);
+        await regenerar(grupoDePareja2, parejasGrupo2);
+
         revalidatePath(`/club/torneos/${torneoId}`);
-        return { success: true };
+        return { success: true, message: "Parejas intercambiadas y partidos regenerados correctamente." };
     } catch (err: unknown) {
         console.error("Error swapping parejas:", err);
         return { success: false, error: err instanceof Error ? err.message : "Error desconocido" };
