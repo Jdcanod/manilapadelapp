@@ -180,19 +180,29 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                             onClick={onGenerate}
                             disabled={isPending}
                             variant="outline"
-                            className="bg-neutral-950 border-neutral-800 text-white hover:bg-neutral-800 font-bold"
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
                         >
-                            {isPending ? "..." : "Sorteo Grupos"}
+                            {isPending ? "Generando..." : "Sorteo Grupos"}
                         </Button>
                     ) : (
-                        <Button 
-                            onClick={onGeneratePlayoffs}
-                            disabled={isPending}
-                            className="bg-amber-600 hover:bg-amber-500 text-white font-bold"
-                        >
-                            <Trophy className="w-4 h-4 mr-2" />
-                            {isPending ? "Generando..." : "Sorteo Eliminatorias"}
-                        </Button>
+                        <>
+                            <Button 
+                                onClick={onGenerate}
+                                disabled={isPending}
+                                variant="outline"
+                                className="bg-neutral-800 border-neutral-700 text-neutral-400 hover:text-white font-bold"
+                            >
+                                {isPending ? "Limpiando..." : "Reiniciar Sorteo"}
+                            </Button>
+                            <Button 
+                                onClick={onGeneratePlayoffs}
+                                disabled={isPending}
+                                className="bg-amber-600 hover:bg-amber-500 text-white font-bold shadow-lg shadow-amber-600/20"
+                            >
+                                <Trophy className="w-4 h-4 mr-2" />
+                                {isPending ? "Generando..." : "Sorteo Eliminatorias"}
+                            </Button>
+                        </>
                     )}
                 </div>
             </div>

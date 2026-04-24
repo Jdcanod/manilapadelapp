@@ -126,7 +126,8 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
             throw new Error(`Se necesitan al menos 3 parejas en la categoría ${categoria} para generar grupos. Actualmente hay ${participants.length}.`);
         }
 
-        // 2b. Limpiar partidos de fase de grupos previos para esta categoría para evitar duplicados
+        // 2b. Limpiar grupos y partidos previos para esta categoría para permitir re-sortear
+        // Primero los partidos (por la restricción de llave foránea)
         await supabaseAdmin
             .from('partidos')
             .delete()
@@ -134,14 +135,21 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
             .eq('nivel', categoria)
             .not('torneo_grupo_id', 'is', null);
 
-        // También limpiar partidos que pudieron quedar huérfanos (sin grupo) pero que son del torneo y categoría
+        // Luego los grupos
+        await supabaseAdmin
+            .from('torneo_grupos')
+            .delete()
+            .eq('torneo_id', torneoId)
+            .eq('categoria', categoria);
+
+        // También limpiar partidos que pudieron quedar huérfanos
         await supabaseAdmin
             .from('partidos')
             .delete()
             .eq('torneo_id', torneoId)
             .eq('nivel', categoria)
             .is('torneo_grupo_id', null)
-            .like('lugar', 'Canchas - %');
+            .or('lugar.ilike.Pendiente,lugar.ilike.Canchas - %');
 
         // 3. Ejecutar algoritmo de sorteo
         const groupDistributions = distributeParticipantsIntoGroups(participants);
@@ -189,7 +197,7 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
                 nivel: categoria,
                 sexo: 'Mixto',
                 fecha: torneoInfo?.fecha_inicio || new Date().toISOString(),
-                lugar: null, // Cambiado de "Canchas - ..." a null para que aparezca en pendientes
+                lugar: 'Pendiente', // Se pone 'Pendiente' para que aparezca en la bolsa de pendientes del cronograma
                 cupos_totales: 4,
                 cupos_disponibles: 0
             }));
