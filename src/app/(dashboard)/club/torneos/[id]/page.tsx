@@ -498,10 +498,11 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
 
                     <div className="flex items-center gap-2">
                         <TournamentExportButton 
-                            torneoNombre={torneo.nombre}
-                            clubNombre={clubInfo?.nombre || "Mi Club"}
-                            clubLogo={clubInfo?.foto}
-                            categoria="Resumen General"
+                            torneo={torneo}
+                            clubInfo={clubInfo}
+                            partidos={rawPartidos || []}
+                            participantes={allParticipants}
+                            grupos={gruposExistentes || []}
                         />
                     </div>
 
