@@ -377,6 +377,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     // SINCRONIZACIÓN CRÍTICA: Algunos participantes no tienen el grupo_id en su registro, 
     // pero sí están en los partidos de un grupo. Vamos a mapearlos como hace la web.
     if (rawPartidos) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         rawPartidos.forEach((m: any) => {
             if (m.torneo_grupo_id) {
                 const gId = String(m.torneo_grupo_id);
