@@ -84,19 +84,6 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
                 });
             }
         });
-
-        // Procesar Masters (asegurando que tengan una pareja_id)
-        for (const m of masters) {
-            const j1Id = m.jugador1?.id;
-            const j2Id = m.jugador2?.id;
-            if (!j1Id || !j2Id) continue;
-
-            let { data: pareja } = await supabaseAdmin
-                .from('parejas')
-                .select('id, nombre_pareja')
-                .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
-                .maybeSingle();
-
         const formatName = (fullName: string) => {
             const parts = (fullName || '').trim().split(' ');
             if (parts.length < 2) return fullName;
@@ -105,6 +92,7 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
             return `${firstName[0]}. ${lastName}`;
         };
 
+        // Procesar las inscripciones (asegurando que tengan una pareja_id y formato correcto)
         for (const m of (inscripciones || [])) {
             const j1Id = m.jugador1?.id;
             const j2Id = m.jugador2?.id;
@@ -116,10 +104,10 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
                 .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
                 .maybeSingle();
 
-            let pareja = existingPareja;
+            let parejaActual = existingPareja;
             const nuevoNombre = `${formatName(m.jugador1?.nombre || 'J1')} / ${formatName(m.jugador2?.nombre || 'J2')}`;
 
-            if (!pareja) {
+            if (!parejaActual) {
                 const { data: newPareja, error: pErr } = await supabaseAdmin
                     .from('parejas')
                     .insert({
@@ -131,16 +119,19 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
                     .select()
                     .single();
                 if (pErr) console.error("Error creating phantom pareja:", pErr);
-                pareja = newPareja;
-            } else if (pareja.nombre_pareja.includes('&') || !pareja.nombre_pareja.includes('.')) {
+                parejaActual = newPareja;
+            } else if (parejaActual.nombre_pareja.includes('&') || !parejaActual.nombre_pareja.includes('.') || !parejaActual.nombre_pareja.includes('/')) {
                 // Si la pareja ya existe pero tiene el formato viejo, la actualizamos
-                await supabaseAdmin.from('parejas').update({ nombre_pareja: nuevoNombre }).eq('id', pareja.id);
+                await supabaseAdmin.from('parejas').update({ nombre_pareja: nuevoNombre }).eq('id', parejaActual.id);
+                parejaActual.nombre_pareja = nuevoNombre;
             }
+
+            if (parejaActual) {
                 participants.push({
-                    id: pareja.id,
-                    nombre: pareja.nombre_pareja,
+                    id: parejaActual.id,
+                    nombre: parejaActual.nombre_pareja,
                     ranking: (Number(m.jugador1?.puntos_ranking || 0) + Number(m.jugador2?.puntos_ranking || 0)) / 2,
-                    pareja_id: pareja.id
+                    pareja_id: parejaActual.id
                 });
             }
         }
