@@ -347,11 +347,33 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
 
     const hasStarted = (rawPartidos || []).length > 0;
 
+    interface MatchReal {
+        id: string;
+        pareja1_id: string | null;
+        pareja2_id: string | null;
+        torneo_grupo_id: string | null;
+        torneo_fase_id: string | null;
+        estado: string;
+        estado_resultado: string;
+        resultado: string | null;
+        lugar: string | null;
+        nivel: string | null;
+        fecha: string | null;
+        club_id: string | null;
+        pareja1: { nombre_pareja: string };
+        pareja2: { nombre_pareja: string };
+        jugador1_id?: string;
+        jugador2_id?: string;
+        jugador3_id?: string;
+        jugador4_id?: string;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        [key: string]: any;
+    }
+
     // Inyectar nombres y IDs de jugadores manualmente desde el mapa
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const partidosReales = (rawPartidos || []).map((p: any) => {
-        const p1 = parejaDataMap.get(p.pareja1_id);
-        const p2 = parejaDataMap.get(p.pareja2_id);
+    const partidosReales: MatchReal[] = (rawPartidos || []).map((p: Record<string, unknown>) => {
+        const p1 = parejaDataMap.get(p.pareja1_id as string);
+        const p2 = parejaDataMap.get(p.pareja2_id as string);
         return {
             ...p,
             pareja1: { nombre_pareja: p1?.nombre_pareja || "TBD" },
@@ -360,7 +382,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
             jugador2_id: p1?.jugador2_id,
             jugador3_id: p2?.jugador1_id,
             jugador4_id: p2?.jugador2_id
-        };
+        } as MatchReal;
     });
 
     // Identificar Ganador y Finalista del torneo (buscar la final sin importar si tiene cancha asignada)
