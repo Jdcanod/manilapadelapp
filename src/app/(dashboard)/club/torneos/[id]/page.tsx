@@ -328,7 +328,8 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
 
     // Obtener nombres de las parejas involucradas en los partidos
     const pairIds = new Set<string>();
-    (rawPartidos || []).forEach(p => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (rawPartidos || []).forEach((p: any) => {
         if (p.pareja1_id) pairIds.add(p.pareja1_id);
         if (p.pareja2_id) pairIds.add(p.pareja2_id);
     });
