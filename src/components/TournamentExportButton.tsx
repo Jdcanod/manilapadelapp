@@ -35,44 +35,56 @@ export function TournamentExportButton({ torneo, clubInfo, partidos, participant
         console.log(`Generando reporte profesional para ${torneo.nombre}`);
         
         try {
-            // Esperar un momento para que el componente oculto se renderice bien
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 1200));
 
-            const element = reportRef.current;
-            if (!element) {
+            const container = reportRef.current;
+            if (!container) {
                 alert("Error al preparar el reporte.");
                 setIsExporting(false);
                 return;
             }
 
-            const canvas = await html2canvas(element, {
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                backgroundColor: "#ffffff",
-                windowWidth: 800,
-            });
+            const sections = Array.from(container.querySelectorAll('.pdf-section'));
+            if (sections.length === 0) {
+                alert("No se encontraron secciones para exportar.");
+                setIsExporting(false);
+                return;
+            }
 
-            const imgData = canvas.toDataURL("image/png");
             const pdf = new jsPDF("p", "mm", "a4");
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
+            const margin = 10;
+            const contentWidth = pdfWidth - (2 * margin);
             
-            // Calcular cuántas páginas necesitamos
-            const canvasHeightInMm = (canvas.height * pdfWidth) / canvas.width;
-            let heightLeft = canvasHeightInMm;
-            let position = 0;
+            let currentY = margin;
 
-            // Primera página
-            pdf.addImage(imgData, "PNG", 0, position, pdfWidth, canvasHeightInMm);
-            heightLeft -= pdfHeight;
+            for (let i = 0; i < sections.length; i++) {
+                const section = sections[i] as HTMLElement;
+                
+                const canvas = await html2canvas(section, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: "#ffffff",
+                    width: section.offsetWidth,
+                    height: section.offsetHeight
+                });
 
-            // Páginas adicionales si el contenido es largo
-            while (heightLeft > 0) {
-                position = heightLeft - canvasHeightInMm;
-                pdf.addPage();
-                pdf.addImage(imgData, "PNG", 0, position, pdfWidth, canvasHeightInMm);
-                heightLeft -= pdfHeight;
+                const imgData = canvas.toDataURL("image/png");
+                const sectionHeightMm = (canvas.height * contentWidth) / canvas.width;
+
+                // Si la sección no cabe en la página actual (y no es la primera sección de la página)
+                if (currentY + sectionHeightMm > pdfHeight - margin && currentY > margin) {
+                    pdf.addPage();
+                    currentY = margin;
+                }
+
+                // Si es la cabecera, podemos darle un estilo especial o margen
+                const isHeader = section.classList.contains('pdf-header');
+                
+                pdf.addImage(imgData, "PNG", margin, currentY, contentWidth, sectionHeightMm);
+                currentY += sectionHeightMm + 5; // 5mm de espacio entre secciones
             }
 
             pdf.save(`Reporte-${torneo.nombre}.pdf`);
