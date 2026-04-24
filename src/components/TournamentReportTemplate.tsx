@@ -93,7 +93,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
 
             {/* SECCIÓN DE CRONOGRAMA */}
             <div className="mb-10">
-                <h3 className="text-lg font-bold bg-gray-100 p-2 mb-4 uppercase border-l-4 border-blue-900">Programación de Partidos</h3>
+                <h3 className="text-lg font-bold bg-gray-100 p-2 mb-4 uppercase border-l-4 border-blue-900">Parrilla (Programación)</h3>
                 {fechasOrdenadas.map(fechaKey => (
                     <div key={fechaKey} className="mb-6">
                         <div className="bg-blue-900 text-white px-4 py-1 text-sm font-bold uppercase mb-2">

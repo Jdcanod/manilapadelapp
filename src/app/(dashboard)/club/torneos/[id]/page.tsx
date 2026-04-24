@@ -524,21 +524,12 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                 </div>
             </div>
 
-            <Tabs defaultValue="inscripciones" className="w-full mt-8">
+            <Tabs defaultValue="participantes" className="w-full mt-8">
                 <TabsList className="bg-neutral-900 border border-neutral-800 p-1 w-full flex overflow-x-auto justify-start sm:w-auto overflow-y-hidden">
-                    <TabsTrigger value="inscripciones" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
-                        Parejas Inscritas
-                        <Badge className="ml-2 bg-neutral-800 text-white hover:bg-neutral-700">{allParticipants.length}</Badge>
-                    </TabsTrigger>
-                    <TabsTrigger value="grupos" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
-                        Fase de Grupos
-                    </TabsTrigger>
-                    <TabsTrigger value="cuadros" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
-                        Cuadros de Juego
-                    </TabsTrigger>
-                    <TabsTrigger value="cronograma" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
-                        Cronograma
-                    </TabsTrigger>
+                    <TabsTrigger value="participantes" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-neutral-800">Parejas Inscritas <Badge variant="secondary" className="ml-2 bg-neutral-800 text-neutral-400 border-none">{allParticipants.length}</Badge></TabsTrigger>
+                    <TabsTrigger value="grupos" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-neutral-800">Fase de Grupos</TabsTrigger>
+                    <TabsTrigger value="eliminatorias" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-neutral-800">Fases Finales (Llaves)</TabsTrigger>
+                    <TabsTrigger value="cronograma" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-neutral-800">Parrilla (Programación)</TabsTrigger>
                 </TabsList>
 
                 <div id="tournament-report-content" className="bg-black">
@@ -564,9 +555,9 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                     />
                 </TabsContent>
 
-                <TabsContent value="inscripciones" className="mt-6">
+                <TabsContent value="participantes" className="mt-6">
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-bold text-white">Listado de Inscritos</h3>
+                        <h3 className="text-lg font-bold text-white uppercase tracking-wider">Parejas Inscritas</h3>
                         {(rawPartidos || []).length === 0 && (
                             <AddTournamentPlayerModal torneoId={params.id} categorias={categoriasHabilitadas} esMaster={torneo.tipo === 'master'} />
                         )}
@@ -575,8 +566,8 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                     {allParticipants.length === 0 ? (
                         <div className="text-center py-12 text-neutral-500 border border-neutral-800 border-dashed rounded-xl bg-neutral-900/30">
                             <Users className="w-12 h-12 text-neutral-700 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-neutral-300 mb-2">Aún no hay inscritos</h3>
-                            <p className="max-w-md mx-auto">Comparte este torneo con los jugadores. Pronto verás aquí la lista de parejas confirmadas.</p>
+                            <h3 className="text-lg font-medium text-neutral-300 mb-2 font-bold uppercase">Aún no hay inscritos</h3>
+                            <p className="max-w-md mx-auto text-xs opacity-70">Comparte este torneo con los jugadores. Pronto verás aquí la lista de parejas confirmadas.</p>
                         </div>
                     ) : (
                         <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
@@ -623,7 +614,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                     )}
                 </TabsContent>
 
-                <TabsContent value="cuadros" className="mt-6">
+                <TabsContent value="eliminatorias" className="mt-6">
                     <div className="space-y-12">
                         {/* SECCIÓN FASE FINAL / PLAYOFFS */}
                         <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden min-h-[600px]">
@@ -631,9 +622,9 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                             <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent pointer-events-none" />
                             
                             <div className="flex flex-col items-center mb-16 relative z-10">
-                                <h3 className="text-4xl font-black text-white italic uppercase tracking-[0.2em] mb-2 drop-shadow-lg">Fase de Eliminatorias</h3>
+                                <h3 className="text-4xl font-black text-white italic uppercase tracking-[0.2em] mb-2 drop-shadow-lg text-center">Fases Finales (Llaves)</h3>
                                 <div className="h-1 w-32 bg-amber-500 rounded-full mb-4" />
-                                <Badge className="bg-amber-500 text-black font-black px-6 py-1 text-sm tracking-widest animate-pulse uppercase">Modo Final</Badge>
+                                <Badge className="bg-amber-500 text-black font-black px-6 py-1 text-sm tracking-widest animate-pulse uppercase">Modo Eliminatorias</Badge>
                             </div>
 
                             {partidosReales.filter(p => !p.torneo_grupo_id && p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos/)).length === 0 ? (
