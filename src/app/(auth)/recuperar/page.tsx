@@ -23,19 +23,28 @@ export default function RecuperarPage() {
         const email = formData.get("email") as string;
 
         try {
-            await recuperarPasswordAction(email);
-            setSuccess(true);
-            toast({
-                title: "Correo enviado",
-                description: "Revisa tu bandeja de entrada para reestablecer tu contraseña.",
-            });
+            const result = await recuperarPasswordAction(email);
+            
+            if (result?.error) {
+                toast({
+                    title: "Error",
+                    description: result.error,
+                    variant: "destructive"
+                });
+            } else {
+                setSuccess(true);
+                toast({
+                    title: "Correo enviado",
+                    description: "Revisa tu bandeja de entrada para reestablecer tu contraseña.",
+                });
+            }
         } 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         catch (err: any) {
             console.error("Error en recuperación:", err);
             toast({
                 title: "Error",
-                description: err?.message || "No se pudo enviar el correo de recuperación.",
+                description: "No se pudo procesar la solicitud. Intenta de nuevo.",
                 variant: "destructive"
             });
         } finally {

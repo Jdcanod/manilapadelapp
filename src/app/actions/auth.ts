@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
 export async function cerrarSesionAction() {
     const supabase = createClient();
@@ -10,18 +11,23 @@ export async function cerrarSesionAction() {
 }
 
 export async function recuperarPasswordAction(email: string) {
-    const supabase = createClient();
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL 
-        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-        || process.env.NEXT_PUBLIC_BASE_URL 
-        || 'http://localhost:3000';
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${siteUrl}/auth/callback?next=/reestablecer`,
-    });
+    try {
+        const supabase = createClient();
+        const host = headers().get("host");
+        const protocol = host?.includes("localhost") ? "http" : "https";
+        const siteUrl = `${protocol}://${host}`;
 
-    if (error) {
-        throw new Error(error.message);
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${siteUrl}/auth/callback?next=/reestablecer`,
+        });
+
+        if (error) {
+            return { error: error.message };
+        }
+
+        return { success: true };
+    } catch (err: any) {
+        console.error("Error en recuperarPasswordAction:", err);
+        return { error: "Ocurrió un error inesperado al procesar la solicitud." };
     }
-
-    return { success: true };
 }
