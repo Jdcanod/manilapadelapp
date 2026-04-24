@@ -69,86 +69,85 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
             {/* SECCIÓN DE GRUPOS */}
             <div className="mb-10">
                 <h3 className="text-lg font-bold bg-gray-100 p-2 mb-4 uppercase border-l-4 border-blue-900">Configuración de Grupos</h3>
-                <div style={{ columns: '2', columnGap: '16px' }}>
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {grupos.map((grupo: any) => (
-                        <div key={grupo.id} className="border border-gray-200 rounded-lg overflow-hidden mb-4" style={{ breakInside: 'avoid', pageBreakInside: 'avoid', display: 'inline-block', width: '100%' }}>
-                            <div className="bg-gray-800 text-white p-2 text-center font-bold text-xs">
-                                {grupo.nombre_grupo} - {grupo.categoria}
-                            </div>
-                            <table className="w-full text-xs">
-                                <thead className="bg-gray-50 border-b border-gray-200 text-gray-500">
-                                    <tr>
-                                        <th className="p-2 text-left">Pareja</th>
-                                        <th className="p-2 text-center">PJ</th>
-                                        <th className="p-2 text-center">PG</th>
-                                        <th className="p-2 text-center">Sets</th>
-                                        <th className="p-2 text-center">Games</th>
-                                        <th className="p-2 text-center text-blue-900">PTS</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {(() => {
-                                        const matches = partidos.filter(p => String(p.torneo_grupo_id) === String(grupo.id));
-                                        const map = new Map();
+                {/* Agrupar de a 2 para que el salto de página ocurra entre filas, no dentro de un grupo */}
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {Array.from({ length: Math.ceil(grupos.length / 2) }, (_, i) => grupos.slice(i * 2, i * 2 + 2)).map((fila, filaIdx) => (
+                    <div key={filaIdx} style={{ display: 'flex', gap: '16px', marginBottom: '16px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        {fila.map((grupo: any) => (
+                            <div key={grupo.id} style={{ flex: '1', minWidth: 0 }} className="border border-gray-200 rounded-lg overflow-hidden">
+                                <div className="bg-gray-800 text-white p-2 text-center font-bold text-xs">
+                                    {grupo.nombre_grupo} - {grupo.categoria}
+                                </div>
+                                <table className="w-full text-xs">
+                                    <thead className="bg-gray-50 border-b border-gray-200 text-gray-500">
+                                        <tr>
+                                            <th className="p-2 text-left">Pareja</th>
+                                            <th className="p-2 text-center">PJ</th>
+                                            <th className="p-2 text-center">PG</th>
+                                            <th className="p-2 text-center">Sets</th>
+                                            <th className="p-2 text-center">Games</th>
+                                            <th className="p-2 text-center text-blue-900">PTS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {(() => {
+                                            const matches = partidos.filter(p => String(p.torneo_grupo_id) === String(grupo.id));
+                                            const map = new Map();
 
-                                        // Inicializar mapa con participantes del grupo
-                                        participantes
-                                            .filter(p => String(p.grupo_id) === String(grupo.id))
-                                            .forEach(p => {
-                                                map.set(String(p.pareja_id), { 
-                                                    nombre: p.nombre, 
-                                                    pj: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 
+                                            participantes
+                                                .filter(p => String(p.grupo_id) === String(grupo.id))
+                                                .forEach(p => {
+                                                    map.set(String(p.pareja_id), {
+                                                        nombre: p.nombre,
+                                                        pj: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0
+                                                    });
                                                 });
+
+                                            matches.forEach(m => {
+                                                if (!m.pareja1_id || !m.pareja2_id || m.estado !== 'jugado' || !m.resultado || m.estado_resultado !== 'confirmado') return;
+                                                const s1 = map.get(String(m.pareja1_id));
+                                                const s2 = map.get(String(m.pareja2_id));
+                                                if (!s1 || !s2) return;
+                                                s1.pj += 1; s2.pj += 1;
+                                                const sets = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
+                                                let setsP1 = 0; let setsP2 = 0;
+                                                sets.forEach((set: number[]) => {
+                                                    if (set.length === 2) {
+                                                        s1.gg += set[0]; s1.gp += set[1];
+                                                        s2.gg += set[1]; s2.gp += set[0];
+                                                        if (set[0] > set[1]) { setsP1++; s1.sg++; s2.sp++; }
+                                                        else if (set[1] > set[0]) { setsP2++; s2.sg++; s1.sp++; }
+                                                    }
+                                                });
+                                                if (setsP1 > setsP2) { s1.pg += 1; s1.pts += 3; }
+                                                else if (setsP2 > setsP1) { s2.pg += 1; s2.pts += 3; }
                                             });
 
-                                        // Calcular estadísticas
-                                        matches.forEach(m => {
-                                            if (!m.pareja1_id || !m.pareja2_id || m.estado !== 'jugado' || !m.resultado || m.estado_resultado !== 'confirmado') return;
-                                            
-                                            const s1 = map.get(String(m.pareja1_id));
-                                            const s2 = map.get(String(m.pareja2_id));
-                                            if (!s1 || !s2) return;
+                                            const sorted = Array.from(map.values()).sort((a, b) => b.pts - a.pts || (b.sg - b.sp) - (a.sg - a.sp));
 
-                                            s1.pj += 1; s2.pj += 1;
-                                            const sets = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
-                                            let setsP1 = 0; let setsP2 = 0;
-                                            
-                                            sets.forEach((set: number[]) => {
-                                                if (set.length === 2) {
-                                                    s1.gg += set[0]; s1.gp += set[1];
-                                                    s2.gg += set[1]; s2.gp += set[0];
-                                                    if (set[0] > set[1]) { setsP1++; s1.sg++; s2.sp++; }
-                                                    else if (set[1] > set[0]) { setsP2++; s2.sg++; s1.sp++; }
-                                                }
-                                            });
-                                            if (setsP1 > setsP2) { s1.pg += 1; s1.pts += 3; }
-                                            else if (setsP2 > setsP1) { s2.pg += 1; s2.pts += 3; }
-                                        });
-
-                                        const sorted = Array.from(map.values()).sort((a, b) => b.pts - a.pts || (b.sg - b.sp) - (a.sg - a.sp));
-
-                                        if (sorted.length === 0) {
-                                            return <tr><td colSpan={8} className="p-4 text-center text-gray-400 italic">Sin parejas asignadas</td></tr>;
-                                        }
-
-                                        return sorted.map((p, idx) => (
-                                            <tr key={idx} className="border-b border-gray-100">
-                                                <td className="p-2 font-medium">{p.nombre}</td>
-                                                <td className="p-2 text-center">{p.pj}</td>
-                                                <td className="p-2 text-center text-gray-500">{p.pg}</td>
-                                                <td className="p-2 text-center text-gray-400">{p.sg}-{p.sp}</td>
-                                                <td className="p-2 text-center text-gray-400">{p.gg}-{p.gp}</td>
-                                                <td className="p-2 text-center font-black text-blue-900">{p.pts}</td>
-                                            </tr>
-                                        ));
-                                    })()}
-                                </tbody>
-                            </table>
-                        </div>
-                    ))}
-                </div>
+                                            if (sorted.length === 0) {
+                                                return <tr><td colSpan={6} className="p-4 text-center text-gray-400 italic">Sin parejas asignadas</td></tr>;
+                                            }
+                                            return sorted.map((p, idx) => (
+                                                <tr key={idx} className="border-b border-gray-100">
+                                                    <td className="p-2 font-medium">{p.nombre}</td>
+                                                    <td className="p-2 text-center">{p.pj}</td>
+                                                    <td className="p-2 text-center text-gray-500">{p.pg}</td>
+                                                    <td className="p-2 text-center text-gray-400">{p.sg}-{p.sp}</td>
+                                                    <td className="p-2 text-center text-gray-400">{p.gg}-{p.gp}</td>
+                                                    <td className="p-2 text-center font-black text-blue-900">{p.pts}</td>
+                                                </tr>
+                                            ));
+                                        })()}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ))}
+                    </div>
+                ))}
             </div>
+
 
             {/* SECCIÓN DE CRONOGRAMA */}
             <div className="mb-10">
