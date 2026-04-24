@@ -288,7 +288,6 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                         const slotStart = new Date(selectedDate);
                                         const [h, m] = time.split(":").map(Number);
                                         slotStart.setHours(h, m, 0, 0);
-                                        const slotEnd = addMinutes(slotStart, slotInterval);
 
                                         // Buscar si hay un partido que EMPIEZA en este slot
                                         const matchStarting = scheduledMatches.find(match => {
