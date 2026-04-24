@@ -52,7 +52,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
     const endTime = new Date(currentTime);
     endTime.setHours(23, 0, 0);
 
-    const slotInterval = config.duracion || 60;
+    const slotInterval = 30; // Forzado a 30 min para mayor flexibilidad
 
     while (currentTime <= endTime) {
         timeSlots.push(format(currentTime, "HH:mm"));
@@ -280,7 +280,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                     className="grid grid-cols-[100px_repeat(var(--canchas),1fr)] border-b border-neutral-800/30" 
                                     style={{ "--canchas": config.canchas } as React.CSSProperties}
                                 >
-                                    <div className="p-4 text-center border-r border-neutral-800 bg-neutral-900/30 flex items-center justify-center">
+                                    <div className="p-2 text-center border-r border-neutral-800 bg-neutral-900/30 flex items-center justify-center">
                                         <span className="text-[11px] font-black text-neutral-400 tracking-tighter">{time}</span>
                                     </div>
                                     {Array.from({ length: config.canchas }).map((_, i) => {
@@ -290,14 +290,30 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                         slotStart.setHours(h, m, 0, 0);
                                         const slotEnd = addMinutes(slotStart, slotInterval);
 
-                                        const matchInSlot = scheduledMatches.find(match => {
+                                        // Buscar si hay un partido que EMPIEZA en este slot
+                                        const matchStarting = scheduledMatches.find(match => {
                                             const mDate = new Date(match.fecha!);
-                                            return getCanchaFromLugar(match.lugar) === canchaNum && mDate >= slotStart && mDate < slotEnd;
+                                            return getCanchaFromLugar(match.lugar) === canchaNum && 
+                                                   format(mDate, "HH:mm") === time;
                                         });
 
-                                        const isMine = matchInSlot && isPlayerInMatch(matchInSlot);
-                                        const isSelected = matchInSlot && selectedMatchId === matchInSlot.id;
-                                        const isBeingDragged = matchInSlot && draggedMatchId === matchInSlot.id;
+                                        // Buscar si este slot está OCUPADO por un partido que empezó antes
+                                        const matchOccupying = scheduledMatches.find(match => {
+                                            const mStart = new Date(match.fecha!);
+                                            const duracion = config.duracion || 60;
+                                            const mEnd = addMinutes(mStart, duracion);
+                                            return getCanchaFromLugar(match.lugar) === canchaNum && 
+                                                   slotStart >= mStart && slotStart < mEnd &&
+                                                   format(mStart, "HH:mm") !== time;
+                                        });
+
+                                        const matchToShow = matchStarting;
+                                        const isMine = matchToShow && isPlayerInMatch(matchToShow);
+                                        const isSelected = matchToShow && selectedMatchId === matchToShow.id;
+                                        const isBeingDragged = matchToShow && draggedMatchId === matchToShow.id;
+
+                                        // Calcular cuántos slots ocupa el partido
+                                        const rowSpan = Math.ceil((config.duracion || 60) / slotInterval);
 
                                         return (
                                             <div 
@@ -305,26 +321,27 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                 onDragOver={onDragOver}
                                                 onDrop={(e) => onDrop(e, time, canchaNum)}
                                                 className={`
-                                                    p-1.5 min-h-[100px] border-r border-neutral-800/30 last:border-r-0 relative transition-all
-                                                    ${!matchInSlot && selectedMatchId && isAdmin ? 'bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer' : 'hover:bg-neutral-900/20'}
+                                                    p-1 min-h-[60px] border-r border-neutral-800/30 last:border-r-0 relative transition-all
+                                                    ${!matchToShow && !matchOccupying && selectedMatchId && isAdmin ? 'bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer' : 'hover:bg-neutral-900/20'}
                                                 `}
                                                 onClick={() => {
-                                                    if (!matchInSlot && selectedMatchId && isAdmin) handleAssign(selectedMatchId, time, canchaNum);
+                                                    if (!matchToShow && !matchOccupying && selectedMatchId && isAdmin) handleAssign(selectedMatchId, time, canchaNum);
                                                 }}
                                             >
-                                                {matchInSlot ? (
+                                                {matchToShow ? (
                                                     <div 
                                                         draggable={isAdmin && !isUpdating}
-                                                        onDragStart={(e) => onDragStart(e, matchInSlot.id)}
+                                                        onDragStart={(e) => onDragStart(e, matchToShow.id)}
                                                         onClick={(e) => {
                                                             if (isAdmin && !isUpdating) {
                                                                 e.stopPropagation();
-                                                                setSelectedMatchId(isSelected ? null : matchInSlot.id);
+                                                                setSelectedMatchId(isSelected ? null : matchToShow.id);
                                                             }
                                                         }}
+                                                        style={{ height: `calc(${rowSpan} * 100% + (${rowSpan - 1} * 1px))` }}
                                                         className={`
-                                                            h-full bg-neutral-900 border rounded-2xl p-3 flex flex-col justify-between group/match relative overflow-hidden transition-all shadow-xl
-                                                            ${isSelected ? 'border-amber-500 ring-2 ring-amber-500/20 scale-[1.02] z-10' : 'border-emerald-500/30 hover:border-emerald-500'}
+                                                            absolute inset-x-1 top-1 z-10 bg-neutral-900 border rounded-xl p-3 flex flex-col justify-between group/match shadow-2xl transition-all
+                                                            ${isSelected ? 'border-amber-500 ring-2 ring-amber-500/20 scale-[1.01] z-30' : 'border-emerald-500/30 hover:border-emerald-500'}
                                                             ${isMine ? 'border-amber-500' : ''}
                                                             ${isBeingDragged ? 'opacity-40 grayscale' : 'opacity-100'}
                                                             ${isAdmin && !isUpdating ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed'}
@@ -332,13 +349,13 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                     >
                                                         {isMine && (
                                                             <div className="absolute top-1 right-1 bg-amber-500 p-1 rounded-full">
-                                                                <Star className="w-2 h-2 text-black fill-black" />
+                                                                  <Star className="w-2 h-2 text-black fill-black" />
                                                             </div>
                                                         )}
-                                                        <div className="absolute top-0 right-0 p-2 opacity-0 group-hover/match:opacity-100 transition-all">
+                                                        <div className="absolute top-0 right-0 p-2 opacity-0 group-hover/match:opacity-100 transition-all z-20">
                                                             <button 
                                                                 disabled={isUpdating}
-                                                                onClick={(e) => { e.stopPropagation(); handleUnschedule(matchInSlot.id); }}
+                                                                onClick={(e) => { e.stopPropagation(); handleUnschedule(matchToShow.id); }}
                                                                 className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors disabled:opacity-30"
                                                             >
                                                                 <Trash2 className="w-3 h-3" />
@@ -347,30 +364,30 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                         <div className="space-y-1">
                                                             <div className="flex items-center gap-1.5">
                                                                 <div className={`w-1 h-3 rounded-full ${isMine ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                                                                <p className="text-[11px] font-black text-white uppercase truncate">{matchInSlot.pareja1?.nombre_pareja || "TBD"}</p>
+                                                                <p className="text-[10px] font-black text-white uppercase truncate">{matchToShow.pareja1?.nombre_pareja || "TBD"}</p>
                                                             </div>
                                                             <div className="flex items-center gap-1.5">
                                                                 <div className={`w-1 h-3 rounded-full ${isMine ? 'bg-amber-500' : 'bg-blue-500'}`} />
-                                                                <p className="text-[11px] font-black text-white uppercase truncate">{matchInSlot.pareja2?.nombre_pareja || "TBD"}</p>
+                                                                <p className="text-[10px] font-black text-white uppercase truncate">{matchToShow.pareja2?.nombre_pareja || "TBD"}</p>
                                                             </div>
                                                         </div>
-                                                        <div className="flex justify-between items-center mt-3 pt-2 border-t border-neutral-800/50">
+                                                        <div className="flex justify-between items-center mt-auto pt-2 border-t border-neutral-800/50">
                                                             <div className="flex gap-1">
-                                                                <Badge className="bg-emerald-500 text-black font-black text-[8px] h-4 px-1.5">{matchInSlot.nivel}</Badge>
-                                                                {getFaseFromLugar(matchInSlot.lugar) && (
-                                                                    <Badge variant="outline" className="text-[7px] font-black text-amber-500 border-amber-500/30 uppercase">{getFaseFromLugar(matchInSlot.lugar)}</Badge>
+                                                                <Badge className="bg-emerald-500 text-black font-black text-[7px] h-3.5 px-1">{matchToShow.nivel}</Badge>
+                                                                {getFaseFromLugar(matchToShow.lugar) && (
+                                                                    <Badge variant="outline" className="text-[7px] font-black text-amber-500 border-amber-500/30 uppercase">{getFaseFromLugar(matchToShow.lugar)}</Badge>
                                                                 )}
                                                             </div>
-                                                            <span className="text-[8px] text-neutral-500 font-bold uppercase">{format(new Date(matchInSlot.fecha!), "HH:mm")}</span>
+                                                            <span className="text-[8px] text-neutral-500 font-bold uppercase">{format(new Date(matchToShow.fecha!), "HH:mm")}</span>
                                                         </div>
                                                     </div>
-                                                ) : (
+                                                ) : !matchOccupying ? (
                                                     <div className="h-full w-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                                         <span className={`text-[9px] font-black uppercase tracking-widest ${selectedMatchId ? 'text-amber-500 animate-pulse' : 'text-neutral-700'}`}>
-                                                            {selectedMatchId ? 'Mover aquí' : 'Disponible'}
+                                                            {selectedMatchId ? 'Mover aquí' : 'Libre'}
                                                         </span>
                                                     </div>
-                                                )}
+                                                ) : null}
                                             </div>
                                         );
                                     })}
