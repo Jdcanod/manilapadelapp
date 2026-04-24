@@ -60,10 +60,10 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
             {/* SECCIÓN DE GRUPOS */}
             <div className="mb-10">
                 <h3 className="text-lg font-bold bg-gray-100 p-2 mb-4 uppercase border-l-4 border-blue-900">Configuración de Grupos</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-wrap gap-4">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {grupos.map((grupo: any) => (
-                        <div key={grupo.id} className="border border-gray-200 rounded-lg overflow-hidden mb-4" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                        <div key={grupo.id} className="border border-gray-200 rounded-lg overflow-hidden mb-6 w-[48%]" style={{ breakInside: 'avoid', pageBreakInside: 'avoid', display: 'inline-block', verticalAlign: 'top' }}>
                             <div className="bg-gray-800 text-white p-2 text-center font-bold text-xs">
                                 {grupo.nombre_grupo} - {grupo.categoria}
                             </div>
