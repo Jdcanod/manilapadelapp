@@ -34,14 +34,59 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
     const nombreClub = userData?.nombre || "Mi Club de Padel";
     const horariosPrime = userData?.horarios_solo_90_min_json || [];
 
+    // 1. Canchas dinámicas desde la configuración
+    const canchasConfig = userData?.canchas_activas_json;
+    const courts = Array.isArray(canchasConfig) && canchasConfig.length > 0 
+        ? canchasConfig 
+        : ["Cancha 1", "Cancha 2", "Cancha 3", "Cancha 4"];
+
+    // 2. Conteo real de jugadores inscritos en torneos del club
+    // Buscamos todos los torneos que pertenecen a este club_id
+    const { data: clubTournaments } = await supabase
+        .from('torneos')
+        .select('id')
+        .eq('club_id', userData.id);
+
+    const tournamentIds = (clubTournaments || []).map(t => t.id);
+    let playersCount = 0;
+
+    if (tournamentIds.length > 0) {
+        // Obtener jugadores de inscripciones directas (Master)
+        const { data: inscripciones } = await supabase
+            .from('inscripciones_torneo')
+            .select('jugador1_id, jugador2_id')
+            .in('torneo_id', tournamentIds);
+
+        // Obtener jugadores de parejas (Regular)
+        const { data: parejasTourney } = await supabase
+            .from('torneo_parejas')
+            .select('pareja:parejas(jugador1_id, jugador2_id)')
+            .in('torneo_id', tournamentIds);
+
+        const playerIds = new Set<string>();
+        
+        inscripciones?.forEach(ins => {
+            if (ins.jugador1_id) playerIds.add(ins.jugador1_id);
+            if (ins.jugador2_id) playerIds.add(ins.jugador2_id);
+        });
+
+        parejasTourney?.forEach((pt: any) => {
+            const p = pt.pareja;
+            if (p) {
+                if (p.jugador1_id) playerIds.add(p.jugador1_id);
+                if (p.jugador2_id) playerIds.add(p.jugador2_id);
+            }
+        });
+
+        playersCount = playerIds.size;
+    }
+
     // Contar los partidos organizados actuales
     const { count: partidosCount } = await supabase
         .from('partidos')
         .select('*', { count: 'exact', head: true })
         .eq('estado', 'abierto');
 
-    // Data for the reservation grid
-    const courts = ["Cancha 1 (Panorámica)", "Cancha 2", "Cancha 3", "Cancha 4"];
     const timeSlots = [
         "06:00", "06:30", "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
         "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30",
@@ -233,12 +278,11 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
             </div>
 
             {/* Analytics & Core Modules */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
-                    { label: "Canchas", value: "4", badge: "Activas" },
+                    { label: "Canchas", value: courts.length.toString(), badge: "Configuradas" },
                     { label: "Partidos de App", value: (partidosCount || 0).toString(), badge: "Abiertos Hoy" },
-                    { label: "Nuevos Jugadores", value: "+12", badge: "Esta semana" },
-                    { label: "Ingresos (Mock)", value: "$2.5M", badge: "Este Mes" },
+                    { label: "Jugadores del Club", value: playersCount.toString(), badge: "Inscritos en Torneos" },
                 ].map((stat, i) => (
                     <Card key={i} className="bg-neutral-900 border-neutral-800 text-center py-4">
                         <div className="text-sm text-neutral-400 mb-1">{stat.label}</div>
