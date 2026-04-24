@@ -968,8 +968,8 @@ export async function editarParticipantesInscripcion(
     id: string, 
     tipo: 'master' | 'regular', 
     parejaId: string,
-    j1Id: string, 
-    j2Id: string,
+    jugador1Sel: string, 
+    jugador2Sel: string,
     torneoId: string
 ) {
     const supabaseAdmin = createSupabaseClient(
@@ -977,14 +977,48 @@ export async function editarParticipantesInscripcion(
         process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    let j1Id = jugador1Sel;
+    let j2Id = jugador2Sel;
+
+    // Crear invitados si es necesario
+    if (j1Id.startsWith("manual:")) {
+        const name = j1Id.replace("manual:", "").trim();
+        const { data, error } = await supabaseAdmin.from('users').insert({
+            nombre: name,
+            email: `invitado_${Date.now()}_${Math.random().toString(36).substring(7)}@manilapadel.app`,
+            rol: 'jugador'
+        }).select('id').single();
+        if (error) throw new Error("Error creando invitado 1: " + error.message);
+        if (data) j1Id = data.id;
+    }
+
+    if (j2Id.startsWith("manual:")) {
+        const name = j2Id.replace("manual:", "").trim();
+        const { data, error } = await supabaseAdmin.from('users').insert({
+            nombre: name,
+            email: `invitado_${Date.now()}_${Math.random().toString(36).substring(7)}@manilapadel.app`,
+            rol: 'jugador'
+        }).select('id').single();
+        if (error) throw new Error("Error creando invitado 2: " + error.message);
+        if (data) j2Id = data.id;
+    }
+
     const { data: players } = await supabaseAdmin
         .from('users')
         .select('id, nombre')
         .in('id', [j1Id, j2Id]);
     
-    const p1Name = players?.find(p => p.id === j1Id)?.nombre || "Jugador 1";
-    const p2Name = players?.find(p => p.id === j2Id)?.nombre || "Jugador 2";
-    const nuevoNombre = `${p1Name} & ${p2Name}`;
+    const formatName = (fullName: string) => {
+        const parts = (fullName || '').trim().split(' ');
+        if (parts.length < 2) return fullName;
+        const firstName = parts[0];
+        const lastName = parts[parts.length - 1];
+        return `${firstName[0]}. ${lastName}`;
+    };
+
+    const p1 = players?.find(p => p.id === j1Id);
+    const p2 = players?.find(p => p.id === j2Id);
+    const nuevoNombre = `${formatName(p1?.nombre || 'J1')} / ${formatName(p2?.nombre || 'J2')}`;
 
     const { error: parejaError } = await supabaseAdmin
         .from('parejas')

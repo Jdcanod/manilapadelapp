@@ -6,6 +6,7 @@ import { darDeBajaPareja, actualizarEstadoPago, editarParticipantesInscripcion, 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Trash2, Edit2, CreditCard, UserPlus, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +36,10 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
     // Estado para edición
     const [selectedJ1, setSelectedJ1] = useState(j1Id || "");
     const [selectedJ2, setSelectedJ2] = useState(j2Id || "");
+    const [j1Manual, setJ1Manual] = useState(false);
+    const [j2Manual, setJ2Manual] = useState(false);
+    const [j1Name, setJ1Name] = useState("");
+    const [j2Name, setJ2Name] = useState("");
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -56,11 +61,14 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
     };
 
     const handleEditParticipants = () => {
-        if (!selectedJ1 || !selectedJ2) {
+        const finalJ1 = j1Manual ? `manual:${j1Name.trim()}` : selectedJ1;
+        const finalJ2 = j2Manual ? `manual:${j2Name.trim()}` : selectedJ2;
+
+        if (!finalJ1 || !finalJ2) {
             setError("Debes seleccionar ambos jugadores");
             return;
         }
-        if (selectedJ1 === selectedJ2) {
+        if (finalJ1 === finalJ2 && !j1Manual && !j2Manual) {
             setError("Los jugadores deben ser distintos");
             return;
         }
@@ -68,7 +76,7 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
         setError(null);
         startTransition(async () => {
             try {
-                const res = await editarParticipantesInscripcion(id, tipo, parejaId, selectedJ1, selectedJ2, torneoId);
+                const res = await editarParticipantesInscripcion(id, tipo, parejaId, finalJ1, finalJ2, torneoId);
                 if (res.success) {
                     setEditOpen(false);
                     router.refresh();
@@ -140,36 +148,68 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                         </div>
 
                         <div className="space-y-4">
+                            {/* Jugador 1 */}
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Jugador 1</label>
-                                <Select value={selectedJ1} onValueChange={setSelectedJ1}>
-                                    <SelectTrigger className="bg-neutral-900 border-neutral-800 h-12 rounded-xl">
-                                        <SelectValue placeholder="Seleccionar jugador" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
-                                        {allUsers.map(u => (
-                                            <SelectItem key={u.id} value={u.id} className="focus:bg-amber-500/10 focus:text-amber-500">
-                                                {u.nombre} <span className="text-[10px] text-neutral-500 ml-2 italic">{u.email}</span>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Jugador 1</label>
+                                    <label className="flex items-center gap-2 text-[10px] text-neutral-500 cursor-pointer hover:text-amber-500 transition-colors">
+                                        <input type="checkbox" checked={j1Manual} onChange={(e) => setJ1Manual(e.target.checked)} className="rounded border-neutral-800 bg-neutral-900 text-amber-500 focus:ring-amber-500" />
+                                        Invitado
+                                    </label>
+                                </div>
+                                {j1Manual ? (
+                                    <Input 
+                                        placeholder="Nombre completo" 
+                                        value={j1Name} 
+                                        onChange={(e) => setJ1Name(e.target.value)} 
+                                        className="bg-neutral-900 border-neutral-800 h-12 rounded-xl"
+                                    />
+                                ) : (
+                                    <Select value={selectedJ1} onValueChange={setSelectedJ1}>
+                                        <SelectTrigger className="bg-neutral-900 border-neutral-800 h-12 rounded-xl">
+                                            <SelectValue placeholder="Seleccionar jugador" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
+                                            {allUsers.map(u => (
+                                                <SelectItem key={u.id} value={u.id} className="focus:bg-amber-500/10 focus:text-amber-500">
+                                                    {u.nombre} <span className="text-[10px] text-neutral-500 ml-2 italic">{u.email}</span>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
                             </div>
 
+                            {/* Jugador 2 */}
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Jugador 2</label>
-                                <Select value={selectedJ2} onValueChange={setSelectedJ2}>
-                                    <SelectTrigger className="bg-neutral-900 border-neutral-800 h-12 rounded-xl">
-                                        <SelectValue placeholder="Seleccionar jugador" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
-                                        {allUsers.map(u => (
-                                            <SelectItem key={u.id} value={u.id} className="focus:bg-amber-500/10 focus:text-amber-500">
-                                                {u.nombre} <span className="text-[10px] text-neutral-500 ml-2 italic">{u.email}</span>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Jugador 2</label>
+                                    <label className="flex items-center gap-2 text-[10px] text-neutral-500 cursor-pointer hover:text-amber-500 transition-colors">
+                                        <input type="checkbox" checked={j2Manual} onChange={(e) => setJ2Manual(e.target.checked)} className="rounded border-neutral-800 bg-neutral-900 text-amber-500 focus:ring-amber-500" />
+                                        Invitado
+                                    </label>
+                                </div>
+                                {j2Manual ? (
+                                    <Input 
+                                        placeholder="Nombre completo" 
+                                        value={j2Name} 
+                                        onChange={(e) => setJ2Name(e.target.value)} 
+                                        className="bg-neutral-900 border-neutral-800 h-12 rounded-xl"
+                                    />
+                                ) : (
+                                    <Select value={selectedJ2} onValueChange={setSelectedJ2}>
+                                        <SelectTrigger className="bg-neutral-900 border-neutral-800 h-12 rounded-xl">
+                                            <SelectValue placeholder="Seleccionar jugador" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
+                                            {allUsers.map(u => (
+                                                <SelectItem key={u.id} value={u.id} className="focus:bg-amber-500/10 focus:text-amber-500">
+                                                    {u.nombre} <span className="text-[10px] text-neutral-500 ml-2 italic">{u.email}</span>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
                             </div>
                         </div>
 
