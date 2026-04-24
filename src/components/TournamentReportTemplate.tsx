@@ -37,42 +37,74 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
     });
 
     for (const p of sortedPartidos) {
-        const p1 = String(p.pareja1_id || p.jugador1_id || '');
-        const p2 = String(p.pareja2_id || p.jugador2_id || '');
+        const n1 = (p.pareja1?.nombre_pareja || p.nombre_pareja1 || '').toLowerCase().trim();
+        const n2 = (p.pareja2?.nombre_pareja || p.nombre_pareja2 || '').toLowerCase().trim();
+        const id1 = String(p.pareja1_id || p.jugador1_id || '');
+        const id2 = String(p.pareja2_id || p.jugador2_id || '');
         const context = String(p.torneo_grupo_id || p.nivel || 'global');
-        
-        // Llave única para el enfrentamiento (A vs B es lo mismo que B vs A)
-        const matchKey = [p1, p2].sort().join(':') + '@' + context;
-        
-        if (p1 && p2 && p1 !== 'null' && p2 !== 'null') {
-            if (!seenMatches.has(matchKey)) {
-                seenMatches.add(matchKey);
+
+        // 1. Intentar deduplicar por nombres (lo más seguro para el usuario)
+        if (n1 && n2 && n1 !== 'tbd' && n2 !== 'tbd' && n1 !== '' && n2 !== '') {
+            const nameKey = [n1, n2].sort().join(':') + '@' + context;
+            if (!seenMatches.has(nameKey)) {
+                seenMatches.add(nameKey);
                 uniquePartidos.push(p);
             }
-        } else {
-            // Si es un partido TBD o incompleto, lo incluimos (siempre que el ID sea único)
-            const idKey = `id:${p.id}`;
-            if (!seenMatches.has(idKey)) {
-                seenMatches.add(idKey);
+            continue;
+        }
+
+        // 2. Intentar deduplicar por IDs si los nombres fallan
+        if (id1 && id2 && id1 !== 'null' && id2 !== 'null' && id1 !== '' && id2 !== '') {
+            const idMatchKey = [id1, id2].sort().join(':') + '@' + context;
+            if (!seenMatches.has(idMatchKey)) {
+                seenMatches.add(idMatchKey);
                 uniquePartidos.push(p);
             }
+            continue;
+        }
+
+        // 3. Si es un partido TBD o incompleto, incluirlo por ID único
+        const finalIdKey = `id:${p.id}`;
+        if (!seenMatches.has(finalIdKey)) {
+            seenMatches.add(finalIdKey);
+            uniquePartidos.push(p);
         }
     }
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const partidosPorFecha = uniquePartidos.reduce((acc: any, partido: any) => {
+    const partidosPorFecha: Record<string, any[]> = uniquePartidos.reduce((acc: any, partido: any) => {
         const dateToUse = partido.fecha_ajustada || partido.fecha;
         let fecha = "Pendiente";
+        let hora = "--:--";
+        
         if (dateToUse) {
             const dt = new Date(dateToUse);
-            const bogotaDate = new Date(dt.getTime() - (5 * 60 * 60 * 1000));
-            const y = bogotaDate.getUTCFullYear();
-            const m = String(bogotaDate.getUTCMonth() + 1).padStart(2, '0');
-            const d = String(bogotaDate.getUTCDate()).padStart(2, '0');
+            // Formatear fecha para Bogotá (YYYY-MM-DD)
+            const parts = new Intl.DateTimeFormat('es-CO', {
+                timeZone: 'America/Bogota',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).formatToParts(dt);
+            
+            const y = parts.find(p => p.type === 'year')?.value;
+            const m = parts.find(p => p.type === 'month')?.value;
+            const d = parts.find(p => p.type === 'day')?.value;
             fecha = `${y}-${m}-${d}`;
+
+            // Calcular hora para Bogotá
+            hora = dt.toLocaleTimeString('es-CO', { 
+                timeZone: 'America/Bogota', 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
         }
+
+        const partidoConHora = { ...partido, calculatedHora: hora };
+
         if (!acc[fecha]) acc[fecha] = [];
-        acc[fecha].push(partido);
+        acc[fecha].push(partidoConHora);
         return acc;
     }, {});
 
@@ -211,7 +243,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                 {partidosPorFecha[fechaKey].map((partido: any) => (
                                     <tr key={partido.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                        <td className="py-2 font-bold">{partido.hora || "--:--"}</td>
+                                        <td className="py-2 font-bold">{partido.calculatedHora || "--:--"}</td>
                                         <td className="py-2">{partido.pareja1?.nombre_pareja || "TBD"}</td>
                                         <td className="py-2 text-center text-gray-300 italic">vs</td>
                                         <td className="py-2">{partido.pareja2?.nombre_pareja || "TBD"}</td>
