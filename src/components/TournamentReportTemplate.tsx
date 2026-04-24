@@ -27,7 +27,17 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const partidosPorFecha = partidos.reduce((acc: any, partido: any) => {
         const dateToUse = partido.fecha_ajustada || partido.fecha;
-        const fecha = dateToUse ? format(new Date(dateToUse), "yyyy-MM-dd") : "Pendiente";
+        // Parsear fecha en zona horaria de Colombia (UTC-5) para evitar el desfase de un día
+        let fecha = "Pendiente";
+        if (dateToUse) {
+            const dt = new Date(dateToUse);
+            const bogotaDate = new Date(dt.getTime() - (5 * 60 * 60 * 1000));
+            // Usar UTC components del objeto ya ajustado
+            const y = bogotaDate.getUTCFullYear();
+            const m = String(bogotaDate.getUTCMonth() + 1).padStart(2, '0');
+            const d = String(bogotaDate.getUTCDate()).padStart(2, '0');
+            fecha = `${y}-${m}-${d}`;
+        }
         if (!acc[fecha]) acc[fecha] = [];
         acc[fecha].push(partido);
         return acc;
@@ -52,18 +62,17 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                 </div>
                 <div className="text-right">
                     <h2 className="text-xl font-black text-blue-900 uppercase italic">{torneo.nombre}</h2>
-                    <p className="text-sm font-bold uppercase">{torneo.formato}</p>
-                    <p className="text-xs text-gray-500">{format(new Date(), "PPpp", { locale: es })}</p>
+                    <p className="text-xs text-gray-400 mt-1">{format(new Date(), "PPpp", { locale: es })}</p>
                 </div>
             </div>
 
             {/* SECCIÓN DE GRUPOS */}
             <div className="mb-10">
                 <h3 className="text-lg font-bold bg-gray-100 p-2 mb-4 uppercase border-l-4 border-blue-900">Configuración de Grupos</h3>
-                <div className="flex flex-wrap gap-4">
+                <div style={{ columns: '2', columnGap: '16px' }}>
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {grupos.map((grupo: any) => (
-                        <div key={grupo.id} className="border border-gray-200 rounded-lg overflow-hidden mb-6 w-[48%]" style={{ breakInside: 'avoid', pageBreakInside: 'avoid', display: 'inline-block', verticalAlign: 'top' }}>
+                        <div key={grupo.id} className="border border-gray-200 rounded-lg overflow-hidden mb-4" style={{ breakInside: 'avoid', pageBreakInside: 'avoid', display: 'inline-block', width: '100%' }}>
                             <div className="bg-gray-800 text-white p-2 text-center font-bold text-xs">
                                 {grupo.nombre_grupo} - {grupo.categoria}
                             </div>
@@ -147,7 +156,13 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                 {fechasOrdenadas.map(fechaKey => (
                     <div key={fechaKey} className="mb-6" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                         <div className="bg-blue-900 text-white px-4 py-1 text-sm font-bold uppercase mb-2">
-                            {fechaKey === "Pendiente" ? "Fechas por Programar" : format(new Date(fechaKey), "EEEE dd 'de' MMMM", { locale: es })}
+                            {(() => {
+                                if (fechaKey === "Pendiente") return "Fechas por Programar";
+                                // Parsear yyyy-MM-dd como fecha local sin offset
+                                const [fy, fm, fd] = fechaKey.split('-').map(Number);
+                                const localDate = new Date(fy, fm - 1, fd);
+                                return format(localDate, "EEEE dd 'de' MMMM", { locale: es });
+                            })()}
                         </div>
                         <table className="w-full text-xs border-collapse">
                             <thead>
@@ -177,8 +192,12 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
             </div>
 
             {/* PIE DE PÁGINA */}
-            <div className="mt-auto pt-8 border-t border-gray-200 text-center text-[10px] text-gray-400 uppercase tracking-widest">
-                Generado por Manila Padel App - La plataforma líder en gestión de padel
+            <div className="mt-12 pt-4 border-t-2 border-blue-900 flex items-center justify-between">
+                <p className="text-[10px] text-gray-400 uppercase tracking-widest">Reporte oficial del torneo</p>
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-blue-900 uppercase tracking-widest">🏓 Manila Padel App</span>
+                    <span className="text-[10px] text-gray-400">— manilapadelapp.com</span>
+                </div>
             </div>
         </div>
     );
