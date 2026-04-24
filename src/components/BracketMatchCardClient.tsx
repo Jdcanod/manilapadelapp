@@ -130,6 +130,8 @@ export function BracketMatchCardClient({ match, playerPairIds, currentUserId, ti
                                 pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
                                 initialResult={match.resultado}
                                 tipoDesempate={tipoDesempate}
+                                disabled={!match.fecha || !match.lugar || match.lugar.toLowerCase().includes('pendiente')}
+                                disabledReason="Partido pendiente de programación"
                             />
                         )}
 

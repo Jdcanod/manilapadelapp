@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { registrarResultadoPorJugador } from "@/app/(dashboard)/torneos/actions";
 import { Swords } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Props {
     matchId: string;
@@ -13,9 +14,11 @@ interface Props {
     pareja2Nombre: string;
     buttonText?: string;
     tipoDesempate?: string;
+    disabled?: boolean;
+    disabledReason?: string;
 }
 
-export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, buttonText, initialResult, tipoDesempate = "tercer_set" }: Props & { initialResult?: string | null }) {
+export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, buttonText, initialResult, tipoDesempate = "tercer_set", disabled, disabledReason }: Props & { initialResult?: string | null }) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [statusMsg, setStatusMsg] = useState<string | null>(null);
@@ -144,9 +147,16 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button className={`w-full ${buttonText === 'Corregir' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-emerald-600 hover:bg-emerald-500'} text-white font-black text-[10px] uppercase tracking-widest h-9 py-0 shadow-lg`}>
+                <Button 
+                    disabled={disabled}
+                    className={cn(
+                        `w-full text-white font-black text-[10px] uppercase tracking-widest h-9 py-0 shadow-lg transition-all`,
+                        disabled ? "bg-neutral-800 text-neutral-500 cursor-not-allowed" : (buttonText === 'Corregir' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-emerald-600 hover:bg-emerald-500')
+                    )}
+                    title={disabledReason}
+                >
                     <Swords className="w-3 h-3 mr-2" />
-                    {buttonText || "Subir Resultado"}
+                    {disabled ? (disabledReason || "Esperando programación") : (buttonText || "Subir Resultado")}
                 </Button>
             </DialogTrigger>
             <DialogContent className="bg-neutral-950 border-neutral-800 text-white max-w-sm rounded-3xl p-6">

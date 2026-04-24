@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { registrarResultadoPorClub } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 interface Props {
     matchId: string;
@@ -14,9 +15,11 @@ interface Props {
     pareja2Nombre: string;
     initialResult?: string | null;
     tipoDesempate?: string;
+    disabled?: boolean;
+    disabledReason?: string;
 }
 
-export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, initialResult, tipoDesempate = "tercer_set" }: Props) {
+export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, initialResult, tipoDesempate = "tercer_set", disabled, disabledReason }: Props) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
@@ -135,9 +138,16 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button className="bg-amber-600 hover:bg-amber-500 text-white font-bold w-full text-xs h-8">
+                <Button 
+                    disabled={disabled}
+                    className={cn(
+                        "font-bold w-full text-xs h-8",
+                        disabled ? "bg-neutral-800 text-neutral-500 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-500 text-white"
+                    )}
+                    title={disabledReason}
+                >
                     <Trophy className="w-3 h-3 mr-2" />
-                    Ingresar Score
+                    {disabled ? (disabledReason || "Programar primero") : "Ingresar Score"}
                 </Button>
             </DialogTrigger>
             <DialogContent className="bg-neutral-900 border-neutral-800 text-white max-w-sm">

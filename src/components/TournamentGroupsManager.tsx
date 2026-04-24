@@ -25,6 +25,7 @@ interface Props {
         estado?: string | null;
         resultado?: string | null;
         lugar?: string | null;
+        fecha?: string | null;
         nivel?: string | null;
         jugador1_id?: string;
         jugador2_id?: string;
@@ -398,35 +399,57 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                         partidos.filter(p => p.torneo_grupo_id === grupo.id).map((match) => (
                                                             <div key={match.id} className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
                                                                 <div className="flex justify-between items-center bg-neutral-950/50 p-3 rounded-xl border border-neutral-900/50">
-                                                                    <div className="flex flex-col gap-1.5 flex-1">
-                                                                        <div className="flex justify-between items-center text-xs font-bold text-white uppercase pr-2">
-                                                                            <span>{match.pareja1?.nombre_pareja || "TBD"}</span>
-                                                                            {match.resultado && (
-                                                                                <span className="bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-md font-black">
-                                                                                    {match.resultado.split(',')[0].split('-')[0]}
-                                                                                </span>
-                                                                            )}
-                                                                        </div>
-                                                                        <div className="flex justify-between items-center text-xs font-bold text-white uppercase pr-2">
-                                                                            <span>{match.pareja2?.nombre_pareja || "TBD"}</span>
-                                                                            {match.resultado && (
-                                                                                <span className="bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-md font-black">
-                                                                                    {match.resultado.split(',')[0].split('-')[1]}
-                                                                                </span>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
+                                                                     <div className="flex flex-col gap-1.5 flex-1">
+                                                                         <div className="flex justify-between items-center text-xs font-bold text-white uppercase pr-2">
+                                                                             <span>{match.pareja1?.nombre_pareja || "TBD"}</span>
+                                                                             {match.resultado && (
+                                                                                 <span className="bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-md font-black">
+                                                                                     {match.resultado.split(',')[0].split('-')[0]}
+                                                                                 </span>
+                                                                             )}
+                                                                         </div>
+                                                                         <div className="flex justify-between items-center text-xs font-bold text-white uppercase pr-2">
+                                                                             <span>{match.pareja2?.nombre_pareja || "TBD"}</span>
+                                                                             {match.resultado && (
+                                                                                 <span className="bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-md font-black">
+                                                                                     {match.resultado.split(',')[0].split('-')[1]}
+                                                                                 </span>
+                                                                             )}
+                                                                         </div>
+                                                                     </div>
+                                                                 </div>
 
-                                                                <div className="flex flex-col gap-2">
-                                                                    <AdminTournamentResultModal 
-                                                                        matchId={match.id}
-                                                                        pareja1Nombre={match.pareja1?.nombre_pareja || "Pareja 1"}
-                                                                        pareja2Nombre={match.pareja2?.nombre_pareja || "Pareja 2"}
-                                                                        initialResult={match.resultado}
-                                                                        tipoDesempate={tipoDesempate}
-                                                                    />
-                                                                    {match.estado === 'jugado' && match.estado_resultado === 'pendiente' && (
+                                                                 {/* Info de Programación */}
+                                                                 <div className="px-3 py-2 bg-neutral-900 rounded-xl border border-neutral-800 flex flex-col gap-1">
+                                                                     {match.fecha && match.lugar ? (
+                                                                         <div className="flex justify-between items-center">
+                                                                             <span className="text-[9px] font-black text-emerald-500 uppercase tracking-tighter">
+                                                                                 {new Date(match.fecha).toLocaleString('es-CO', { 
+                                                                                     weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                                                                                 })}
+                                                                             </span>
+                                                                             <span className="text-[9px] font-black text-neutral-400 uppercase">
+                                                                                 {match.lugar}
+                                                                             </span>
+                                                                         </div>
+                                                                     ) : (
+                                                                         <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest text-center animate-pulse">
+                                                                             ⚠️ Pendiente de Programar
+                                                                         </span>
+                                                                     )}
+                                                                 </div>
+
+                                                                 <div className="flex flex-col gap-2">
+                                                                     <AdminTournamentResultModal 
+                                                                         matchId={match.id}
+                                                                         pareja1Nombre={match.pareja1?.nombre_pareja || "Pareja 1"}
+                                                                         pareja2Nombre={match.pareja2?.nombre_pareja || "Pareja 2"}
+                                                                         initialResult={match.resultado}
+                                                                         tipoDesempate={tipoDesempate}
+                                                                         disabled={!match.fecha || !match.lugar}
+                                                                         disabledReason="Debe programar el partido en el cronograma primero"
+                                                                     />
+                                                                     {match.estado === 'jugado' && match.estado_resultado === 'pendiente' && (
                                                                         <Button 
                                                                             size="sm"
                                                                             onClick={() => {

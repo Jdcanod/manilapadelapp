@@ -303,6 +303,8 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                                 pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
                                                                                 initialResult={match.resultado}
                                                                                 tipoDesempate={tipoDesempate}
+                                                                                disabled={!match.fecha || !match.lugar || match.lugar.toLowerCase().includes('pendiente')}
+                                                                                disabledReason="El club aún no ha asignado hora o cancha"
                                                                             />
                                                                         )}
                                                                     </div>
