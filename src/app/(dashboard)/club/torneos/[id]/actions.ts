@@ -85,8 +85,11 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
             }
         });
         const formatName = (fullName: string) => {
-            // Devolver el nombre completo como solicitado
-            return fullName || '';
+            const parts = (fullName || '').trim().split(' ');
+            if (parts.length < 2) return fullName;
+            const firstName = parts[0];
+            const lastName = parts[parts.length - 1];
+            return `${firstName[0]}. ${lastName}`;
         };
 
         // Procesar las inscripciones (asegurando que tengan una pareja_id y formato correcto)
@@ -281,7 +284,13 @@ export async function inscribirParejaManual(torneoId: string, jugador1Sel: strin
 
         if (!parejaId) {
             // Use Admin to read names (anon client might still have RLS delay)
-            const formatName = (fullName: string) => fullName || '';
+            const formatName = (fullName: string) => {
+                const parts = (fullName || '').trim().split(' ');
+                if (parts.length < 2) return fullName;
+                const firstName = parts[0];
+                const lastName = parts[parts.length - 1];
+                return `${firstName[0]}. ${lastName}`;
+            };
 
             const { data: j1 } = await supabaseAdmin.from('users').select('nombre').eq('id', j1Id).single();
             const { data: j2 } = await supabaseAdmin.from('users').select('nombre').eq('id', j2Id).single();
