@@ -174,7 +174,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
         <div className="flex flex-col xl:flex-row gap-6 animate-in fade-in duration-700">
             {/* BOLSA DE PENDIENTES */}
             {isAdmin && (
-                <div className="w-full xl:w-80 shrink-0">
+                <div className="w-full xl:w-80 shrink-0 xl:sticky xl:top-6 self-start">
                     <Card className="bg-neutral-900 border-neutral-800 h-full overflow-hidden flex flex-col shadow-2xl">
                         <div className="p-4 border-b border-neutral-800 bg-neutral-950/50 flex justify-between items-center">
                             <div>

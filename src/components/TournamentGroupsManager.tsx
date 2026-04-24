@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { confirmarResultado } from "@/app/(dashboard)/torneos/actions";
 import { Check, Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface Props {
     torneoId: string;
@@ -375,63 +376,82 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                             </tbody>
                                         </table>
                                     </div>
-                                    <div className="p-4 border-t border-neutral-800 bg-neutral-900/50">
-                                        <h5 className="text-xs font-bold text-neutral-500 uppercase tracking-tighter mb-3 flex items-center gap-2">
-                                            <Swords className="w-3 h-3" />
-                                            Partidos del Grupo
-                                        </h5>
-                                        <div className="space-y-2">
-                                            {partidos.filter(p => p.torneo_grupo_id === grupo.id).map((match) => (
-                                                <div key={match.id} className="flex flex-col sm:flex-row items-center justify-between p-3 bg-neutral-950 border border-neutral-800 rounded-lg gap-3">
-                                                    <div className="flex-1 text-center sm:text-left">
-                                                        <div className="text-xs font-bold text-white mb-1">
-                                                            {match.pareja1?.nombre_pareja || "TBD"} vs {match.pareja2?.nombre_pareja || "TBD"}
-                                                        </div>
-                                                        {match.estado === 'jugado' ? (
-                                                            <div className={cn(
-                                                                "text-[10px] font-black uppercase tracking-widest flex items-center gap-2",
-                                                                match.estado_resultado === 'confirmado' ? "text-emerald-500" : "text-amber-500"
-                                                            )}>
-                                                                {match.estado_resultado === 'confirmado' ? 'Verificado: ' : 'Pendiente Confirmación: '} 
-                                                                {match.resultado}
+                                    <div className="p-4 border-t border-neutral-800 bg-neutral-900/50 flex justify-center">
+                                        <Dialog>
+                                            <DialogTrigger asChild>
+                                                <Button variant="outline" className="w-full border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-300 font-black text-[10px] uppercase tracking-widest gap-2 rounded-xl transition-all shadow-sm h-10">
+                                                    <Swords className="w-3.5 h-3.5 text-emerald-500" /> Ver Partidos del Grupo
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="sm:max-w-md bg-neutral-950 border-neutral-900 text-white max-h-[85vh] overflow-y-auto rounded-3xl p-6">
+                                                <DialogHeader className="mb-4 pb-4 border-b border-neutral-900">
+                                                    <DialogTitle className="text-xl font-black italic uppercase tracking-widest text-emerald-500 flex items-center gap-3">
+                                                        <Swords className="w-5 h-5" /> Partidos - {grupo.nombre_grupo}
+                                                    </DialogTitle>
+                                                </DialogHeader>
+                                                <div className="space-y-4">
+                                                    {partidos.filter(p => p.torneo_grupo_id === grupo.id).length === 0 ? (
+                                                        <p className="text-center text-neutral-500 text-xs font-bold uppercase tracking-widest py-8">
+                                                            No hay partidos generados aún.
+                                                        </p>
+                                                    ) : (
+                                                        partidos.filter(p => p.torneo_grupo_id === grupo.id).map((match) => (
+                                                            <div key={match.id} className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
+                                                                <div className="flex justify-between items-center bg-neutral-950/50 p-3 rounded-xl border border-neutral-900/50">
+                                                                    <div className="flex flex-col gap-1.5 flex-1">
+                                                                        <div className="flex justify-between items-center text-xs font-bold text-white uppercase pr-2">
+                                                                            <span>{match.pareja1?.nombre_pareja || "TBD"}</span>
+                                                                            {match.resultado && (
+                                                                                <span className="bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-md font-black">
+                                                                                    {match.resultado.split(',')[0].split('-')[0]}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex justify-between items-center text-xs font-bold text-white uppercase pr-2">
+                                                                            <span>{match.pareja2?.nombre_pareja || "TBD"}</span>
+                                                                            {match.resultado && (
+                                                                                <span className="bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-md font-black">
+                                                                                    {match.resultado.split(',')[0].split('-')[1]}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="flex flex-col gap-2">
+                                                                    <AdminTournamentResultModal 
+                                                                        matchId={match.id}
+                                                                        pareja1Nombre={match.pareja1?.nombre_pareja || "Pareja 1"}
+                                                                        pareja2Nombre={match.pareja2?.nombre_pareja || "Pareja 2"}
+                                                                        initialResult={match.resultado}
+                                                                        tipoDesempate={tipoDesempate}
+                                                                    />
+                                                                    {match.estado === 'jugado' && match.estado_resultado === 'pendiente' && (
+                                                                        <Button 
+                                                                            size="sm"
+                                                                            onClick={() => {
+                                                                                startTransition(async () => {
+                                                                                    const res = await confirmarResultado(match.id);
+                                                                                    if (res.success) {
+                                                                                        router.refresh();
+                                                                                    } else {
+                                                                                        alert(res.message);
+                                                                                    }
+                                                                                });
+                                                                            }}
+                                                                            disabled={isPending}
+                                                                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase h-10 rounded-xl"
+                                                                        >
+                                                                            <Check className="w-3 h-3 mr-1" /> Confirmar Resultado
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                        ) : (
-                                                            <div className="text-[10px] font-medium text-neutral-500 uppercase tracking-widest">
-                                                                Programado
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                     <div className="w-full sm:w-32 flex flex-col gap-2">
-                                                        <AdminTournamentResultModal 
-                                                            matchId={match.id}
-                                                            pareja1Nombre={match.pareja1?.nombre_pareja || "Pareja 1"}
-                                                            pareja2Nombre={match.pareja2?.nombre_pareja || "Pareja 2"}
-                                                            initialResult={match.resultado}
-                                                            tipoDesempate={tipoDesempate}
-                                                        />
-                                                        {match.estado === 'jugado' && match.estado_resultado === 'pendiente' && (
-                                                            <Button 
-                                                                size="sm"
-                                                                onClick={() => {
-                                                                    startTransition(async () => {
-                                                                        const res = await confirmarResultado(match.id);
-                                                                        if (res.success) {
-                                                                            router.refresh();
-                                                                        } else {
-                                                                            alert(res.message);
-                                                                        }
-                                                                    });
-                                                                }}
-                                                                disabled={isPending}
-                                                                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase h-8 rounded-xl"
-                                                            >
-                                                                <Check className="w-3 h-3 mr-1" /> Confirmar
-                                                            </Button>
-                                                        )}
-                                                    </div>
+                                                        ))
+                                                    )}
                                                 </div>
-                                            ))}
-                                        </div>
+                                            </DialogContent>
+                                        </Dialog>
                                     </div>
                                 </CardContent>
                             </Card>
