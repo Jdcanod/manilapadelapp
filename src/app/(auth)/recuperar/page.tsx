@@ -28,6 +28,7 @@ export default function RecuperarPage() {
             toast({
                 title: "Correo enviado",
                 description: "Revisa tu bandeja de entrada para reestablecer tu contraseña.",
+            });
         } 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         catch (err: any) {
