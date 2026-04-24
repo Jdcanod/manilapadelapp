@@ -10,6 +10,7 @@ export async function updateSession(request: NextRequest) {
     if (code && request.nextUrl.pathname === '/') {
         const url = request.nextUrl.clone()
         url.pathname = '/auth/callback'
+        url.searchParams.set('next', '/reestablecer') // Forzamos que vaya a cambiar contraseña
         return NextResponse.redirect(url)
     }
 
