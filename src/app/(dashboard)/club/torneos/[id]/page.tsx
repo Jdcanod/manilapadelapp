@@ -505,9 +505,10 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                         <TournamentExportButton 
                             torneo={torneo}
                             clubInfo={clubInfo}
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             partidos={(rawPartidos || [])
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 .filter((p: any) => p.lugar && p.lugar.toLowerCase().includes('cancha') && p.fecha)
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 .map((p: any) => ({
                                     ...p,
                                     hora: p.fecha ? format(new Date(p.fecha), "HH:mm") : null,
