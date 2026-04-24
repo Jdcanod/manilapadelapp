@@ -348,7 +348,8 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     const hasStarted = (rawPartidos || []).length > 0;
 
     // Inyectar nombres y IDs de jugadores manualmente desde el mapa
-    const partidosReales = (rawPartidos || []).map(p => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const partidosReales = (rawPartidos || []).map((p: any) => {
         const p1 = parejaDataMap.get(p.pareja1_id);
         const p2 = parejaDataMap.get(p.pareja2_id);
         return {
