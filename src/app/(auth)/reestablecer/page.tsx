@@ -52,7 +52,9 @@ export default function ReestablecerPage() {
                 });
                 router.push("/login");
             }
-        } catch (err: any) {
+        } 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        catch (err: any) {
             console.error("Error en reestablecimiento:", err);
             toast({
                 title: "Error Inesperado",
