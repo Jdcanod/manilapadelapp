@@ -25,11 +25,15 @@ interface Props {
         resultado?: string | null;
         lugar?: string | null;
         nivel?: string | null;
+        jugador1_id?: string;
+        jugador2_id?: string;
+        jugador3_id?: string;
+        jugador4_id?: string;
         pareja1?: { nombre_pareja?: string | null } | null;
         pareja2?: { nombre_pareja?: string | null } | null;
     }[];
     tipoDesempate?: string;
-    allParticipants?: { id: string | number; pareja_id: string; nombre: string; categoria: string; estado_pago: string; tipo: string }[];
+    allParticipants?: { id: string | number; pareja_id: string; nombre: string; categoria: string; estado_pago: string; tipo: string; jugador1_id?: string; jugador2_id?: string }[];
 }
 
 interface Standing {
@@ -140,17 +144,19 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
     const gruposCategoria = gruposExistentes.filter(g => g.categoria === selectedCat);
 
     // Identificar parejas inscritas en esta categoría que no están en ningún grupo
-    const parejasEnGrupos = new Set<string>();
+    const parejasEnGruposSignatures = new Set<string>();
     partidos.filter(p => p.nivel === selectedCat && p.torneo_grupo_id).forEach(p => {
-        if (p.pareja1_id) parejasEnGrupos.add(p.pareja1_id);
-        if (p.pareja2_id) parejasEnGrupos.add(p.pareja2_id);
+        if (p.jugador1_id && p.jugador2_id) {
+            const signature = [p.jugador1_id, p.jugador2_id].sort().join(':');
+            parejasEnGruposSignatures.add(signature);
+        }
     });
 
-    const parejasSinGrupo = allParticipants.filter(p => 
-        p.categoria === selectedCat && 
-        p.pareja_id && 
-        !parejasEnGrupos.has(p.pareja_id)
-    );
+    const parejasSinGrupo = allParticipants.filter(p => {
+        if (p.categoria !== selectedCat || !p.jugador1_id || !p.jugador2_id) return false;
+        const signature = [p.jugador1_id, p.jugador2_id].sort().join(':');
+        return !parejasEnGruposSignatures.has(signature);
+    });
 
     const getStandings = (grupoId: string) => {
         const matches = partidos.filter(p => p.torneo_grupo_id === grupoId);
