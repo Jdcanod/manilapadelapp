@@ -26,7 +26,8 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
     // Organizar partidos por fecha para el cronograma
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const partidosPorFecha = partidos.reduce((acc: any, partido: any) => {
-        const fecha = partido.fecha ? format(new Date(partido.fecha), "yyyy-MM-dd") : "Pendiente";
+        const dateToUse = partido.fecha_ajustada || partido.fecha;
+        const fecha = dateToUse ? format(new Date(dateToUse), "yyyy-MM-dd") : "Pendiente";
         if (!acc[fecha]) acc[fecha] = [];
         acc[fecha].push(partido);
         return acc;
@@ -76,7 +77,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                 </thead>
                                 <tbody>
                                     {participantes
-                                        .filter(p => p.grupo_id === grupo.id)
+                                        .filter(p => String(p.grupo_id) === String(grupo.id))
                                         .map((p, idx) => (
                                             <tr key={idx} className="border-b border-gray-100">
                                                 <td className="p-2">{p.nombre}</td>

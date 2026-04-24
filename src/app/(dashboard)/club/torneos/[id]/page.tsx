@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { createClient, createAdminClient, createPureAdminClient } from "@/utils/supabase/server";
-import { format } from "date-fns";
+import { format, addHours } from "date-fns";
 import { redirect } from "next/navigation";
 import { ChevronLeft, CalendarDays, Users, Swords, Trophy, Check } from "lucide-react";
 import Link from "next/link";
@@ -341,7 +341,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                 tipo: 'regular',
                 jugador1_id: tp.pareja?.jugador1_id,
                 jugador2_id: tp.pareja?.jugador2_id,
-                grupo_id: tp.torneo_grupo_id
+                grupo_id: tp.torneo_grupo_id ? String(tp.torneo_grupo_id) : null
             });
         });
     }
@@ -509,12 +509,16 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 .filter((p: any) => p.lugar && p.lugar.toLowerCase().includes('cancha') && p.fecha)
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                .map((p: any) => ({
-                                    ...p,
-                                    hora: p.fecha ? format(new Date(p.fecha), "HH:mm") : null,
-                                    pareja1: parejaDataMap.get(p.pareja1_id || ""),
-                                    pareja2: parejaDataMap.get(p.pareja2_id || "")
-                                }))}
+                                .map((p: any) => {
+                                    const adjustedDate = addHours(new Date(p.fecha), -5);
+                                    return {
+                                        ...p,
+                                        fecha_ajustada: adjustedDate.toISOString(),
+                                        hora: format(adjustedDate, "HH:mm"),
+                                        pareja1: parejaDataMap.get(p.pareja1_id || ""),
+                                        pareja2: parejaDataMap.get(p.pareja2_id || "")
+                                    };
+                                })}
                             participantes={allParticipants}
                             grupos={gruposExistentes || []}
                         />
