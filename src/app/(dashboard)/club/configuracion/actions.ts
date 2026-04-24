@@ -1,7 +1,39 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
+
+export async function uploadClubLogo(userId: string, formData: FormData) {
+    const adminSupabase = createAdminClient();
+    const file = formData.get("logo") as File;
+    
+    if (!file) {
+        throw new Error("No se ha proporcionado ningún archivo.");
+    }
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}-${Math.random()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await adminSupabase.storage
+        .from('club-logos')
+        .upload(filePath, file, {
+            contentType: file.type,
+            upsert: true
+        });
+
+    if (uploadError) {
+        console.error("Error subiendo logo con admin client:", uploadError);
+        throw new Error("No se pudo subir el logo al servidor.");
+    }
+
+    const { data: { publicUrl } } = adminSupabase.storage
+        .from('club-logos')
+        .getPublicUrl(filePath);
+
+    return { publicUrl };
+}
 
 export async function saveClubSettings(userId: string, formData: FormData) {
     const supabase = createClient();

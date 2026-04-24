@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LogOut, Save, Megaphone, Settings2, User, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cerrarSesionAction } from "../../jugador/perfil/actions";
-import { saveClubSettings, postClubNews, updateClubProfile } from "./actions";
+import { saveClubSettings, postClubNews, updateClubProfile, uploadClubLogo } from "./actions";
 import { PrimeTimeConfig } from "@/components/PrimeTimeConfig";
 import { createClient } from "@/utils/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -75,21 +75,11 @@ export function ConfigClubForm({ initialData }: { initialData: ConfigData }) {
 
         setIsUploading(true);
         try {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${initialData.userId}-${Math.random()}.${fileExt}`;
-            const filePath = `${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('club-logos')
-                .upload(filePath, file);
-
-            if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('club-logos')
-                .getPublicUrl(filePath);
-
-            setLogoUrl(publicUrl);
+            const formData = new FormData();
+            formData.append("logo", file);
+            
+            const result = await uploadClubLogo(initialData.userId, formData);
+            setLogoUrl(result.publicUrl);
         } catch (error) {
             alert("Error subiendo el logo: " + (error instanceof Error ? error.message : "Desconocido"));
         } finally {
