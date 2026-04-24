@@ -78,13 +78,7 @@ export async function inscribirParejaTorneo(formData: FormData) {
             await admin.from('parejas').update({ activa: false }).in('jugador1_id', [jugador1Id, jugador2Id]);
             await admin.from('parejas').update({ activa: false }).in('jugador2_id', [jugador1Id, jugador2Id]);
 
-            const formatName = (fullName: string) => {
-                const parts = (fullName || '').trim().split(' ');
-                if (parts.length < 2) return fullName;
-                const firstName = parts[0];
-                const lastName = parts[parts.length - 1];
-                return `${firstName[0]}. ${lastName}`;
-            };
+            const formatName = (fullName: string) => fullName || '';
 
             const autoNombrePareja = `${formatName(currentUserData.nombre)} / ${formatName(companeroData.nombre)}`;
 
