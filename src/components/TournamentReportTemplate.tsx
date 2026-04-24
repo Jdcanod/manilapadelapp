@@ -68,34 +68,69 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                 {grupo.nombre_grupo} - {grupo.categoria}
                             </div>
                             <table className="w-full text-xs">
-                                <thead className="bg-gray-50 border-b border-gray-200">
+                                <thead className="bg-gray-50 border-b border-gray-200 text-gray-500">
                                     <tr>
                                         <th className="p-2 text-left">Pareja</th>
-                                        <th className="p-2 text-center">PT</th>
                                         <th className="p-2 text-center">PJ</th>
+                                        <th className="p-2 text-center">PG</th>
+                                        <th className="p-2 text-center">Sets</th>
+                                        <th className="p-2 text-center">Games</th>
+                                        <th className="p-2 text-center text-blue-900">PTS</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {(() => {
-                                        const enGrupo = participantes.filter(p => 
-                                            p.grupo_id && String(p.grupo_id).trim() === String(grupo.id).trim()
-                                        );
-                                        
-                                        if (enGrupo.length === 0) {
-                                            return (
-                                                <tr>
-                                                    <td colSpan={3} className="p-4 text-center text-gray-400 italic">
-                                                        Sin parejas asignadas (ID: {String(grupo.id).substring(0,5)}...)
-                                                    </td>
-                                                </tr>
-                                            );
+                                        const matches = partidos.filter(p => String(p.torneo_grupo_id) === String(grupo.id));
+                                        const map = new Map();
+
+                                        // Inicializar mapa con participantes del grupo
+                                        participantes
+                                            .filter(p => String(p.grupo_id) === String(grupo.id))
+                                            .forEach(p => {
+                                                map.set(String(p.pareja_id), { 
+                                                    nombre: p.nombre, 
+                                                    pj: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 
+                                                });
+                                            });
+
+                                        // Calcular estadísticas
+                                        matches.forEach(m => {
+                                            if (!m.pareja1_id || !m.pareja2_id || m.estado !== 'jugado' || !m.resultado || m.estado_resultado !== 'confirmado') return;
+                                            
+                                            const s1 = map.get(String(m.pareja1_id));
+                                            const s2 = map.get(String(m.pareja2_id));
+                                            if (!s1 || !s2) return;
+
+                                            s1.pj += 1; s2.pj += 1;
+                                            const sets = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
+                                            let setsP1 = 0; let setsP2 = 0;
+                                            
+                                            sets.forEach((set: number[]) => {
+                                                if (set.length === 2) {
+                                                    s1.gg += set[0]; s1.gp += set[1];
+                                                    s2.gg += set[1]; s2.gp += set[0];
+                                                    if (set[0] > set[1]) { setsP1++; s1.sg++; s2.sp++; }
+                                                    else if (set[1] > set[0]) { setsP2++; s2.sg++; s1.sp++; }
+                                                }
+                                            });
+                                            if (setsP1 > setsP2) { s1.pg += 1; s1.pts += 3; }
+                                            else if (setsP2 > setsP1) { s2.pg += 1; s2.pts += 3; }
+                                        });
+
+                                        const sorted = Array.from(map.values()).sort((a, b) => b.pts - a.pts || (b.sg - b.sp) - (a.sg - a.sp));
+
+                                        if (sorted.length === 0) {
+                                            return <tr><td colSpan={8} className="p-4 text-center text-gray-400 italic">Sin parejas asignadas</td></tr>;
                                         }
 
-                                        return enGrupo.map((p, idx) => (
+                                        return sorted.map((p, idx) => (
                                             <tr key={idx} className="border-b border-gray-100">
                                                 <td className="p-2 font-medium">{p.nombre}</td>
-                                                <td className="p-2 text-center font-bold text-blue-900">0</td>
-                                                <td className="p-2 text-center">0</td>
+                                                <td className="p-2 text-center">{p.pj}</td>
+                                                <td className="p-2 text-center text-gray-500">{p.pg}</td>
+                                                <td className="p-2 text-center text-gray-400">{p.sg}-{p.sp}</td>
+                                                <td className="p-2 text-center text-gray-400">{p.gg}-{p.gp}</td>
+                                                <td className="p-2 text-center font-black text-blue-900">{p.pts}</td>
                                             </tr>
                                         ));
                                     })()}
@@ -116,7 +151,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                         </div>
                         <table className="w-full text-xs border-collapse">
                             <thead>
-                                <tr className="border-b border-gray-300">
+                                <tr className="border-b border-gray-300 text-gray-500">
                                     <th className="py-2 text-left w-16">Hora</th>
                                     <th className="py-2 text-left">Pareja 1</th>
                                     <th className="py-2 text-center w-8">vs</th>
@@ -130,7 +165,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                     <tr key={partido.id} className="border-b border-gray-100 hover:bg-gray-50">
                                         <td className="py-2 font-bold">{partido.hora || "--:--"}</td>
                                         <td className="py-2">{partido.pareja1?.nombre_pareja || "TBD"}</td>
-                                        <td className="py-2 text-center text-gray-400 italic">vs</td>
+                                        <td className="py-2 text-center text-gray-300 italic">vs</td>
                                         <td className="py-2">{partido.pareja2?.nombre_pareja || "TBD"}</td>
                                         <td className="py-2 text-right font-medium text-blue-700">{partido.lugar || "Pendiente"}</td>
                                     </tr>
