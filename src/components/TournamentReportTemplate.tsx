@@ -107,7 +107,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 0' }}>
                             <tbody>
                                 <tr>
-                                    {fila.map((grupo: any, gIdx: number) => (
+                                    {fila.map((grupo: { id: string; nombre_grupo: string; categoria: string }, gIdx: number) => (
                                         <td key={grupo.id} style={{ width: '50%', verticalAlign: 'top', paddingRight: gIdx === 0 ? '8px' : '0' }}>
                                             <div className="border border-gray-200 rounded-lg overflow-hidden">
                                                 <div className="bg-gray-800 text-white p-2 text-center font-bold text-xs">
