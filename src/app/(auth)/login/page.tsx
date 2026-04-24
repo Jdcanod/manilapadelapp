@@ -91,9 +91,10 @@ export default function LoginPage() {
 
             <Card className="w-full bg-neutral-900/50 border-neutral-800 backdrop-blur-xl shadow-2xl">
                 <CardHeader className="space-y-1 text-center">
-                    <div className="flex justify-center mb-2">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-green-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/20">
-                            <Trophy className="w-5 h-5 text-white" />
+                    <div className="flex justify-center mb-4">
+                        <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-2xl border border-neutral-800 bg-neutral-950">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src="/images/logo.png" alt="Logo Manila Padel" className="w-full h-full object-cover" />
                         </div>
                     </div>
                     <CardTitle className="text-2xl font-bold text-white tracking-tight">Bienvenido de nuevo</CardTitle>
