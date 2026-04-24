@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Swords, Users, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 import { generarFaseGrupos, generarFaseEliminatoria, swapParejasDeGrupo } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,10 +54,11 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
         startTransition(async () => {
             try {
                 const result = await generarFaseGrupos(torneoId, selectedCat);
-                if (result.success) {
+                if (result && result.success) {
                     alert(result.message || "¡Fase de grupos generada con éxito!");
+                    router.refresh();
                 } else {
-                    alert(result.error || "Error al generar grupos");
+                    alert(result?.error || "Error al generar grupos. Intente nuevamente.");
                 }
             } catch (err: unknown) {
                 alert(err instanceof Error ? err.message : "Error desconocido");
