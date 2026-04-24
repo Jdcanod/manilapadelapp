@@ -26,6 +26,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
     // Organizar partidos por fecha para el cronograma (Deduplicación Lógica)
     // Evitamos que el mismo enfrentamiento aparezca dos veces en el mismo grupo/nivel
     const seenMatches = new Set();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const uniquePartidos: any[] = [];
     
     // Priorizamos los partidos que ya tienen fecha/lugar asignado
