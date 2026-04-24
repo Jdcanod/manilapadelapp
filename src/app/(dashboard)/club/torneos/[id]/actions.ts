@@ -68,7 +68,7 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
             .eq('torneo_id', torneoId)
             .eq('nivel', categoria);
         
-        const masters = (mastersRaw as unknown as MasterResult[]) || [];
+        const inscripciones = (mastersRaw as unknown as MasterResult[]) || [];
 
         const participants: Participant[] = [];
 
