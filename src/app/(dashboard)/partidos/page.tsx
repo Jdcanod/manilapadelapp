@@ -157,7 +157,13 @@ export default async function PartidosPage() {
         myTournamentMatches = allTMatches.filter(m => {
             if (!uniqueIds.has(m.id)) {
                 uniqueIds.add(m.id);
-                return true;
+                
+                // FILTRO ANTI-HUÉRFANOS: 
+                // Si es un partido de torneo, debe tener grupo O ser de fase final (bracket)
+                const isBracketMatch = m.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos/);
+                const hasGroup = !!m.torneo_grupo_id;
+                
+                return hasGroup || isBracketMatch;
             }
             return false;
         });
@@ -207,8 +213,13 @@ export default async function PartidosPage() {
 
     const myTourneyMatchesMap = myTournamentMatches.map(p => {
         const dt = new Date(p.fecha);
-        const timeStr = dt.toLocaleString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-        const isPast = dt < new Date();
+        const isTimePending = p.lugar?.toLowerCase().includes('pendiente') || p.lugar?.toLowerCase().includes('definir');
+        
+        const timeStr = isTimePending 
+            ? "Hora por definir" 
+            : dt.toLocaleString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+        const isPast = dt < new Date() && !isTimePending;
 
         let statusDisplay = 'En Curso';
         if (p.estado === 'abierto') statusDisplay = 'Pendiente';

@@ -33,6 +33,8 @@ interface Match {
     resultado_registrado_por?: string | null;
     pareja1?: { nombre_pareja: string | null } | null;
     pareja2?: { nombre_pareja: string | null } | null;
+    fecha?: string;
+    lugar?: string;
 }
 
 interface Props {
@@ -272,6 +274,30 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                 </span>
                                                             )}
                                                         </div>
+                                                        
+                                                        {/* Fecha del partido */}
+                                                        {match.fecha && (
+                                                            <div className="mt-2 pt-2 border-t border-neutral-900/50 flex items-center gap-2">
+                                                                <span className="text-[10px] font-black text-neutral-500 uppercase tracking-tighter">
+                                                                    {(() => {
+                                                                        const isTimePending = match.lugar?.toLowerCase().includes('pendiente') || match.lugar?.toLowerCase().includes('definir');
+                                                                        if (isTimePending) return "Hora por definir";
+                                                                        return new Date(match.fecha).toLocaleString('es-CO', { 
+                                                                            timeZone: 'America/Bogota', 
+                                                                            weekday: 'short', 
+                                                                            day: 'numeric', 
+                                                                            hour: '2-digit', 
+                                                                            minute: '2-digit' 
+                                                                        });
+                                                                    })()}
+                                                                </span>
+                                                                {match.lugar && !match.lugar.toLowerCase().includes('pendiente') && !match.lugar.toLowerCase().includes('definir') && (
+                                                                    <span className="text-[10px] font-bold text-neutral-600 truncate max-w-[80px]">
+                                                                        • {match.lugar}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                      </div>
                                                      {isMyMatch && (
                                                         <div className="ml-4 flex flex-col items-end gap-2">
