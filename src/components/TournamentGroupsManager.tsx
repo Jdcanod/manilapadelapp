@@ -24,6 +24,7 @@ interface Props {
         estado?: string | null;
         resultado?: string | null;
         lugar?: string | null;
+        nivel?: string | null;
         pareja1?: { nombre_pareja?: string | null } | null;
         pareja2?: { nombre_pareja?: string | null } | null;
     }[];
@@ -113,7 +114,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                 if (result.success) {
                     router.refresh();
                 } else {
-                    alert("Error: " + result.error);
+                    alert("Error: " + result.message);
                 }
             } catch (err) {
                 console.error(err);
