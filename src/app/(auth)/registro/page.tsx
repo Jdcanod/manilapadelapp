@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,17 @@ export default function RegistroPage() {
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
     const supabase = createClient();
+    const [clubs, setClubs] = useState<{id: string, nombre: string, ciudad: string}[]>([]);
+
+    useEffect(() => {
+        const fetchClubs = async () => {
+            const { data } = await supabase.from('users').select('id, nombre, ciudad').eq('rol', 'admin_club');
+            if (data) {
+                setClubs(data);
+            }
+        };
+        fetchClubs();
+    }, [supabase]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -240,12 +251,19 @@ export default function RegistroPage() {
 
                         <div className="space-y-2">
                             <Label htmlFor="club_preferencia" className="text-neutral-300">Club de Preferencia (Opcional)</Label>
-                            <Input
+                            <select
                                 id="club_preferencia"
                                 name="club_preferencia"
-                                placeholder="Ej. Manila Padel Club"
-                                className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
-                            />
+                                className="flex h-10 w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="" disabled selected>Selecciona tu club...</option>
+                                <option value="">Ninguno</option>
+                                {clubs.map(club => (
+                                    <option key={club.id} value={club.nombre}>
+                                        {club.nombre} ({club.ciudad || 'Sin ciudad'})
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                         <div className="space-y-2">

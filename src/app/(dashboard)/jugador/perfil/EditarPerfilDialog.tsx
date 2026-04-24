@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -11,13 +11,14 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Save } from "lucide-react";
 import { actualizarPerfilAction } from "./actions";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 
 export function EditarPerfilDialog({ 
     usuario 
@@ -27,8 +28,20 @@ export function EditarPerfilDialog({
 }) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [clubs, setClubs] = useState<{id: string, nombre: string, ciudad: string}[]>([]);
     const { toast } = useToast();
     const router = useRouter();
+    const supabase = createClient();
+
+    useEffect(() => {
+        const fetchClubs = async () => {
+            const { data } = await supabase.from('users').select('id, nombre, ciudad').eq('rol', 'admin_club');
+            if (data) {
+                setClubs(data);
+            }
+        };
+        fetchClubs();
+    }, [supabase]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -90,13 +103,19 @@ export function EditarPerfilDialog({
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="club_preferencia" className="text-neutral-300">Club de Preferencia</Label>
-                            <Input
-                                id="club_preferencia"
-                                name="club_preferencia"
-                                defaultValue={usuario.club_preferencia || ""}
-                                placeholder="Ej. Padel del Rio"
-                                className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
-                            />
+                            <Select name="club_preferencia" defaultValue={usuario.club_preferencia || "ninguno"}>
+                                <SelectTrigger className="bg-neutral-950 border-neutral-800 text-neutral-100">
+                                    <SelectValue placeholder="Selecciona tu club" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[200px] overflow-y-auto">
+                                    <SelectItem value="ninguno">Ninguno</SelectItem>
+                                    {clubs.map(club => (
+                                        <SelectItem key={club.id} value={club.nombre}>
+                                            {club.nombre} ({club.ciudad || 'Sin ciudad'})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                     <DialogFooter>

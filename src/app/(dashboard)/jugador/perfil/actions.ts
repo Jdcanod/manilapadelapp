@@ -15,11 +15,13 @@ export async function actualizarPerfilAction(formData: FormData) {
 
     if (!user) throw new Error("No autenticado");
 
-    const clubPreferencia = formData.get("club_preferencia")?.toString() || null;
+    const clubPreferenciaRaw = formData.get("club_preferencia")?.toString();
+    const clubPreferencia = (!clubPreferenciaRaw || clubPreferenciaRaw === "ninguno") ? null : clubPreferenciaRaw;
     const categoria = formData.get("categoria")?.toString() || null;
 
-    const updates: Record<string, string> = {};
-    if (clubPreferencia !== null) updates.club_preferencia = clubPreferencia;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updates: Record<string, any> = {};
+    if (clubPreferencia !== undefined) updates.club_preferencia = clubPreferencia;
     if (categoria !== null) updates.categoria = categoria;
 
     const { error } = await supabase
