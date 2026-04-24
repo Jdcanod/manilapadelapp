@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Swords, Users, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
 import { generarFaseGrupos, generarFaseEliminatoria, swapParejasDeGrupo } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
