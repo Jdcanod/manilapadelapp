@@ -26,7 +26,9 @@ export async function recuperarPasswordAction(email: string) {
         }
 
         return { success: true };
-    } catch (err: any) {
+    } 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    catch (err: any) {
         console.error("Error en recuperarPasswordAction:", err);
         return { error: "Ocurrió un error inesperado al procesar la solicitud." };
     }
