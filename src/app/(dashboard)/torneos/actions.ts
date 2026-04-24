@@ -78,7 +78,7 @@ export async function inscribirParejaTorneo(formData: FormData) {
             await admin.from('parejas').update({ activa: false }).in('jugador1_id', [jugador1Id, jugador2Id]);
             await admin.from('parejas').update({ activa: false }).in('jugador2_id', [jugador1Id, jugador2Id]);
 
-            const autoNombrePareja = `${currentUserData.nombre.split(' ')[0]} & ${companeroData.nombre.split(' ')[0]}`;
+            const autoNombrePareja = `${currentUserData.nombre} - ${companeroData.nombre}`;
 
             // Create new pareja
             const { data: newPareja, error: parejaError } = await admin

@@ -103,7 +103,7 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
                     .insert({
                         jugador1_id: j1Id,
                         jugador2_id: j2Id,
-                        nombre_pareja: `${m.jugador1?.nombre?.split(' ')[0] || 'J1'} & ${m.jugador2?.nombre?.split(' ')[0] || 'J2'}`,
+                        nombre_pareja: `${m.jugador1?.nombre || 'J1'} - ${m.jugador2?.nombre || 'J2'}`,
                         activa: false
                     })
                     .select()
@@ -278,7 +278,7 @@ export async function inscribirParejaManual(torneoId: string, jugador1Sel: strin
                 .insert({
                     jugador1_id: j1Id,
                     jugador2_id: j2Id,
-                    nombre_pareja: `${j1?.nombre?.split(' ')[0] || 'J1'} & ${j2?.nombre?.split(' ')[0] || 'J2'}`,
+                    nombre_pareja: `${j1?.nombre || 'J1'} - ${j2?.nombre || 'J2'}`,
                     activa: false,
                     categoria: categoria // Agregamos la categoría a la pareja
                 })
