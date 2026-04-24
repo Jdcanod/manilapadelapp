@@ -292,6 +292,9 @@ export async function inscribirParejaManual(torneoId: string, jugador1Sel: strin
                 return `${firstName[0]}. ${lastName}`;
             };
 
+            const { data: j1 } = await supabaseAdmin.from('users').select('nombre').eq('id', j1Id).single();
+            const { data: j2 } = await supabaseAdmin.from('users').select('nombre').eq('id', j2Id).single();
+
             const nuevoNombre = `${formatName(j1?.nombre || 'J1')} / ${formatName(j2?.nombre || 'J2')}`;
 
             const { data: newPareja, error: parejaError } = await supabaseAdmin
