@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cerrarSesionAction } from "../../jugador/perfil/actions";
 import { saveClubSettings, postClubNews, updateClubProfile, uploadClubLogo } from "./actions";
 import { PrimeTimeConfig } from "@/components/PrimeTimeConfig";
-import { createClient } from "@/utils/supabase/client";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ConfigData {
@@ -33,7 +33,7 @@ export function ConfigClubForm({ initialData }: { initialData: ConfigData }) {
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [logoUrl, setLogoUrl] = useState(initialData.foto);
-    const supabase = createClient();
+
 
     const handleSaveSettings = async (e: React.FormEvent) => {
         e.preventDefault();
