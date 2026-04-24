@@ -17,15 +17,15 @@ interface Props {
     gruposExistentes: { id: string; nombre_grupo: string; categoria: string }[];
     partidos: {
         id: string;
-        torneo_grupo_id?: string;
-        pareja1_id?: string;
-        pareja2_id?: string;
-        estado_resultado?: string;
-        estado?: string;
-        resultado?: string;
-        lugar?: string;
-        pareja1?: { nombre_pareja?: string };
-        pareja2?: { nombre_pareja?: string };
+        torneo_grupo_id?: string | null;
+        pareja1_id?: string | null;
+        pareja2_id?: string | null;
+        estado_resultado?: string | null;
+        estado?: string | null;
+        resultado?: string | null;
+        lugar?: string | null;
+        pareja1?: { nombre_pareja?: string | null } | null;
+        pareja2?: { nombre_pareja?: string | null } | null;
     }[];
     tipoDesempate?: string;
 }

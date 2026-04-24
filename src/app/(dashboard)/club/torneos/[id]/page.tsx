@@ -349,19 +349,19 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
 
     interface MatchReal {
         id: string;
-        pareja1_id?: string;
-        pareja2_id?: string;
-        torneo_grupo_id?: string;
-        torneo_fase_id?: string;
-        estado?: string;
-        estado_resultado?: string;
-        resultado?: string;
-        lugar?: string;
-        nivel?: string;
-        fecha?: string;
-        club_id?: string;
-        pareja1?: { nombre_pareja: string };
-        pareja2?: { nombre_pareja: string };
+        pareja1_id?: string | null;
+        pareja2_id?: string | null;
+        torneo_grupo_id: string | null;
+        torneo_fase_id?: string | null;
+        estado: string;
+        estado_resultado?: string | null;
+        resultado: string | null;
+        lugar: string | null;
+        nivel?: string | null;
+        fecha: string | null;
+        club_id?: string | null;
+        pareja1: { id?: string; nombre_pareja: string | null } | null;
+        pareja2: { id?: string; nombre_pareja: string | null } | null;
         jugador1_id?: string;
         jugador2_id?: string;
         jugador3_id?: string;
@@ -371,13 +371,14 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     }
 
     // Inyectar nombres y IDs de jugadores manualmente desde el mapa
-    const partidosReales: MatchReal[] = (rawPartidos || []).map((p: Record<string, unknown>) => {
-        const p1 = parejaDataMap.get(p.pareja1_id as string);
-        const p2 = parejaDataMap.get(p.pareja2_id as string);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const partidosReales: MatchReal[] = (rawPartidos || []).map((p: any) => {
+        const p1 = parejaDataMap.get(p.pareja1_id);
+        const p2 = parejaDataMap.get(p.pareja2_id);
         return {
             ...p,
-            pareja1: { nombre_pareja: p1?.nombre_pareja || "TBD" },
-            pareja2: { nombre_pareja: p2?.nombre_pareja || "TBD" },
+            pareja1: { id: p.pareja1_id, nombre_pareja: p1?.nombre_pareja || "TBD" },
+            pareja2: { id: p.pareja2_id, nombre_pareja: p2?.nombre_pareja || "TBD" },
             jugador1_id: p1?.jugador1_id,
             jugador2_id: p1?.jugador2_id,
             jugador3_id: p2?.jugador1_id,
