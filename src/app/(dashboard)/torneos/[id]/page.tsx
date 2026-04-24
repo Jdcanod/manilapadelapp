@@ -287,10 +287,10 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
             </div>
 
             <Tabs defaultValue="grupos" className="w-full">
-                <TabsList className="bg-neutral-950 border border-neutral-800 p-2 h-auto w-full max-w-md mx-auto grid grid-cols-3 rounded-2xl">
-                    <TabsTrigger value="grupos" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none uppercase text-[10px] font-black tracking-widest">Fase de Grupos</TabsTrigger>
-                    <TabsTrigger value="cuadros" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none uppercase text-[10px] font-black tracking-widest">Cuadros de Juego</TabsTrigger>
-                    <TabsTrigger value="cronograma" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none uppercase text-[10px] font-black tracking-widest">Cronograma</TabsTrigger>
+                <TabsList className="bg-neutral-950 border border-neutral-800 p-1 h-auto w-full max-w-2xl mx-auto flex flex-wrap sm:grid sm:grid-cols-3 rounded-2xl">
+                    <TabsTrigger value="grupos" className="data-[state=active]:bg-neutral-800 flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Fase de Grupos</TabsTrigger>
+                    <TabsTrigger value="cuadros" className="data-[state=active]:bg-neutral-800 flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Cuadros de Juego</TabsTrigger>
+                    <TabsTrigger value="cronograma" className="data-[state=active]:bg-neutral-800 flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Cronograma</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="grupos" className="mt-8">
