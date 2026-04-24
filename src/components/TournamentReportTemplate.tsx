@@ -23,8 +23,40 @@ interface Props {
 
 export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(({ torneo, clubInfo, partidos, participantes, grupos }, ref) => {
     
-    // Organizar partidos por fecha para el cronograma (Deduplicando por ID)
-    const uniquePartidos = Array.from(new Map(partidos.map(p => [p.id, p])).values());
+    // Organizar partidos por fecha para el cronograma (Deduplicación Lógica)
+    // Evitamos que el mismo enfrentamiento aparezca dos veces en el mismo grupo/nivel
+    const seenMatches = new Set();
+    const uniquePartidos: any[] = [];
+    
+    // Priorizamos los partidos que ya tienen fecha/lugar asignado
+    const sortedPartidos = [...partidos].sort((a, b) => {
+        const hasA = (a.fecha && a.lugar && a.lugar !== 'Pendiente') ? 1 : 0;
+        const hasB = (b.fecha && b.lugar && b.lugar !== 'Pendiente') ? 1 : 0;
+        return hasB - hasA;
+    });
+
+    for (const p of sortedPartidos) {
+        const p1 = String(p.pareja1_id || p.jugador1_id || '');
+        const p2 = String(p.pareja2_id || p.jugador2_id || '');
+        const context = String(p.torneo_grupo_id || p.nivel || 'global');
+        
+        // Llave única para el enfrentamiento (A vs B es lo mismo que B vs A)
+        const matchKey = [p1, p2].sort().join(':') + '@' + context;
+        
+        if (p1 && p2 && p1 !== 'null' && p2 !== 'null') {
+            if (!seenMatches.has(matchKey)) {
+                seenMatches.add(matchKey);
+                uniquePartidos.push(p);
+            }
+        } else {
+            // Si es un partido TBD o incompleto, lo incluimos (siempre que el ID sea único)
+            const idKey = `id:${p.id}`;
+            if (!seenMatches.has(idKey)) {
+                seenMatches.add(idKey);
+                uniquePartidos.push(p);
+            }
+        }
+    }
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const partidosPorFecha = uniquePartidos.reduce((acc: any, partido: any) => {
