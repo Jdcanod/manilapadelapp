@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Trophy, Home, User, Calendar, Megaphone, MapPin, LogOut } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createClient } from "@/utils/supabase/server";
 import { cerrarSesionAction } from "@/app/actions/auth";
 
@@ -14,20 +14,23 @@ export default async function DashboardLayout({
 
     let nombreReal = "Usuario";
     let iniciales = "US";
+    let fotoUrl = "";
     let rolUsuario = "jugador";
     let puntosUsuario = 1000;
 
     if (user) {
         const { data: userData } = await supabase
             .from('users')
-            .select('nombre, rol, puntos_ranking')
+            .select('nombre, rol, puntos_ranking, foto')
             .eq('auth_id', user.id)
             .single();
 
         if (userData?.nombre) {
             nombreReal = userData.nombre;
-            // Get first word or up to two characters for the avatar fallback
             iniciales = nombreReal.substring(0, 2).toUpperCase();
+        }
+        if (userData?.foto) {
+            fotoUrl = userData.foto;
         }
         if (userData?.rol) {
             rolUsuario = userData.rol;
@@ -93,6 +96,7 @@ export default async function DashboardLayout({
                         </div>
                         <Link href={rolUsuario === "jugador" ? "/jugador/perfil" : rolUsuario === "admin_club" ? "/club/configuracion" : "/superadmin"}>
                             <Avatar className="h-9 w-9 border-2 border-neutral-800 hover:border-emerald-500 transition-all cursor-pointer ring-2 ring-transparent hover:ring-emerald-500/20">
+                                <AvatarImage src={fotoUrl} alt={nombreReal} />
                                 <AvatarFallback className="bg-neutral-800 text-neutral-300 font-bold">{iniciales}</AvatarFallback>
                             </Avatar>
                         </Link>
