@@ -75,3 +75,28 @@ export async function postClubNews(userId: string, formData: FormData) {
 
     return { success: true };
 }
+
+export async function updateClubProfile(userId: string, formData: FormData) {
+    const supabase = createClient();
+
+    const { data: userRow } = await supabase.from('users').select('rol, id').eq('auth_id', userId).single();
+    if (userRow?.rol !== 'admin_club') {
+        throw new Error("No tienes permisos para realizar esta acción.");
+    }
+
+    const nombre = formData.get("nombre") as string;
+    const foto = formData.get("foto") as string;
+
+    const { error } = await supabase.from('users').update({
+        nombre,
+        foto
+    }).eq('id', userRow.id);
+
+    if (error) {
+        console.error("Error al actualizar perfil del club:", error);
+        throw new Error("No se pudo actualizar el perfil.");
+    }
+
+    revalidatePath("/club/configuracion");
+    return { success: true };
+}

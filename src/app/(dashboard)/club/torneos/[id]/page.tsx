@@ -13,6 +13,7 @@ import { AddTournamentPlayerModal } from "@/components/AddTournamentPlayerModal"
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton";
 import { TournamentChronogram } from "@/components/TournamentChronogram";
+import { TournamentExportButton } from "@/components/TournamentExportButton";
 
 interface MatchItem {
     id: string;
@@ -245,6 +246,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         .from('torneos')
         .select(`
             *,
+            club:users!club_id(id, nombre, foto),
             torneo_parejas(*, pareja:parejas(*)),
             torneo_fases(*)
         `)
@@ -256,6 +258,9 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         console.error("DEBUG - Torneo Error:", torneoError);
         return <div className="p-8 text-center text-red-500">Error: Torneo no encontrado o sin permisos.</div>;
     }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const clubInfo = (torneo as any).club;
 
     // Cargar inscripciones Master por separado
     const { data: inscripcionesMaster } = await supabase
@@ -477,6 +482,15 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                         </div>
                     </div>
 
+                    <div className="flex items-center gap-2">
+                        <TournamentExportButton 
+                            torneoNombre={torneo.nombre}
+                            clubNombre={clubInfo?.nombre || "Mi Club"}
+                            clubLogo={clubInfo?.foto}
+                            categoria="Resumen General"
+                        />
+                    </div>
+
                     {campeon && (
                         <div className="bg-neutral-900 border border-amber-500/30 p-4 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-right duration-500">
                             <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/20">
@@ -509,7 +523,8 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                     </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="grupos" className="mt-6">
+                <div id="tournament-report-content" className="bg-black">
+                    <TabsContent value="grupos" className="mt-6">
                     <TournamentGroupsManager 
                         torneoId={params.id} 
                         categorias={categoriasConInscritos.length > 0 ? categoriasConInscritos : categoriasHabilitadas} 
@@ -637,6 +652,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                         </div>
                     </div>
                 </TabsContent>
+                </div>
             </Tabs>
         </div>
     );
