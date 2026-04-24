@@ -322,6 +322,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         tipo: 'regular' | 'master';
         jugador1_id?: string;
         jugador2_id?: string;
+        grupo_id?: string | null;
     }
 
     const allParticipants: Participant[] = [];
@@ -338,7 +339,8 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                 estado_pago: tp.estado_pago,
                 tipo: 'regular',
                 jugador1_id: tp.pareja?.jugador1_id,
-                jugador2_id: tp.pareja?.jugador2_id
+                jugador2_id: tp.pareja?.jugador2_id,
+                grupo_id: tp.torneo_grupo_id
             });
         });
     }
@@ -365,7 +367,8 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                 estado_pago: ins.estado || 'pendiente',
                 tipo: 'master',
                 jugador1_id: ins.jugador1_id,
-                jugador2_id: ins.jugador2_id
+                jugador2_id: ins.jugador2_id,
+                grupo_id: ins.torneo_grupo_id
             });
         });
     }

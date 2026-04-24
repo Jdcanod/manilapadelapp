@@ -36,7 +36,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
     const fechasOrdenadas = Object.keys(partidosPorFecha).sort();
 
     return (
-        <div ref={ref} className="p-10 bg-white text-black w-[800px] min-h-[1100px] font-sans">
+        <div ref={ref} className="p-10 bg-white text-black w-[800px] font-sans">
             {/* ENCABEZADO */}
             <div className="flex justify-between items-center border-b-2 border-black pb-6 mb-8">
                 <div className="flex items-center gap-4">
@@ -76,8 +76,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                 </thead>
                                 <tbody>
                                     {participantes
-                                        .filter(p => p.categoria === grupo.categoria)
-                                        .slice(0, 4)
+                                        .filter(p => p.grupo_id === grupo.id)
                                         .map((p, idx) => (
                                             <tr key={idx} className="border-b border-gray-100">
                                                 <td className="p-2">{p.nombre}</td>

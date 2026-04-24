@@ -49,16 +49,32 @@ export function TournamentExportButton({ torneo, clubInfo, partidos, participant
                 scale: 2,
                 useCORS: true,
                 logging: false,
-                backgroundColor: "#ffffff", // Fondo blanco para PDF profesional
+                backgroundColor: "#ffffff",
                 windowWidth: 800,
             });
 
             const imgData = canvas.toDataURL("image/png");
             const pdf = new jsPDF("p", "mm", "a4");
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            
+            // Calcular cuántas páginas necesitamos
+            const canvasHeightInMm = (canvas.height * pdfWidth) / canvas.width;
+            let heightLeft = canvasHeightInMm;
+            let position = 0;
 
-            pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+            // Primera página
+            pdf.addImage(imgData, "PNG", 0, position, pdfWidth, canvasHeightInMm);
+            heightLeft -= pdfHeight;
+
+            // Páginas adicionales si el contenido es largo
+            while (heightLeft > 0) {
+                position = heightLeft - canvasHeightInMm;
+                pdf.addPage();
+                pdf.addImage(imgData, "PNG", 0, position, pdfWidth, canvasHeightInMm);
+                heightLeft -= pdfHeight;
+            }
+
             pdf.save(`Reporte-${torneo.nombre}.pdf`);
         } catch (error) {
             console.error("Error exportando PDF:", error);
