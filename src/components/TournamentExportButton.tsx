@@ -79,9 +79,6 @@ export function TournamentExportButton({ torneo, clubInfo, partidos, participant
                     pdf.addPage();
                     currentY = margin;
                 }
-
-                // Si es la cabecera, podemos darle un estilo especial o margen
-                const isHeader = section.classList.contains('pdf-header');
                 
                 pdf.addImage(imgData, "PNG", margin, currentY, contentWidth, sectionHeightMm);
                 currentY += sectionHeightMm + 5; // 5mm de espacio entre secciones
