@@ -97,22 +97,45 @@ export async function generarFaseGrupos(torneoId: string, categoria: string) {
                 .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
                 .maybeSingle();
 
+        const formatName = (fullName: string) => {
+            const parts = (fullName || '').trim().split(' ');
+            if (parts.length < 2) return fullName;
+            const firstName = parts[0];
+            const lastName = parts[parts.length - 1];
+            return `${firstName[0]}. ${lastName}`;
+        };
+
+        for (const m of (inscripciones || [])) {
+            const j1Id = m.jugador1?.id;
+            const j2Id = m.jugador2?.id;
+            if (!j1Id || !j2Id) continue;
+
+            const { data: existingPareja } = await supabaseAdmin
+                .from('parejas')
+                .select('id, nombre_pareja')
+                .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
+                .maybeSingle();
+
+            let pareja = existingPareja;
+            const nuevoNombre = `${formatName(m.jugador1?.nombre || 'J1')} / ${formatName(m.jugador2?.nombre || 'J2')}`;
+
             if (!pareja) {
                 const { data: newPareja, error: pErr } = await supabaseAdmin
                     .from('parejas')
                     .insert({
                         jugador1_id: j1Id,
                         jugador2_id: j2Id,
-                        nombre_pareja: `${m.jugador1?.nombre || 'J1'} - ${m.jugador2?.nombre || 'J2'}`,
+                        nombre_pareja: nuevoNombre,
                         activa: false
                     })
                     .select()
                     .single();
                 if (pErr) console.error("Error creating phantom pareja:", pErr);
                 pareja = newPareja;
+            } else if (pareja.nombre_pareja.includes('&') || !pareja.nombre_pareja.includes('.')) {
+                // Si la pareja ya existe pero tiene el formato viejo, la actualizamos
+                await supabaseAdmin.from('parejas').update({ nombre_pareja: nuevoNombre }).eq('id', pareja.id);
             }
-
-            if (pareja) {
                 participants.push({
                     id: pareja.id,
                     nombre: pareja.nombre_pareja,
@@ -270,15 +293,22 @@ export async function inscribirParejaManual(torneoId: string, jugador1Sel: strin
 
         if (!parejaId) {
             // Use Admin to read names (anon client might still have RLS delay)
-            const { data: j1 } = await supabaseAdmin.from('users').select('nombre').eq('id', j1Id).single();
-            const { data: j2 } = await supabaseAdmin.from('users').select('nombre').eq('id', j2Id).single();
+            const formatName = (fullName: string) => {
+                const parts = (fullName || '').trim().split(' ');
+                if (parts.length < 2) return fullName;
+                const firstName = parts[0];
+                const lastName = parts[parts.length - 1];
+                return `${firstName[0]}. ${lastName}`;
+            };
+
+            const nuevoNombre = `${formatName(j1?.nombre || 'J1')} / ${formatName(j2?.nombre || 'J2')}`;
 
             const { data: newPareja, error: parejaError } = await supabaseAdmin
                 .from('parejas')
                 .insert({
                     jugador1_id: j1Id,
                     jugador2_id: j2Id,
-                    nombre_pareja: `${j1?.nombre || 'J1'} - ${j2?.nombre || 'J2'}`,
+                    nombre_pareja: nuevoNombre,
                     activa: false,
                     categoria: categoria // Agregamos la categoría a la pareja
                 })
