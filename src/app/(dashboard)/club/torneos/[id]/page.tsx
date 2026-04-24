@@ -504,7 +504,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                         <TournamentExportButton 
                             torneo={torneo}
                             clubInfo={clubInfo}
-                            partidos={(rawPartidos || []).map(p => ({
+                            partidos={(rawPartidos || []).map((p: any) => ({
                                 ...p,
                                 hora: p.fecha ? format(new Date(p.fecha), "HH:mm") : null,
                                 pareja1: parejaDataMap.get(p.pareja1_id || ""),
