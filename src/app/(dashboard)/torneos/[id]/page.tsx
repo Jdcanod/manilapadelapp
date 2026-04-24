@@ -204,7 +204,10 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
         namesData?.forEach(n => parejaDataMap.set(n.id, n));
     }
 
-    const partidosReales = (rawPartidos || []).map(p => {
+    const partidosReales = (rawPartidos || [])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .filter((p: any) => p.torneo_grupo_id || p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos/))
+        .map(p => {
         const p1 = parejaDataMap.get(p.pareja1_id);
         const p2 = parejaDataMap.get(p.pareja2_id);
         return {

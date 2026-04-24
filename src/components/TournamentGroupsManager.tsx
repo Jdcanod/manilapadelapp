@@ -4,12 +4,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Swords, Users, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { generarFaseGrupos, generarFaseEliminatoria, swapParejasDeGrupo } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { generarFaseGrupos, generarFaseEliminatoria, swapParejasDeGrupo, crearGrupoManual, moverParejaAGrupo } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { confirmarResultado } from "@/app/(dashboard)/torneos/actions";
-import { Check } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 
 interface Props {
     torneoId: string;
@@ -28,6 +28,7 @@ interface Props {
         pareja2?: { nombre_pareja?: string | null } | null;
     }[];
     tipoDesempate?: string;
+    allParticipants?: { id: string | number; pareja_id: string; nombre: string; categoria: string; estado_pago: string; tipo: string }[];
 }
 
 interface Standing {
@@ -42,7 +43,7 @@ interface Standing {
     pts: number;
 }
 
-export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set" }: Props) {
+export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", allParticipants = [] }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const [selectedCat, setSelectedCat] = useState(categorias[0] || "General");
@@ -98,7 +99,57 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
         });
     };
 
+    const handleDropOnGroup = (grupoId: string, e: React.DragEvent) => {
+        e.preventDefault();
+        const draggedParejaId = e.dataTransfer.getData("text/plain");
+        if (!draggedParejaId) return;
+
+        // Si lo soltó sobre el grupo en general, lo MOVERMOS al grupo
+        if (!confirm('¿Mover esta pareja a este grupo? Esto eliminará sus partidos no jugados del grupo anterior si estaba en uno.')) return;
+        
+        startTransition(async () => {
+            try {
+                const result = await moverParejaAGrupo(torneoId, selectedCat, draggedParejaId, grupoId);
+                if (result.success) {
+                    router.refresh();
+                } else {
+                    alert("Error: " + result.error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Error desconocido al mover pareja");
+            }
+        });
+    };
+
+    const handleCrearGrupoVacio = () => {
+        if (!confirm('¿Crear un nuevo grupo vacío? Podrás arrastrar parejas a él.')) return;
+        
+        startTransition(async () => {
+            try {
+                const result = await crearGrupoManual(torneoId, selectedCat);
+                if (result.success) router.refresh();
+                else alert("Error: " + result.message);
+            } catch (err) {
+                console.error(err);
+            }
+        });
+    };
+
     const gruposCategoria = gruposExistentes.filter(g => g.categoria === selectedCat);
+
+    // Identificar parejas inscritas en esta categoría que no están en ningún grupo
+    const parejasEnGrupos = new Set<string>();
+    partidos.filter(p => p.nivel === selectedCat && p.torneo_grupo_id).forEach(p => {
+        if (p.pareja1_id) parejasEnGrupos.add(p.pareja1_id);
+        if (p.pareja2_id) parejasEnGrupos.add(p.pareja2_id);
+    });
+
+    const parejasSinGrupo = allParticipants.filter(p => 
+        p.categoria === selectedCat && 
+        p.pareja_id && 
+        !parejasEnGrupos.has(p.pareja_id)
+    );
 
     const getStandings = (grupoId: string) => {
         const matches = partidos.filter(p => p.torneo_grupo_id === grupoId);
@@ -212,6 +263,15 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                 {isPending ? "Limpiando..." : "Reiniciar Sorteo"}
                             </Button>
                             <Button 
+                                onClick={handleCrearGrupoVacio}
+                                disabled={isPending}
+                                variant="outline"
+                                className="bg-neutral-800 border-neutral-700 text-neutral-400 hover:text-white font-bold"
+                            >
+                                <Plus className="w-4 h-4 mr-2" />
+                                {isPending ? "Añadiendo..." : "Añadir Grupo Vacío"}
+                            </Button>
+                            <Button 
                                 onClick={onGeneratePlayoffs}
                                 disabled={isPending}
                                 className="bg-amber-600 hover:bg-amber-500 text-white font-bold shadow-lg shadow-amber-600/20"
@@ -234,13 +294,21 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                     {gruposCategoria.map((grupo) => {
                         const standings = getStandings(grupo.id);
                         return (
-                            <Card key={grupo.id} className="bg-neutral-900 border-neutral-800 border-t-2 border-t-emerald-500 overflow-hidden">
+                            <Card 
+                                key={grupo.id} 
+                                className="bg-neutral-900 border-neutral-800 border-t-2 border-t-emerald-500 overflow-hidden"
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => handleDropOnGroup(grupo.id, e)}
+                            >
                                 <CardContent className="p-0">
                                     <div className="flex justify-between items-center p-4 border-b border-neutral-800 bg-neutral-950">
                                         <h4 className="text-xl font-bold text-white tracking-widest">{grupo.nombre_grupo}</h4>
-                                        <Badge variant="outline" className="text-emerald-500 border-emerald-500/20">
-                                            Fase de Grupos
-                                        </Badge>
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="outline" className="text-emerald-500 border-emerald-500/20">
+                                                Fase de Grupos
+                                            </Badge>
+                                            <span className="text-[10px] text-neutral-500 uppercase">Arrastra aquí</span>
+                                        </div>
                                     </div>
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-sm text-left">
@@ -358,6 +426,28 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                             </Card>
                         );
                     })}
+                </div>
+            )}
+
+            {gruposCategoria.length > 0 && parejasSinGrupo.length > 0 && (
+                <div className="mt-8 border-t border-neutral-800 pt-8">
+                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <Users className="w-5 h-5 text-amber-500" />
+                        Parejas sin Grupo ({parejasSinGrupo.length})
+                    </h3>
+                    <p className="text-sm text-neutral-400 mb-4">Arrastra estas parejas hacia un grupo para añadirlas automáticamente.</p>
+                    <div className="flex flex-wrap gap-4">
+                        {parejasSinGrupo.map(p => (
+                            <div 
+                                key={p.id}
+                                draggable
+                                onDragStart={(e) => e.dataTransfer.setData("text/plain", p.pareja_id)}
+                                className="bg-neutral-900 border border-neutral-800 px-4 py-2 rounded-lg cursor-move hover:border-emerald-500/50 transition-colors shadow-sm"
+                            >
+                                <span className="font-bold text-sm text-white">{p.nombre}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>

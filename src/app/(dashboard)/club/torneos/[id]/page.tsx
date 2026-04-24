@@ -275,6 +275,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
 
     interface Participant {
         id: string | number;
+        pareja_id: string;
         nombre: string;
         categoria: string;
         estado_pago: string;
@@ -285,9 +286,11 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     
     // Regular pairs
     if (torneo.torneo_parejas) {
-        torneo.torneo_parejas.forEach((tp: { id: number; pareja: { nombre_pareja: string } | null; categoria: string; estado_pago: string }) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        torneo.torneo_parejas.forEach((tp: any) => {
             allParticipants.push({
                 id: tp.id,
+                pareja_id: tp.pareja?.id || tp.pareja_id,
                 nombre: tp.pareja?.nombre_pareja || "Pareja s/n",
                 categoria: tp.categoria,
                 estado_pago: tp.estado_pago,
@@ -298,9 +301,13 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     
     // Master players (converted to pairs display)
     if (inscripcionesMaster) {
-        inscripcionesMaster.forEach((ins: { id: string; jugador1: { nombre: string } | null; jugador2: { nombre: string } | null; nivel: string; estado: string }) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        inscripcionesMaster.forEach((ins: any) => {
+            // Buscamos la pareja_id si ya existe (la acción inscribirParejaManual la creó)
+            // Si no, no podremos moverla hasta que se regenere el grupo, pero al menos la mostramos
             allParticipants.push({
                 id: ins.id,
+                pareja_id: ins.pareja_id || ins.id, // Fallback en caso de que no tenga
                 nombre: `${ins.jugador1?.nombre || 'Jugador'} & ${ins.jugador2?.nombre || 'Jugador'}`,
                 categoria: ins.nivel,
                 estado_pago: ins.estado || 'pendiente',
@@ -370,9 +377,11 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         [key: string]: any;
     }
 
-    // Inyectar nombres y IDs de jugadores manualmente desde el mapa
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const partidosReales: MatchReal[] = (rawPartidos || []).map((p: any) => {
+    const partidosReales: MatchReal[] = (rawPartidos || [])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .filter((p: any) => p.torneo_grupo_id || p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos/))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((p: any) => {
         const p1 = parejaDataMap.get(p.pareja1_id);
         const p2 = parejaDataMap.get(p.pareja2_id);
         return {
@@ -501,6 +510,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                         gruposExistentes={gruposExistentes || []}
                         partidos={partidosReales || []}
                         tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
+                        allParticipants={allParticipants}
                     />
                 </TabsContent>
 

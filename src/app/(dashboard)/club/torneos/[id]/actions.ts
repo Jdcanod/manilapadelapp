@@ -815,3 +815,138 @@ export async function unscheduleMatch(matchId: string, torneoId: string) {
         return { success: false, message: err instanceof Error ? err.message : 'Error desconocido' };
     }
 }
+
+export async function crearGrupoManual(torneoId: string, categoria: string) {
+    try {
+        const supabaseAdmin = createAdminClient();
+
+        // Get existing groups to determine next letter
+        const { data: existingGroups } = await supabaseAdmin
+            .from('torneo_grupos')
+            .select('nombre_grupo')
+            .eq('torneo_id', torneoId)
+            .eq('categoria', categoria);
+
+        const groupNames = existingGroups?.map(g => g.nombre_grupo) || [];
+        let letterCode = 65; // 'A'
+        while (groupNames.includes(`Grupo ${String.fromCharCode(letterCode)}`)) {
+            letterCode++;
+        }
+        const nuevoNombre = `Grupo ${String.fromCharCode(letterCode)}`;
+
+        const { error } = await supabaseAdmin
+            .from('torneo_grupos')
+            .insert({
+                torneo_id: torneoId,
+                categoria: categoria,
+                nombre_grupo: nuevoNombre
+            });
+
+        if (error) throw new Error(error.message);
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        return { success: true, message: `Grupo ${nuevoNombre} creado exitosamente.` };
+    } catch (err: unknown) {
+        console.error("Error creando grupo manual:", err);
+        return { success: false, message: err instanceof Error ? err.message : "Error desconocido" };
+    }
+}
+
+export async function moverParejaAGrupo(torneoId: string, categoria: string, parejaId: string, nuevoGrupoId: string) {
+    try {
+        const supabaseAdmin = createAdminClient();
+
+        // 1. Check if the pair is currently in any group (by looking at matches)
+        const { data: currentMatches } = await supabaseAdmin
+            .from('partidos')
+            .select('id, torneo_grupo_id, estado')
+            .eq('torneo_id', torneoId)
+            .eq('nivel', categoria)
+            .or(`pareja1_id.eq.${parejaId},pareja2_id.eq.${parejaId}`)
+            .not('torneo_grupo_id', 'is', null);
+
+        let viejoGrupoId = null;
+        if (currentMatches && currentMatches.length > 0) {
+            viejoGrupoId = currentMatches[0].torneo_grupo_id;
+            
+            if (viejoGrupoId === nuevoGrupoId) {
+                return { success: true }; // Ya está en este grupo
+            }
+
+            // Eliminar los partidos NO JUGADOS (estado='programado') y pendientes (sin cancha asignada)
+            const matchesToDelete = currentMatches.filter(m => m.estado === 'programado');
+            if (matchesToDelete.length > 0) {
+                await supabaseAdmin
+                    .from('partidos')
+                    .delete()
+                    .in('id', matchesToDelete.map(m => m.id));
+            }
+        }
+
+        // 2. Obtener las parejas actuales en el NUEVO grupo
+        const { data: nuevoGrupoMatches } = await supabaseAdmin
+            .from('partidos')
+            .select('pareja1_id, pareja2_id, creador_id, club_id, tipo_partido_oficial, fecha')
+            .eq('torneo_grupo_id', nuevoGrupoId);
+
+        const parejasEnNuevoGrupo = new Set<string>();
+        let refMatch = null;
+        if (nuevoGrupoMatches && nuevoGrupoMatches.length > 0) {
+            refMatch = nuevoGrupoMatches[0];
+            nuevoGrupoMatches.forEach(m => {
+                if (m.pareja1_id) parejasEnNuevoGrupo.add(m.pareja1_id);
+                if (m.pareja2_id) parejasEnNuevoGrupo.add(m.pareja2_id);
+            });
+        } else {
+            // Si el grupo es nuevo, necesitamos buscar las referencias del torneo
+            const { data: torneoInfo } = await supabaseAdmin
+                .from('torneos')
+                .select('club_id, fecha_inicio')
+                .eq('id', torneoId)
+                .single();
+            
+            const { data: { user } } = await supabaseAdmin.auth.getUser();
+            
+            refMatch = {
+                creador_id: user?.id,
+                club_id: torneoInfo?.club_id,
+                tipo_partido_oficial: 'torneo',
+                fecha: torneoInfo?.fecha_inicio || new Date().toISOString()
+            };
+        }
+
+        // Asegurarnos de no cruzar contra nosotros mismos por error
+        parejasEnNuevoGrupo.delete(parejaId);
+
+        // 3. Generar nuevos partidos contra cada pareja del nuevo grupo
+        const nuevosPartidos = Array.from(parejasEnNuevoGrupo).map(oponenteId => {
+            return {
+                torneo_id: torneoId,
+                torneo_grupo_id: nuevoGrupoId,
+                pareja1_id: parejaId,
+                pareja2_id: oponenteId,
+                creador_id: refMatch?.creador_id,
+                club_id: refMatch?.club_id,
+                tipo_partido_oficial: refMatch?.tipo_partido_oficial || 'torneo',
+                nivel: categoria,
+                sexo: 'Mixto',
+                fecha: refMatch?.fecha || new Date().toISOString(),
+                lugar: 'Pendiente',
+                estado: 'programado',
+                cupos_totales: 4,
+                cupos_disponibles: 0
+            };
+        });
+
+        if (nuevosPartidos.length > 0) {
+            const { error: insertError } = await supabaseAdmin.from('partidos').insert(nuevosPartidos);
+            if (insertError) throw new Error(insertError.message);
+        }
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        return { success: true, message: "Pareja movida correctamente al nuevo grupo." };
+    } catch (err: unknown) {
+        console.error("Error moviendo pareja a grupo:", err);
+        return { success: false, message: err instanceof Error ? err.message : "Error desconocido" };
+    }
+}
