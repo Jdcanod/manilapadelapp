@@ -740,6 +740,17 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
 
 export async function updateMatchSchedule(matchId: string, fecha: string, cancha: string, torneoId: string) {
     try {
+        // SEGURIDAD: Solo el admin del club propietario puede programar partidos
+        const supabaseAuth = createClient();
+        const { data: { user } } = await supabaseAuth.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado." };
+
+        const { data: torneoCheck } = await supabaseAuth.from('torneos').select('club_id').eq('id', torneoId).single();
+        const { data: userData } = await supabaseAuth.from('users').select('id, rol').eq('auth_id', user.id).single();
+        const esAdmin = userData?.rol === 'admin_club' || userData?.rol === 'superadmin';
+        const esDelClub = String(torneoCheck?.club_id) === String(userData?.id);
+        if (!esAdmin || !esDelClub) return { success: false, message: "No tienes permisos para modificar este torneo." };
+
         const supabase = createAdminClient();
         
         // Obtener el lugar actual para preservar la fase (ej: Final, Semifinal)
@@ -774,6 +785,31 @@ export async function updateMatchSchedule(matchId: string, fecha: string, cancha
 
 export async function unscheduleMatch(matchId: string, torneoId: string) {
     try {
+        // SEGURIDAD: Verificar que el usuario autenticado es admin del club propietario del torneo
+        const supabaseAuth = createClient();
+        const { data: { user } } = await supabaseAuth.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado." };
+
+        // Verificar que el torneo pertenece al club del usuario
+        const { data: torneoCheck } = await supabaseAuth
+            .from('torneos')
+            .select('club_id')
+            .eq('id', torneoId)
+            .single();
+
+        const { data: userData } = await supabaseAuth
+            .from('users')
+            .select('id, rol')
+            .eq('auth_id', user.id)
+            .single();
+
+        const esAdmin = userData?.rol === 'admin_club' || userData?.rol === 'superadmin';
+        const esDelClub = String(torneoCheck?.club_id) === String(userData?.id);
+
+        if (!esAdmin || !esDelClub) {
+            return { success: false, message: "No tienes permisos para modificar este torneo." };
+        }
+
         const supabase = createAdminClient();
 
         // 1. Obtener la fecha de inicio del torneo para usarla como fallback (evitar error NOT NULL)
