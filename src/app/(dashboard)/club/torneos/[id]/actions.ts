@@ -967,7 +967,7 @@ export async function actualizarEstadoPago(id: string, tipo: 'master' | 'regular
 export async function editarParticipantesInscripcion(
     id: string, 
     tipo: 'master' | 'regular', 
-    parejaId: string,
+    parejaIdOriginal: string,
     jugador1Sel: string, 
     jugador2Sel: string,
     torneoId: string
@@ -980,7 +980,7 @@ export async function editarParticipantesInscripcion(
     let j1Id = jugador1Sel;
     let j2Id = jugador2Sel;
 
-    // Crear invitados si es necesario
+    // 1. Crear invitados si es necesario
     if (j1Id.startsWith("manual:")) {
         const name = j1Id.replace("manual:", "").trim();
         const { data, error } = await supabaseAdmin.from('users').insert({
@@ -1003,6 +1003,7 @@ export async function editarParticipantesInscripcion(
         if (data) j2Id = data.id;
     }
 
+    // 2. Buscar o crear la nueva pareja (para obtener su ID real)
     const { data: players } = await supabaseAdmin
         .from('users')
         .select('id, nombre')
@@ -1020,24 +1021,68 @@ export async function editarParticipantesInscripcion(
     const p2 = players?.find(p => p.id === j2Id);
     const nuevoNombre = `${formatName(p1?.nombre || 'J1')} / ${formatName(p2?.nombre || 'J2')}`;
 
-    const { error: parejaError } = await supabaseAdmin
+    // Verificar si ya existe una pareja con estos integrantes
+    const { data: existingPareja } = await supabaseAdmin
         .from('parejas')
-        .update({ 
-            jugador1_id: j1Id, 
-            jugador2_id: j2Id,
-            nombre_pareja: nuevoNombre
-        })
-        .eq('id', parejaId);
-    
-    if (parejaError) throw new Error(parejaError.message);
+        .select('id')
+        .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
+        .maybeSingle();
 
+    let nuevaParejaId = existingPareja?.id;
+
+    if (!nuevaParejaId) {
+        const { data: newP, error: pErr } = await supabaseAdmin
+            .from('parejas')
+            .insert({
+                jugador1_id: j1Id,
+                jugador2_id: j2Id,
+                nombre_pareja: nuevoNombre
+            })
+            .select('id')
+            .single();
+        if (pErr) throw new Error("Error al crear nueva pareja: " + pErr.message);
+        nuevaParejaId = newP.id;
+    } else {
+        // Actualizar el nombre por si acaso (ej. si era un formato viejo)
+        await supabaseAdmin.from('parejas').update({ nombre_pareja: nuevoNombre }).eq('id', nuevaParejaId);
+    }
+
+    // 3. Actualizar la inscripción del torneo
     if (tipo === 'master') {
         const { error: insError } = await supabaseAdmin
             .from('inscripciones_torneo')
-            .update({ jugador1_id: j1Id, jugador2_id: j2Id })
+            .update({ 
+                jugador1_id: j1Id, 
+                jugador2_id: j2Id
+            })
             .eq('id', id);
         if (insError) throw new Error(insError.message);
+    } else {
+        const { error: tpError } = await supabaseAdmin
+            .from('torneo_parejas')
+            .update({ pareja_id: nuevaParejaId })
+            .eq('id', id);
+        if (tpError) throw new Error(tpError.message);
     }
+
+    // 4. ¡CRÍTICO!: Actualizar todos los partidos existentes del torneo para esta pareja
+    // Reemplazamos parejaIdOriginal por nuevaParejaId en pareja1_id
+    const { error: m1Error } = await supabaseAdmin
+        .from('partidos')
+        .update({ pareja1_id: nuevaParejaId })
+        .eq('torneo_id', torneoId)
+        .eq('pareja1_id', parejaIdOriginal);
+
+    if (m1Error) console.error("Error actualizando pareja1 en partidos:", m1Error);
+
+    // Reemplazamos parejaIdOriginal por nuevaParejaId en pareja2_id
+    const { error: m2Error } = await supabaseAdmin
+        .from('partidos')
+        .update({ pareja2_id: nuevaParejaId })
+        .eq('torneo_id', torneoId)
+        .eq('pareja2_id', parejaIdOriginal);
+
+    if (m2Error) console.error("Error actualizando pareja2 en partidos:", m2Error);
 
     revalidatePath(`/club/torneos/${torneoId}`);
     return { success: true };

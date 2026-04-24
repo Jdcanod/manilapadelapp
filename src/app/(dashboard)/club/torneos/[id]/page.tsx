@@ -278,6 +278,41 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         .select('*')
         .eq('torneo_id', params.id);
 
+    const adminSupabase = createAdminClient();
+    const pureAdmin = createPureAdminClient();
+
+    // 1. Obtener TODOS los partidos del torneo anticipadamente
+    const { data: rawPartidos } = await pureAdmin
+        .from('partidos')
+        .select('*')
+        .eq('torneo_id', params.id)
+        .order('fecha', { ascending: true })
+        .limit(5000);
+
+    // 2. Obtener todas las parejas involucradas en este torneo para mapear nombres e IDs
+    const pairIdsInMatches = new Set<string>();
+    (rawPartidos || []).forEach((p: { pareja1_id?: string | null; pareja2_id?: string | null }) => {
+        if (p.pareja1_id) pairIdsInMatches.add(p.pareja1_id);
+        if (p.pareja2_id) pairIdsInMatches.add(p.pareja2_id);
+    });
+
+    // También incluir las parejas de torneo_parejas
+    if (torneo.torneo_parejas) {
+        torneo.torneo_parejas.forEach((tp: { pareja_id: string }) => {
+            if (tp.pareja_id) pairIdsInMatches.add(tp.pareja_id);
+        });
+    }
+
+    const parejaDataMap = new Map<string, { id: string; nombre_pareja: string; jugador1_id: string; jugador2_id: string }>();
+    if (pairIdsInMatches.size > 0) {
+        const { data: namesData } = await adminSupabase
+            .from('parejas')
+            .select('id, nombre_pareja, jugador1_id, jugador2_id')
+            .in('id', Array.from(pairIdsInMatches));
+        
+        namesData?.forEach((n: { id: string; nombre_pareja: string; jugador1_id: string; jugador2_id: string }) => parejaDataMap.set(n.id, n));
+    }
+
     interface Participant {
         id: string | number;
         pareja_id: string;
@@ -312,11 +347,19 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     if (inscripcionesMaster) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         inscripcionesMaster.forEach((ins: any) => {
-            // Buscamos la pareja_id si ya existe (la acción inscribirParejaManual la creó)
-            // Si no, no podremos moverla hasta que se regenere el grupo, pero al menos la mostramos
+            // Buscamos la pareja_id real en los partidos o en el mapa si ya existe
+            let foundParejaId = ins.id; // fallback
+            for (const [pId, pData] of Array.from(parejaDataMap.entries())) {
+                if ((pData.jugador1_id === ins.jugador1_id && pData.jugador2_id === ins.jugador2_id) ||
+                    (pData.jugador1_id === ins.jugador2_id && pData.jugador2_id === ins.jugador1_id)) {
+                    foundParejaId = pId;
+                    break;
+                }
+            }
+
             allParticipants.push({
                 id: ins.id,
-                pareja_id: ins.pareja_id || ins.id, // Fallback en caso de que no tenga
+                pareja_id: foundParejaId,
                 nombre: `${ins.jugador1?.nombre || 'Jugador'} & ${ins.jugador2?.nombre || 'Jugador'}`,
                 categoria: ins.nivel,
                 estado_pago: ins.estado || 'pendiente',
@@ -332,38 +375,9 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     const categoriasHabilitadas = torneo.reglas_puntuacion?.categorias_habilitadas || ['2da', '3ra', '4ta', '5ta', '6ta', '7ma', 'Mixto A', 'Mixto B', 'Mixto C'];
     const categoriasAMostrar = categoriasConInscritos.length > 0 ? categoriasConInscritos : categoriasHabilitadas;
 
-    const adminSupabase = createAdminClient();
-    // Usar el cliente puro (supabase-js) para garantizar que no haya límite de 1000 filas
-    const pureAdmin = createPureAdminClient();
-
-    // Obtener TODOS los partidos del torneo sin límite de 1000 filas
-    const { data: rawPartidos } = await pureAdmin
-        .from('partidos')
-        .select('*')
-        .eq('torneo_id', params.id)
-        .order('fecha', { ascending: true })
-        .limit(5000);
-
-    // Obtener nombres de las parejas involucradas en los partidos
-    const pairIds = new Set<string>();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (rawPartidos || []).forEach((p: any) => {
-        if (p.pareja1_id) pairIds.add(p.pareja1_id);
-        if (p.pareja2_id) pairIds.add(p.pareja2_id);
-    });
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const parejaDataMap = new Map<string, any>();
-    if (pairIds.size > 0) {
-        const { data: namesData } = await adminSupabase
-            .from('parejas')
-            .select('id, nombre_pareja, jugador1_id, jugador2_id')
-            .in('id', Array.from(pairIds));
-        
-        namesData?.forEach(n => parejaDataMap.set(n.id, n));
-    }
 
     const hasStarted = (rawPartidos || []).length > 0;
+
 
     interface MatchReal {
         id: string;
