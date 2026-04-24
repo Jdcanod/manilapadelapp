@@ -14,7 +14,7 @@ interface Props {
         foto: string;
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    partidos: any[]; // Mantenemos any para flexibilidad en el mapeo de partidos complejos
+    partidos: any[]; 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     participantes: any[];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,12 +27,10 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const partidosPorFecha = partidos.reduce((acc: any, partido: any) => {
         const dateToUse = partido.fecha_ajustada || partido.fecha;
-        // Parsear fecha en zona horaria de Colombia (UTC-5) para evitar el desfase de un día
         let fecha = "Pendiente";
         if (dateToUse) {
             const dt = new Date(dateToUse);
             const bogotaDate = new Date(dt.getTime() - (5 * 60 * 60 * 1000));
-            // Usar UTC components del objeto ya ajustado
             const y = bogotaDate.getUTCFullYear();
             const m = String(bogotaDate.getUTCMonth() + 1).padStart(2, '0');
             const d = String(bogotaDate.getUTCDate()).padStart(2, '0');
@@ -43,7 +41,6 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
         return acc;
     }, {});
 
-    // Ordenar fechas
     const fechasOrdenadas = Object.keys(partidosPorFecha).sort();
 
     return (
@@ -66,12 +63,12 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                 </div>
             </div>
 
-            {/* SECCIÓN DE GRUPOS — Layout tabla para máxima compatibilidad con page-break en impresión */}
+            {/* SECCIÓN DE GRUPOS */}
             <div className="mb-10">
                 <h3 className="text-lg font-bold bg-gray-100 p-2 mb-4 uppercase border-l-4 border-blue-900">Configuración de Grupos</h3>
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {Array.from({ length: Math.ceil(grupos.length / 2) }, (_, i) => grupos.slice(i * 2, i * 2 + 2)).map((fila, filaIdx) => (
-                    <div key={filaIdx} className="pdf-section" style={{ marginBottom: '16px' }}>
+                    <div key={filaIdx} className="pdf-section mb-4">
                         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 0' }}>
                             <tbody>
                                 <tr>
@@ -142,74 +139,15 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                     </tbody>
                                                 </table>
                                             </div>
-                                                        <th className="p-2 text-left">Pareja</th>
-                                                        <th className="p-2 text-center">PJ</th>
-                                                        <th className="p-2 text-center">PG</th>
-                                                        <th className="p-2 text-center">Sets</th>
-                                                        <th className="p-2 text-center">Games</th>
-                                                        <th className="p-2 text-center text-blue-900">PTS</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {(() => {
-                                                        const matches = partidos.filter(p => String(p.torneo_grupo_id) === String(grupo.id));
-                                                        const map = new Map();
-                                                        participantes
-                                                            .filter(p => String(p.grupo_id) === String(grupo.id))
-                                                            .forEach(p => {
-                                                                map.set(String(p.pareja_id), {
-                                                                    nombre: p.nombre,
-                                                                    pj: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0
-                                                                });
-                                                            });
-                                                        matches.forEach(m => {
-                                                            if (!m.pareja1_id || !m.pareja2_id || m.estado !== 'jugado' || !m.resultado || m.estado_resultado !== 'confirmado') return;
-                                                            const s1 = map.get(String(m.pareja1_id));
-                                                            const s2 = map.get(String(m.pareja2_id));
-                                                            if (!s1 || !s2) return;
-                                                            s1.pj += 1; s2.pj += 1;
-                                                            const sets = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
-                                                            let setsP1 = 0; let setsP2 = 0;
-                                                            sets.forEach((set: number[]) => {
-                                                                if (set.length === 2) {
-                                                                    s1.gg += set[0]; s1.gp += set[1];
-                                                                    s2.gg += set[1]; s2.gp += set[0];
-                                                                    if (set[0] > set[1]) { setsP1++; s1.sg++; s2.sp++; }
-                                                                    else if (set[1] > set[0]) { setsP2++; s2.sg++; s1.sp++; }
-                                                                }
-                                                            });
-                                                            if (setsP1 > setsP2) { s1.pg += 1; s1.pts += 3; }
-                                                            else if (setsP2 > setsP1) { s2.pg += 1; s2.pts += 3; }
-                                                        });
-                                                        const sorted = Array.from(map.values()).sort((a, b) => b.pts - a.pts || (b.sg - b.sp) - (a.sg - a.sp));
-                                                        if (sorted.length === 0) {
-                                                            return <tr><td colSpan={6} className="p-4 text-center text-gray-400 italic">Sin parejas asignadas</td></tr>;
-                                                        }
-                                                        return sorted.map((p, idx) => (
-                                                            <tr key={idx} className="border-b border-gray-100">
-                                                                <td className="p-2 font-medium">{p.nombre}</td>
-                                                                <td className="p-2 text-center">{p.pj}</td>
-                                                                <td className="p-2 text-center text-gray-500">{p.pg}</td>
-                                                                <td className="p-2 text-center text-gray-400">{p.sg}-{p.sp}</td>
-                                                                <td className="p-2 text-center text-gray-400">{p.gg}-{p.gp}</td>
-                                                                <td className="p-2 text-center font-black text-blue-900">{p.pts}</td>
-                                                            </tr>
-                                                        ));
-                                                    })()}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </td>
-                                ))}
-                                {/* Si la fila tiene solo 1 grupo, añadir celda vacía */}
-                                {fila.length === 1 && <td style={{ width: '50%' }} />}
+                                        </td>
+                                    ))}
+                                    {fila.length === 1 && <td style={{ width: '50%' }} />}
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 ))}
             </div>
-
 
             {/* SECCIÓN DE CRONOGRAMA */}
             <div className="mb-10">
@@ -219,7 +157,6 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                         <div className="bg-blue-900 text-white px-4 py-1 text-sm font-bold uppercase mb-2">
                             {(() => {
                                 if (fechaKey === "Pendiente") return "Fechas por Programar";
-                                // Parsear yyyy-MM-dd como fecha local sin offset
                                 const [fy, fm, fd] = fechaKey.split('-').map(Number);
                                 const localDate = new Date(fy, fm - 1, fd);
                                 return format(localDate, "EEEE dd 'de' MMMM", { locale: es });
