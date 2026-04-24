@@ -506,12 +506,14 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                             torneo={torneo}
                             clubInfo={clubInfo}
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            partidos={(rawPartidos || []).map((p: any) => ({
-                                ...p,
-                                hora: p.fecha ? format(new Date(p.fecha), "HH:mm") : null,
-                                pareja1: parejaDataMap.get(p.pareja1_id || ""),
-                                pareja2: parejaDataMap.get(p.pareja2_id || "")
-                            }))}
+                            partidos={(rawPartidos || [])
+                                .filter((p: any) => p.lugar && p.lugar.toLowerCase().includes('cancha') && p.fecha)
+                                .map((p: any) => ({
+                                    ...p,
+                                    hora: p.fecha ? format(new Date(p.fecha), "HH:mm") : null,
+                                    pareja1: parejaDataMap.get(p.pareja1_id || ""),
+                                    pareja2: parejaDataMap.get(p.pareja2_id || "")
+                                }))}
                             participantes={allParticipants}
                             grupos={gruposExistentes || []}
                         />
