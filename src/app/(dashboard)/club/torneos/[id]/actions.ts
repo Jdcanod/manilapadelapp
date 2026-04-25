@@ -755,7 +755,7 @@ export async function updateMatchSchedule(matchId: string, fecha: string, cancha
         const supabase = createAdminClient();
 
         // --- VALIDACIÓN DE TRASLAPE ---
-        const duracion = (torneoCheck?.reglas_puntuacion as any)?.config_duracion || 60;
+        const duracion = (torneoCheck?.reglas_puntuacion as { config_duracion?: number })?.config_duracion || 60;
         const start = new Date(fecha);
         const end = new Date(start.getTime() + duracion * 60000);
 
