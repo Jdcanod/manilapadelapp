@@ -584,6 +584,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                             duracion: torneo.reglas_puntuacion?.config_duracion || 60,
                             canchas: torneo.reglas_puntuacion?.config_canchas || 1
                         }}
+                        tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                     />
                 </TabsContent>
 

@@ -40,9 +40,10 @@ interface ChronogramProps {
     };
     isAdmin?: boolean;
     currentUserId?: string;
+    tipoDesempate?: string;
 }
 
-export function TournamentChronogram({ torneoId, matches: initialMatches, config, isAdmin = true, currentUserId }: ChronogramProps) {
+export function TournamentChronogram({ torneoId, matches: initialMatches, config, isAdmin = true, currentUserId, tipoDesempate }: ChronogramProps) {
     const { toast } = useToast();
     const router = useRouter();
     const [matches, setMatches] = useState(initialMatches);
@@ -368,6 +369,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                                     pareja1Nombre={matchToShow.pareja1?.nombre_pareja || "TBD"}
                                                                     pareja2Nombre={matchToShow.pareja2?.nombre_pareja || "TBD"}
                                                                     initialResult={matchToShow.resultado}
+                                                                    tipoDesempate={tipoDesempate}
                                                                     compact
                                                                 />
                                                             )}
