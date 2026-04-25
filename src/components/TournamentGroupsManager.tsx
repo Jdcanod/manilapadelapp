@@ -187,11 +187,13 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                 
                 sets.forEach((set: number[]) => {
                     if (set.length === 2 && !isNaN(set[0]) && !isNaN(set[1])) {
-                        // Sumar games
-                        s1.gg += set[0];
-                        s1.gp += set[1];
-                        s2.gg += set[1];
-                        s2.gp += set[0];
+                        // Sumar games (No sumar si es un Super Tie-break, usualmente definido por puntuación >= 10)
+                        if (set[0] < 10 && set[1] < 10) {
+                            s1.gg += set[0];
+                            s1.gp += set[1];
+                            s2.gg += set[1];
+                            s2.gp += set[0];
+                        }
 
                         // Sumar sets
                         if (set[0] > set[1]) {

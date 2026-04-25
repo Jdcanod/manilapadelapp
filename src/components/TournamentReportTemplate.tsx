@@ -146,8 +146,11 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                                 let setsP1 = 0; let setsP2 = 0;
                                                                 sets.forEach((set: number[]) => {
                                                                     if (set.length === 2) {
-                                                                        s1.gg += set[0]; s1.gp += set[1];
-                                                                        s2.gg += set[1]; s2.gp += set[0];
+                                                                        // Sumar games (No sumar si es STB >= 10)
+                                                                        if (set[0] < 10 && set[1] < 10) {
+                                                                            s1.gg += set[0]; s1.gp += set[1];
+                                                                            s2.gg += set[1]; s2.gp += set[0];
+                                                                        }
                                                                         if (set[0] > set[1]) { setsP1++; s1.sg++; s2.sp++; }
                                                                         else if (set[1] > set[0]) { setsP2++; s2.sg++; s1.sp++; }
                                                                     }

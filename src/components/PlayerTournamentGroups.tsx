@@ -93,14 +93,8 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                 
                 sets.forEach((set: number[], idx: number) => {
                     if (set.length === 2 && !isNaN(set[0]) && !isNaN(set[1])) {
-                        // Sumar games (Si es STB, contar como 1-0 en games para no desbalancear DG)
-                        if (idx === 2 && tipoDesempate === 'super_tiebreak') {
-                            const p1Won = set[0] > set[1];
-                            s1.gg += p1Won ? 1 : 0;
-                            s1.gp += p1Won ? 0 : 1;
-                            s2.gg += p1Won ? 0 : 1;
-                            s2.gp += p1Won ? 1 : 0;
-                        } else {
+                        // Sumar games (No sumar si es un Super Tie-break, usualmente definido por puntuación >= 10)
+                        if (set[0] < 10 && set[1] < 10) {
                             s1.gg += set[0];
                             s1.gp += set[1];
                             s2.gg += set[1];
