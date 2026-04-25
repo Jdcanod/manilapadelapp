@@ -592,16 +592,16 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
         const { data: grupos } = await supabaseAdmin.from('torneo_grupos').select('id, nombre_grupo').eq('torneo_id', torneoId).eq('categoria', categoria);
         if (!grupos || grupos.length === 0) return { success: false, message: "No hay grupos en esta categoría." };
 
-        const allStandings: { parejaId: string, pos: number, pts: number, pg: number, sg: number, sp: number, gg: number, gp: number }[] = [];
+        const allStandings: { parejaId: string, grupoId: string, pos: number, pts: number, pg: number, sg: number, sp: number, gg: number, gp: number }[] = [];
 
         for (let i = 0; i < grupos.length; i++) {
             const { data: partidos } = await supabaseAdmin.from('partidos').select('*').eq('torneo_grupo_id', grupos[i].id);
             
-            const map = new Map<string, { parejaId: string, pts: number, pg: number, sg: number, sp: number, gg: number, gp: number }>();
+            const map = new Map<string, { parejaId: string, grupoId: string, pts: number, pg: number, sg: number, sp: number, gg: number, gp: number }>();
             (partidos || []).forEach(m => {
                 if (!m.pareja1_id || !m.pareja2_id) return;
-                if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, pts: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0 });
-                if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, pts: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0 });
+                if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, grupoId: grupos[i].id, pts: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0 });
+                if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, grupoId: grupos[i].id, pts: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0 });
 
                 if (m.estado === 'jugado' && m.resultado && m.estado_resultado === 'confirmado') {
                     const s1 = map.get(m.pareja1_id)!;
@@ -707,22 +707,52 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
 
         const allMatchesToCreate = [];
 
-        // 2. Crear los partidos de la ronda inicial (con parejas ya clasificadas)
-        for (let i = 0; i < numMatches; i++) {
-            allMatchesToCreate.push({
-                torneo_id: torneoId,
-                creador_id: userId,
-                club_id: clubId,
-                pareja1_id: classifiedTeams[i].parejaId,
-                pareja2_id: classifiedTeams[targetTeams - 1 - i].parejaId,
-                estado: 'programado',
-                tipo_partido: 'torneo',
-                nivel: categoria || 'no_especificado',
-                lugar: `${rondaName} - ${categoria}`,
-                fecha: fechaTorneo,
-                cupos_totales: 4,
-                cupos_disponibles: 0,
-            });
+        // 2. Crear los partidos de la ronda inicial (Evitando que se enfrenten del mismo grupo si es posible)
+        const seeds = classifiedTeams.slice(0, numMatches);
+        const opponents = classifiedTeams.slice(numMatches).reverse(); // Invertir para que mejor semilla vaya contra el "peor" clasificado
+        const usedOpponentIndices = new Set<number>();
+
+        for (let i = 0; i < seeds.length; i++) {
+            const seed = seeds[i];
+            let opponentIdx = -1;
+
+            // Intentar encontrar un oponente que NO sea del mismo grupo
+            for (let j = 0; j < opponents.length; j++) {
+                if (!usedOpponentIndices.has(j) && opponents[j].grupoId !== seed.grupoId) {
+                    opponentIdx = j;
+                    break;
+                }
+            }
+
+            // Si no se encuentra (caso de 1 solo grupo o empates forzados), tomar el primero disponible
+            if (opponentIdx === -1) {
+                for (let j = 0; j < opponents.length; j++) {
+                    if (!usedOpponentIndices.has(j)) {
+                        opponentIdx = j;
+                        break;
+                    }
+                }
+            }
+
+            if (opponentIdx !== -1) {
+                usedOpponentIndices.add(opponentIdx);
+                const opponent = opponents[opponentIdx];
+
+                allMatchesToCreate.push({
+                    torneo_id: torneoId,
+                    creador_id: userId,
+                    club_id: clubId,
+                    pareja1_id: seed.parejaId,
+                    pareja2_id: opponent.parejaId,
+                    estado: 'programado',
+                    tipo_partido: 'torneo',
+                    nivel: categoria || 'no_especificado',
+                    lugar: `${rondaName} - ${categoria}`,
+                    fecha: fechaTorneo,
+                    cupos_totales: 4,
+                    cupos_disponibles: 0,
+                });
+            }
         }
 
         // 3. Generar rondas futuras vacías (Semis, Final, etc.) para visualización del bracket
