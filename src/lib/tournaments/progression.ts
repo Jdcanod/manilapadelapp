@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { calculateStandings } from "./standings";
 
 /**
  * Verifica si las semifinales han terminado y genera la final automáticamente.
@@ -108,4 +109,72 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
 
     revalidatePath(`/torneos/${torneoId}`);
     revalidatePath(`/club/torneos/${torneoId}`);
+}
+
+/**
+ * Sincroniza los clasificados de los grupos con los placeholders en los cuadros de eliminatoria.
+ */
+export async function sincronizarClasificados(torneoId: string, categoria: string, clubId: string | null, userId: string) {
+    const supabaseAdmin = createAdminClient();
+
+    // 1. Obtener todos los grupos de la categoría
+    const { data: grupos } = await supabaseAdmin
+        .from('torneo_grupos')
+        .select('id, nombre_grupo')
+        .eq('torneo_id', torneoId)
+        .eq('categoria', categoria);
+
+    if (!grupos) return;
+
+    // 2. Para cada grupo, ver si está terminado y obtener standings
+    for (const grupo of grupos) {
+        const { data: matches } = await supabaseAdmin
+            .from('partidos')
+            .select('*, pareja1:parejas!pareja1_id(nombre_pareja), pareja2:parejas!pareja2_id(nombre_pareja)')
+            .eq('torneo_grupo_id', grupo.id);
+        
+        const isFinished = (matches || []).length > 0 && (matches || []).every(m => m.estado === 'jugado' && m.estado_resultado === 'confirmado');
+        if (!isFinished) continue;
+
+        const standings = calculateStandings(matches || []);
+        const first = standings[0];
+        const second = standings[1];
+
+        if (!first && !second) continue;
+
+        // 3. Buscar partidos de eliminatoria que tengan placeholders para este grupo
+        const { data: eliminatorias } = await supabaseAdmin
+            .from('partidos')
+            .select('id, lugar, pareja1_id, pareja2_id')
+            .eq('torneo_id', torneoId)
+            .eq('nivel', categoria)
+            .is('torneo_grupo_id', null);
+
+        if (!eliminatorias) continue;
+
+        for (const match of eliminatorias) {
+            const updates: any = {};
+            
+            // Placeholder format: "PH: 1ro Grupo A vs ..."
+            if (!match.pareja1_id && match.lugar?.includes(`1ro ${grupo.nombre_grupo}`)) {
+                if (first) updates.pareja1_id = first.parejaId;
+            }
+            if (!match.pareja1_id && match.lugar?.includes(`2do ${grupo.nombre_grupo}`)) {
+                if (second) updates.pareja1_id = second.parejaId;
+            }
+            if (!match.pareja2_id && match.lugar?.includes(`1ro ${grupo.nombre_grupo}`)) {
+                if (first) updates.pareja2_id = first.parejaId;
+            }
+            if (!match.pareja2_id && match.lugar?.includes(`2do ${grupo.nombre_grupo}`)) {
+                if (second) updates.pareja2_id = second.parejaId;
+            }
+
+            if (Object.keys(updates).length > 0) {
+                await supabaseAdmin.from('partidos').update(updates).eq('id', match.id);
+            }
+        }
+    }
+
+    // Al finalizar, disparar procesarAvanceCuadros por si se completaron partidos de Bye o placeholders
+    await procesarAvanceCuadros(torneoId, categoria, clubId, userId);
 }

@@ -87,7 +87,7 @@ export function BracketMatchCardClient({ match, playerPairIds, currentUserId, ti
                             "text-sm font-black uppercase truncate pr-2",
                             match.pareja1_id && playerPairIds.includes(match.pareja1_id) ? "text-amber-500" : "text-white"
                         )}>
-                            {match.pareja1?.nombre_pareja || "TBD"}
+                            {match.pareja1?.nombre_pareja || (match.lugar?.includes('PH:') ? match.lugar.split('PH:')[1].split('vs')[0].trim() : "TBD")}
                         </span>
                         <div className="flex gap-1">
                             {(match.resultado || "-").split(',').map((setStr: string, idx: number) => (
@@ -105,7 +105,7 @@ export function BracketMatchCardClient({ match, playerPairIds, currentUserId, ti
                             "text-sm font-black uppercase truncate pr-2",
                             match.pareja2_id && playerPairIds.includes(match.pareja2_id) ? "text-amber-500" : "text-white"
                         )}>
-                            {match.pareja2?.nombre_pareja || "TBD"}
+                            {match.pareja2?.nombre_pareja || (match.lugar?.includes('PH:') ? match.lugar.split('PH:')[1].split('vs')[1]?.trim() : "TBD")}
                         </span>
                         <div className="flex gap-1">
                             {(match.resultado || "-").split(',').map((setStr: string, idx: number) => (

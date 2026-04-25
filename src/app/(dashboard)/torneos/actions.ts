@@ -393,6 +393,9 @@ export async function confirmarResultado(matchId: string) {
         if (!match.torneo_grupo_id) {
             const { procesarAvanceCuadros } = await import("@/lib/tournaments/progression");
             await procesarAvanceCuadros(match.torneo_id, match.nivel, match.club_id, internalUserId);
+        } else {
+            const { sincronizarClasificados } = await import("@/lib/tournaments/progression");
+            await sincronizarClasificados(match.torneo_id, match.nivel, match.club_id, internalUserId);
         }
 
         revalidatePath(`/partidos`);

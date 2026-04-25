@@ -3,6 +3,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 import { Participant, distributeParticipantsIntoGroups, generateMatchesForGroup } from "@/lib/tournaments/logic";
 import { createClient, createAdminClient } from "@/utils/supabase/server";
+import { calculateStandings } from "@/lib/tournaments/standings";
 import { revalidatePath } from "next/cache";
 import { format } from "date-fns";
 
@@ -570,6 +571,7 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
     try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado." };
 
         const supabaseAdmin = createSupabaseClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -579,194 +581,133 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
         const userId = user?.id;
         if (!userId) return { success: false, message: "Debes estar autenticado." };
 
-        // Obtener datos del torneo para campos obligatorios
-        const { data: torneo } = await supabaseAdmin
-            .from('torneos')
-            .select('club_id, nombre, fecha_inicio')
-            .eq('id', torneoId)
-            .single();
+        // 1. Obtener grupos y sus posiciones (top 2 de cada uno)
+        const { data: grupos } = await supabaseAdmin
+            .from('torneo_grupos')
+            .select('id, nombre_grupo, categoria')
+            .eq('torneo_id', torneoId)
+            .eq('categoria', categoria)
+            .order('nombre_grupo', { ascending: true });
 
-        const clubId = torneo?.club_id || null;
-        const fechaTorneo = torneo?.fecha_inicio || new Date().toISOString();
-        
-        const { data: grupos } = await supabaseAdmin.from('torneo_grupos').select('id, nombre_grupo').eq('torneo_id', torneoId).eq('categoria', categoria);
         if (!grupos || grupos.length === 0) return { success: false, message: "No hay grupos en esta categoría." };
 
-        const allStandings: { parejaId: string, grupoId: string, pos: number, pts: number, pg: number, sg: number, sp: number, gg: number, gp: number }[] = [];
+        const { data: torneo } = await supabaseAdmin.from('torneos').select('club_id, fecha').eq('id', torneoId).single();
+        const clubId = torneo?.club_id;
+        const fechaTorneo = torneo?.fecha;
 
-        for (let i = 0; i < grupos.length; i++) {
-            const { data: partidos } = await supabaseAdmin.from('partidos').select('*').eq('torneo_grupo_id', grupos[i].id);
+        const groupResults = [];
+        for (const grupo of grupos) {
+            const { data: matches } = await supabaseAdmin.from('partidos').select('*, pareja1:parejas!pareja1_id(nombre_pareja), pareja2:parejas!pareja2_id(nombre_pareja)').eq('torneo_grupo_id', grupo.id);
+            const standings = calculateStandings(matches || []);
+            const isFinished = (matches || []).length > 0 && (matches || []).every(m => m.estado === 'jugado' && m.estado_resultado === 'confirmado');
             
-            const map = new Map<string, { parejaId: string, grupoId: string, pts: number, pg: number, sg: number, sp: number, gg: number, gp: number }>();
-            (partidos || []).forEach(m => {
-                if (!m.pareja1_id || !m.pareja2_id) return;
-                if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, grupoId: grupos[i].id, pts: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0 });
-                if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, grupoId: grupos[i].id, pts: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0 });
-
-                if (m.estado === 'jugado' && m.resultado && m.estado_resultado === 'confirmado') {
-                    const s1 = map.get(m.pareja1_id)!;
-                    const s2 = map.get(m.pareja2_id)!;
-                    
-                    const sets = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
-                    let setsP1 = 0; let setsP2 = 0;
-                    
-                    sets.forEach((set: number[]) => {
-                        if (set.length === 2 && !isNaN(set[0]) && !isNaN(set[1])) {
-                            s1.gg += set[0]; s1.gp += set[1];
-                            s2.gg += set[1]; s2.gp += set[0];
-
-                            if (set[0] > set[1]) { setsP1++; s1.sg++; s2.sp++; }
-                            else if (set[1] > set[0]) { setsP2++; s2.sg++; s1.sp++; }
-                        }
-                    });
-
-                    if (setsP1 > setsP2) { s1.pg++; s1.pts += 3; }
-                    else if (setsP2 > setsP1) { s2.pg++; s2.pts += 3; }
-                }
-            });
-
-            // Ordenar standings del grupo para asignar posición
-            // Puntos -> % Sets -> % Games
-            const groupSorted = Array.from(map.values()).sort((a, b) => {
-                if (b.pts !== a.pts) return b.pts - a.pts;
-
-                // % Sets: (ganados * 100) / jugados
-                const totalSetsA = a.sg + a.sp;
-                const totalSetsB = b.sg + b.sp;
-                const pctSetsA = totalSetsA > 0 ? (a.sg * 100) / totalSetsA : 0;
-                const pctSetsB = totalSetsB > 0 ? (b.sg * 100) / totalSetsB : 0;
-
-                if (pctSetsB !== pctSetsA) return pctSetsB - pctSetsA;
-
-                // % Games: (ganados * 100) / jugados
-                const totalGamesA = a.gg + a.gp;
-                const totalGamesB = b.gg + b.gp;
-                const pctGamesA = totalGamesA > 0 ? (a.gg * 100) / totalGamesA : 0;
-                const pctGamesB = totalGamesB > 0 ? (b.gg * 100) / totalGamesB : 0;
-
-                return pctGamesB - pctGamesA;
-            });
-            groupSorted.forEach((team, idx) => {
-                allStandings.push({ ...team, pos: idx + 1 });
+            groupResults.push({
+                grupoId: grupo.id,
+                nombre: grupo.nombre_grupo,
+                isFinished,
+                first: standings[0] || null,
+                second: standings[1] || null
             });
         }
 
-        if (allStandings.length < 2) return { success: false, message: "No hay suficientes parejas con partidos jugados." };
+        // Clasificados totales = 2 por grupo
+        const numClassified = grupos.length * 2;
+        
+        // Determinar potencia de 2 superior (N)
+        let targetTeams = 2;
+        while (targetTeams < numClassified) targetTeams *= 2;
+        
+        const numMatchesFirstRound = targetTeams / 2;
+        const numByes = targetTeams - numClassified;
 
-        // Ordenar globalmente: Primero por posición en el grupo, luego por puntos, etc.
-        const globalRank = allStandings.sort((a, b) => {
-            if (a.pos !== b.pos) return a.pos - b.pos;
-            if (b.pts !== a.pts) return b.pts - a.pts;
-            
-            // % Sets
-            const totalSetsA = a.sg + a.sp;
-            const totalSetsB = b.sg + b.sp;
-            const pctSetsA = totalSetsA > 0 ? (a.sg * 100) / totalSetsA : 0;
-            const pctSetsB = totalSetsB > 0 ? (b.sg * 100) / totalSetsB : 0;
-            if (pctSetsB !== pctSetsA) return pctSetsB - pctSetsA;
+        // Construir Pots para sorteo cruzado
+        // Pot 1: Todos los 1ros. Pot 2: Todos los 2dos.
+        const pot1 = groupResults.map(r => ({ 
+            parejaId: r.first?.parejaId || null, 
+            grupoId: r.grupoId, 
+            grupoNombre: r.nombre, 
+            placeholder: `1ro ${r.nombre}`,
+            isFinished: r.isFinished,
+            performance: r.first
+        }));
 
-            // % Games
-            const totalGamesA = a.gg + a.gp;
-            const totalGamesB = b.gg + b.gp;
-            const pctGamesA = totalGamesA > 0 ? (a.gg * 100) / totalGamesA : 0;
-            const pctGamesB = totalGamesB > 0 ? (b.gg * 100) / totalGamesB : 0;
-            return pctGamesB - pctGamesA;
+        const pot2 = groupResults.map(r => ({ 
+            parejaId: r.second?.parejaId || null, 
+            grupoId: r.grupoId, 
+            grupoNombre: r.nombre, 
+            placeholder: `2do ${r.nombre}`,
+            isFinished: r.isFinished,
+            performance: r.second
+        }));
+
+        // Identificar siembras (Byes)
+        const sortedPot1 = [...pot1].sort((a, b) => {
+            if (!a.performance || !b.performance) return 0;
+            if (b.performance.pts !== a.performance.pts) return b.performance.pts - a.performance.pts;
+            const totalSetsA = a.performance.sg + a.performance.sp;
+            const totalSetsB = b.performance.sg + b.performance.sp;
+            const pctSetsA = totalSetsA > 0 ? (a.performance.sg * 100) / totalSetsA : 0;
+            const pctSetsB = totalSetsB > 0 ? (b.performance.sg * 100) / totalSetsB : 0;
+            return pctSetsB - pctSetsA;
         });
 
-        // Determinar tamaño del cuadro (potencia de 2)
-        // Por defecto queremos al menos 2 por grupo, pero redondeando a la potencia de 2 superior
-        let targetTeams = 2;
-        const baseClassified = grupos.length * 2;
-        while (targetTeams < baseClassified) {
-            targetTeams *= 2;
+        const seededGroupIds = new Set(sortedPot1.slice(0, numByes).map(s => s.grupoId));
+
+        // Emparejamiento cruzado (A1 vs D2, B1 vs C2...)
+        const numGroups = grupos.length;
+        const matchesData = [];
+
+        for (let i = 0; i < numGroups; i++) {
+            const seed = pot1[i];
+            const opponentIdx = numGroups - 1 - i;
+            const opponent = pot2[opponentIdx];
+
+            matchesData.push({ seed, opponent });
         }
 
-        // Si no hay suficientes equipos en total, bajamos al nivel anterior
-        if (globalRank.length < targetTeams) {
-            targetTeams /= 2;
-            if (targetTeams < 2) targetTeams = 2;
-        }
-
-        const classifiedTeams = globalRank.slice(0, targetTeams);
-        const numMatches = targetTeams / 2;
-
-        let rondaName = "Playoff";
-        if (numMatches === 1) rondaName = "Final";
-        else if (numMatches === 2) rondaName = "Semifinal";
-        else if (numMatches === 4) rondaName = "Cuartos de Final";
-        else if (numMatches === 8) rondaName = "Octavos de Final";
-        else if (numMatches === 16) rondaName = "16vos de Final";
-
-        // 1. Borrar partidos de eliminatoria anteriores para esta categoría
-        await supabaseAdmin
-            .from('partidos')
-            .delete()
-            .eq('torneo_id', torneoId)
-            .is('torneo_grupo_id', null)
-            .like('lugar', `% - ${categoria}`);
+        // Definir nombre de ronda inicial
+        let rondaName = "Final";
+        if (targetTeams === 4) rondaName = "Semifinal";
+        else if (targetTeams === 8) rondaName = "Cuartos de Final";
+        else if (targetTeams === 16) rondaName = "Octavos de Final";
 
         const allMatchesToCreate = [];
 
-        // 2. Crear los partidos de la ronda inicial (Evitando que se enfrenten del mismo grupo si es posible)
-        const seeds = classifiedTeams.slice(0, numMatches);
-        const opponents = classifiedTeams.slice(numMatches).reverse(); // Invertir para que mejor semilla vaya contra el "peor" clasificado
-        const usedOpponentIndices = new Set<number>();
-
-        for (let i = 0; i < seeds.length; i++) {
-            const seed = seeds[i];
-            let opponentIdx = -1;
-
-            // Intentar encontrar un oponente que NO sea del mismo grupo
-            for (let j = 0; j < opponents.length; j++) {
-                if (!usedOpponentIndices.has(j) && opponents[j].grupoId !== seed.grupoId) {
-                    opponentIdx = j;
-                    break;
-                }
-            }
-
-            // Si no se encuentra (caso de 1 solo grupo o empates forzados), tomar el primero disponible
-            if (opponentIdx === -1) {
-                for (let j = 0; j < opponents.length; j++) {
-                    if (!usedOpponentIndices.has(j)) {
-                        opponentIdx = j;
-                        break;
-                    }
-                }
-            }
-
-            if (opponentIdx !== -1) {
-                usedOpponentIndices.add(opponentIdx);
-                const opponent = opponents[opponentIdx];
-
-                allMatchesToCreate.push({
-                    torneo_id: torneoId,
-                    creador_id: userId,
-                    club_id: clubId,
-                    pareja1_id: seed.parejaId,
-                    pareja2_id: opponent.parejaId,
-                    estado: 'programado',
-                    tipo_partido: 'torneo',
-                    nivel: categoria || 'no_especificado',
-                    lugar: `${rondaName} - ${categoria}`,
-                    fecha: fechaTorneo,
-                    cupos_totales: 4,
-                    cupos_disponibles: 0,
-                });
-            }
+        for (let i = 0; i < matchesData.length; i++) {
+            const { seed, opponent } = matchesData[i];
+            const hasBye = seededGroupIds.has(seed.grupoId);
+            const placeholderText = `PH: ${seed.isFinished ? '' : seed.placeholder} vs ${opponent.isFinished ? '' : opponent.placeholder}`.trim();
+            
+            allMatchesToCreate.push({
+                torneo_id: torneoId,
+                creador_id: userId,
+                club_id: clubId,
+                pareja1_id: (seed.isFinished && seed.parejaId) ? seed.parejaId : null,
+                pareja2_id: hasBye ? null : ((opponent.isFinished && opponent.parejaId) ? opponent.parejaId : null),
+                estado: hasBye ? 'jugado' : 'programado',
+                tipo_partido: 'torneo',
+                nivel: categoria,
+                lugar: `${rondaName} - ${categoria} || ${placeholderText}`,
+                fecha: fechaTorneo,
+                cupos_totales: 4,
+                cupos_disponibles: 0,
+                resultado: hasBye ? 'Bye' : null,
+                estado_resultado: hasBye ? 'confirmado' : null
+            });
         }
 
-        // 3. Generar rondas futuras vacías (Semis, Final, etc.) para visualización del bracket
-        let currentRondaMatches = numMatches;
+        // 3. Generar rondas futuras
+        let currentRondaMatches = targetTeams / 2;
         let currentRondaName = rondaName;
 
         while (currentRondaMatches > 1) {
             currentRondaMatches /= 2;
-            if (currentRondaMatches === 8) currentRondaName = "Octavos de Final";
-            else if (currentRondaMatches === 4) currentRondaName = "Cuartos de Final";
+            if (currentRondaMatches === 1) currentRondaName = "Final";
             else if (currentRondaMatches === 2) currentRondaName = "Semifinal";
-            else if (currentRondaMatches === 1) currentRondaName = "Final";
+            else if (currentRondaMatches === 4) currentRondaName = "Cuartos de Final";
+            else if (currentRondaMatches === 8) currentRondaName = "Octavos de Final";
 
-            for (let i = 0; i < currentRondaMatches; i++) {
+            for (let j = 0; j < currentRondaMatches; j++) {
                 allMatchesToCreate.push({
                     torneo_id: torneoId,
                     creador_id: userId,
@@ -775,28 +716,28 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
                     pareja2_id: null,
                     estado: 'programado',
                     tipo_partido: 'torneo',
-                    nivel: categoria || 'no_especificado',
+                    nivel: categoria,
                     lugar: `${currentRondaName} - ${categoria}`,
                     fecha: fechaTorneo,
                     cupos_totales: 4,
-                    cupos_disponibles: 0,
+                    cupos_disponibles: 0
                 });
             }
         }
 
-        if (allMatchesToCreate.length > 0) {
-            const { error } = await supabaseAdmin.from('partidos').insert(allMatchesToCreate);
-            if (error) {
-                console.error("Error insertando partidos eliminatorias:", error);
-                return { success: false, message: "Error DB: " + error.message };
-            }
+        const { error: insertError } = await supabaseAdmin.from('partidos').insert(allMatchesToCreate);
+        if (insertError) throw insertError;
+
+        if (numByes > 0) {
+            const { procesarAvanceCuadros } = await import("@/lib/tournaments/progression");
+            await procesarAvanceCuadros(torneoId, categoria, clubId, userId);
         }
-        
+
         revalidatePath(`/club/torneos/${torneoId}`);
-        return { success: true, message: `Se generó el cuadro completo de ${rondaName} con ${targetTeams} parejas.` };
-    } catch (err: unknown) {
+        return { success: true, message: `Eliminatorias de ${categoria} generadas (${targetTeams} equipos).` };
+    } catch (err: any) {
         console.error("Error en generarFaseEliminatoria:", err);
-        return { success: false, message: err instanceof Error ? err.message : "Error desconocido" };
+        return { success: false, message: err.message || "Error al generar eliminatorias" };
     }
 }
 
