@@ -162,9 +162,14 @@ export function BracketMatchCardClient({ match, playerPairIds, currentUserId, ti
                                             size="sm"
                                             onClick={() => handleConfirm(match.id)}
                                             disabled={isPendingAction}
-                                            className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase h-9 rounded-lg"
+                                            className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase h-10 rounded-lg flex flex-col items-center justify-center py-1"
                                         >
-                                            {isPendingAction ? "..." : "Confirmar"}
+                                            {isPendingAction ? "..." : (
+                                                <>
+                                                    <span className="text-[8px] opacity-80">Confirmar Score</span>
+                                                    <span className="text-[11px] leading-none">{match.resultado}</span>
+                                                </>
+                                            )}
                                         </Button>
                                     )}
                                     <div className="flex-1">

@@ -395,11 +395,51 @@ export async function confirmarResultado(matchId: string) {
             await procesarAvanceCuadros(match.torneo_id, match.nivel, match.club_id, internalUserId);
         }
 
-        revalidatePath(`/torneos/${match.torneo_id}`);
-        revalidatePath(`/club/torneos/${match.torneo_id}`);
         revalidatePath(`/partidos`);
         return { success: true };
     } catch (err: unknown) {
         return { success: false, message: err instanceof Error ? err.message : "Error desconocido" };
     }
 }
+
+export async function reiniciarResultado(matchId: string) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado" };
+
+        const { createClient: createSupabaseJSClient } = await import("@supabase/supabase-js");
+        const admin = createSupabaseJSClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
+        // Obtener el partido para revalidación
+        const { data: match } = await admin.from('partidos').select('torneo_id, club_id').eq('id', matchId).single();
+        if (!match) return { success: false, message: "Partido no encontrado" };
+
+        const { error } = await admin
+            .from('partidos')
+            .update({
+                resultado: null,
+                estado: 'programado',
+                estado_resultado: null,
+                resultado_registrado_por: null,
+                resultado_registrado_at: null,
+                resultado_confirmado_por: null
+            })
+            .eq('id', matchId);
+
+        if (error) throw new Error(error.message);
+
+        revalidatePath(`/torneos/${match.torneo_id}`);
+        revalidatePath(`/club/torneos/${match.torneo_id}`);
+        revalidatePath(`/partidos`);
+        revalidatePath(`/jugador`);
+        
+        return { success: true };
+    } catch (err: unknown) {
+        return { success: false, message: err instanceof Error ? err.message : "Error desconocido" };
+    }
+}
+

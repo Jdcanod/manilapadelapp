@@ -8,8 +8,8 @@ import { generarFaseGrupos, generarFaseEliminatoria, swapParejasDeGrupo, crearGr
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
-import { confirmarResultado } from "@/app/(dashboard)/torneos/actions";
-import { Check, Plus } from "lucide-react";
+import { confirmarResultado, reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
+import { Check, Plus, RotateCcw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface Props {
@@ -460,25 +460,49 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                          disabledReason="Debe programar el partido en el cronograma primero"
                                                                      />
                                                                      {match.estado === 'jugado' && match.estado_resultado === 'pendiente' && (
-                                                                        <Button 
-                                                                            size="sm"
-                                                                            onClick={() => {
-                                                                                startTransition(async () => {
-                                                                                    const res = await confirmarResultado(match.id);
-                                                                                    if (res.success) {
-                                                                                        router.refresh();
-                                                                                    } else {
-                                                                                        alert(res.message);
-                                                                                    }
-                                                                                });
-                                                                            }}
-                                                                            disabled={isPending}
-                                                                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase h-10 rounded-xl"
-                                                                        >
-                                                                            <Check className="w-3 h-3 mr-1" /> Confirmar Resultado
-                                                                        </Button>
-                                                                    )}
-                                                                </div>
+                                                                         <div className="flex flex-col gap-2 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                                                                             <div className="text-center">
+                                                                                 <span className="text-[10px] font-black text-emerald-600 uppercase">Validar Score: </span>
+                                                                                 <span className="text-[10px] font-black text-emerald-700 italic">{match.resultado}</span>
+                                                                             </div>
+                                                                             <Button 
+                                                                                 size="sm"
+                                                                                 onClick={() => {
+                                                                                     startTransition(async () => {
+                                                                                         const res = await confirmarResultado(match.id);
+                                                                                         if (res.success) {
+                                                                                             router.refresh();
+                                                                                         } else {
+                                                                                             alert(res.message);
+                                                                                         }
+                                                                                     });
+                                                                                 }}
+                                                                                 disabled={isPending}
+                                                                                 className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase h-8 rounded-xl w-full"
+                                                                             >
+                                                                                 <Check className="w-3 h-3 mr-1" /> Confirmar
+                                                                             </Button>
+                                                                         </div>
+                                                                     )}
+                                                                     {match.estado === 'jugado' && (
+                                                                         <Button
+                                                                             size="sm"
+                                                                             variant="ghost"
+                                                                             onClick={() => {
+                                                                                 if (confirm('¿Reiniciar este partido? El score se borrará y las tablas se actualizarán.')) {
+                                                                                     startTransition(async () => {
+                                                                                         const res = await reiniciarResultado(match.id);
+                                                                                         if (res.success) router.refresh();
+                                                                                         else alert(res.message);
+                                                                                     });
+                                                                                 }
+                                                                             }}
+                                                                             className="text-neutral-500 hover:text-red-500 hover:bg-red-500/5 font-black text-[9px] uppercase h-7 rounded-lg"
+                                                                         >
+                                                                             <RotateCcw className="w-2.5 h-2.5 mr-1" /> Reiniciar Score
+                                                                         </Button>
+                                                                     )}
+                                                                 </div>
                                                             </div>
                                                         ))
                                                     )}
