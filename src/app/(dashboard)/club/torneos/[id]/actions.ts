@@ -626,7 +626,26 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
             });
 
             // Ordenar standings del grupo para asignar posición
-            const groupSorted = Array.from(map.values()).sort((a, b) => b.pts - a.pts || b.pg - a.pg || (b.sg - b.sp) - (a.sg - a.sp));
+            // Puntos -> % Sets -> % Games
+            const groupSorted = Array.from(map.values()).sort((a, b) => {
+                if (b.pts !== a.pts) return b.pts - a.pts;
+
+                // % Sets: (ganados * 100) / jugados
+                const totalSetsA = a.sg + a.sp;
+                const totalSetsB = b.sg + b.sp;
+                const pctSetsA = totalSetsA > 0 ? (a.sg * 100) / totalSetsA : 0;
+                const pctSetsB = totalSetsB > 0 ? (b.sg * 100) / totalSetsB : 0;
+
+                if (pctSetsB !== pctSetsA) return pctSetsB - pctSetsA;
+
+                // % Games: (ganados * 100) / jugados
+                const totalGamesA = a.gg + a.gp;
+                const totalGamesB = b.gg + b.gp;
+                const pctGamesA = totalGamesA > 0 ? (a.gg * 100) / totalGamesA : 0;
+                const pctGamesB = totalGamesB > 0 ? (b.gg * 100) / totalGamesB : 0;
+
+                return pctGamesB - pctGamesA;
+            });
             groupSorted.forEach((team, idx) => {
                 allStandings.push({ ...team, pos: idx + 1 });
             });
@@ -638,8 +657,20 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
         const globalRank = allStandings.sort((a, b) => {
             if (a.pos !== b.pos) return a.pos - b.pos;
             if (b.pts !== a.pts) return b.pts - a.pts;
-            if (b.pg !== a.pg) return b.pg - a.pg;
-            return (b.sg - b.sp) - (a.sg - a.sp);
+            
+            // % Sets
+            const totalSetsA = a.sg + a.sp;
+            const totalSetsB = b.sg + b.sp;
+            const pctSetsA = totalSetsA > 0 ? (a.sg * 100) / totalSetsA : 0;
+            const pctSetsB = totalSetsB > 0 ? (b.sg * 100) / totalSetsB : 0;
+            if (pctSetsB !== pctSetsA) return pctSetsB - pctSetsA;
+
+            // % Games
+            const totalGamesA = a.gg + a.gp;
+            const totalGamesB = b.gg + b.gp;
+            const pctGamesA = totalGamesA > 0 ? (a.gg * 100) / totalGamesA : 0;
+            const pctGamesB = totalGamesB > 0 ? (b.gg * 100) / totalGamesB : 0;
+            return pctGamesB - pctGamesA;
         });
 
         // Determinar tamaño del cuadro (potencia de 2)

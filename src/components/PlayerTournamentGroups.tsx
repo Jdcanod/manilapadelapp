@@ -112,14 +112,23 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
             }
         });
 
+        // Ordenar por: Puntos -> % Sets -> % Games
         return Array.from(map.values()).sort((a, b) => {
             if (b.pts !== a.pts) return b.pts - a.pts;
-            const diffSetsA = a.sg - a.sp;
-            const diffSetsB = b.sg - b.sp;
-            if (diffSetsB !== diffSetsA) return diffSetsB - diffSetsA;
-            const diffGamesA = a.gg - a.gp;
-            const diffGamesB = b.gg - b.gp;
-            return diffGamesB - diffGamesA;
+            
+            // % Sets
+            const totalSetsA = a.sg + a.sp;
+            const totalSetsB = b.sg + b.sp;
+            const pctSetsA = totalSetsA > 0 ? (a.sg * 100) / totalSetsA : 0;
+            const pctSetsB = totalSetsB > 0 ? (b.sg * 100) / totalSetsB : 0;
+            if (pctSetsB !== pctSetsA) return pctSetsB - pctSetsA;
+
+            // % Games
+            const totalGamesA = a.gg + a.gp;
+            const totalGamesB = b.gg + b.gp;
+            const pctGamesA = totalGamesA > 0 ? (a.gg * 100) / totalGamesA : 0;
+            const pctGamesB = totalGamesB > 0 ? (b.gg * 100) / totalGamesB : 0;
+            return pctGamesB - pctGamesA;
         });
     };
 
@@ -178,10 +187,10 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                             <th className="px-2 py-3 text-center text-[10px] font-black text-neutral-500">PJ</th>
                                             <th className="px-2 py-3 text-center text-[10px] font-black text-neutral-500">SG</th>
                                             <th className="px-2 py-3 text-center text-[10px] font-black text-neutral-500">SP</th>
-                                            <th className="px-2 py-3 text-center text-[10px] font-black text-emerald-500">DS</th>
+                                            <th className="px-2 py-3 text-center text-[10px] font-black text-emerald-500">%S</th>
                                             <th className="px-2 py-3 text-center text-[10px] font-black text-neutral-500">GG</th>
                                             <th className="px-2 py-3 text-center text-[10px] font-black text-neutral-500">GP</th>
-                                            <th className="px-2 py-3 text-center text-[10px] font-black text-emerald-500">DG</th>
+                                            <th className="px-2 py-3 text-center text-[10px] font-black text-emerald-500">%G</th>
                                             <th className="px-4 py-3 text-center text-[10px] font-black text-amber-500">PTS</th>
                                         </tr>
                                     </thead>
@@ -203,10 +212,14 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                     <td className="px-2 py-4 text-center text-neutral-400">{team.pj}</td>
                                                     <td className="px-2 py-4 text-center text-neutral-500 text-xs">{team.sg}</td>
                                                     <td className="px-2 py-4 text-center text-neutral-500 text-xs">{team.sp}</td>
-                                                    <td className="px-2 py-4 text-center text-emerald-500/80 font-bold">{team.sg - team.sp}</td>
+                                                    <td className="px-2 py-4 text-center text-emerald-500/80 font-bold">
+                                                        {((team.sg * 100) / (team.sg + team.sp || 1)).toFixed(0)}%
+                                                    </td>
                                                     <td className="px-2 py-4 text-center text-neutral-500 text-xs">{team.gg}</td>
                                                     <td className="px-2 py-4 text-center text-neutral-500 text-xs">{team.gp}</td>
-                                                    <td className="px-2 py-4 text-center text-emerald-500/80 font-bold">{team.gg - team.gp}</td>
+                                                    <td className="px-2 py-4 text-center text-emerald-500/80 font-bold">
+                                                        {((team.gg * 100) / (team.gg + team.gp || 1)).toFixed(0)}%
+                                                    </td>
                                                     <td className="px-4 py-4 text-center font-black text-amber-500">{team.pts}</td>
                                                 </tr>
                                             );
