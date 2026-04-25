@@ -402,20 +402,28 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                      <div className="flex flex-col gap-1.5 flex-1">
                                                                          <div className="flex justify-between items-center text-xs font-bold text-white uppercase pr-2">
                                                                              <span>{match.pareja1?.nombre_pareja || "TBD"}</span>
-                                                                             {match.resultado && (
-                                                                                 <span className="bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-md font-black">
-                                                                                     {match.resultado.split(',')[0].split('-')[0]}
-                                                                                 </span>
-                                                                             )}
-                                                                         </div>
+                                                                            {match.resultado && (
+                                                                                <div className="flex gap-1">
+                                                                                    {match.resultado.split(',').map((setStr: string, idx: number) => (
+                                                                                        <span key={idx} className="bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-md font-black">
+                                                                                            {setStr.split('-')[0] || '-'}
+                                                                                        </span>
+                                                                                    ))}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
                                                                          <div className="flex justify-between items-center text-xs font-bold text-white uppercase pr-2">
                                                                              <span>{match.pareja2?.nombre_pareja || "TBD"}</span>
-                                                                             {match.resultado && (
-                                                                                 <span className="bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-md font-black">
-                                                                                     {match.resultado.split(',')[0].split('-')[1]}
-                                                                                 </span>
-                                                                             )}
-                                                                         </div>
+                                                                            {match.resultado && (
+                                                                                <div className="flex gap-1">
+                                                                                    {match.resultado.split(',').map((setStr: string, idx: number) => (
+                                                                                        <span key={idx} className="bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-md font-black">
+                                                                                            {setStr.split('-')[1] || '-'}
+                                                                                        </span>
+                                                                                    ))}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
                                                                      </div>
                                                                  </div>
 

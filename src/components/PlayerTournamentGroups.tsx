@@ -264,12 +264,16 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                             {match.pareja1?.nombre_pareja || "TBD"}
                                                                         </span>
                                                                         {match.resultado && (
-                                                                            <span className={cn(
-                                                                                "text-sm font-black px-2 py-0.5 rounded-md",
-                                                                                match.estado_resultado === 'confirmado' ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
-                                                                            )}>
-                                                                                {match.resultado.split(',')[0].split('-')[0]}
-                                                                            </span>
+                                                                            <div className="flex gap-1">
+                                                                                {match.resultado.split(',').map((setStr: string, idx: number) => (
+                                                                                    <span key={idx} className={cn(
+                                                                                        "text-sm font-black px-2 py-0.5 rounded-md",
+                                                                                        match.estado_resultado === 'confirmado' ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
+                                                                                    )}>
+                                                                                        {setStr.split('-')[0] || '-'}
+                                                                                    </span>
+                                                                                ))}
+                                                                            </div>
                                                                         )}
                                                                     </div>
                                                                     <div className="flex justify-between items-center bg-neutral-950/50 p-2 rounded-lg border border-neutral-900/50">
@@ -280,12 +284,16 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                             {match.pareja2?.nombre_pareja || "TBD"}
                                                                         </span>
                                                                         {match.resultado && (
-                                                                            <span className={cn(
-                                                                                "text-sm font-black px-2 py-0.5 rounded-md",
-                                                                                match.estado_resultado === 'confirmado' ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
-                                                                            )}>
-                                                                                {match.resultado.split(',')[0].split('-')[1]}
-                                                                            </span>
+                                                                            <div className="flex gap-1">
+                                                                                {match.resultado.split(',').map((setStr: string, idx: number) => (
+                                                                                    <span key={idx} className={cn(
+                                                                                        "text-sm font-black px-2 py-0.5 rounded-md",
+                                                                                        match.estado_resultado === 'confirmado' ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
+                                                                                    )}>
+                                                                                        {setStr.split('-')[1] || '-'}
+                                                                                    </span>
+                                                                                ))}
+                                                                            </div>
                                                                         )}
                                                                     </div>
                                                                  </div>
