@@ -4,6 +4,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { Participant, distributeParticipantsIntoGroups, generateMatchesForGroup } from "@/lib/tournaments/logic";
 import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { format } from "date-fns";
 
 interface RegularResult {
     id: string;
@@ -745,13 +746,68 @@ export async function updateMatchSchedule(matchId: string, fecha: string, cancha
         const { data: { user } } = await supabaseAuth.auth.getUser();
         if (!user) return { success: false, message: "No autenticado." };
 
-        const { data: torneoCheck } = await supabaseAuth.from('torneos').select('club_id').eq('id', torneoId).single();
+        const { data: torneoCheck } = await supabaseAuth.from('torneos').select('club_id, reglas_puntuacion').eq('id', torneoId).single();
         const { data: userData } = await supabaseAuth.from('users').select('id, rol').eq('auth_id', user.id).single();
         const esAdmin = userData?.rol === 'admin_club' || userData?.rol === 'superadmin';
         const esDelClub = String(torneoCheck?.club_id) === String(userData?.id);
         if (!esAdmin || !esDelClub) return { success: false, message: "No tienes permisos para modificar este torneo." };
 
         const supabase = createAdminClient();
+
+        // --- VALIDACIÓN DE TRASLAPE ---
+        const duracion = (torneoCheck?.reglas_puntuacion as any)?.config_duracion || 60;
+        const start = new Date(fecha);
+        const end = new Date(start.getTime() + duracion * 60000);
+
+        // Obtener partidos del mismo club y día para verificar disponibilidad
+        const startOfDay = new Date(start);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(start);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const { data: otherMatches } = await supabase
+            .from('partidos')
+            .select('id, fecha, lugar')
+            .eq('club_id', torneoCheck.club_id)
+            .neq('id', matchId)
+            .not('fecha', 'is', null)
+            .not('lugar', 'is', null)
+            .gte('fecha', startOfDay.toISOString())
+            .lte('fecha', endOfDay.toISOString());
+
+        const normalizeCancha = (l: string) => {
+            const match = l.match(/Cancha\s*(\d+)/i) || l.match(/cancha_(\d+)/i);
+            return match ? match[1] : l;
+        };
+
+        const getDuration = (l: string) => {
+            const match = l.match(/\((\d+)\s*min\)/);
+            return match ? parseInt(match[1]) : duracion;
+        };
+
+        const targetCanchaNorm = normalizeCancha(cancha);
+
+        const conflict = otherMatches?.find(m => {
+            if (!m.lugar) return false;
+            const mCanchaNorm = normalizeCancha(m.lugar);
+            if (mCanchaNorm !== targetCanchaNorm) return false;
+
+            const mStart = new Date(m.fecha!);
+            const mDur = getDuration(m.lugar);
+            const mEnd = new Date(mStart.getTime() + mDur * 60000);
+
+            // Traslape: (StartA < EndB) && (EndA > StartB)
+            return start < mEnd && end > mStart;
+        });
+
+        if (conflict) {
+            const conflictStart = format(new Date(conflict.fecha!), "HH:mm");
+            return { 
+                success: false, 
+                message: `Conflicto: Ya hay un partido programado en ${cancha} a las ${conflictStart}.` 
+            };
+        }
+        // ------------------------------
         
         // Obtener el lugar actual para preservar la fase (ej: Final, Semifinal)
         const { data: partido } = await supabase
