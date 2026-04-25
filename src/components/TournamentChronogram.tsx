@@ -24,6 +24,7 @@ interface Match {
     jugador2_id?: string;
     jugador3_id?: string;
     jugador4_id?: string;
+    resultado?: string | null;
 }
 
 interface ChronogramProps {
