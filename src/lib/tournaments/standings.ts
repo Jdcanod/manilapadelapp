@@ -11,7 +11,15 @@ interface Standing {
     pts: number;
 }
 
-export function calculateStandings(matches: any[]): Standing[] {
+export function calculateStandings(matches: { 
+    pareja1_id: string | null; 
+    pareja2_id: string | null; 
+    estado: string; 
+    resultado: string | null; 
+    estado_resultado: string | null; 
+    pareja1?: { nombre_pareja: string | null } | null;
+    pareja2?: { nombre_pareja: string | null } | null;
+}[]): Standing[] {
     const map = new Map<string, Standing>();
 
     matches.forEach(m => {

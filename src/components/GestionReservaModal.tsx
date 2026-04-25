@@ -132,7 +132,7 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
             };
             fetchInfo();
         }
-    }, [open, reservationId, supabase]);
+    }, [open, reservationId, supabase, reservations]);
 
     const handleDelete = async () => {
         if (!confirm("¿Estás seguro de que deseas eliminar esta reserva por completo?")) return;

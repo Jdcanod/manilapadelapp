@@ -617,7 +617,6 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
         let targetTeams = 2;
         while (targetTeams < numClassified) targetTeams *= 2;
         
-        const numMatchesFirstRound = targetTeams / 2;
         const numByes = targetTeams - numClassified;
 
         // Construir Pots para sorteo cruzado
@@ -735,9 +734,10 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
 
         revalidatePath(`/club/torneos/${torneoId}`);
         return { success: true, message: `Eliminatorias de ${categoria} generadas (${targetTeams} equipos).` };
-    } catch (err: any) {
-        console.error("Error en generarFaseEliminatoria:", err);
-        return { success: false, message: err.message || "Error al generar eliminatorias" };
+    } catch (err: unknown) {
+        const error = err as Error;
+        console.error("Error en generarFaseEliminatoria:", error);
+        return { success: false, message: error.message || "Error al generar eliminatorias" };
     }
 }
 

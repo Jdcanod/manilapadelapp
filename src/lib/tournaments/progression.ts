@@ -153,7 +153,7 @@ export async function sincronizarClasificados(torneoId: string, categoria: strin
         if (!eliminatorias) continue;
 
         for (const match of eliminatorias) {
-            const updates: any = {};
+            const updates: { pareja1_id?: string; pareja2_id?: string } = {};
             
             // Placeholder format: "PH: 1ro Grupo A vs ..."
             if (!match.pareja1_id && match.lugar?.includes(`1ro ${grupo.nombre_grupo}`)) {
