@@ -747,6 +747,7 @@ export async function updateMatchSchedule(matchId: string, fecha: string, cancha
         if (!user) return { success: false, message: "No autenticado." };
 
         const { data: torneoCheck } = await supabaseAuth.from('torneos').select('club_id, reglas_puntuacion').eq('id', torneoId).single();
+        if (!torneoCheck) return { success: false, message: "Torneo no encontrado." };
         const { data: userData } = await supabaseAuth.from('users').select('id, rol').eq('auth_id', user.id).single();
         const esAdmin = userData?.rol === 'admin_club' || userData?.rol === 'superadmin';
         const esDelClub = String(torneoCheck?.club_id) === String(userData?.id);
