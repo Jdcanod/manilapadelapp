@@ -362,11 +362,12 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                             {isAdmin && matchToShow.estado === 'jugado' && matchToShow.estado_resultado === 'pendiente' && (
                                                                 <AdminConfirmResultButton matchId={matchToShow.id} compact />
                                                             )}
-                                                            {!matchToShow.resultado && isAdmin && (
+                                                            {isAdmin && matchToShow.estado_resultado !== 'confirmado' && (
                                                                 <AdminTournamentResultModal 
                                                                     matchId={matchToShow.id}
                                                                     pareja1Nombre={matchToShow.pareja1?.nombre_pareja || "TBD"}
                                                                     pareja2Nombre={matchToShow.pareja2?.nombre_pareja || "TBD"}
+                                                                    initialResult={matchToShow.resultado}
                                                                     compact
                                                                 />
                                                             )}
