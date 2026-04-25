@@ -10,6 +10,9 @@ import { format, addMinutes, startOfDay, parseISO, addDays, isSameDay } from "da
 import { updateMatchSchedule, unscheduleMatch } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton";
+import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
+import { CheckCircle2 } from "lucide-react";
 
 interface Match {
     id: string;
@@ -25,6 +28,7 @@ interface Match {
     jugador3_id?: string;
     jugador4_id?: string;
     resultado?: string | null;
+    estado_resultado?: string | null;
 }
 
 interface ChronogramProps {
@@ -354,7 +358,18 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                                   <Star className="w-2 h-2 text-black fill-black" />
                                                             </div>
                                                         )}
-                                                        <div className="absolute top-0 right-0 p-2 opacity-0 group-hover/match:opacity-100 transition-all z-20">
+                                                        <div className="absolute top-0 right-0 p-2 opacity-0 group-hover/match:opacity-100 transition-all z-20 flex gap-1">
+                                                            {isAdmin && matchToShow.estado === 'jugado' && matchToShow.estado_resultado === 'pendiente' && (
+                                                                <AdminConfirmResultButton matchId={matchToShow.id} compact />
+                                                            )}
+                                                            {!matchToShow.resultado && isAdmin && (
+                                                                <AdminTournamentResultModal 
+                                                                    matchId={matchToShow.id}
+                                                                    pareja1Nombre={matchToShow.pareja1?.nombre_pareja || "TBD"}
+                                                                    pareja2Nombre={matchToShow.pareja2?.nombre_pareja || "TBD"}
+                                                                    compact
+                                                                />
+                                                            )}
                                                             <button 
                                                                 disabled={isUpdating}
                                                                 onClick={(e) => { e.stopPropagation(); handleUnschedule(matchToShow.id); }}
@@ -418,6 +433,13 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                             </div>
                                                             <span className="text-[8px] text-neutral-500 font-bold uppercase">{format(new Date(matchToShow.fecha!), "HH:mm")}</span>
                                                         </div>
+                                                        
+                                                        {/* Indicador de resultado confirmado */}
+                                                        {matchToShow.estado === 'jugado' && matchToShow.estado_resultado === 'confirmado' && (
+                                                            <div className="absolute -bottom-1 -right-1 bg-emerald-500 p-0.5 rounded-full border-2 border-neutral-900">
+                                                                <CheckCircle2 className="w-2.5 h-2.5 text-black" />
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ) : !matchOccupying ? (
                                                     <div className="h-full w-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">

@@ -4,12 +4,14 @@ import { useTransition } from "react";
 import { Check, Loader2 } from "lucide-react";
 import { confirmarResultado } from "@/app/(dashboard)/torneos/actions";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 interface Props {
     matchId: string;
+    compact?: boolean;
 }
 
-export function AdminConfirmResultButton({ matchId }: Props) {
+export function AdminConfirmResultButton({ matchId, compact }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
 
@@ -30,14 +32,20 @@ export function AdminConfirmResultButton({ matchId }: Props) {
         <button
             onClick={handleConfirm}
             disabled={isPending}
-            className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase h-8 rounded-lg transition-colors disabled:opacity-50"
+            title="Confirmar Resultado como Club"
+            className={cn(
+                "flex items-center justify-center transition-colors disabled:opacity-50 font-black uppercase",
+                compact 
+                    ? "w-8 h-8 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded-lg"
+                    : "w-full gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] h-8 rounded-lg"
+            )}
         >
             {isPending ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
+                <Loader2 className={compact ? "w-4 h-4 animate-spin" : "w-3 h-3 animate-spin"} />
             ) : (
                 <>
-                    <Check className="w-3 h-3" />
-                    Confirmar como Club
+                    <Check className={compact ? "w-4 h-4" : "w-3 h-3"} />
+                    {!compact && "Confirmar como Club"}
                 </>
             )}
         </button>

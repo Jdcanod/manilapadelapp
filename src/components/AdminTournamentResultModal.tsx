@@ -17,9 +17,10 @@ interface Props {
     tipoDesempate?: string;
     disabled?: boolean;
     disabledReason?: string;
+    compact?: boolean;
 }
 
-export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, initialResult, tipoDesempate = "tercer_set", disabled, disabledReason }: Props) {
+export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, initialResult, tipoDesempate = "tercer_set", disabled, disabledReason, compact }: Props) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
@@ -138,17 +139,26 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button 
-                    disabled={disabled}
-                    className={cn(
-                        "font-bold w-full text-xs h-8",
-                        disabled ? "bg-neutral-800 text-neutral-500 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-500 text-white"
-                    )}
-                    title={disabledReason}
-                >
-                    <Trophy className="w-3 h-3 mr-2" />
-                    {disabled ? (disabledReason || "Programar primero") : "Ingresar Score"}
-                </Button>
+                {compact ? (
+                    <button 
+                        disabled={disabled}
+                        className="p-1.5 bg-amber-600/10 text-amber-500 rounded-lg hover:bg-amber-600 hover:text-white transition-colors disabled:opacity-30"
+                    >
+                        <Trophy className="w-3.5 h-3.5" />
+                    </button>
+                ) : (
+                    <Button 
+                        disabled={disabled}
+                        className={cn(
+                            "font-bold w-full text-xs h-8",
+                            disabled ? "bg-neutral-800 text-neutral-500 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-500 text-white"
+                        )}
+                        title={disabledReason}
+                    >
+                        <Trophy className="w-3 h-3 mr-2" />
+                        {disabled ? (disabledReason || "Programar primero") : "Ingresar Score"}
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="bg-neutral-900 border-neutral-800 text-white max-w-sm">
                 <DialogHeader>
