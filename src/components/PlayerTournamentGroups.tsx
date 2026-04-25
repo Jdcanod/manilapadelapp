@@ -91,7 +91,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                 const sets = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
                 let setsP1InMatch = 0, setsP2InMatch = 0;
                 
-                sets.forEach((set: number[], idx: number) => {
+                sets.forEach((set: number[]) => {
                     if (set.length === 2 && !isNaN(set[0]) && !isNaN(set[1])) {
                         // Sumar games (No sumar si es un Super Tie-break, usualmente definido por puntuación >= 10)
                         if (set[0] < 10 && set[1] < 10) {
