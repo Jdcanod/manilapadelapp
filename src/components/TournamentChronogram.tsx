@@ -363,13 +363,35 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                             </button>
                                                         </div>
                                                         <div className="space-y-1">
-                                                            <div className="flex items-center gap-1.5">
-                                                                <div className={`w-1 h-3 rounded-full ${isMine ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                                                                <p className="text-[10px] font-black text-white uppercase truncate">{matchToShow.pareja1?.nombre_pareja || "TBD"}</p>
+                                                            <div className="flex items-center justify-between gap-1.5">
+                                                                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                                                    <div className={`w-1 h-3 rounded-full flex-shrink-0 ${isMine ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                                                                    <p className="text-[10px] font-black text-white uppercase truncate">{matchToShow.pareja1?.nombre_pareja || "TBD"}</p>
+                                                                </div>
+                                                                {matchToShow.resultado && (
+                                                                    <div className="flex gap-0.5">
+                                                                        {matchToShow.resultado.split(',').map((set: string, i: number) => (
+                                                                            <span key={i} className="bg-emerald-500/20 text-emerald-400 px-1 rounded-[2px] text-[8px] font-black min-w-[12px] text-center">
+                                                                                {set.split('-')[0]}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                            <div className="flex items-center gap-1.5">
-                                                                <div className={`w-1 h-3 rounded-full ${isMine ? 'bg-amber-500' : 'bg-blue-500'}`} />
-                                                                <p className="text-[10px] font-black text-white uppercase truncate">{matchToShow.pareja2?.nombre_pareja || "TBD"}</p>
+                                                            <div className="flex items-center justify-between gap-1.5">
+                                                                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                                                    <div className={`w-1 h-3 rounded-full flex-shrink-0 ${isMine ? 'bg-amber-500' : 'bg-blue-500'}`} />
+                                                                    <p className="text-[10px] font-black text-white uppercase truncate">{matchToShow.pareja2?.nombre_pareja || "TBD"}</p>
+                                                                </div>
+                                                                {matchToShow.resultado && (
+                                                                    <div className="flex gap-0.5">
+                                                                        {matchToShow.resultado.split(',').map((set: string, i: number) => (
+                                                                            <span key={i} className="bg-emerald-500/20 text-emerald-400 px-1 rounded-[2px] text-[8px] font-black min-w-[12px] text-center">
+                                                                                {set.split('-')[1]}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <div className="flex justify-between items-center mt-auto pt-2 border-t border-neutral-800/50">
@@ -378,6 +400,20 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                                 {getFaseFromLugar(matchToShow.lugar) && (
                                                                     <Badge variant="outline" className="text-[7px] font-black text-amber-500 border-amber-500/30 uppercase">{getFaseFromLugar(matchToShow.lugar)}</Badge>
                                                                 )}
+                                                                {(() => {
+                                                                    const now = new Date();
+                                                                    const mDate = new Date(matchToShow.fecha!);
+                                                                    const diffMinutes = (now.getTime() - mDate.getTime()) / (1000 * 60);
+                                                                    // Si el partido empezó hace menos de 90 min y no ha terminado
+                                                                    if (matchToShow.estado === 'programado' && diffMinutes >= 0 && diffMinutes < 90) {
+                                                                        return (
+                                                                            <Badge className="bg-blue-600 text-white font-black text-[7px] h-3.5 px-1 animate-pulse border-none">
+                                                                                EN CANCHA
+                                                                            </Badge>
+                                                                        );
+                                                                    }
+                                                                    return null;
+                                                                })()}
                                                             </div>
                                                             <span className="text-[8px] text-neutral-500 font-bold uppercase">{format(new Date(matchToShow.fecha!), "HH:mm")}</span>
                                                         </div>

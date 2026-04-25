@@ -212,7 +212,13 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                     <tr key={partido.id} className="border-b border-gray-100 hover:bg-gray-50">
                                         <td className="py-2 font-bold">{partido.hora || "--:--"}</td>
                                         <td className="py-2">{partido.pareja1?.nombre_pareja || "TBD"}</td>
-                                        <td className="py-2 text-center text-gray-300 italic">vs</td>
+                                        <td className="py-2 text-center">
+                                            {partido.resultado ? (
+                                                <span className="font-bold text-emerald-600">{partido.resultado}</span>
+                                            ) : (
+                                                <span className="text-gray-300 italic">vs</span>
+                                            )}
+                                        </td>
                                         <td className="py-2">{partido.pareja2?.nombre_pareja || "TBD"}</td>
                                         <td className="py-2 text-right font-medium text-blue-700">{partido.lugar || "Pendiente"}</td>
                                     </tr>
