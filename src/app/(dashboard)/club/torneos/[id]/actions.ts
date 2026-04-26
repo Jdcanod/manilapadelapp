@@ -612,10 +612,14 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
             second: { parejaId: string; nombre: string; pts: number; sg: number; sp: number; gg: number; gp: number } | null;
         }[] = [];
         for (const grupo of grupos) {
-            const { data: matches } = await supabaseAdmin
+            const { data: matches, error: matchError } = await supabaseAdmin
                 .from('partidos')
-                .select('*, pareja1:parejas!pareja1_id(nombre_pareja), pareja2:parejas!pareja2_id(nombre_pareja)')
+                .select('*')
                 .eq('torneo_grupo_id', grupo.id);
+
+            if (matchError) {
+                return { success: false, message: `Error cargando partidos del grupo ${grupo.nombre_grupo}: ${matchError.message}` };
+            }
             
             const totalMatches = matches?.length || 0;
             const playedMatches = matches?.filter(m => (m.estado === 'jugado' || m.estado_resultado === 'confirmado') && m.resultado).length || 0;
