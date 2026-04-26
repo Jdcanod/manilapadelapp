@@ -754,7 +754,7 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
             for (let i = 0; i < matchesData.length; i++) {
                 const { seed, opponent } = matchesData[i];
                 const hasBye = seededGroupIds.has(seed.grupoId);
-                const placeholderText = `PH: ${seed.isFinished ? '' : seed.placeholder} vs ${opponent.isFinished ? '' : opponent.placeholder}`.trim();
+                const placeholderText = `PH: ${seed.placeholder} vs ${opponent.placeholder}`;
                 
                 allMatchesToCreate.push({
                     torneo_id: torneoId,
