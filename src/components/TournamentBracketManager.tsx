@@ -18,8 +18,8 @@ interface MatchItem {
     lugar: string | null;
     estado: string;
     fecha: string | null;
-    pareja1: { nombre_pareja: string | null } | null;
-    pareja2: { nombre_pareja: string | null } | null;
+    pareja1: { id?: string; nombre_pareja: string | null } | null;
+    pareja2: { id?: string; nombre_pareja: string | null } | null;
     resultado: string | null;
     torneo_grupo_id: string | null;
     estado_resultado?: string | null;
