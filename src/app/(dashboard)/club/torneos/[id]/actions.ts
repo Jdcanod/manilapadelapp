@@ -600,9 +600,9 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
 
         if (!grupos || grupos.length === 0) return { success: false, message: "No hay grupos en esta categoría." };
 
-        const { data: torneo } = await supabaseAdmin.from('torneos').select('club_id, fecha').eq('id', torneoId).single();
+        const { data: torneo } = await supabaseAdmin.from('torneos').select('club_id, fecha_inicio').eq('id', torneoId).single();
         const clubId = torneo?.club_id;
-        const fechaTorneo = torneo?.fecha;
+        const fechaTorneo = torneo?.fecha_inicio;
 
         const groupResults = [];
         for (const grupo of grupos) {
