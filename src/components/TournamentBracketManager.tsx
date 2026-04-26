@@ -10,6 +10,8 @@ import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton"
 import { generarFaseEliminatoria } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useParams, useRouter } from 'next/navigation';
+import { cn } from "@/lib/utils";
+import { AdminEditBracketModal } from "@/components/AdminEditBracketModal";
 
 interface MatchItem {
     id: string;
@@ -24,10 +26,18 @@ interface MatchItem {
     nivel?: string | null;
 }
 
-function BracketMatchCard({ match, tipoDesempate }: { match: MatchItem, tipoDesempate?: string }) {
+function BracketMatchCard({ match, tipoDesempate, allPairs }: { match: MatchItem, tipoDesempate?: string, allPairs?: { id?: string; nombre_pareja: string | null }[] }) {
     return (
-        <Card className="bg-neutral-950 border-neutral-800 border-l-4 border-l-amber-500 shadow-2xl overflow-hidden hover:border-neutral-700 transition-all group w-full max-w-[280px]">
-            <CardContent className="p-0">
+        <Card className="bg-neutral-950 border-neutral-800 border-l-4 border-l-amber-500 shadow-2xl overflow-visible hover:border-neutral-700 transition-all group w-full max-w-[280px] relative">
+            {allPairs && match.estado !== 'jugado' && (
+                <AdminEditBracketModal 
+                    matchId={match.id}
+                    currentPareja1Id={match.pareja1?.id}
+                    currentPareja2Id={match.pareja2?.id}
+                    allPairs={allPairs}
+                />
+            )}
+            <CardContent className="p-0 relative z-10 rounded-xl overflow-hidden">
                 <div className="flex justify-between items-center p-3 border-b border-neutral-800/50 bg-neutral-900/50">
                     <span className="text-[10px] text-amber-500 uppercase tracking-widest font-black">
                         {match.lugar || "Fase Final"}
@@ -90,7 +100,7 @@ function BracketMatchCard({ match, tipoDesempate }: { match: MatchItem, tipoDese
     );
 }
 
-function BracketSection({ categoria, matches, tipoDesempate }: { categoria: string, matches: MatchItem[], tipoDesempate?: string }) {
+function BracketSection({ categoria, matches, tipoDesempate, allPairs }: { categoria: string, matches: MatchItem[], tipoDesempate?: string, allPairs?: { id?: string; nombre_pareja: string | null }[] }) {
     if (matches.length === 0) {
         return (
             <div className="text-center py-20 text-neutral-500 border-2 border-neutral-800 border-dashed rounded-3xl bg-neutral-950/50 relative z-10">
@@ -120,7 +130,7 @@ function BracketSection({ categoria, matches, tipoDesempate }: { categoria: stri
             <div key={idx} className="relative flex flex-col justify-center gap-12">
                 {pair.map(match => (
                     <div key={match.id} className="relative z-10">
-                        <BracketMatchCard match={match} tipoDesempate={tipoDesempate} />
+                        <BracketMatchCard match={match} tipoDesempate={tipoDesempate} allPairs={allPairs} />
                     </div>
                 ))}
                 
@@ -177,7 +187,7 @@ function BracketSection({ categoria, matches, tipoDesempate }: { categoria: stri
                         <div className="w-full relative">
                             <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8">Gran Final</h4>
                             {matches.filter(p => p.lugar?.toLowerCase().startsWith('final')).map((match) => (
-                                <BracketMatchCard key={match.id} match={match} tipoDesempate={tipoDesempate} />
+                                <BracketMatchCard key={match.id} match={match} tipoDesempate={tipoDesempate} allPairs={allPairs} />
                             ))}
                         </div>
 
@@ -204,7 +214,7 @@ function BracketSection({ categoria, matches, tipoDesempate }: { categoria: stri
                             {matches.filter(p => p.lugar?.toLowerCase().startsWith('tercer puesto')).map((match) => (
                                 <div key={match.id} className="opacity-80 scale-95 origin-top relative">
                                     {/* Line connecting to the final column if needed, but usually 3rd place stands alone visually */}
-                                    <BracketMatchCard match={match} tipoDesempate={tipoDesempate} />
+                                    <BracketMatchCard match={match} tipoDesempate={tipoDesempate} allPairs={allPairs} />
                                 </div>
                             ))}
                         </div>
@@ -222,9 +232,22 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate }
     const router = useRouter();
     const { toast } = useToast();
 
+    const allPairs = Array.from(new Map(
+        partidos.flatMap(p => [
+            ...(p.pareja1?.id ? [[p.pareja1.id, p.pareja1]] : []),
+            ...(p.pareja2?.id ? [[p.pareja2.id, p.pareja2]] : [])
+        ])
+    ).values()) as { id?: string; nombre_pareja: string | null }[];
+
     const handleGenerate = async () => {
         if (!selectedCat || !torneoId) return;
         
+        const tienePartidos = eliminatoriasPartidos.filter(p => p.nivel === selectedCat).length > 0;
+        if (tienePartidos) {
+            const confirmed = window.confirm(`¿Estás seguro de RE-SORTEAR las eliminatorias de ${selectedCat}?\n\nEsto borrará todos los cruces actuales y los resultados guardados para esta fase. Esta acción no se puede deshacer.`);
+            if (!confirmed) return;
+        }
+
         setLoading(true);
         try {
             const res = await generarFaseEliminatoria(torneoId as string, selectedCat);
@@ -246,8 +269,16 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate }
             !p.torneo_grupo_id && 
             p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/)
         )
-        .sort((a, b) => String(a.id).localeCompare(String(b.id)));
-
+        .sort((a, b) => {
+            const getIndex = (lugar: string | null) => {
+                const match = lugar?.match(/\[(\d+)\]/);
+                return match ? parseInt(match[1], 10) : 999;
+            };
+            const indexA = getIndex(a.lugar);
+            const indexB = getIndex(b.lugar);
+            if (indexA !== indexB) return indexA - indexB;
+            return String(a.id).localeCompare(String(b.id));
+        });
 
     return (
         <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden min-h-[600px]">
@@ -282,9 +313,14 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate }
                     <button
                         onClick={handleGenerate}
                         disabled={loading}
-                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black py-3 px-8 rounded-2xl shadow-xl transition-all transform hover:scale-105 active:scale-95 uppercase text-xs tracking-widest"
+                        className={cn(
+                            "flex items-center gap-2 font-black py-2 px-6 rounded-xl transition-all transform active:scale-95 uppercase text-[10px] tracking-widest border border-emerald-600/50",
+                            eliminatoriasPartidos.filter(p => p.nivel === selectedCat).length > 0 
+                                ? "bg-neutral-950 text-emerald-500 hover:bg-emerald-950/30" 
+                                : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl hover:scale-105"
+                        )}
                     >
-                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Swords className="w-4 h-4" />}
+                        {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Swords className="w-3 h-3" />}
                         {eliminatoriasPartidos.filter(p => p.nivel === selectedCat).length > 0 
                             ? `Re-Sortear Eliminatorias ${selectedCat}` 
                             : `Sortear Eliminatorias ${selectedCat}`}
@@ -297,6 +333,7 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate }
                     categoria={selectedCat} 
                     matches={eliminatoriasPartidos.filter(p => p.nivel === selectedCat)} 
                     tipoDesempate={tipoDesempate} 
+                    allPairs={allPairs}
                 />
             </div>
         </div>

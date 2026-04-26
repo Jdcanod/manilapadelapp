@@ -738,7 +738,7 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
                 estado: 'programado',
                 tipo_partido: 'torneo',
                 nivel: categoria,
-                lugar: `${rondaName} - ${categoria} || PH: 1ro Grupo A vs 2do Grupo B`,
+                lugar: `[0] ${rondaName} - ${categoria} || PH: 1ro Grupo A vs 2do Grupo B`,
                 fecha: fechaTorneo,
                 cupos_totales: 4,
                 cupos_disponibles: 0
@@ -754,7 +754,7 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
                 estado: 'programado',
                 tipo_partido: 'torneo',
                 nivel: categoria,
-                lugar: `${rondaName} - ${categoria} || PH: 1ro Grupo B vs 2do Grupo A`,
+                lugar: `[1] ${rondaName} - ${categoria} || PH: 1ro Grupo B vs 2do Grupo A`,
                 fecha: fechaTorneo,
                 cupos_totales: 4,
                 cupos_disponibles: 0
@@ -775,7 +775,7 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
                     estado: hasBye ? 'jugado' : 'programado',
                     tipo_partido: 'torneo',
                     nivel: categoria,
-                    lugar: `${rondaName} - ${categoria} || ${placeholderText}`,
+                    lugar: `[${i}] ${rondaName} - ${categoria} || ${placeholderText}`,
                     fecha: fechaTorneo,
                     cupos_totales: 4,
                     cupos_disponibles: 0,
@@ -806,7 +806,7 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
                     estado: 'programado',
                     tipo_partido: 'torneo',
                     nivel: categoria,
-                    lugar: `${currentRondaName} - ${categoria}`,
+                    lugar: `[${j}] ${currentRondaName} - ${categoria}`,
                     fecha: fechaTorneo,
                     cupos_totales: 4,
                     cupos_disponibles: 0
@@ -822,7 +822,7 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
                         estado: 'programado',
                         tipo_partido: 'torneo',
                         nivel: categoria,
-                        lugar: `Tercer Puesto - ${categoria}`,
+                        lugar: `[0] Tercer Puesto - ${categoria}`,
                         fecha: fechaTorneo,
                         cupos_totales: 4,
                         cupos_disponibles: 0
@@ -1314,3 +1314,41 @@ export async function darDeBajaPareja(id: string, tipo: 'master' | 'regular', pa
     revalidatePath(`/club/torneos/${torneoId}`);
     return { success: true };
 }
+
+export async function updateMatchTeams(matchId: string, pareja1Id: string | null, pareja2Id: string | null, torneoId: string) {
+    try {
+        const supabaseAuth = createClient();
+        const { data: { user } } = await supabaseAuth.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado." };
+
+        const { data: torneoCheck } = await supabaseAuth.from('torneos').select('club_id').eq('id', torneoId).single();
+        if (!torneoCheck) return { success: false, message: "Torneo no encontrado." };
+        
+        const { data: userData } = await supabaseAuth.from('users').select('id, rol').eq('auth_id', user.id).single();
+        const esAdmin = userData?.rol === 'admin_club' || userData?.rol === 'superadmin';
+        const esDelClub = String(torneoCheck?.club_id) === String(userData?.id);
+        
+        if (!esAdmin || !esDelClub) return { success: false, message: "No tienes permisos." };
+
+        const supabaseAdmin = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+        
+        const { error } = await supabaseAdmin.from('partidos')
+            .update({ 
+                pareja1_id: pareja1Id || null, 
+                pareja2_id: pareja2Id || null 
+            })
+            .eq('id', matchId);
+
+        if (error) throw error;
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        return { success: true };
+    } catch (err: unknown) {
+        console.error("Error updateMatchTeams:", err);
+        return { success: false, message: (err as Error).message };
+    }
+}
+

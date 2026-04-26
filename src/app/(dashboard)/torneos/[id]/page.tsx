@@ -22,7 +22,16 @@ function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalU
         p.lugar?.toLowerCase().includes('cuartos') ||
         p.lugar?.toLowerCase().includes('octavos') ||
         p.lugar?.toLowerCase().includes('tercer puesto')
-    ));
+    )).sort((a, b) => {
+        const getIndex = (lugar: string | null) => {
+            const match = lugar?.match(/\[(\d+)\]/);
+            return match ? parseInt(match[1], 10) : 999;
+        };
+        const indexA = getIndex(a.lugar);
+        const indexB = getIndex(b.lugar);
+        if (indexA !== indexB) return indexA - indexB;
+        return String(a.id).localeCompare(String(b.id));
+    });
 
     if (matches.length === 0) return null;
 
