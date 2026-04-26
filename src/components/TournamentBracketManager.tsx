@@ -237,7 +237,7 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate }
     const { toast } = useToast();
 
     const pairsMap = new Map<string, { id?: string; nombre_pareja: string | null }>();
-    partidos.filter(p => p.nivel === selectedCat).forEach(p => {
+    partidos.filter(p => p.nivel === selectedCat && !p.torneo_grupo_id).forEach(p => {
         if (p.pareja1?.id) pairsMap.set(p.pareja1.id, p.pareja1);
         if (p.pareja2?.id) pairsMap.set(p.pareja2.id, p.pareja2);
     });
