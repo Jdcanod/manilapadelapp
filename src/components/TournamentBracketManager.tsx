@@ -232,12 +232,12 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate }
     const router = useRouter();
     const { toast } = useToast();
 
-    const allPairs = Array.from(new Map(
-        partidos.flatMap(p => [
-            ...(p.pareja1?.id ? [[p.pareja1.id, p.pareja1]] : []),
-            ...(p.pareja2?.id ? [[p.pareja2.id, p.pareja2]] : [])
-        ])
-    ).values()) as { id?: string; nombre_pareja: string | null }[];
+    const pairsMap = new Map<string, { id?: string; nombre_pareja: string | null }>();
+    partidos.forEach(p => {
+        if (p.pareja1?.id) pairsMap.set(p.pareja1.id, p.pareja1);
+        if (p.pareja2?.id) pairsMap.set(p.pareja2.id, p.pareja2);
+    });
+    const allPairs = Array.from(pairsMap.values());
 
     const handleGenerate = async () => {
         if (!selectedCat || !torneoId) return;
