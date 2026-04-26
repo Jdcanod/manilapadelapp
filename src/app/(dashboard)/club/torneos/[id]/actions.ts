@@ -683,12 +683,22 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
         const numGroups = grupos.length;
         const matchesData = [];
 
-        for (let i = 0; i < numGroups; i++) {
-            const seed = pot1[i];
-            const opponentIdx = numGroups - 1 - i;
-            const opponent = pot2[opponentIdx];
+        if (numGroups === 4) {
+            // Lógica específica requerida para 4 grupos (Cuartos de final)
+            // pot1 y pot2 están en el mismo orden que sortedGroups (A, B, C, D)
+            matchesData.push({ seed: pot1[0], opponent: pot2[1] }); // 1A vs 2B
+            matchesData.push({ seed: pot1[2], opponent: pot2[3] }); // 1C vs 2D
+            matchesData.push({ seed: pot1[3], opponent: pot2[2] }); // 1D vs 2C
+            matchesData.push({ seed: pot1[1], opponent: pot2[0] }); // 1B vs 2A
+        } else {
+            // Emparejamiento cruzado general
+            for (let i = 0; i < numGroups; i++) {
+                const seed = pot1[i];
+                const opponentIdx = numGroups - 1 - i;
+                const opponent = pot2[opponentIdx];
 
-            matchesData.push({ seed, opponent });
+                matchesData.push({ seed, opponent });
+            }
         }
 
         // Definir nombre de ronda inicial
