@@ -1153,6 +1153,25 @@ export async function moverParejaAGrupo(torneoId: string, categoria: string, par
     }
 }
 
+export async function triggerSync(torneoId: string, categoria: string) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("No autenticado");
+
+        const { data: torneo } = await supabase.from('torneos').select('club_id').eq('id', torneoId).single();
+        const clubId = torneo?.club_id || null;
+
+        const { sincronizarClasificados } = await import("@/lib/tournaments/progression");
+        await sincronizarClasificados(torneoId, categoria, clubId, user.id);
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        return { success: true };
+    } catch (err: unknown) {
+        return { success: false, message: (err as Error).message };
+    }
+}
+
 export async function actualizarEstadoPago(id: string, tipo: 'master' | 'regular', nuevoEstado: string, torneoId: string) {
     const supabase = createClient();
     if (tipo === 'master') {

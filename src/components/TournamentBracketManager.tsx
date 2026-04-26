@@ -3,11 +3,11 @@
 
 import React, { useState } from 'react';
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Check, Swords, Loader2 } from "lucide-react";
+import { Swords, Loader2, RefreshCw, Settings } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton";
-import { generarFaseEliminatoria } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { generarFaseEliminatoria, triggerSync } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useParams, useRouter } from 'next/navigation';
 import { cn } from "@/lib/utils";
@@ -330,6 +330,26 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate }
                             ? `Re-Sortear Eliminatorias ${selectedCat}` 
                             : `Sortear Eliminatorias ${selectedCat}`}
                     </button>
+
+                    {eliminatoriasPartidos.filter(p => p.nivel === selectedCat).length > 0 && (
+                        <button
+                            onClick={async () => {
+                                setLoading(true);
+                                const res = await triggerSync(torneoId, selectedCat);
+                                if (res.success) {
+                                    toast.success("Resultados sincronizados");
+                                } else {
+                                    toast.error(res.message || "Error al sincronizar");
+                                }
+                                setLoading(false);
+                            }}
+                            disabled={loading}
+                            className="flex items-center gap-2 font-black py-2 px-6 rounded-xl transition-all transform active:scale-95 uppercase text-[10px] tracking-widest border border-amber-600/50 bg-neutral-950 text-amber-500 hover:bg-amber-950/30"
+                        >
+                            {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                            Sincronizar Clasificados {selectedCat}
+                        </button>
+                    )}
                 </div>
             </div>
 
