@@ -2,33 +2,19 @@ export const dynamic = 'force-dynamic';
 import { createClient, createAdminClient, createPureAdminClient } from "@/utils/supabase/server";
 import { format, addHours } from "date-fns";
 import { redirect } from "next/navigation";
-import { ChevronLeft, CalendarDays, Users, Swords, Trophy, Check } from "lucide-react";
+import { ChevronLeft, CalendarDays, Users, Swords, Trophy } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminParticipantActions } from "@/components/AdminParticipantActions";
-import { Card, CardContent } from "@/components/ui/card";
 
 import { TournamentGroupsManager } from "@/components/TournamentGroupsManager";
 import { TournamentBracketManager } from "@/components/TournamentBracketManager";
 import { AddTournamentPlayerModal } from "@/components/AddTournamentPlayerModal";
-import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
-import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton";
+import { AddTournamentPlayerModal } from "@/components/AddTournamentPlayerModal";
 import { TournamentChronogram } from "@/components/TournamentChronogram";
 import { TournamentExportButton } from "@/components/TournamentExportButton";
 
-interface MatchItem {
-    id: string;
-    lugar: string | null;
-    estado: string;
-    fecha: string | null;
-    pareja1: { nombre_pareja: string | null } | null;
-    pareja2: { nombre_pareja: string | null } | null;
-    resultado: string | null;
-    torneo_grupo_id: string | null;
-    estado_resultado?: string | null;
-    nivel?: string | null;
-}
 
 
 export default async function TorneoDetailsPage({ params }: { params: { id: string } }) {
