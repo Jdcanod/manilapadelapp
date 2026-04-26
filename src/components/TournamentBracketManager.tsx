@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Check, Swords, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -199,8 +198,8 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate }
             } else {
                 toast({ title: "Atención", description: res.message, variant: "destructive" });
             }
-        } catch (err) {
-            toast({ title: "Error", description: "No se pudo generar el cuadro.", variant: "destructive" });
+        } catch (err: any) {
+            toast({ title: "Error", description: err.message || "No se pudo generar el cuadro.", variant: "destructive" });
         } finally {
             setLoading(false);
         }
