@@ -22,16 +22,23 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
 
     if (!allMatches || allMatches.length === 0) return;
 
+    const getIdx = (lugar: string | null) => {
+        const m = lugar?.match(/\[(\d+)\]/);
+        return m ? parseInt(m[1], 10) : 999;
+    };
+
+    const sortByLugar = (matches: any[]) => [...matches].sort((a, b) => getIdx(a.lugar) - getIdx(b.lugar));
+
     // Clasificar partidos por ronda basándose en el nombre (lugar)
-    const octavos = allMatches.filter(m => m.lugar?.toLowerCase().includes('octavos'));
-    const cuartos = allMatches.filter(m => m.lugar?.toLowerCase().includes('cuartos'));
-    const semis = allMatches.filter(m => m.lugar?.toLowerCase().includes('semifinal'));
-    const final = allMatches.filter(m => 
+    const octavos = sortByLugar(allMatches.filter(m => m.lugar?.toLowerCase().includes('octavos')));
+    const cuartos = sortByLugar(allMatches.filter(m => m.lugar?.toLowerCase().includes('cuartos')));
+    const semis = sortByLugar(allMatches.filter(m => m.lugar?.toLowerCase().includes('semifinal')));
+    const final = sortByLugar(allMatches.filter(m => 
         m.lugar?.toLowerCase().includes('final') && 
         !m.lugar?.toLowerCase().includes('semi') && 
         !m.lugar?.toLowerCase().includes('cuartos') && 
         !m.lugar?.toLowerCase().includes('octavos')
-    );
+    ));
 
     const getWinner = (m: { estado: string; estado_resultado?: string | null; resultado?: string | null; pareja1_id?: string | null; pareja2_id?: string | null }) => {
         if (m.estado !== 'jugado' || m.estado_resultado !== 'confirmado' || !m.resultado) return null;
@@ -105,8 +112,8 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
                 if (newMatches.length > 0) {
                     await supabaseAdmin.from('partidos').insert(newMatches);
                     // Recargar nextRound para procesar siguientes iteraciones correctamente
-                    const { data: refreshed } = await supabaseAdmin.from('partidos').select('*').eq('torneo_id', torneoId).eq('nivel', categoria).ilike('lugar', `${nextRoundName}%`).is('torneo_grupo_id', null).order('id', { ascending: true });
-                    nextRound = refreshed || [];
+                    const { data: refreshed } = await supabaseAdmin.from('partidos').select('*').eq('torneo_id', torneoId).eq('nivel', categoria).ilike('lugar', `%${nextRoundName}%`).is('torneo_grupo_id', null).order('id', { ascending: true });
+                    nextRound = sortByLugar(refreshed || []);
                 }
             }
         }
@@ -116,12 +123,12 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
     await avanzarRonda(octavos, cuartos, 'Cuartos de Final', 4);
     
     // Refrescar cuartos por si se crearon
-    const { data: updatedCuartos } = await supabaseAdmin.from('partidos').select('*').eq('torneo_id', torneoId).eq('nivel', categoria).ilike('lugar', 'Cuartos%').is('torneo_grupo_id', null).order('id', { ascending: true });
-    await avanzarRonda(updatedCuartos || cuartos, semis, 'Semifinal', 2);
+    const { data: updatedCuartos } = await supabaseAdmin.from('partidos').select('*').eq('torneo_id', torneoId).eq('nivel', categoria).ilike('lugar', '%Cuartos%').is('torneo_grupo_id', null).order('id', { ascending: true });
+    await avanzarRonda(sortByLugar(updatedCuartos || cuartos), semis, 'Semifinal', 2);
 
     // Refrescar semis
-    const { data: updatedSemis } = await supabaseAdmin.from('partidos').select('*').eq('torneo_id', torneoId).eq('nivel', categoria).ilike('lugar', 'Semifinal%').is('torneo_grupo_id', null).order('id', { ascending: true });
-    await avanzarRonda(updatedSemis || semis, final, 'Final', 1);
+    const { data: updatedSemis } = await supabaseAdmin.from('partidos').select('*').eq('torneo_id', torneoId).eq('nivel', categoria).ilike('lugar', '%Semifinal%').is('torneo_grupo_id', null).order('id', { ascending: true });
+    await avanzarRonda(sortByLugar(updatedSemis || semis), final, 'Final', 1);
 
     // Procesar avance de perdedores de Semifinales al Tercer Puesto
     const tercerPuesto = allMatches.filter(m => m.lugar?.toLowerCase().startsWith('tercer puesto'));
