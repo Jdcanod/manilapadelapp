@@ -631,6 +631,11 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
                 first: standings[0] || null,
                 second: standings[1] || null
             });
+
+            // DIAGNÓSTICO TEMPORAL - Ver qué están devolviendo los matches
+            console.log(`Grupo: ${grupo.nombre_grupo}, totalMatches: ${totalMatches}, playedMatches: ${playedMatches}, isFinished: ${isFinished}`);
+            console.log(`standings[0]:`, standings[0]);
+            console.log(`muestra de match[0]:`, matches?.[0] ? { estado: matches[0].estado, resultado: matches[0].resultado, estado_resultado: matches[0].estado_resultado, pareja1_id: matches[0].pareja1_id, pareja2_id: matches[0].pareja2_id } : null);
         }
 
         // Clasificados totales = 2 por grupo
@@ -808,8 +813,12 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
             await procesarAvanceCuadros(torneoId, categoria, clubId, userId);
         }
 
+        const diagInfo = groupResults.map(gr => 
+            `${gr.nombre}: finished=${gr.isFinished}, 1ro=${gr.first?.parejaId?.slice(0,8) || 'NULL'}, 2do=${gr.second?.parejaId?.slice(0,8) || 'NULL'}`
+        ).join(' | ');
+
         revalidatePath(`/club/torneos/${torneoId}`);
-        return { success: true, message: `Eliminatorias de ${categoria} generadas (${targetTeams} equipos).` };
+        return { success: true, message: `[DIAG] ${diagInfo}` };
     } catch (err: unknown) {
         const error = err as Error;
         console.error("Error en generarFaseEliminatoria:", error);
