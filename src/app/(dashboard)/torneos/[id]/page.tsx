@@ -94,6 +94,9 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
         };
     });
 
+    const categoriasConPartidos = Array.from(new Set((rawPartidos || []).map(p => p.nivel).filter((n): n is string => !!n)));
+    const categoriasAMostrar = categoriasConPartidos.length > 0 ? categoriasConPartidos : ['General'];
+
     // Identificar Campeones y estado de finalización
     const campeonesPorCategoria = categoriasAMostrar.map((cat: string) => {
         const matchesCat = partidosReales.filter(p => p.nivel?.toLowerCase() === cat.toLowerCase());
@@ -116,7 +119,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
 
     // Un torneo está finalizado solo si TODAS las categorías que tienen partidos han terminado sus finales
     const matchesEnEliminatorias = partidosReales.filter(p => !p.torneo_grupo_id);
-    const categoriasConEliminatorias = Array.from(new Set(matchesEnEliminatorias.map(p => p.nivel).filter(Boolean)));
+    const categoriasConEliminatorias = Array.from(new Set(matchesEnEliminatorias.map(p => p.nivel).filter((n): n is string => !!n)));
     
     const todosFinalizados = categoriasConEliminatorias.length > 0 && categoriasConEliminatorias.every((cat: string) => {
         const cData = campeonesPorCategoria.find(c => c.categoria === cat);

@@ -261,7 +261,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
 
     // Un torneo está finalizado solo si TODAS las categorías que tienen partidos han terminado sus finales
     const matchesEnEliminatorias = partidosReales.filter(p => !p.torneo_grupo_id);
-    const categoriasConEliminatorias = Array.from(new Set(matchesEnEliminatorias.map(p => p.nivel).filter(Boolean)));
+    const categoriasConEliminatorias = Array.from(new Set(matchesEnEliminatorias.map(p => p.nivel).filter((n): n is string => !!n)));
     
     const todosFinalizados = categoriasConEliminatorias.length > 0 && categoriasConEliminatorias.every((cat: string) => {
         const cData = campeonesPorCategoria.find(c => c.categoria === cat);

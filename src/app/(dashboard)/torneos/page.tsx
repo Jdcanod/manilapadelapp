@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { Trophy, CalendarDays, MapPin } from "lucide-react";
@@ -58,8 +57,8 @@ export default async function TorneosPage() {
                             p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/)
                         );
                         
-                        const categoriesInElims = Array.from(new Set(elims.map((p: any) => p.nivel).filter(Boolean)));
-                        const isFinalizado = categoriesInElims.length > 0 && categoriesInElims.every(cat => {
+                        const categoriesInElims = Array.from(new Set(elims.map((p: any) => p.nivel).filter((n): n is string => !!n)));
+                        const isFinalizado = categoriesInElims.length > 0 && categoriesInElims.every((cat: string) => {
                             const catMatches = elims.filter((p: any) => p.nivel === cat);
                             const catFinal = catMatches.find((p: any) => 
                                 p.lugar?.toLowerCase().includes('final') && 
