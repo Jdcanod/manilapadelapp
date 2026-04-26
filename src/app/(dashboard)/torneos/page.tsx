@@ -60,8 +60,10 @@ export default async function TorneosPage() {
                             estado_resultado: string | null;
                         }
 
+                        const partidos = (torneo.partidos || []) as unknown as MatchSubset[];
+
                         // Un torneo se considera finalizado solo si TODAS sus categorías con eliminatorias tienen una final jugada y confirmada
-                        const elims = (torneo.partidos as unknown as MatchSubset[] || []).filter((p) => 
+                        const elims = partidos.filter((p) => 
                             p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/)
                         );
                         
