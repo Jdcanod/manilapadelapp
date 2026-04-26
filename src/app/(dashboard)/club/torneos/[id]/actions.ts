@@ -834,9 +834,9 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
         const { error: insertError } = await supabaseAdmin.from('partidos').insert(allMatchesToCreate);
         if (insertError) throw insertError;
 
-        if (numByes > 0) {
-            const { procesarAvanceCuadros } = await import("@/lib/tournaments/progression");
-            await procesarAvanceCuadros(torneoId, categoria, clubId, userId);
+        if (numByes > 0 || groupResults.some(g => g.isFinished)) {
+            const { sincronizarClasificados } = await import("@/lib/tournaments/progression");
+            await sincronizarClasificados(torneoId, categoria, clubId, userId);
         }
 
         revalidatePath(`/club/torneos/${torneoId}`);

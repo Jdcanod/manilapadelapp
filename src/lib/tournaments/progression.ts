@@ -23,10 +23,15 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
     if (!allMatches || allMatches.length === 0) return;
 
     // Clasificar partidos por ronda basándose en el nombre (lugar)
-    const octavos = allMatches.filter(m => m.lugar?.toLowerCase().startsWith('octavos'));
-    const cuartos = allMatches.filter(m => m.lugar?.toLowerCase().startsWith('cuartos'));
-    const semis = allMatches.filter(m => m.lugar?.toLowerCase().startsWith('semifinal'));
-    const final = allMatches.filter(m => m.lugar?.toLowerCase().startsWith('final'));
+    const octavos = allMatches.filter(m => m.lugar?.toLowerCase().includes('octavos'));
+    const cuartos = allMatches.filter(m => m.lugar?.toLowerCase().includes('cuartos'));
+    const semis = allMatches.filter(m => m.lugar?.toLowerCase().includes('semifinal'));
+    const final = allMatches.filter(m => 
+        m.lugar?.toLowerCase().includes('final') && 
+        !m.lugar?.toLowerCase().includes('semi') && 
+        !m.lugar?.toLowerCase().includes('cuartos') && 
+        !m.lugar?.toLowerCase().includes('octavos')
+    );
 
     const getWinner = (m: { estado: string; estado_resultado?: string | null; resultado?: string | null; pareja1_id?: string | null; pareja2_id?: string | null }) => {
         if (m.estado !== 'jugado' || m.estado_resultado !== 'confirmado' || !m.resultado) return null;
@@ -183,18 +188,18 @@ export async function sincronizarClasificados(torneoId: string, categoria: strin
         for (const match of eliminatorias) {
             const updates: { pareja1_id?: string; pareja2_id?: string } = {};
             
-            // Placeholder format: "PH: 1ro Grupo A vs ..."
-            if (!match.pareja1_id && match.lugar?.includes(`1ro ${grupo.nombre_grupo}`)) {
-                if (first) updates.pareja1_id = first.parejaId;
+            // Separar el lugar para saber quién va en cada slot
+            const parts = match.lugar?.split('||')[1]?.split('vs') || [];
+            const ph1 = parts[0]?.trim() || "";
+            const ph2 = parts[1]?.trim() || "";
+
+            if (!match.pareja1_id) {
+                if (ph1.includes(`1ro ${grupo.nombre_grupo}`) && first) updates.pareja1_id = first.parejaId;
+                if (ph1.includes(`2do ${grupo.nombre_grupo}`) && second) updates.pareja1_id = second.parejaId;
             }
-            if (!match.pareja1_id && match.lugar?.includes(`2do ${grupo.nombre_grupo}`)) {
-                if (second) updates.pareja1_id = second.parejaId;
-            }
-            if (!match.pareja2_id && match.lugar?.includes(`1ro ${grupo.nombre_grupo}`)) {
-                if (first) updates.pareja2_id = first.parejaId;
-            }
-            if (!match.pareja2_id && match.lugar?.includes(`2do ${grupo.nombre_grupo}`)) {
-                if (second) updates.pareja2_id = second.parejaId;
+            if (!match.pareja2_id) {
+                if (ph2.includes(`1ro ${grupo.nombre_grupo}`) && first) updates.pareja2_id = first.parejaId;
+                if (ph2.includes(`2do ${grupo.nombre_grupo}`) && second) updates.pareja2_id = second.parejaId;
             }
 
             if (Object.keys(updates).length > 0) {
