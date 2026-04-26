@@ -79,6 +79,17 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
         return null;
     };
 
+    const getFaseLabel = (match: Match): { label: string; color: string } => {
+        const lugar = match.lugar || '';
+        const l = lugar.toLowerCase();
+        if (match.torneo_grupo_id) return { label: 'Fase de Grupos', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
+        if (l.includes('final') && !l.includes('semi') && !l.includes('cuartos') && !l.includes('octavos')) return { label: 'Gran Final', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' };
+        if (l.includes('semifinal')) return { label: 'Semifinal', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
+        if (l.includes('cuartos')) return { label: 'Cuartos de Final', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' };
+        if (l.includes('octavos')) return { label: 'Octavos de Final', color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' };
+        return { label: 'Eliminatoria', color: 'bg-neutral-500/20 text-neutral-400 border-neutral-500/30' };
+    };
+
     const isScheduled = (m: Match) => {
         if (!m.fecha || !m.lugar) return false;
         return getCanchaFromLugar(m.lugar) !== null;
@@ -212,9 +223,14 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                         `}
                                     >
                                         <div className="flex justify-between items-start mb-3">
-                                            <Badge variant="outline" className="bg-neutral-900 text-neutral-400 border-neutral-800 text-[9px] font-black uppercase">
-                                                {match.nivel || "General"}
-                                            </Badge>
+                                            <div className="flex flex-col gap-1">
+                                                <Badge variant="outline" className="bg-neutral-900 text-neutral-400 border-neutral-800 text-[9px] font-black uppercase">
+                                                    {match.nivel || "General"}
+                                                </Badge>
+                                                <Badge variant="outline" className={`text-[9px] font-black uppercase border ${getFaseLabel(match).color}`}>
+                                                    {getFaseLabel(match).label}
+                                                </Badge>
+                                            </div>
                                             <GripVertical className="w-3 h-3 text-neutral-700 group-hover:text-neutral-500 transition-colors" />
                                         </div>
                                         <div className="space-y-2">

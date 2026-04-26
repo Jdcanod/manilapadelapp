@@ -193,7 +193,7 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate }
         try {
             const res = await generarFaseEliminatoria(torneoId as string, selectedCat);
             if (res.success) {
-                toast({ title: "¡Éxito!", description: res.message });
+                toast({ title: "¡Éxito!", description: `Cuadro de ${selectedCat} generado correctamente.` });
                 router.refresh();
             } else {
                 toast({ title: "Atención", description: res.message, variant: "destructive" });
