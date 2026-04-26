@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { Badge } from "@/components/ui/badge";
-import { Swords, Loader2, RefreshCw, Settings } from "lucide-react";
+import { Swords, Loader2, RefreshCw, Trophy, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton";
