@@ -18,6 +18,8 @@ interface MatchItem {
     lugar: string | null;
     estado: string;
     fecha: string | null;
+    pareja1_id: string | null;
+    pareja2_id: string | null;
     pareja1: { nombre_pareja: string | null } | null;
     pareja2: { nombre_pareja: string | null } | null;
     resultado: string | null;
