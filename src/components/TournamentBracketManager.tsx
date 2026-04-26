@@ -237,11 +237,13 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate }
     const { toast } = useToast();
 
     const pairsMap = new Map<string, { id?: string; nombre_pareja: string | null }>();
-    partidos.forEach(p => {
+    partidos.filter(p => p.nivel === selectedCat).forEach(p => {
         if (p.pareja1?.id) pairsMap.set(p.pareja1.id, p.pareja1);
         if (p.pareja2?.id) pairsMap.set(p.pareja2.id, p.pareja2);
     });
-    const allPairs = Array.from(pairsMap.values());
+    const allPairs = Array.from(pairsMap.values()).sort((a, b) => 
+        (a.nombre_pareja || "").localeCompare(b.nombre_pareja || "")
+    );
 
     const handleGenerate = async () => {
         if (!selectedCat || !torneoId) return;
