@@ -608,7 +608,7 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
         for (const grupo of grupos) {
             const { data: matches } = await supabaseAdmin.from('partidos').select('*, pareja1:parejas!pareja1_id(nombre_pareja), pareja2:parejas!pareja2_id(nombre_pareja)').eq('torneo_grupo_id', grupo.id);
             const standings = calculateStandings(matches || []);
-            const isFinished = (matches || []).length > 0 && (matches || []).every(m => m.estado === 'jugado' && m.estado_resultado === 'confirmado');
+            const isFinished = (matches || []).length > 0 && (matches || []).every(m => m.estado === 'jugado');
             
             groupResults.push({
                 grupoId: grupo.id,

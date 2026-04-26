@@ -28,7 +28,7 @@ export function calculateStandings(matches: {
         if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: m.pareja1?.nombre_pareja || "TBD", pj: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
         if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: m.pareja2?.nombre_pareja || "TBD", pj: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
 
-        if (m.estado === 'jugado' && m.resultado && m.estado_resultado === 'confirmado') {
+        if (m.estado === 'jugado' && m.resultado) {
             const s1 = map.get(m.pareja1_id)!;
             const s2 = map.get(m.pareja2_id)!;
             
