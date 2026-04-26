@@ -1162,8 +1162,9 @@ export async function triggerSync(torneoId: string, categoria: string) {
         const { data: torneo } = await supabase.from('torneos').select('club_id').eq('id', torneoId).single();
         const clubId = torneo?.club_id || null;
 
-        const { sincronizarClasificados } = await import("@/lib/tournaments/progression");
+        const { sincronizarClasificados, procesarAvanceCuadros } = await import("@/lib/tournaments/progression");
         await sincronizarClasificados(torneoId, categoria, clubId, user.id);
+        await procesarAvanceCuadros(torneoId, categoria, clubId, user.id);
 
         revalidatePath(`/club/torneos/${torneoId}`);
         return { success: true };
