@@ -23,7 +23,7 @@ interface Props {
 
 export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(({ torneo, clubInfo, partidos, participantes, grupos }, ref) => {
     
-    const isRound = (p: any, round: string) => {
+    const isRound = (p: { lugar?: string | null }, round: string) => {
         const cleanName = p.lugar?.replace(/\[\d+\]\s*/, '').trim().toLowerCase() || '';
         if (round === 'final') return cleanName.startsWith('final');
         return cleanName.startsWith(round);
@@ -218,7 +218,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                     <div className="text-[9px] font-black text-gray-400 uppercase text-center mb-4 tracking-widest">{round.label}</div>
                                     <div className="flex-1 flex flex-col justify-around gap-4">
                                         {catMatches.filter(p => isRound(p, round.id)).sort((a, b) => {
-                                            const getIdx = (l: any) => {
+                                            const getIdx = (l: string | null) => {
                                                 const m = l?.match(/\[(\d+)\]/);
                                                 return m ? parseInt(m[1], 10) : 999;
                                             };
