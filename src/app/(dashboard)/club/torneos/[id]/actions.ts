@@ -604,7 +604,13 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
         const clubId = torneo?.club_id;
         const fechaTorneo = torneo?.fecha_inicio;
 
-        const groupResults = [];
+        const groupResults: {
+            grupoId: string;
+            nombre: string;
+            isFinished: boolean;
+            first: any;
+            second: any;
+        }[] = [];
         for (const grupo of grupos) {
             const { data: matches } = await supabaseAdmin
                 .from('partidos')
