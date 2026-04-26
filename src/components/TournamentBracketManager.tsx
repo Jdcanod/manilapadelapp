@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton";
 import { generarFaseEliminatoria } from "@/app/(dashboard)/club/torneos/[id]/actions";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useParams, useRouter } from 'next/navigation';
 
 interface MatchItem {
@@ -185,6 +185,7 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate }
     const [loading, setLoading] = useState(false);
     const { id: torneoId } = useParams();
     const router = useRouter();
+    const { toast } = useToast();
 
     const handleGenerate = async () => {
         if (!selectedCat || !torneoId) return;
