@@ -132,7 +132,7 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
     await avanzarRonda(sortByLugar(updatedSemis || semis), final, 'Final', 1);
 
     // Procesar avance de perdedores de Semifinales al Tercer Puesto
-    const tercerPuesto = allMatches.filter(m => m.lugar?.toLowerCase().startsWith('tercer puesto'));
+    const tercerPuesto = allMatches.filter(m => m.lugar?.toLowerCase().includes('tercer puesto'));
     const finalSemis = updatedSemis || semis;
     if (tercerPuesto.length > 0 && finalSemis && finalSemis.length >= 2) {
         const loser1 = getLoser(finalSemis[0]);
