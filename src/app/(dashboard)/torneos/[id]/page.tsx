@@ -11,168 +11,12 @@ import { PlayerTournamentGroups } from "@/components/PlayerTournamentGroups";
 import { BracketMatchCardClient, type MatchItem } from "@/components/BracketMatchCardClient";
 import { cn } from "@/lib/utils";
 import { TournamentChronogram } from "@/components/TournamentChronogram";
+import { PlayerBracketManager } from "@/components/PlayerBracketManager";
 
 
 
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalUserId, tipoDesempate }: { categoria: string, partidosReales: MatchItem[], playerPairIds: string[], finalUserId?: string, tipoDesempate?: string }) {
-    const matches = partidosReales.filter(p => 
-        !p.torneo_grupo_id && 
-        p.nivel?.toLowerCase() === categoria?.toLowerCase() && 
-        p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/)
-    ).sort((a, b) => {
-        const getIndex = (lugar: string | null) => {
-            const match = lugar?.match(/\[(\d+)\]/);
-            return match ? parseInt(match[1], 10) : 999;
-        };
-        const indexA = getIndex(a.lugar);
-        const indexB = getIndex(b.lugar);
-        if (indexA !== indexB) return indexA - indexB;
-        return String(a.id).localeCompare(String(b.id));
-    });
 
-    if (matches.length === 0) return null;
-
-    const partidoFinal = matches.find(p => 
-        p.lugar?.toLowerCase().includes('final') && 
-        !p.lugar?.toLowerCase().includes('semi') && 
-        !p.lugar?.toLowerCase().includes('cuartos') && 
-        !p.lugar?.toLowerCase().includes('octavos')
-    );
-    let campeon = null;
-    
-    if (partidoFinal && partidoFinal.estado === 'jugado' && partidoFinal.resultado && partidoFinal.estado_resultado === 'confirmado') {
-        const setsFinal = partidoFinal.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
-        let p1Wins = 0;
-        let p2Wins = 0;
-        setsFinal.forEach((s: number[]) => {
-            if (s[0] > s[1]) p1Wins++;
-            else if (s[1] > s[0]) p2Wins++;
-        });
-        if (p1Wins > p2Wins) campeon = partidoFinal.pareja1?.nombre_pareja;
-        else if (p2Wins > p1Wins) campeon = partidoFinal.pareja2?.nombre_pareja;
-    }
-
-    return (
-        <div className="mb-20">
-            <h4 className="text-2xl text-center font-black text-emerald-500 uppercase tracking-[0.2em] mb-8">{categoria}</h4>
-            <div className="relative z-10 flex flex-nowrap items-center justify-center gap-16 overflow-x-auto pb-12 px-4 scrollbar-hide">
-                {/* Octavos de Final */}
-                {matches.some(p => p.lugar?.toLowerCase().includes('octavos')) && (
-                    <div className="bracket-column min-w-[280px]">
-                        <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Octavos</h4>
-                        {(() => {
-                            const roundMatches = matches.filter(p => p.lugar?.toLowerCase().includes('octavos'));
-                            const pairs = [];
-                            for (let i = 0; i < roundMatches.length; i += 2) pairs.push(roundMatches.slice(i, i + 2));
-                            return pairs.map((pair, pIdx) => (
-                                <div key={pIdx} className="bracket-pair-container">
-                                    {pair.map(match => (
-                                        <div key={match.id} className="relative">
-                                            <BracketMatchCardClient match={match} playerPairIds={playerPairIds} currentUserId={finalUserId} tipoDesempate={tipoDesempate} />
-                                        </div>
-                                    ))}
-                                    <div className="bracket-pair-connector-out" />
-                                </div>
-                            ));
-                        })()}
-                    </div>
-                )}
-
-                {/* Cuartos de Final */}
-                {matches.some(p => p.lugar?.toLowerCase().includes('cuartos')) && (
-                    <div className="bracket-column min-w-[280px]">
-                        <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Cuartos</h4>
-                        {(() => {
-                            const roundMatches = matches.filter(p => p.lugar?.toLowerCase().includes('cuartos'));
-                            const pairs = [];
-                            for (let i = 0; i < roundMatches.length; i += 2) pairs.push(roundMatches.slice(i, i + 2));
-                            return pairs.map((pair, pIdx) => (
-                                <div key={pIdx} className="bracket-pair-container">
-                                    {pair.map(match => (
-                                        <div key={match.id} className="relative">
-                                            <div className="bracket-match-connector-in" />
-                                            <BracketMatchCardClient match={match} playerPairIds={playerPairIds} currentUserId={finalUserId} tipoDesempate={tipoDesempate} />
-                                        </div>
-                                    ))}
-                                    <div className="bracket-pair-connector-out" />
-                                </div>
-                            ));
-                        })()}
-                    </div>
-                )}
-
-                {/* Semifinales */}
-                {matches.some(p => p.lugar?.toLowerCase().includes('semifinal')) && (
-                    <div className="bracket-column min-w-[280px]">
-                        <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Semifinales</h4>
-                        {(() => {
-                            const roundMatches = matches.filter(p => p.lugar?.toLowerCase().includes('semifinal'));
-                            const pairs = [];
-                            for (let i = 0; i < roundMatches.length; i += 2) pairs.push(roundMatches.slice(i, i + 2));
-                            return pairs.map((pair, pIdx) => (
-                                <div key={pIdx} className="bracket-pair-container">
-                                    {pair.map(match => (
-                                        <div key={match.id} className="relative">
-                                            <div className="bracket-match-connector-in" />
-                                            <BracketMatchCardClient match={match} playerPairIds={playerPairIds} currentUserId={finalUserId} tipoDesempate={tipoDesempate} />
-                                        </div>
-                                    ))}
-                                    <div className="bracket-pair-connector-out" />
-                                </div>
-                            ));
-                        })()}
-                    </div>
-                )}
-
-                {/* Final y Campeón */}
-                <div className="flex flex-col gap-12 min-w-[320px] items-center py-12">
-                    <div className="w-full">
-                        <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-8">Gran Final</h4>
-                        <div className="relative">
-                            <div className="bracket-match-connector-in" />
-                            {matches.filter(p => 
-                                p.lugar?.toLowerCase().includes('final') && 
-                                !p.lugar?.toLowerCase().includes('semi') && 
-                                !p.lugar?.toLowerCase().includes('cuartos') && 
-                                !p.lugar?.toLowerCase().includes('octavos')
-                            ).map((match) => (
-                                <BracketMatchCardClient key={match.id} match={match} playerPairIds={playerPairIds} currentUserId={finalUserId} tipoDesempate={tipoDesempate} />
-                            ))}
-                        </div>
-                    </div>
-
-                    {matches.some(p => p.lugar?.toLowerCase().includes('tercer puesto')) && (
-                        <div className="w-full mt-12 pt-12 border-t border-neutral-800/50">
-                            <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-8">Tercer Puesto</h4>
-                            <div className="relative opacity-80 scale-95 origin-top">
-                                {matches.filter(p => p.lugar?.toLowerCase().includes('tercer puesto')).map((match) => (
-                                    <BracketMatchCardClient key={match.id} match={match} playerPairIds={playerPairIds} currentUserId={finalUserId} tipoDesempate={tipoDesempate} />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="mt-8 flex flex-col items-center relative group">
-                        <div className="absolute inset-0 bg-emerald-500/10 blur-3xl rounded-full opacity-100 transition-opacity duration-1000" />
-                        <div className={`w-24 h-24 lg:w-32 lg:h-32 rounded-full bg-gradient-to-tr from-emerald-600 to-emerald-300 flex items-center justify-center shadow-[0_0_50px_rgba(16,185,129,0.3)] relative z-10 mb-4 ${campeon ? 'animate-pulse scale-110' : ''}`}>
-                            <Trophy className="w-12 h-12 lg:w-16 lg:h-16 text-neutral-900 drop-shadow-2xl" />
-                        </div>
-                        <h5 className="text-sm font-black text-emerald-500 uppercase italic tracking-tighter drop-shadow-lg mb-2">
-                            {campeon ? '¡CAMPEÓN!' : 'Fase Final'}
-                        </h5>
-                        {campeon && (
-                            <div className="bg-emerald-500 text-black px-6 py-1.5 rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl animate-in zoom-in duration-500 max-w-[150px] text-center truncate">
-                                {campeon}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
 
 export default async function TorneoPlayerDetailsPage({ params }: { params: { id: string } }) {
     const supabase = createClient();
@@ -334,48 +178,13 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                         />
                 </TabsContent>
                 <TabsContent value="cuadros" className="mt-8">
-                    <div className="bg-neutral-950 rounded-3xl p-8 border border-neutral-900 relative overflow-hidden min-h-[500px]">
-                        <div className="flex flex-col items-center mb-16 relative z-10">
-                            <h3 className="text-3xl font-black text-white italic uppercase tracking-widest mb-4">Bracket del Torneo</h3>
-                            <div className="h-1 w-20 bg-amber-500 rounded-full" />
-                        </div>
-
-                        {partidosReales.filter(p => !p.torneo_grupo_id && p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/)).length === 0 ? (
-                            <div className="text-center py-20 bg-neutral-900/30 border-2 border-dashed border-neutral-900 rounded-3xl relative z-10">
-                                <Trophy className="w-16 h-16 text-neutral-800 mx-auto mb-4" />
-                                <p className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">El bracket se generará al finalizar grupos</p>
-                            </div>
-                        ) : (
-                            <div className="flex justify-center relative z-10 mt-8">
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline" className="border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-black text-xs uppercase tracking-widest gap-2 rounded-xl transition-all shadow-sm px-8 py-6">
-                                            <Trophy className="w-5 h-5 text-emerald-500" /> Ver Cuadros de Eliminatorias
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="max-w-[95vw] w-full max-h-[90vh] bg-neutral-950 border-neutral-900 text-white overflow-y-auto overflow-x-auto rounded-3xl p-6">
-                                        <DialogHeader className="mb-8 pb-4 border-b border-neutral-900 sticky left-0">
-                                            <DialogTitle className="text-2xl font-black italic uppercase tracking-widest text-emerald-500 flex items-center gap-3">
-                                                <Trophy className="w-6 h-6" /> Cuadro del Torneo
-                                            </DialogTitle>
-                                        </DialogHeader>
-                                        <div className="min-w-max pb-10">
-                                            {categoriasAMostrar.map((cat: string) => (
-                                                <BracketSectionClient
-                                                    key={cat}
-                                                    categoria={cat}
-                                                    partidosReales={partidosReales}
-                                                    playerPairIds={playerPairIds}
-                                                    finalUserId={finalUserId}
-                                                    tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
-                                                />
-                                            ))}
-                                        </div>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                        )}
-                    </div>
+                    <PlayerBracketManager 
+                        categorias={categoriasAMostrar} 
+                        partidos={partidosReales} 
+                        playerPairIds={playerPairIds} 
+                        currentUserId={typeof finalUserId !== 'undefined' ? finalUserId : undefined}
+                        tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
+                    />
                 </TabsContent>
 
                 <TabsContent value="cronograma" className="mt-6">
