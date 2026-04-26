@@ -19,7 +19,7 @@ import { TournamentChronogram } from "@/components/TournamentChronogram";
 function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalUserId, tipoDesempate }: { categoria: string, partidosReales: MatchItem[], playerPairIds: string[], finalUserId?: string, tipoDesempate?: string }) {
     const matches = partidosReales.filter(p => 
         !p.torneo_grupo_id && 
-        p.nivel === categoria && 
+        p.nivel?.toLowerCase() === categoria?.toLowerCase() && 
         p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/)
     ).sort((a, b) => {
         const getIndex = (lugar: string | null) => {
@@ -252,13 +252,8 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
     });
 
     // Identificar Campeón
-    const { data: inscritos } = await supabase
-        .from('torneo_parejas')
-        .select('categoria')
-        .eq('torneo_id', params.id);
-        
-    const categoriasConInscritos = Array.from(new Set((inscritos || []).map(p => p.categoria)));
-    const categoriasAMostrar = categoriasConInscritos.length > 0 ? categoriasConInscritos : ['General'];
+    const categoriasConPartidos = Array.from(new Set((rawPartidos || []).map(p => p.nivel).filter(Boolean)));
+    const categoriasAMostrar = categoriasConPartidos.length > 0 ? categoriasConPartidos : ['General'];
 
     const partidoFinal = partidosReales.find(p => p.lugar?.toLowerCase().startsWith('final'));
     let campeon = null;
