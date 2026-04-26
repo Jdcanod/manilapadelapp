@@ -231,7 +231,8 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs }: { categ
 export function TournamentBracketManager({ categorias, partidos, tipoDesempate }: { categorias: string[], partidos: MatchItem[], tipoDesempate?: string }) {
     const [selectedCat, setSelectedCat] = useState(categorias[0] || '');
     const [loading, setLoading] = useState(false);
-    const { id: torneoId } = useParams();
+    const params = useParams();
+    const torneoId = Array.isArray(params.id) ? params.id[0] : params.id;
     const router = useRouter();
     const { toast } = useToast();
 
