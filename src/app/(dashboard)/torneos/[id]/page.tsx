@@ -20,7 +20,8 @@ function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalU
         p.lugar?.toLowerCase().includes('playoff') || 
         p.lugar?.toLowerCase().includes('semifinal') ||
         p.lugar?.toLowerCase().includes('cuartos') ||
-        p.lugar?.toLowerCase().includes('octavos')
+        p.lugar?.toLowerCase().includes('octavos') ||
+        p.lugar?.toLowerCase().includes('tercer puesto')
     ));
 
     if (matches.length === 0) return null;
@@ -124,6 +125,17 @@ function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalU
                         </div>
                     </div>
 
+                    {matches.some(p => p.lugar?.toLowerCase().startsWith('tercer puesto')) && (
+                        <div className="w-full mt-12 pt-12 border-t border-neutral-800/50">
+                            <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-8">Tercer Puesto</h4>
+                            <div className="relative opacity-80 scale-95 origin-top">
+                                {matches.filter(p => p.lugar?.toLowerCase().startsWith('tercer puesto')).map((match) => (
+                                    <BracketMatchCardClient key={match.id} match={match} playerPairIds={playerPairIds} currentUserId={finalUserId} tipoDesempate={tipoDesempate} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="mt-8 flex flex-col items-center relative group">
                         <div className="absolute inset-0 bg-emerald-500/10 blur-3xl rounded-full opacity-100 transition-opacity duration-1000" />
                         <div className={`w-24 h-24 lg:w-32 lg:h-32 rounded-full bg-gradient-to-tr from-emerald-600 to-emerald-300 flex items-center justify-center shadow-[0_0_50px_rgba(16,185,129,0.3)] relative z-10 mb-4 ${campeon ? 'animate-pulse scale-110' : ''}`}>
@@ -206,7 +218,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
 
     const partidosReales = (rawPartidos || [])
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((p: any) => p.torneo_grupo_id || p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos/))
+        .filter((p: any) => p.torneo_grupo_id || p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/))
         .map(p => {
         const p1 = parejaDataMap.get(p.pareja1_id);
         const p2 = parejaDataMap.get(p.pareja2_id);

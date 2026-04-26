@@ -216,7 +216,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
 
     const partidosReales: MatchReal[] = (rawPartidos || [])
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((p: any) => p.torneo_grupo_id || p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos/))
+        .filter((p: any) => p.torneo_grupo_id || p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/))
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map((p: any) => {
         const p1 = parejaDataMap.get(p.pareja1_id);
