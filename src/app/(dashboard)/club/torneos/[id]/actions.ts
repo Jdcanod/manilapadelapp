@@ -686,30 +686,83 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
         if (targetTeams === 4) rondaName = "Semifinal";
         else if (targetTeams === 8) rondaName = "Cuartos de Final";
         else if (targetTeams === 16) rondaName = "Octavos de Final";
+        
+        // Mapeo dinámico de grupos para no depender de nombres exactos (Grupo A, Grupo B, etc)
+        const sortedGroups = [...grupos].sort((a, b) => a.nombre_grupo.localeCompare(b.nombre_grupo));
+        
+        const getSeedByPos = (groupIndex: number, position: number) => {
+            const r = groupResults.find(gr => gr.grupoId === sortedGroups[groupIndex]?.id);
+            if (!r) return { isFinished: false, parejaId: null };
+            return {
+                isFinished: r.isFinished,
+                parejaId: position === 1 ? r.first?.parejaId : r.second?.parejaId
+            };
+        };
 
         const allMatchesToCreate = [];
 
-        for (let i = 0; i < matchesData.length; i++) {
-            const { seed, opponent } = matchesData[i];
-            const hasBye = seededGroupIds.has(seed.grupoId);
-            const placeholderText = `PH: ${seed.isFinished ? '' : seed.placeholder} vs ${opponent.isFinished ? '' : opponent.placeholder}`.trim();
-            
+        // Caso 1: Semifinales (Solo 2 grupos)
+        if (grupos.length === 2) {
+            const seedA1 = getSeedByPos(0, 1);
+            const seedA2 = getSeedByPos(0, 2);
+            const seedB1 = getSeedByPos(1, 1);
+            const seedB2 = getSeedByPos(1, 2);
+
+            // A1 vs B2
             allMatchesToCreate.push({
                 torneo_id: torneoId,
                 creador_id: userId,
                 club_id: clubId,
-                pareja1_id: seed.parejaId || null,
-                pareja2_id: hasBye ? null : (opponent.parejaId || null),
-                estado: hasBye ? 'jugado' : 'programado',
+                pareja1_id: seedA1.parejaId || null,
+                pareja2_id: seedB2.parejaId || null,
+                estado: 'programado',
                 tipo_partido: 'torneo',
                 nivel: categoria,
-                lugar: `${rondaName} - ${categoria} || ${placeholderText}`,
+                lugar: `${rondaName} - ${categoria} || PH: 1ro Grupo A vs 2do Grupo B`,
                 fecha: fechaTorneo,
                 cupos_totales: 4,
-                cupos_disponibles: 0,
-                resultado: hasBye ? 'Bye' : null,
-                estado_resultado: hasBye ? 'confirmado' : null
+                cupos_disponibles: 0
             });
+
+            // B1 vs A2
+            allMatchesToCreate.push({
+                torneo_id: torneoId,
+                creador_id: userId,
+                club_id: clubId,
+                pareja1_id: seedB1.parejaId || null,
+                pareja2_id: seedA2.parejaId || null,
+                estado: 'programado',
+                tipo_partido: 'torneo',
+                nivel: categoria,
+                lugar: `${rondaName} - ${categoria} || PH: 1ro Grupo B vs 2do Grupo A`,
+                fecha: fechaTorneo,
+                cupos_totales: 4,
+                cupos_disponibles: 0
+            });
+        } else {
+            // Caso 2: Más de 2 grupos (Cuartos, Octavos, etc)
+            for (let i = 0; i < matchesData.length; i++) {
+                const { seed, opponent } = matchesData[i];
+                const hasBye = seededGroupIds.has(seed.grupoId);
+                const placeholderText = `PH: ${seed.isFinished ? '' : seed.placeholder} vs ${opponent.isFinished ? '' : opponent.placeholder}`.trim();
+                
+                allMatchesToCreate.push({
+                    torneo_id: torneoId,
+                    creador_id: userId,
+                    club_id: clubId,
+                    pareja1_id: seed.parejaId || null,
+                    pareja2_id: hasBye ? null : (opponent.parejaId || null),
+                    estado: hasBye ? 'jugado' : 'programado',
+                    tipo_partido: 'torneo',
+                    nivel: categoria,
+                    lugar: `${rondaName} - ${categoria} || ${placeholderText}`,
+                    fecha: fechaTorneo,
+                    cupos_totales: 4,
+                    cupos_disponibles: 0,
+                    resultado: hasBye ? 'Bye' : null,
+                    estado_resultado: hasBye ? 'confirmado' : null
+                });
+            }
         }
 
         // 3. Generar rondas futuras
