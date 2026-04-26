@@ -152,31 +152,31 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs }: { categ
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="relative z-10 flex flex-nowrap items-stretch justify-start md:justify-center gap-16 overflow-x-auto pb-12 px-4 scrollbar-hide min-h-[600px] pt-8">
                 {/* Octavos */}
-                {matches.some(p => p.lugar?.toLowerCase().startsWith('octavos')) && (
+                {matches.some(p => p.lugar?.toLowerCase().includes('octavos')) && (
                     <div className="flex flex-col min-w-[280px]">
                         <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8 shrink-0">Octavos</h4>
                         <div className="flex flex-col justify-around flex-1 gap-12">
-                            {renderPairs(matches.filter(p => p.lugar?.toLowerCase().startsWith('octavos')), false)}
+                            {renderPairs(matches.filter(p => p.lugar?.toLowerCase().includes('octavos')), false)}
                         </div>
                     </div>
                 )}
 
                 {/* Cuartos */}
-                {matches.some(p => p.lugar?.toLowerCase().startsWith('cuartos')) && (
+                {matches.some(p => p.lugar?.toLowerCase().includes('cuartos')) && (
                     <div className="flex flex-col min-w-[280px]">
                         <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8 shrink-0">Cuartos</h4>
                         <div className="flex flex-col justify-around flex-1 gap-12">
-                            {renderPairs(matches.filter(p => p.lugar?.toLowerCase().startsWith('cuartos')), false)}
+                            {renderPairs(matches.filter(p => p.lugar?.toLowerCase().includes('cuartos')), false)}
                         </div>
                     </div>
                 )}
 
                 {/* Semifinales */}
-                {matches.some(p => p.lugar?.toLowerCase().startsWith('semifinal')) && (
+                {matches.some(p => p.lugar?.toLowerCase().includes('semifinal')) && (
                     <div className="flex flex-col min-w-[280px]">
                         <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8 shrink-0">Semifinales</h4>
                         <div className="flex flex-col justify-around flex-1 gap-12">
-                            {renderPairs(matches.filter(p => p.lugar?.toLowerCase().startsWith('semifinal')), false)}
+                            {renderPairs(matches.filter(p => p.lugar?.toLowerCase().includes('semifinal')), false)}
                         </div>
                     </div>
                 )}
@@ -186,7 +186,7 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs }: { categ
                     <div className="flex flex-col items-center justify-center flex-1 w-full">
                         <div className="w-full relative">
                             <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8">Gran Final</h4>
-                            {matches.filter(p => p.lugar?.toLowerCase().startsWith('final')).map((match) => (
+                            {matches.filter(p => p.lugar?.toLowerCase().includes('final')).map((match) => (
                                 <BracketMatchCard key={match.id} match={match} tipoDesempate={tipoDesempate} allPairs={allPairs} />
                             ))}
                         </div>
@@ -207,13 +207,11 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs }: { categ
                         </div>
                     </div>
 
-                    {/* Tercer Puesto */}
-                    {matches.some(p => p.lugar?.toLowerCase().startsWith('tercer puesto')) && (
+                    {matches.some(p => p.lugar?.toLowerCase().includes('tercer puesto')) && (
                         <div className="w-full mt-12 pt-12 border-t border-neutral-800/50">
                             <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8">Tercer Puesto</h4>
-                            {matches.filter(p => p.lugar?.toLowerCase().startsWith('tercer puesto')).map((match) => (
+                            {matches.filter(p => p.lugar?.toLowerCase().includes('tercer puesto')).map((match) => (
                                 <div key={match.id} className="opacity-80 scale-95 origin-top relative">
-                                    {/* Line connecting to the final column if needed, but usually 3rd place stands alone visually */}
                                     <BracketMatchCard match={match} tipoDesempate={tipoDesempate} allPairs={allPairs} />
                                 </div>
                             ))}

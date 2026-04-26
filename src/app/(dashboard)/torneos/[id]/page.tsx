@@ -35,7 +35,7 @@ function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalU
 
     if (matches.length === 0) return null;
 
-    const partidoFinal = matches.find(p => p.lugar?.toLowerCase().startsWith('final'));
+    const partidoFinal = matches.find(p => p.lugar?.toLowerCase().includes('final'));
     let campeon = null;
     
     if (partidoFinal && partidoFinal.estado === 'jugado' && partidoFinal.resultado && partidoFinal.estado_resultado === 'confirmado') {
@@ -55,11 +55,11 @@ function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalU
             <h4 className="text-2xl text-center font-black text-emerald-500 uppercase tracking-[0.2em] mb-8">{categoria}</h4>
             <div className="relative z-10 flex flex-nowrap items-center justify-center gap-16 overflow-x-auto pb-12 px-4 scrollbar-hide">
                 {/* Octavos de Final */}
-                {matches.some(p => p.lugar?.toLowerCase().startsWith('octavos')) && (
+                {matches.some(p => p.lugar?.toLowerCase().includes('octavos')) && (
                     <div className="bracket-column min-w-[280px]">
                         <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Octavos</h4>
                         {(() => {
-                            const roundMatches = matches.filter(p => p.lugar?.toLowerCase().startsWith('octavos'));
+                            const roundMatches = matches.filter(p => p.lugar?.toLowerCase().includes('octavos'));
                             const pairs = [];
                             for (let i = 0; i < roundMatches.length; i += 2) pairs.push(roundMatches.slice(i, i + 2));
                             return pairs.map((pair, pIdx) => (
@@ -77,11 +77,11 @@ function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalU
                 )}
 
                 {/* Cuartos de Final */}
-                {matches.some(p => p.lugar?.toLowerCase().startsWith('cuartos')) && (
+                {matches.some(p => p.lugar?.toLowerCase().includes('cuartos')) && (
                     <div className="bracket-column min-w-[280px]">
                         <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Cuartos</h4>
                         {(() => {
-                            const roundMatches = matches.filter(p => p.lugar?.toLowerCase().startsWith('cuartos'));
+                            const roundMatches = matches.filter(p => p.lugar?.toLowerCase().includes('cuartos'));
                             const pairs = [];
                             for (let i = 0; i < roundMatches.length; i += 2) pairs.push(roundMatches.slice(i, i + 2));
                             return pairs.map((pair, pIdx) => (
@@ -100,11 +100,11 @@ function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalU
                 )}
 
                 {/* Semifinales */}
-                {matches.some(p => p.lugar?.toLowerCase().startsWith('semifinal')) && (
+                {matches.some(p => p.lugar?.toLowerCase().includes('semifinal')) && (
                     <div className="bracket-column min-w-[280px]">
                         <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Semifinales</h4>
                         {(() => {
-                            const roundMatches = matches.filter(p => p.lugar?.toLowerCase().startsWith('semifinal'));
+                            const roundMatches = matches.filter(p => p.lugar?.toLowerCase().includes('semifinal'));
                             const pairs = [];
                             for (let i = 0; i < roundMatches.length; i += 2) pairs.push(roundMatches.slice(i, i + 2));
                             return pairs.map((pair, pIdx) => (
@@ -128,17 +128,17 @@ function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalU
                         <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-8">Gran Final</h4>
                         <div className="relative">
                             <div className="bracket-match-connector-in" />
-                            {matches.filter(p => p.lugar?.toLowerCase().startsWith('final')).map((match) => (
+                            {matches.filter(p => p.lugar?.toLowerCase().includes('final')).map((match) => (
                                 <BracketMatchCardClient key={match.id} match={match} playerPairIds={playerPairIds} currentUserId={finalUserId} tipoDesempate={tipoDesempate} />
                             ))}
                         </div>
                     </div>
 
-                    {matches.some(p => p.lugar?.toLowerCase().startsWith('tercer puesto')) && (
+                    {matches.some(p => p.lugar?.toLowerCase().includes('tercer puesto')) && (
                         <div className="w-full mt-12 pt-12 border-t border-neutral-800/50">
                             <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-8">Tercer Puesto</h4>
                             <div className="relative opacity-80 scale-95 origin-top">
-                                {matches.filter(p => p.lugar?.toLowerCase().startsWith('tercer puesto')).map((match) => (
+                                {matches.filter(p => p.lugar?.toLowerCase().includes('tercer puesto')).map((match) => (
                                     <BracketMatchCardClient key={match.id} match={match} playerPairIds={playerPairIds} currentUserId={finalUserId} tipoDesempate={tipoDesempate} />
                                 ))}
                             </div>
