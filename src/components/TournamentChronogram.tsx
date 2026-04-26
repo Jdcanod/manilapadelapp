@@ -46,8 +46,22 @@ interface ChronogramProps {
 export function TournamentChronogram({ torneoId, matches: initialMatches, config, isAdmin = true, currentUserId, tipoDesempate }: ChronogramProps) {
     const { toast } = useToast();
     const router = useRouter();
+    // Cargar la fecha con más partidos programados (o hoy si no hay ninguno)
+    const getDefaultDate = () => {
+        const scheduled = initialMatches.filter(m => m.fecha && m.lugar);
+        if (scheduled.length === 0) return new Date();
+        // Contar partidos por fecha y devolver la fecha con más partidos
+        const countByDate = new Map<string, number>();
+        scheduled.forEach(m => {
+            const d = m.fecha!.split('T')[0];
+            countByDate.set(d, (countByDate.get(d) || 0) + 1);
+        });
+        const topDate = Array.from(countByDate.entries()).sort((a, b) => b[1] - a[1])[0][0];
+        return parseISO(topDate);
+    };
+
     const [matches, setMatches] = useState(initialMatches);
-    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const [selectedDate, setSelectedDate] = useState<Date>(getDefaultDate);
     const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
     const [draggedMatchId, setDraggedMatchId] = useState<string | null>(null);
