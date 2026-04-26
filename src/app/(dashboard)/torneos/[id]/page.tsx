@@ -5,10 +5,9 @@ import { ChevronLeft, CalendarDays, Trophy, MapPin } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+
 import { PlayerTournamentGroups } from "@/components/PlayerTournamentGroups";
-import { BracketMatchCardClient, type MatchItem } from "@/components/BracketMatchCardClient";
+
 import { cn } from "@/lib/utils";
 import { TournamentChronogram } from "@/components/TournamentChronogram";
 import { PlayerBracketManager } from "@/components/PlayerBracketManager";
