@@ -870,7 +870,7 @@ export async function updateMatchSchedule(matchId: string, fecha: string, cancha
 
         const targetCanchaNorm = normalizeCancha(cancha);
 
-        const conflict = otherMatches?.find(m => {
+        const conflict = otherMatches?.find((m: { id: string; fecha: string | null; lugar: string | null }) => {
             if (!m.lugar) return false;
             const mCanchaNorm = normalizeCancha(m.lugar);
             if (mCanchaNorm !== targetCanchaNorm) return false;
