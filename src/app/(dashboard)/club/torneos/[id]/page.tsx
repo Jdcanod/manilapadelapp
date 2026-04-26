@@ -264,7 +264,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     const categoriasConEliminatorias = Array.from(new Set(matchesEnEliminatorias.map(p => p.nivel).filter((n): n is string => !!n)));
     
     const todosFinalizados = categoriasConEliminatorias.length > 0 && categoriasConEliminatorias.every((cat: string) => {
-        const cData = campeonesPorCategoria.find(c => c.categoria === cat);
+        const cData = campeonesPorCategoria.find((c: { categoria: string; ganador: string | null | undefined }) => c.categoria === cat);
         return cData?.ganador; // Si tiene ganador, es que la final se jugó y confirmó
     });
 
