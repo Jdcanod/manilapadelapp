@@ -1,6 +1,6 @@
 "use client";
 // Force redeploy - Sync fix 3
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,23 +46,14 @@ interface ChronogramProps {
 export function TournamentChronogram({ torneoId, matches: initialMatches, config, isAdmin = true, currentUserId, tipoDesempate }: ChronogramProps) {
     const { toast } = useToast();
     const router = useRouter();
-    // Cargar la fecha con más partidos programados (o hoy si no hay ninguno)
-    const getDefaultDate = () => {
-        const scheduled = initialMatches.filter(m => m.fecha && m.lugar);
-        if (scheduled.length === 0) return new Date();
-        // Contar partidos por fecha y devolver la fecha con más partidos
-        const countByDate = new Map<string, number>();
-        scheduled.forEach(m => {
-            const d = m.fecha!.split('T')[0];
-            countByDate.set(d, (countByDate.get(d) || 0) + 1);
-        });
-        const topDate = Array.from(countByDate.entries()).sort((a, b) => b[1] - a[1])[0][0];
-        return parseISO(topDate);
-    };
-
     const [matches, setMatches] = useState(initialMatches);
-    const [selectedDate, setSelectedDate] = useState<Date>(getDefaultDate);
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
+
+    // Sincronizar estado cuando los props cambian (importante para router.refresh)
+    useEffect(() => {
+        setMatches(initialMatches);
+    }, [initialMatches]);
     const [isUpdating, setIsUpdating] = useState(false);
     const [draggedMatchId, setDraggedMatchId] = useState<string | null>(null);
 

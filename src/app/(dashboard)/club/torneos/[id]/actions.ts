@@ -2,7 +2,7 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 import { Participant, distributeParticipantsIntoGroups, generateMatchesForGroup } from "@/lib/tournaments/logic";
-import { createClient, createAdminClient } from "@/utils/supabase/server";
+import { createClient, createAdminClient, createPureAdminClient } from "@/utils/supabase/server";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { revalidatePath } from "next/cache";
 import { format } from "date-fns";
@@ -835,7 +835,7 @@ export async function updateMatchSchedule(matchId: string, fecha: string, cancha
         const esDelClub = String(torneoCheck?.club_id) === String(userData?.id);
         if (!esAdmin || !esDelClub) return { success: false, message: "No tienes permisos para modificar este torneo." };
 
-        const supabase = createAdminClient();
+        const supabase = createPureAdminClient();
 
         // --- VALIDACIÓN DE TRASLAPE ---
         const duracion = (torneoCheck?.reglas_puntuacion as { config_duracion?: number })?.config_duracion || 60;
@@ -949,7 +949,7 @@ export async function unscheduleMatch(matchId: string, torneoId: string) {
             return { success: false, message: "No tienes permisos para modificar este torneo." };
         }
 
-        const supabase = createAdminClient();
+        const supabase = createPureAdminClient();
 
         // 1. Obtener la fecha de inicio del torneo para usarla como fallback (evitar error NOT NULL)
         const { data: torneo } = await supabase
