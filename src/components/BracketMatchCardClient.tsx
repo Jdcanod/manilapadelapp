@@ -64,10 +64,10 @@ export function BracketMatchCardClient({ match, playerPairIds, currentUserId, ti
                 <div className="flex justify-between items-center p-3 border-b border-neutral-800/50 bg-neutral-900/50">
                     <div className="flex items-center gap-2">
                         <span className={cn(
-                            "text-[10px] uppercase tracking-widest font-black",
+                            "text-[10px] uppercase tracking-widest font-black line-clamp-2",
                             isConfirmed ? "text-emerald-500" : (isPending ? "text-amber-500" : "text-blue-500")
                         )}>
-                            {match.lugar || "Fase Final"}
+                            {match.lugar ? match.lugar.replace(/\[\d+\]\s*/, '') : "Fase Final"}
                         </span>
                         {isParticipant && (
                              <Badge variant="outline" className="text-[8px] border-amber-500/30 text-amber-500 bg-amber-500/5 uppercase h-4 px-1.5 font-black">Tu Partido</Badge>

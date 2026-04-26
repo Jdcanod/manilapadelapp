@@ -39,10 +39,10 @@ function BracketMatchCard({ match, tipoDesempate, allPairs }: { match: MatchItem
             )}
             <CardContent className="p-0 relative z-10 rounded-xl overflow-hidden">
                 <div className="flex justify-between items-center p-3 border-b border-neutral-800/50 bg-neutral-900/50">
-                    <span className="text-[10px] text-amber-500 uppercase tracking-widest font-black">
-                        {match.lugar || "Fase Final"}
+                    <span className="text-[10px] text-amber-500 uppercase tracking-widest font-black line-clamp-2">
+                        {match.lugar ? match.lugar.replace(/\[\d+\]\s*/, '') : "Fase Final"}
                     </span>
-                    <Badge variant="secondary" className={`${match.estado === 'jugado' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'} text-[10px] uppercase font-black px-2 py-0 h-4`}>
+                    <Badge variant="secondary" className={`${match.estado === 'jugado' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'} text-[10px] uppercase font-black px-2 py-0 h-4 shrink-0`}>
                         {match.estado}
                     </Badge>
                 </div>
