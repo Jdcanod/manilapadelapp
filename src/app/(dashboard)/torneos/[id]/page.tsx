@@ -15,13 +15,19 @@ import { TournamentChronogram } from "@/components/TournamentChronogram";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalUserId, tipoDesempate }: { categoria: string, partidosReales: any[], playerPairIds: string[], finalUserId?: string, tipoDesempate?: string }) {
+    const isRound = (p: any, round: string) => {
+        const cleanName = p.lugar?.replace(/\[\d+\]\s*/, '').trim().toLowerCase() || '';
+        if (round === 'final') return cleanName.startsWith('final');
+        return cleanName.startsWith(round);
+    };
+
     const matches = partidosReales.filter(p => !p.torneo_grupo_id && p.nivel === categoria && (
-        p.lugar?.toLowerCase().includes('final') || 
-        p.lugar?.toLowerCase().includes('playoff') || 
-        p.lugar?.toLowerCase().includes('semifinal') ||
-        p.lugar?.toLowerCase().includes('cuartos') ||
-        p.lugar?.toLowerCase().includes('octavos') ||
-        p.lugar?.toLowerCase().includes('tercer puesto')
+        isRound(p, 'final') || 
+        isRound(p, 'playoff') || 
+        isRound(p, 'semifinal') ||
+        isRound(p, 'cuartos') ||
+        isRound(p, 'octavos') ||
+        isRound(p, 'tercer puesto')
     )).sort((a, b) => {
         const getIndex = (lugar: string | null) => {
             const match = lugar?.match(/\[(\d+)\]/);
@@ -35,7 +41,7 @@ function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalU
 
     if (matches.length === 0) return null;
 
-    const partidoFinal = matches.find(p => p.lugar?.toLowerCase().includes('final'));
+    const partidoFinal = matches.find(p => isRound(p, 'final'));
     let campeon = null;
     
     if (partidoFinal && partidoFinal.estado === 'jugado' && partidoFinal.resultado && partidoFinal.estado_resultado === 'confirmado') {
@@ -55,11 +61,11 @@ function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalU
             <h4 className="text-2xl text-center font-black text-emerald-500 uppercase tracking-[0.2em] mb-8">{categoria}</h4>
             <div className="relative z-10 flex flex-nowrap items-center justify-center gap-16 overflow-x-auto pb-12 px-4 scrollbar-hide">
                 {/* Octavos de Final */}
-                {matches.some(p => p.lugar?.toLowerCase().includes('octavos')) && (
+                {matches.some(p => isRound(p, 'octavos')) && (
                     <div className="bracket-column min-w-[280px]">
                         <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Octavos</h4>
                         {(() => {
-                            const roundMatches = matches.filter(p => p.lugar?.toLowerCase().includes('octavos'));
+                            const roundMatches = matches.filter(p => isRound(p, 'octavos'));
                             const pairs = [];
                             for (let i = 0; i < roundMatches.length; i += 2) pairs.push(roundMatches.slice(i, i + 2));
                             return pairs.map((pair, pIdx) => (
@@ -77,11 +83,11 @@ function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalU
                 )}
 
                 {/* Cuartos de Final */}
-                {matches.some(p => p.lugar?.toLowerCase().includes('cuartos')) && (
+                {matches.some(p => isRound(p, 'cuartos')) && (
                     <div className="bracket-column min-w-[280px]">
                         <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Cuartos</h4>
                         {(() => {
-                            const roundMatches = matches.filter(p => p.lugar?.toLowerCase().includes('cuartos'));
+                            const roundMatches = matches.filter(p => isRound(p, 'cuartos'));
                             const pairs = [];
                             for (let i = 0; i < roundMatches.length; i += 2) pairs.push(roundMatches.slice(i, i + 2));
                             return pairs.map((pair, pIdx) => (
@@ -100,11 +106,11 @@ function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalU
                 )}
 
                 {/* Semifinales */}
-                {matches.some(p => p.lugar?.toLowerCase().includes('semifinal')) && (
+                {matches.some(p => isRound(p, 'semifinal')) && (
                     <div className="bracket-column min-w-[280px]">
                         <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-4">Semifinales</h4>
                         {(() => {
-                            const roundMatches = matches.filter(p => p.lugar?.toLowerCase().includes('semifinal'));
+                            const roundMatches = matches.filter(p => isRound(p, 'semifinal'));
                             const pairs = [];
                             for (let i = 0; i < roundMatches.length; i += 2) pairs.push(roundMatches.slice(i, i + 2));
                             return pairs.map((pair, pIdx) => (
@@ -128,17 +134,17 @@ function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalU
                         <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-8">Gran Final</h4>
                         <div className="relative">
                             <div className="bracket-match-connector-in" />
-                            {matches.filter(p => p.lugar?.toLowerCase().includes('final')).map((match) => (
+                            {matches.filter(p => isRound(p, 'final')).map((match) => (
                                 <BracketMatchCardClient key={match.id} match={match} playerPairIds={playerPairIds} currentUserId={finalUserId} tipoDesempate={tipoDesempate} />
                             ))}
                         </div>
                     </div>
 
-                    {matches.some(p => p.lugar?.toLowerCase().includes('tercer puesto')) && (
+                    {matches.some(p => isRound(p, 'tercer puesto')) && (
                         <div className="w-full mt-12 pt-12 border-t border-neutral-800/50">
                             <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-8">Tercer Puesto</h4>
                             <div className="relative opacity-80 scale-95 origin-top">
-                                {matches.filter(p => p.lugar?.toLowerCase().includes('tercer puesto')).map((match) => (
+                                {matches.filter(p => isRound(p, 'tercer puesto')).map((match) => (
                                     <BracketMatchCardClient key={match.id} match={match} playerPairIds={playerPairIds} currentUserId={finalUserId} tipoDesempate={tipoDesempate} />
                                 ))}
                             </div>
