@@ -581,6 +581,15 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
         const userId = user?.id;
         if (!userId) return { success: false, message: "Debes estar autenticado." };
 
+        // 0. Limpieza de llaves previas para ESTA categoría (evitar duplicados al re-sortear)
+        await supabaseAdmin
+            .from('partidos')
+            .delete()
+            .eq('torneo_id', torneoId)
+            .eq('nivel', categoria)
+            .is('torneo_grupo_id', null)
+            .not('lugar', 'is', null); // Solo borrar los que tienen ronda (Octavos, Cuartos, etc)
+
         // 1. Obtener grupos y sus posiciones (top 2 de cada uno)
         const { data: grupos } = await supabaseAdmin
             .from('torneo_grupos')

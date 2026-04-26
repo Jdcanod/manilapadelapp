@@ -10,6 +10,7 @@ import { AdminParticipantActions } from "@/components/AdminParticipantActions";
 import { Card, CardContent } from "@/components/ui/card";
 
 import { TournamentGroupsManager } from "@/components/TournamentGroupsManager";
+import { TournamentBracketManager } from "@/components/TournamentBracketManager";
 import { AddTournamentPlayerModal } from "@/components/AddTournamentPlayerModal";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton";
@@ -649,33 +650,11 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
 
                 <TabsContent value="eliminatorias" className="mt-6">
                     <div className="space-y-12">
-                        {/* SECCIÓN FASE FINAL / PLAYOFFS */}
-                        <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden min-h-[600px]">
-                            {/* Fondo Decorativo */}
-                            <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent pointer-events-none" />
-                            
-                            <div className="flex flex-col items-center mb-16 relative z-10">
-                                <h3 className="text-4xl font-black text-white italic uppercase tracking-[0.2em] mb-2 drop-shadow-lg text-center">Fases Finales (Llaves)</h3>
-                                <div className="h-1 w-32 bg-amber-500 rounded-full mb-4" />
-                                <Badge className="bg-amber-500 text-black font-black px-6 py-1 text-sm tracking-widest animate-pulse uppercase">Modo Eliminatorias</Badge>
-                            </div>
-
-                            {partidosReales.filter(p => !p.torneo_grupo_id && p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos/)).length === 0 ? (
-                                <div className="text-center py-20 text-neutral-500 border-2 border-neutral-800 border-dashed rounded-3xl bg-neutral-950/50 relative z-10">
-                                    <Trophy className="w-20 h-20 text-neutral-800 mx-auto mb-6" />
-                                    <p className="max-w-xs mx-auto text-sm font-bold uppercase tracking-wider opacity-50">El cuadro se generará una vez finalices la fase de grupos</p>
-                                </div>
-                            ) : (
-                                 categoriasAMostrar.map((cat: string) => (
-                                     <BracketSection 
-                                         key={cat} 
-                                         categoria={cat} 
-                                         partidosReales={partidosReales} 
-                                         tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate} 
-                                     />
-                                 ))
-                            )}
-                        </div>
+                        <TournamentBracketManager 
+                            categorias={categoriasAMostrar} 
+                            partidos={partidosReales} 
+                            tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate} 
+                        />
 
                         {/* SECCIÓN HISTORIAL DE GRUPOS */}
                         <div className="opacity-60 hover:opacity-100 transition-opacity">
