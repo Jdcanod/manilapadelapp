@@ -13,8 +13,21 @@ import { cn } from "@/lib/utils";
 import { TournamentChronogram } from "@/components/TournamentChronogram";
 
 
+interface MatchItem {
+    id: string;
+    lugar: string | null;
+    estado: string;
+    fecha: string | null;
+    pareja1: { nombre_pareja: string | null } | null;
+    pareja2: { nombre_pareja: string | null } | null;
+    resultado: string | null;
+    torneo_grupo_id: string | null;
+    estado_resultado?: string | null;
+    nivel?: string | null;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalUserId, tipoDesempate }: { categoria: string, partidosReales: any[], playerPairIds: string[], finalUserId?: string, tipoDesempate?: string }) {
+function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalUserId, tipoDesempate }: { categoria: string, partidosReales: MatchItem[], playerPairIds: string[], finalUserId?: string, tipoDesempate?: string }) {
     const matches = partidosReales.filter(p => 
         !p.torneo_grupo_id && 
         p.nivel === categoria && 
@@ -135,7 +148,7 @@ function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalU
                                 !p.lugar?.toLowerCase().includes('semi') && 
                                 !p.lugar?.toLowerCase().includes('cuartos') && 
                                 !p.lugar?.toLowerCase().includes('octavos')
-                            ).map((match: any) => (
+                            ).map((match) => (
                                 <BracketMatchCardClient key={match.id} match={match} playerPairIds={playerPairIds} currentUserId={finalUserId} tipoDesempate={tipoDesempate} />
                             ))}
                         </div>
@@ -145,7 +158,7 @@ function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalU
                         <div className="w-full mt-12 pt-12 border-t border-neutral-800/50">
                             <h4 className="text-center text-[10px] font-black text-neutral-600 uppercase tracking-[0.4em] mb-8">Tercer Puesto</h4>
                             <div className="relative opacity-80 scale-95 origin-top">
-                                {matches.filter(p => p.lugar?.toLowerCase().includes('tercer puesto')).map((match: any) => (
+                                {matches.filter(p => p.lugar?.toLowerCase().includes('tercer puesto')).map((match) => (
                                     <BracketMatchCardClient key={match.id} match={match} playerPairIds={playerPairIds} currentUserId={finalUserId} tipoDesempate={tipoDesempate} />
                                 ))}
                             </div>
