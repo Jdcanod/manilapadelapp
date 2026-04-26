@@ -92,6 +92,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
         if (l.includes('semifinal')) return { label: 'Semifinal', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
         if (l.includes('cuartos')) return { label: 'Cuartos de Final', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' };
         if (l.includes('octavos')) return { label: 'Octavos de Final', color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' };
+        if (l.includes('tercer puesto')) return { label: 'Tercer Puesto', color: 'bg-neutral-500/20 text-neutral-300 border-neutral-500/30' };
         return { label: 'Eliminatoria', color: 'bg-neutral-500/20 text-neutral-400 border-neutral-500/30' };
     };
 
