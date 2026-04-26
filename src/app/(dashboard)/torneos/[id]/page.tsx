@@ -15,7 +15,7 @@ import { TournamentChronogram } from "@/components/TournamentChronogram";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalUserId, tipoDesempate }: { categoria: string, partidosReales: any[], playerPairIds: string[], finalUserId?: string, tipoDesempate?: string }) {
-    const isRound = (p: any, round: string) => {
+    const isRound = (p: { lugar?: string | null }, round: string) => {
         const cleanName = p.lugar?.replace(/\[\d+\]\s*/, '').trim().toLowerCase() || '';
         if (round === 'final') return cleanName.startsWith('final');
         return cleanName.startsWith(round);
