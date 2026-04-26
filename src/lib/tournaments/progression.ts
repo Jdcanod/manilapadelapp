@@ -27,6 +27,7 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
         return m ? parseInt(m[1], 10) : 999;
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sortByLugar = (matches: any[]) => [...matches].sort((a, b) => getIdx(a.lugar) - getIdx(b.lugar));
 
     // Clasificar partidos por ronda basándose en el nombre (lugar)
