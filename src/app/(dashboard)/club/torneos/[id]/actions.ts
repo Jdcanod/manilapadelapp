@@ -902,7 +902,7 @@ export async function updateMatchSchedule(matchId: string, fecha: string, cancha
         let nuevoLugar = cancha;
         if (partido?.lugar) {
             // Eliminar prefijo de cancha existente si lo hay (ej: "Cancha 1 | " o "Cancha 1 ")
-            let cleanLugar = partido.lugar.replace(/^Cancha\s*\d+\s*\|?\s*/i, '').trim();
+            const cleanLugar = partido.lugar.replace(/^Cancha\s*\d+\s*\|?\s*/i, '').trim();
             if (cleanLugar && cleanLugar.toLowerCase() !== cancha.toLowerCase()) {
                 nuevoLugar = `${cancha} | ${cleanLugar}`;
             }
