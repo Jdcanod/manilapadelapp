@@ -11,7 +11,6 @@ import { AdminParticipantActions } from "@/components/AdminParticipantActions";
 import { TournamentGroupsManager } from "@/components/TournamentGroupsManager";
 import { TournamentBracketManager } from "@/components/TournamentBracketManager";
 import { AddTournamentPlayerModal } from "@/components/AddTournamentPlayerModal";
-import { AddTournamentPlayerModal } from "@/components/AddTournamentPlayerModal";
 import { TournamentChronogram } from "@/components/TournamentChronogram";
 import { TournamentExportButton } from "@/components/TournamentExportButton";
 
