@@ -9,7 +9,7 @@ import { PlayerTournamentResultModal } from "./PlayerTournamentResultModal";
 import { confirmarResultado } from "@/app/(dashboard)/torneos/actions";
 import { cn } from "@/lib/utils";
 
-interface MatchItem {
+export interface MatchItem {
     id: string;
     lugar: string | null;
     estado: string;

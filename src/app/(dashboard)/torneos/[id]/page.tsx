@@ -8,25 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { PlayerTournamentGroups } from "@/components/PlayerTournamentGroups";
-import { BracketMatchCardClient } from "@/components/BracketMatchCardClient";
+import { BracketMatchCardClient, type MatchItem } from "@/components/BracketMatchCardClient";
 import { cn } from "@/lib/utils";
 import { TournamentChronogram } from "@/components/TournamentChronogram";
 
 
-interface MatchItem {
-    id: string;
-    lugar: string | null;
-    estado: string;
-    fecha: string | null;
-    pareja1_id: string | null;
-    pareja2_id: string | null;
-    pareja1: { nombre_pareja: string | null } | null;
-    pareja2: { nombre_pareja: string | null } | null;
-    resultado: string | null;
-    torneo_grupo_id: string | null;
-    estado_resultado?: string | null;
-    nivel?: string | null;
-}
+
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function BracketSectionClient({ categoria, partidosReales, playerPairIds, finalUserId, tipoDesempate }: { categoria: string, partidosReales: MatchItem[], playerPairIds: string[], finalUserId?: string, tipoDesempate?: string }) {
