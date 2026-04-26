@@ -205,10 +205,13 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate }
         }
     };
 
-    const eliminatoriasPartidos = partidos.filter(p => 
-        !p.torneo_grupo_id && 
-        p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos/)
-    );
+    const eliminatoriasPartidos = partidos
+        .filter(p => 
+            !p.torneo_grupo_id && 
+            p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos/)
+        )
+        .sort((a, b) => String(a.id).localeCompare(String(b.id)));
+
 
     return (
         <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden min-h-[600px]">
