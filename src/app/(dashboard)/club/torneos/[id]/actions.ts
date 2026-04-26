@@ -608,8 +608,8 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
             grupoId: string;
             nombre: string;
             isFinished: boolean;
-            first: any;
-            second: any;
+            first: { parejaId: string; nombre: string; pts: number; sg: number; sp: number; gg: number; gp: number } | null;
+            second: { parejaId: string; nombre: string; pts: number; sg: number; sp: number; gg: number; gp: number } | null;
         }[] = [];
         for (const grupo of grupos) {
             const { data: matches } = await supabaseAdmin
