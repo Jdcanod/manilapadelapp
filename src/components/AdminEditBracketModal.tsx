@@ -41,8 +41,8 @@ export function AdminEditBracketModal({ matchId, currentPareja1Id, currentPareja
                 } else {
                     toast({ title: "Error", description: res.message, variant: "destructive" });
                 }
-            } catch (err: any) {
-                toast({ title: "Error", description: err.message || "No se pudo actualizar", variant: "destructive" });
+            } catch (err: unknown) {
+                toast({ title: "Error", description: (err as Error).message || "No se pudo actualizar", variant: "destructive" });
             }
         });
     };
