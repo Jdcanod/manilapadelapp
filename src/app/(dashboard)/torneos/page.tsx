@@ -52,15 +52,23 @@ export default async function TorneosPage() {
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                     {torneosFiltrados.map((torneo) => {
                         const hasPartidos = torneo.partidos && torneo.partidos.length > 0;
+                        
+                        interface MatchSubset {
+                            lugar: string | null;
+                            nivel: string | null;
+                            estado: string;
+                            estado_resultado: string | null;
+                        }
+
                         // Un torneo se considera finalizado solo si TODAS sus categorías con eliminatorias tienen una final jugada y confirmada
-                        const elims = (torneo.partidos || []).filter((p: any) => 
+                        const elims = (torneo.partidos as unknown as MatchSubset[] || []).filter((p) => 
                             p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/)
                         );
                         
-                        const categoriesInElims = Array.from(new Set(elims.map((p: any) => p.nivel).filter((n): n is string => !!n)));
+                        const categoriesInElims = Array.from(new Set(elims.map((p) => p.nivel).filter((n): n is string => !!n)));
                         const isFinalizado = categoriesInElims.length > 0 && categoriesInElims.every((cat: string) => {
-                            const catMatches = elims.filter((p: any) => p.nivel === cat);
-                            const catFinal = catMatches.find((p: any) => 
+                            const catMatches = elims.filter((p) => p.nivel === cat);
+                            const catFinal = catMatches.find((p) => 
                                 p.lugar?.toLowerCase().includes('final') && 
                                 !p.lugar?.toLowerCase().includes('semifinal') &&
                                 !p.lugar?.toLowerCase().includes('cuartos') &&
