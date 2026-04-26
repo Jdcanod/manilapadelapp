@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton";
 import { generarFaseEliminatoria, triggerSync } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useParams, useRouter } from 'next/navigation';
 import { cn } from "@/lib/utils";
@@ -81,8 +82,23 @@ function BracketMatchCard({ match, tipoDesempate, allPairs }: { match: MatchItem
                     )}
                     
                     {match.estado_resultado === 'confirmado' && (
-                        <div className="flex items-center justify-center gap-2 text-emerald-500 font-black text-[10px] uppercase bg-emerald-500/5 p-2 rounded-lg border border-emerald-500/10">
-                            <Check className="w-3 h-3" /> Resultado Verificado
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-center gap-2 text-emerald-500 font-black text-[10px] uppercase bg-emerald-500/5 p-2 rounded-lg border border-emerald-500/10">
+                                <Check className="w-3 h-3" /> Resultado Verificado
+                            </div>
+                            <button
+                                onClick={async () => {
+                                    if (window.confirm("¿Estás seguro de reiniciar este resultado? Esto permitirá volver a ingresar el marcador.")) {
+                                        const res = await reiniciarResultado(match.id);
+                                        if (res.success) {
+                                            window.location.reload();
+                                        }
+                                    }
+                                }}
+                                className="w-full py-1 text-[9px] font-black uppercase text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                            >
+                                Reiniciar Resultado
+                            </button>
                         </div>
                     )}
 
