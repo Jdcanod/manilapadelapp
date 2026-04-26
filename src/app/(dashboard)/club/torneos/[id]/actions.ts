@@ -606,9 +606,17 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
 
         const groupResults = [];
         for (const grupo of grupos) {
-            const { data: matches } = await supabaseAdmin.from('partidos').select('*, pareja1:parejas!pareja1_id(nombre_pareja), pareja2:parejas!pareja2_id(nombre_pareja)').eq('torneo_grupo_id', grupo.id);
+            const { data: matches } = await supabaseAdmin
+                .from('partidos')
+                .select('*, pareja1:parejas!pareja1_id(nombre_pareja), pareja2:parejas!pareja2_id(nombre_pareja)')
+                .eq('torneo_grupo_id', grupo.id);
+            
+            const totalMatches = matches?.length || 0;
+            const playedMatches = matches?.filter(m => m.estado === 'jugado' || m.resultado).length || 0;
+            
             const standings = calculateStandings(matches || []);
-            const isFinished = (matches || []).length > 0 && (matches || []).every(m => m.estado === 'jugado');
+            // Lógica propuesta: Si el total de partidos programados es igual a los jugados, el grupo está cerrado.
+            const isFinished = totalMatches > 0 && playedMatches >= totalMatches;
             
             groupResults.push({
                 grupoId: grupo.id,
