@@ -232,32 +232,44 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         } as MatchReal;
     });
 
-    // Identificar Ganador y Finalista del torneo (buscar la final sin importar si tiene cancha asignada)
-    const partidoFinal = partidosReales.find(p => 
-        p.lugar?.toLowerCase().includes('final') && 
-        !p.lugar?.toLowerCase().includes('semifinal') &&
-        p.estado === 'jugado'
-    );
-    let campeon = null;
-    let subcampeon = null;
-    
-    if (partidoFinal && partidoFinal.estado === 'jugado' && partidoFinal.resultado && partidoFinal.estado_resultado === 'confirmado') {
-        const setsFinal = String(partidoFinal.resultado).split(',').map((s: string) => s.trim().split('-').map(Number));
-        let p1Wins = 0;
-        let p2Wins = 0;
-        setsFinal.forEach((s: number[]) => {
-            if (s[0] > s[1]) p1Wins++;
-            else if (s[1] > s[0]) p2Wins++;
-        });
+    // Identificar Campeones y estado de finalización
+    const campeonesPorCategoria = categoriasAMostrar.map(cat => {
+        const matchesCat = partidosReales.filter(p => p.nivel?.toLowerCase() === cat.toLowerCase());
+        const finalCat = matchesCat.find(p => 
+            p.lugar?.toLowerCase().includes('final') && 
+            !p.lugar?.toLowerCase().includes('semi') &&
+            !p.lugar?.toLowerCase().includes('cuartos') &&
+            !p.lugar?.toLowerCase().includes('octavos')
+        );
         
-        if (p1Wins > p2Wins) {
-            campeon = partidoFinal.pareja1?.nombre_pareja;
-            subcampeon = partidoFinal.pareja2?.nombre_pareja;
-        } else if (p2Wins > p1Wins) {
-            campeon = partidoFinal.pareja2?.nombre_pareja;
-            subcampeon = partidoFinal.pareja1?.nombre_pareja;
+        let ganador = null;
+        let segundo = null;
+        if (finalCat?.estado === 'jugado' && finalCat?.resultado && finalCat?.estado_resultado === 'confirmado') {
+            const sets = String(finalCat.resultado).split(',').map((s: string) => s.trim().split('-').map(Number));
+            let p1 = 0, p2 = 0;
+            sets.forEach((s: number[]) => { if (s[0] > s[1]) p1++; else if (s[1] > s[0]) p2++; });
+            if (p1 > p2) {
+                ganador = finalCat.pareja1?.nombre_pareja;
+                segundo = finalCat.pareja2?.nombre_pareja;
+            } else {
+                ganador = finalCat.pareja2?.nombre_pareja;
+                segundo = finalCat.pareja1?.nombre_pareja;
+            }
         }
-    }
+        return { categoria: cat, ganador, segundo, tieneFinal: !!finalCat };
+    });
+
+    // Un torneo está finalizado solo si TODAS las categorías que tienen partidos han terminado sus finales
+    const matchesEnEliminatorias = partidosReales.filter(p => !p.torneo_grupo_id);
+    const categoriasConEliminatorias = Array.from(new Set(matchesEnEliminatorias.map(p => p.nivel).filter(Boolean)));
+    
+    const todosFinalizados = categoriasConEliminatorias.length > 0 && categoriasConEliminatorias.every(cat => {
+        const cData = campeonesPorCategoria.find(c => c.categoria === cat);
+        return cData?.ganador; // Si tiene ganador, es que la final se jugó y confirmó
+    });
+
+    const campeonParaHeader = (categoriasAMostrar.length === 1) ? campeonesPorCategoria[0].ganador : null;
+    const subcampeonParaHeader = (categoriasAMostrar.length === 1) ? campeonesPorCategoria[0].segundo : null;
 
     const isPast = new Date(torneo.fecha_fin) < new Date();
     const isUpcoming = new Date(torneo.fecha_inicio) > new Date();
@@ -265,7 +277,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     let statusColor = "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
     let statusText = "Torneo En Curso";
 
-    if (campeon) {
+    if (todosFinalizados) {
         statusColor = "bg-neutral-800 text-neutral-400 border-neutral-700";
         statusText = "Finalizado";
     } else if (isPast) {
@@ -295,7 +307,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                 <Badge variant="outline" className={statusColor}>
                                     {statusText}
                                 </Badge>
-                                {campeon && (
+                                {todosFinalizados && (
                                     <Badge className="bg-amber-500 text-black font-black uppercase tracking-widest text-[10px] animate-pulse">
                                         ¡Torneo Finalizado!
                                     </Badge>
@@ -332,15 +344,17 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                         />
                     </div>
 
-                    {campeon && (
+                    {campeonParaHeader && (
                         <div className="bg-neutral-900 border border-amber-500/30 p-4 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-right duration-500">
                             <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/20">
                                 <Trophy className="w-6 h-6 text-amber-500" />
                             </div>
                             <div>
                                 <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest leading-none mb-1">Campeón</p>
-                                <p className="text-lg font-black text-white uppercase italic tracking-tighter leading-none mb-1">{campeon}</p>
-                                <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-tighter">Subcampeón: {subcampeon}</p>
+                                <p className="text-lg font-black text-white uppercase italic tracking-tighter leading-none mb-1">{campeonParaHeader}</p>
+                                {subcampeonParaHeader && (
+                                    <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-tighter">Subcampeón: {subcampeonParaHeader}</p>
+                                )}
                             </div>
                         </div>
                     )}

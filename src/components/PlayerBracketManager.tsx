@@ -23,13 +23,20 @@ function BracketSection({ categoria, matches, playerPairIds, currentUserId, tipo
         !p.lugar?.toLowerCase().includes('octavos')
     );
     let campeon = null;
+    let subcampeon = null;
     
     if (partidoFinal && partidoFinal.estado === 'jugado' && partidoFinal.resultado && partidoFinal.estado_resultado === 'confirmado') {
         const setsFinal = partidoFinal.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
         let p1Wins = 0, p2Wins = 0;
         setsFinal.forEach((s: number[]) => { if (s[0] > s[1]) p1Wins++; else if (s[1] > s[0]) p2Wins++; });
-        if (p1Wins > p2Wins) campeon = partidoFinal.pareja1?.nombre_pareja;
-        else if (p2Wins > p1Wins) campeon = partidoFinal.pareja2?.nombre_pareja;
+        
+        if (p1Wins > p2Wins) {
+            campeon = partidoFinal.pareja1?.nombre_pareja;
+            subcampeon = partidoFinal.pareja2?.nombre_pareja;
+        } else if (p2Wins > p1Wins) {
+            campeon = partidoFinal.pareja2?.nombre_pareja;
+            subcampeon = partidoFinal.pareja1?.nombre_pareja;
+        }
     }
 
     const renderPairs = (matchesList: MatchItem[]) => {
@@ -115,8 +122,15 @@ function BracketSection({ categoria, matches, playerPairIds, currentUserId, tipo
                                 {campeon ? '¡CAMPEÓN!' : 'Fase Final'}
                             </h5>
                             {campeon && (
-                                <div className="bg-emerald-500 text-black px-6 py-1.5 rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl animate-in zoom-in duration-500 max-w-[150px] text-center truncate">
-                                    {campeon}
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="bg-emerald-500 text-black px-6 py-1.5 rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl animate-in zoom-in duration-500 max-w-[200px] text-center truncate">
+                                        {campeon}
+                                    </div>
+                                    {subcampeon && (
+                                        <div className="text-[9px] font-black text-neutral-500 uppercase tracking-widest bg-neutral-950 px-4 py-1 rounded-full border border-neutral-800">
+                                            Sub: {subcampeon}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

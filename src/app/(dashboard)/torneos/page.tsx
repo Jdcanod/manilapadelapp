@@ -52,12 +52,22 @@ export default async function TorneosPage() {
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                     {torneosFiltrados.map((torneo) => {
                         const hasPartidos = torneo.partidos && torneo.partidos.length > 0;
-                        const isFinalizado = hasPartidos && torneo.partidos.some((p: { lugar?: string | null, estado?: string, estado_resultado?: string }) => 
-                            p.lugar?.toLowerCase().includes('final') && 
-                            !p.lugar?.toLowerCase().includes('semifinal') && 
-                            p.estado === 'jugado' &&
-                            p.estado_resultado === 'confirmado'
+                        // Un torneo se considera finalizado solo si TODAS sus categorías con eliminatorias tienen una final jugada y confirmada
+                        const elims = (torneo.partidos || []).filter((p: any) => 
+                            p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/)
                         );
+                        
+                        const categoriesInElims = Array.from(new Set(elims.map((p: any) => p.nivel).filter(Boolean)));
+                        const isFinalizado = categoriesInElims.length > 0 && categoriesInElims.every(cat => {
+                            const catMatches = elims.filter((p: any) => p.nivel === cat);
+                            const catFinal = catMatches.find((p: any) => 
+                                p.lugar?.toLowerCase().includes('final') && 
+                                !p.lugar?.toLowerCase().includes('semifinal') &&
+                                !p.lugar?.toLowerCase().includes('cuartos') &&
+                                !p.lugar?.toLowerCase().includes('octavos')
+                            );
+                            return catFinal?.estado === 'jugado' && catFinal?.estado_resultado === 'confirmado';
+                        });
 
                         let statusColor = "bg-blue-500/20 text-blue-400 border-blue-500/30";
                         let statusText = "Inscripciones Abiertas";

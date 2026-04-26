@@ -94,19 +94,36 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
         };
     });
 
-    // Identificar Campeón
-    const categoriasConPartidos = Array.from(new Set((rawPartidos || []).map(p => p.nivel).filter(Boolean)));
-    const categoriasAMostrar = categoriasConPartidos.length > 0 ? categoriasConPartidos : ['General'];
+    // Identificar Campeones y estado de finalización
+    const campeonesPorCategoria = categoriasAMostrar.map(cat => {
+        const matchesCat = partidosReales.filter(p => p.nivel?.toLowerCase() === cat.toLowerCase());
+        const finalCat = matchesCat.find(p => 
+            p.lugar?.toLowerCase().includes('final') && 
+            !p.lugar?.toLowerCase().includes('semi') &&
+            !p.lugar?.toLowerCase().includes('cuartos') &&
+            !p.lugar?.toLowerCase().includes('octavos')
+        );
+        
+        let ganador = null;
+        if (finalCat?.estado === 'jugado' && finalCat?.resultado && finalCat?.estado_resultado === 'confirmado') {
+            const sets = String(finalCat.resultado).split(',').map((s: string) => s.trim().split('-').map(Number));
+            let p1 = 0, p2 = 0;
+            sets.forEach((s: number[]) => { if (s[0] > s[1]) p1++; else if (s[1] > s[0]) p2++; });
+            ganador = p1 > p2 ? finalCat.pareja1?.nombre_pareja : finalCat.pareja2?.nombre_pareja;
+        }
+        return { categoria: cat, ganador, tieneFinal: !!finalCat };
+    });
 
-    const partidoFinal = partidosReales.find(p => p.lugar?.toLowerCase().startsWith('final'));
-    let campeon = null;
-    if (partidoFinal?.estado === 'jugado' && partidoFinal?.resultado && partidoFinal?.estado_resultado === 'confirmado') {
-        const sets = partidoFinal.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
-        let p1 = 0, p2 = 0;
-        sets.forEach((s: number[]) => s[0] > s[1] ? p1++ : p2++);
-        if (p1 > p2) { campeon = partidoFinal.pareja1?.nombre_pareja; }
-        else { campeon = partidoFinal.pareja2?.nombre_pareja; }
-    }
+    // Un torneo está finalizado solo si TODAS las categorías que tienen partidos han terminado sus finales
+    const matchesEnEliminatorias = partidosReales.filter(p => !p.torneo_grupo_id);
+    const categoriasConEliminatorias = Array.from(new Set(matchesEnEliminatorias.map(p => p.nivel).filter(Boolean)));
+    
+    const todosFinalizados = categoriasConEliminatorias.length > 0 && categoriasConEliminatorias.every(cat => {
+        const cData = campeonesPorCategoria.find(c => c.categoria === cat);
+        return cData?.ganador; // Si tiene ganador, es que la final se jugó y confirmó
+    });
+
+    const campeonParaHeader = (categoriasAMostrar.length === 1) ? campeonesPorCategoria[0].ganador : null;
 
     // Obtener grupos del torneo con admin client
     const { data: grupos } = await adminSupabase
@@ -131,9 +148,9 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                              </Link>
                              <Badge variant="outline" className={cn(
                                  "text-[10px] uppercase font-black px-3",
-                                 campeon ? "border-neutral-700 text-neutral-400 bg-neutral-800/10" : "border-emerald-500/30 text-emerald-400 bg-emerald-500/5"
+                                 todosFinalizados ? "border-neutral-700 text-neutral-400 bg-neutral-800/10" : "border-emerald-500/30 text-emerald-400 bg-emerald-500/5"
                              )}>
-                                 {campeon ? "Finalizado" : (isPast ? "Finalizando" : "En Curso")}
+                                 {todosFinalizados ? "Finalizado" : (isPast ? "Finalizando" : "En Curso")}
                              </Badge>
                         </div>
                         <h1 className="text-4xl lg:text-5xl font-black text-white uppercase italic tracking-tighter leading-tight mb-2">
@@ -146,14 +163,14 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                     </div>
                 </div>
 
-                {campeon && (
+                {campeonParaHeader && (
                     <div className="bg-gradient-to-br from-amber-500 to-amber-600 p-6 rounded-2xl shadow-2xl border border-amber-400/50 flex items-center gap-4 animate-in zoom-in duration-500">
                          <div className="w-14 h-14 bg-neutral-900 rounded-full flex items-center justify-center border-4 border-white/10 shadow-xl">
                             <Trophy className="w-8 h-8 text-amber-500" />
                          </div>
                          <div>
                             <p className="text-[10px] font-black text-neutral-900 uppercase tracking-widest opacity-80 mb-1">¡Campeón!</p>
-                            <p className="text-xl font-black text-white uppercase italic leading-none">{campeon}</p>
+                            <p className="text-xl font-black text-white uppercase italic leading-none">{campeonParaHeader}</p>
                          </div>
                     </div>
                 )}
