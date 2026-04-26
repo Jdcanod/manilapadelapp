@@ -618,7 +618,7 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
                 .eq('torneo_grupo_id', grupo.id);
             
             const totalMatches = matches?.length || 0;
-            const playedMatches = matches?.filter(m => m.estado === 'jugado' || m.resultado).length || 0;
+            const playedMatches = matches?.filter(m => (m.estado === 'jugado' || m.estado_resultado === 'confirmado') && m.resultado).length || 0;
             
             const standings = calculateStandings(matches || []);
             // Lógica propuesta: Si el total de partidos programados es igual a los jugados, el grupo está cerrado.
