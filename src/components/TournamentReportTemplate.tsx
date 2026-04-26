@@ -23,15 +23,6 @@ interface Props {
 
 export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(({ torneo, clubInfo, partidos, participantes, grupos }, ref) => {
     
-    const isRound = (p: { lugar?: string | null }, round: string) => {
-        const cleanName = p.lugar?.replace(/\[\d+\]\s*/, '').trim().toLowerCase() || '';
-        if (round === 'final') return cleanName.startsWith('final');
-        return cleanName.startsWith(round);
-    };
-
-    // Agrupar categorías para las eliminatorias
-    const categorias = Array.from(new Set(partidos.map(p => p.nivel).filter(Boolean)));
-
     // Organizar partidos por fecha para el cronograma (Deduplicación Lógica)
     // Evitamos que el mismo enfrentamiento aparezca dos veces en el mismo grupo/nivel
     const seenMatches = new Set();
@@ -194,62 +185,6 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                     </div>
                 ))}
             </div>
-
-            {/* SECCIÓN DE FASE FINAL (CUADRO DE HONOR) */}
-            {categorias.map(cat => {
-                const catMatches = partidos.filter(p => p.nivel === cat && !p.torneo_grupo_id);
-                if (catMatches.length === 0) return null;
-
-                const rounds = [
-                    { id: 'octavos', label: 'Octavos' },
-                    { id: 'cuartos', label: 'Cuartos' },
-                    { id: 'semifinal', label: 'Semis' },
-                    { id: 'final', label: 'Final' }
-                ].filter(r => catMatches.some(p => isRound(p, r.id)));
-
-                if (rounds.length === 0) return null;
-
-                return (
-                    <div key={cat} className="pdf-section mb-12">
-                        <h3 className="text-lg font-bold bg-gray-50 p-2 mb-6 uppercase border-l-4 border-blue-600 text-blue-900">Cuadro de Honor - {cat}</h3>
-                        <div className="flex justify-between items-stretch gap-2 min-h-[300px]">
-                            {rounds.map(round => (
-                                <div key={round.id} className="flex-1 flex flex-col">
-                                    <div className="text-[9px] font-black text-gray-400 uppercase text-center mb-4 tracking-widest">{round.label}</div>
-                                    <div className="flex-1 flex flex-col justify-around gap-4">
-                                        {catMatches.filter(p => isRound(p, round.id)).sort((a, b) => {
-                                            const getIdx = (l: string | null) => {
-                                                const m = l?.match(/\[(\d+)\]/);
-                                                return m ? parseInt(m[1], 10) : 999;
-                                            };
-                                            return getIdx(a.lugar) - getIdx(b.lugar);
-                                        }).map((m, idx) => (
-                                            <div key={m.id || idx} className="border border-gray-300 rounded overflow-hidden shadow-sm">
-                                                <div className="bg-gray-50 px-2 py-1 border-b border-gray-200 flex justify-between items-center">
-                                                    <span className="text-[7px] font-bold text-gray-500 uppercase truncate max-w-[80px]">
-                                                        {m.lugar?.replace(/\[\d+\]\s*/, '') || round.label}
-                                                    </span>
-                                                    {m.resultado && <span className="text-[7px] font-black text-emerald-600">{m.resultado}</span>}
-                                                </div>
-                                                <div className="p-1.5 space-y-1 bg-white">
-                                                    <div className="flex justify-between items-center gap-2">
-                                                        <span className="text-[9px] font-bold truncate uppercase">{m.pareja1?.nombre_pareja || "TBD"}</span>
-                                                    </div>
-                                                    <div className="border-t border-gray-100 my-1"></div>
-                                                    <div className="flex justify-between items-center gap-2">
-                                                        <span className="text-[9px] font-bold truncate uppercase">{m.pareja2?.nombre_pareja || "TBD"}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                );
-            })}
-
 
             {/* SECCIÓN DE CRONOGRAMA */}
             <div className="mb-10">

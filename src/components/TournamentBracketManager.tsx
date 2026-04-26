@@ -148,41 +148,35 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs }: { categ
         ));
     };
 
-    const isRound = (p: MatchItem, round: string) => {
-        const cleanName = p.lugar?.replace(/\[\d+\]\s*/, '').trim().toLowerCase() || '';
-        if (round === 'final') return cleanName.startsWith('final');
-        return cleanName.startsWith(round);
-    };
-
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="relative z-10 flex flex-nowrap items-stretch justify-start md:justify-center gap-16 overflow-x-auto pb-12 px-4 scrollbar-hide min-h-[600px] pt-8">
                 {/* Octavos */}
-                {matches.some(p => isRound(p, 'octavos')) && (
+                {matches.some(p => p.lugar?.toLowerCase().includes('octavos')) && (
                     <div className="flex flex-col min-w-[280px]">
                         <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8 shrink-0">Octavos</h4>
                         <div className="flex flex-col justify-around flex-1 gap-12">
-                            {renderPairs(matches.filter(p => isRound(p, 'octavos')), false)}
+                            {renderPairs(matches.filter(p => p.lugar?.toLowerCase().includes('octavos')), false)}
                         </div>
                     </div>
                 )}
 
                 {/* Cuartos */}
-                {matches.some(p => isRound(p, 'cuartos')) && (
+                {matches.some(p => p.lugar?.toLowerCase().includes('cuartos')) && (
                     <div className="flex flex-col min-w-[280px]">
                         <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8 shrink-0">Cuartos</h4>
                         <div className="flex flex-col justify-around flex-1 gap-12">
-                            {renderPairs(matches.filter(p => isRound(p, 'cuartos')), false)}
+                            {renderPairs(matches.filter(p => p.lugar?.toLowerCase().includes('cuartos')), false)}
                         </div>
                     </div>
                 )}
 
                 {/* Semifinales */}
-                {matches.some(p => isRound(p, 'semifinal')) && (
+                {matches.some(p => p.lugar?.toLowerCase().includes('semifinal')) && (
                     <div className="flex flex-col min-w-[280px]">
                         <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8 shrink-0">Semifinales</h4>
                         <div className="flex flex-col justify-around flex-1 gap-12">
-                            {renderPairs(matches.filter(p => isRound(p, 'semifinal')), false)}
+                            {renderPairs(matches.filter(p => p.lugar?.toLowerCase().includes('semifinal')), false)}
                         </div>
                     </div>
                 )}
@@ -192,7 +186,12 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs }: { categ
                     <div className="flex flex-col items-center justify-center flex-1 w-full">
                         <div className="w-full relative">
                             <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8">Gran Final</h4>
-                            {matches.filter(p => isRound(p, 'final')).map((match) => (
+                            {matches.filter(p => 
+                                p.lugar?.toLowerCase().includes('final') && 
+                                !p.lugar?.toLowerCase().includes('semi') && 
+                                !p.lugar?.toLowerCase().includes('cuartos') && 
+                                !p.lugar?.toLowerCase().includes('octavos')
+                            ).map((match) => (
                                 <BracketMatchCard key={match.id} match={match} tipoDesempate={tipoDesempate} allPairs={allPairs} />
                             ))}
                         </div>
@@ -213,10 +212,10 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs }: { categ
                         </div>
                     </div>
 
-                    {matches.some(p => isRound(p, 'tercer puesto')) && (
+                    {matches.some(p => p.lugar?.toLowerCase().includes('tercer puesto')) && (
                         <div className="w-full mt-12 pt-12 border-t border-neutral-800/50">
                             <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8">Tercer Puesto</h4>
-                            {matches.filter(p => isRound(p, 'tercer puesto')).map((match) => (
+                            {matches.filter(p => p.lugar?.toLowerCase().includes('tercer puesto')).map((match) => (
                                 <div key={match.id} className="opacity-80 scale-95 origin-top relative">
                                     <BracketMatchCard match={match} tipoDesempate={tipoDesempate} allPairs={allPairs} />
                                 </div>

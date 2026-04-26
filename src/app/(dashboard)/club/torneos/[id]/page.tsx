@@ -355,8 +355,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                     <TabsTrigger value="cronograma" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-neutral-800">Parrilla (Programación)</TabsTrigger>
                 </TabsList>
 
-                <div id="tournament-report-content" className="bg-black">
-                    <TabsContent value="grupos" className="mt-6">
+                <TabsContent value="grupos" className="mt-6">
                     <TournamentGroupsManager 
                         torneoId={params.id} 
                         categorias={categoriasConInscritos.length > 0 ? categoriasConInscritos : categoriasHabilitadas} 
@@ -380,13 +379,13 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                 </TabsContent>
 
                 <TabsContent value="participantes" className="mt-6">
+                    {/* ... (existing content) */}
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-bold text-white uppercase tracking-wider">Parejas Inscritas</h3>
                         {(rawPartidos || []).length === 0 && (
                             <AddTournamentPlayerModal torneoId={params.id} categorias={categoriasHabilitadas} esMaster={torneo.tipo === 'master'} />
                         )}
                     </div>
-                    {/* View for inscriptions */}
                     {allParticipants.length === 0 ? (
                         <div className="text-center py-12 text-neutral-500 border border-neutral-800 border-dashed rounded-xl bg-neutral-900/30">
                             <Users className="w-12 h-12 text-neutral-700 mx-auto mb-4" />
@@ -463,7 +462,6 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                         </div>
                     </div>
                 </TabsContent>
-                </div>
             </Tabs>
         </div>
     );
