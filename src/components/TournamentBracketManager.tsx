@@ -111,68 +111,104 @@ function BracketSection({ categoria, matches, tipoDesempate }: { categoria: stri
         else if (p2Wins > p1Wins) campeon = partidoFinal.pareja2?.nombre_pareja;
     }
 
+    const renderPairs = (matchesList: MatchItem[], isLastRound: boolean) => {
+        const pairs = [];
+        for (let i = 0; i < matchesList.length; i += 2) {
+            pairs.push(matchesList.slice(i, i + 2));
+        }
+        return pairs.map((pair, idx) => (
+            <div key={idx} className="relative flex flex-col justify-center gap-12">
+                {pair.map(match => (
+                    <div key={match.id} className="relative z-10">
+                        <BracketMatchCard match={match} tipoDesempate={tipoDesempate} />
+                    </div>
+                ))}
+                
+                {/* Connecting lines for pairs */}
+                {!isLastRound && pair.length === 2 && (
+                    <>
+                        <div className="absolute right-[-2rem] top-[25%] bottom-[25%] w-[2rem] border-r-2 border-y-2 border-amber-500/20 rounded-r-xl z-0 pointer-events-none" />
+                        <div className="absolute right-[-4rem] top-[50%] w-[2rem] border-b-2 border-amber-500/20 z-0 pointer-events-none" />
+                    </>
+                )}
+                {!isLastRound && pair.length === 1 && (
+                    <div className="absolute right-[-4rem] top-[50%] w-[4rem] border-b-2 border-amber-500/20 z-0 pointer-events-none" />
+                )}
+            </div>
+        ));
+    };
+
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="relative z-10 flex flex-nowrap items-center justify-center gap-16 overflow-x-auto pb-12 px-4 scrollbar-hide">
+            <div className="relative z-10 flex flex-nowrap items-stretch justify-start md:justify-center gap-16 overflow-x-auto pb-12 px-4 scrollbar-hide min-h-[600px] pt-8">
                 {/* Octavos */}
                 {matches.some(p => p.lugar?.toLowerCase().startsWith('octavos')) && (
-                    <div className="flex flex-col gap-8 min-w-[280px]">
-                        <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em]">Octavos</h4>
-                        <div className="space-y-6">
-                            {matches.filter(p => p.lugar?.toLowerCase().startsWith('octavos')).map(match => (
-                                <BracketMatchCard key={match.id} match={match} tipoDesempate={tipoDesempate} />
-                            ))}
+                    <div className="flex flex-col min-w-[280px]">
+                        <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8 shrink-0">Octavos</h4>
+                        <div className="flex flex-col justify-around flex-1 gap-12">
+                            {renderPairs(matches.filter(p => p.lugar?.toLowerCase().startsWith('octavos')), false)}
                         </div>
                     </div>
                 )}
 
                 {/* Cuartos */}
                 {matches.some(p => p.lugar?.toLowerCase().startsWith('cuartos')) && (
-                    <div className="flex flex-col gap-8 min-w-[280px]">
-                        <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em]">Cuartos</h4>
-                        <div className="space-y-12">
-                            {matches.filter(p => p.lugar?.toLowerCase().startsWith('cuartos')).map(match => (
-                                <BracketMatchCard key={match.id} match={match} tipoDesempate={tipoDesempate} />
-                            ))}
+                    <div className="flex flex-col min-w-[280px]">
+                        <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8 shrink-0">Cuartos</h4>
+                        <div className="flex flex-col justify-around flex-1 gap-12">
+                            {renderPairs(matches.filter(p => p.lugar?.toLowerCase().startsWith('cuartos')), false)}
                         </div>
                     </div>
                 )}
 
                 {/* Semifinales */}
                 {matches.some(p => p.lugar?.toLowerCase().startsWith('semifinal')) && (
-                    <div className="flex flex-col gap-8 min-w-[280px]">
-                        <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em]">Semifinales</h4>
-                        <div className="space-y-24">
-                            {matches.filter(p => p.lugar?.toLowerCase().startsWith('semifinal')).map(match => (
-                                <BracketMatchCard key={match.id} match={match} tipoDesempate={tipoDesempate} />
-                            ))}
+                    <div className="flex flex-col min-w-[280px]">
+                        <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8 shrink-0">Semifinales</h4>
+                        <div className="flex flex-col justify-around flex-1 gap-12">
+                            {renderPairs(matches.filter(p => p.lugar?.toLowerCase().startsWith('semifinal')), false)}
                         </div>
                     </div>
                 )}
 
-                {/* Final */}
-                <div className="flex flex-col gap-12 min-w-[320px] items-center py-12">
-                    <div className="w-full">
-                        <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8">Gran Final</h4>
-                        {matches.filter(p => p.lugar?.toLowerCase().startsWith('final')).map((match) => (
-                            <BracketMatchCard key={match.id} match={match} tipoDesempate={tipoDesempate} />
-                        ))}
+                {/* Final y Tercer Puesto */}
+                <div className="flex flex-col min-w-[320px] justify-center items-center">
+                    <div className="flex flex-col items-center justify-center flex-1 w-full">
+                        <div className="w-full relative">
+                            <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8">Gran Final</h4>
+                            {matches.filter(p => p.lugar?.toLowerCase().startsWith('final')).map((match) => (
+                                <BracketMatchCard key={match.id} match={match} tipoDesempate={tipoDesempate} />
+                            ))}
+                        </div>
+
+                        <div className="mt-8 flex flex-col items-center relative group">
+                            <div className="absolute inset-0 bg-amber-500/10 blur-3xl rounded-full opacity-100 transition-opacity duration-1000" />
+                            <div className={`w-24 h-24 lg:w-32 lg:h-32 rounded-full bg-gradient-to-tr from-amber-600 to-amber-300 flex items-center justify-center shadow-[0_0_50px_rgba(245,158,11,0.3)] relative z-10 mb-4 ${campeon ? 'animate-pulse scale-110' : ''}`}>
+                                <Trophy className="w-12 h-12 lg:w-16 lg:h-16 text-neutral-900 drop-shadow-2xl" />
+                            </div>
+                            <h5 className="text-sm font-black text-amber-500 uppercase italic tracking-tighter drop-shadow-lg mb-2">
+                                {campeon ? '¡CAMPEÓN!' : 'Fase Final'}
+                            </h5>
+                            {campeon && (
+                                <div className="bg-amber-500 text-black px-6 py-1.5 rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl animate-in zoom-in duration-500 max-w-[150px] text-center truncate">
+                                    {campeon}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
-                    <div className="mt-8 flex flex-col items-center relative group">
-                        <div className="absolute inset-0 bg-amber-500/10 blur-3xl rounded-full opacity-100 transition-opacity duration-1000" />
-                        <div className={`w-24 h-24 lg:w-32 lg:h-32 rounded-full bg-gradient-to-tr from-amber-600 to-amber-300 flex items-center justify-center shadow-[0_0_50px_rgba(245,158,11,0.3)] relative z-10 mb-4 ${campeon ? 'animate-pulse scale-110' : ''}`}>
-                            <Trophy className="w-12 h-12 lg:w-16 lg:h-16 text-neutral-900 drop-shadow-2xl" />
+                    {/* Tercer Puesto */}
+                    {matches.some(p => p.lugar?.toLowerCase().startsWith('tercer puesto')) && (
+                        <div className="w-full mt-12 pt-12 border-t border-neutral-800/50">
+                            <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8">Tercer Puesto</h4>
+                            {matches.filter(p => p.lugar?.toLowerCase().startsWith('tercer puesto')).map((match) => (
+                                <div key={match.id} className="opacity-80 scale-95 origin-top relative">
+                                    {/* Line connecting to the final column if needed, but usually 3rd place stands alone visually */}
+                                    <BracketMatchCard match={match} tipoDesempate={tipoDesempate} />
+                                </div>
+                            ))}
                         </div>
-                        <h5 className="text-sm font-black text-amber-500 uppercase italic tracking-tighter drop-shadow-lg mb-2">
-                            {campeon ? '¡CAMPEÓN!' : 'Fase Final'}
-                        </h5>
-                        {campeon && (
-                            <div className="bg-amber-500 text-black px-6 py-1.5 rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl animate-in zoom-in duration-500 max-w-[150px] text-center truncate">
-                                {campeon}
-                            </div>
-                        )}
-                    </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -208,7 +244,7 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate }
     const eliminatoriasPartidos = partidos
         .filter(p => 
             !p.torneo_grupo_id && 
-            p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos/)
+            p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/)
         )
         .sort((a, b) => String(a.id).localeCompare(String(b.id)));
 

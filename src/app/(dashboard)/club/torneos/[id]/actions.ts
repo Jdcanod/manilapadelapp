@@ -811,6 +811,23 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
                     cupos_totales: 4,
                     cupos_disponibles: 0
                 });
+
+                if (currentRondaName === "Final") {
+                    allMatchesToCreate.push({
+                        torneo_id: torneoId,
+                        creador_id: userId,
+                        club_id: clubId,
+                        pareja1_id: null,
+                        pareja2_id: null,
+                        estado: 'programado',
+                        tipo_partido: 'torneo',
+                        nivel: categoria,
+                        lugar: `Tercer Puesto - ${categoria}`,
+                        fecha: fechaTorneo,
+                        cupos_totales: 4,
+                        cupos_disponibles: 0
+                    });
+                }
             }
         }
 

@@ -39,6 +39,17 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
         return p1Wins > p2Wins ? m.pareja1_id : m.pareja2_id;
     };
 
+    const getLoser = (m: { estado: string; estado_resultado?: string | null; resultado?: string | null; pareja1_id?: string | null; pareja2_id?: string | null }) => {
+        if (m.estado !== 'jugado' || m.estado_resultado !== 'confirmado' || !m.resultado) return null;
+        const setsArr = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
+        let p1Wins = 0, p2Wins = 0;
+        setsArr.forEach((s: number[]) => {
+            if (s[0] > s[1]) p1Wins++;
+            else if (s[1] > s[0]) p2Wins++;
+        });
+        return p1Wins > p2Wins ? m.pareja2_id : m.pareja1_id;
+    };
+
     /**
      * Función genérica para avanzar ganadores de una ronda a la siguiente.
      * @param currentRound Partidos de la ronda actual
@@ -106,6 +117,23 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
     // Refrescar semis
     const { data: updatedSemis } = await supabaseAdmin.from('partidos').select('*').eq('torneo_id', torneoId).eq('nivel', categoria).ilike('lugar', 'Semifinal%').is('torneo_grupo_id', null).order('id', { ascending: true });
     await avanzarRonda(updatedSemis || semis, final, 'Final', 1);
+
+    // Procesar avance de perdedores de Semifinales al Tercer Puesto
+    const tercerPuesto = allMatches.filter(m => m.lugar?.toLowerCase().startsWith('tercer puesto'));
+    const finalSemis = updatedSemis || semis;
+    if (tercerPuesto.length > 0 && finalSemis && finalSemis.length >= 2) {
+        const loser1 = getLoser(finalSemis[0]);
+        const loser2 = getLoser(finalSemis[1]);
+        
+        const targetMatch = tercerPuesto[0];
+        const updateData: Record<string, string> = {};
+        if (loser1 && targetMatch.pareja1_id !== loser1) updateData.pareja1_id = loser1;
+        if (loser2 && targetMatch.pareja2_id !== loser2) updateData.pareja2_id = loser2;
+        
+        if (Object.keys(updateData).length > 0) {
+            await supabaseAdmin.from('partidos').update(updateData).eq('id', targetMatch.id);
+        }
+    }
 
     revalidatePath(`/torneos/${torneoId}`);
     revalidatePath(`/club/torneos/${torneoId}`);
