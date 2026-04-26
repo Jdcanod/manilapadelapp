@@ -95,7 +95,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
     });
 
     // Identificar Campeones y estado de finalización
-    const campeonesPorCategoria = categoriasAMostrar.map(cat => {
+    const campeonesPorCategoria = categoriasAMostrar.map((cat: string) => {
         const matchesCat = partidosReales.filter(p => p.nivel?.toLowerCase() === cat.toLowerCase());
         const finalCat = matchesCat.find(p => 
             p.lugar?.toLowerCase().includes('final') && 
@@ -118,7 +118,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
     const matchesEnEliminatorias = partidosReales.filter(p => !p.torneo_grupo_id);
     const categoriasConEliminatorias = Array.from(new Set(matchesEnEliminatorias.map(p => p.nivel).filter(Boolean)));
     
-    const todosFinalizados = categoriasConEliminatorias.length > 0 && categoriasConEliminatorias.every(cat => {
+    const todosFinalizados = categoriasConEliminatorias.length > 0 && categoriasConEliminatorias.every((cat: any) => {
         const cData = campeonesPorCategoria.find(c => c.categoria === cat);
         return cData?.ganador; // Si tiene ganador, es que la final se jugó y confirmó
     });
