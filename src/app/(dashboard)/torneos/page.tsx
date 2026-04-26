@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { Trophy, CalendarDays, MapPin } from "lucide-react";
