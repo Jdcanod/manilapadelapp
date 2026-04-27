@@ -370,13 +370,14 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                 </TabsList>
 
                 <TabsContent value="grupos" className="mt-6">
-                    <TournamentGroupsManager 
-                        torneoId={params.id} 
-                        categorias={categoriasConInscritos.length > 0 ? categoriasConInscritos : categoriasHabilitadas} 
+                    <TournamentGroupsManager
+                        torneoId={params.id}
+                        categorias={categoriasConInscritos.length > 0 ? categoriasConInscritos : categoriasHabilitadas}
                         gruposExistentes={gruposExistentes || []}
                         partidos={partidosReales || []}
                         tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                         allParticipants={allParticipants}
+                        formato={torneo.formato || 'relampago'}
                     />
                 </TabsContent>
 

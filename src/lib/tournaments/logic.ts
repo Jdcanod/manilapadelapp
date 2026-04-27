@@ -14,32 +14,39 @@ export interface GroupConfig {
 /**
  * Lógica para distribuir parejas en grupos basándose en cabezas de serie (ranking)
  * Prioriza grupos de 3 y realiza sorteo aleatorio verdadero dentro de los bombos.
+ * @param participants Lista de participantes
+ * @param forcedNumGroups Si se indica, fuerza ese número de grupos (para liguilla con grupos configurados)
  */
-export function distributeParticipantsIntoGroups(participants: Participant[]) {
+export function distributeParticipantsIntoGroups(participants: Participant[], forcedNumGroups?: number) {
     const total = participants.length;
     if (total === 0) return [];
 
-    // 1. Calcular número de grupos (priorizando grupos de 3)
-    let numGroups = Math.floor(total / 3);
-    if (numGroups === 0) numGroups = 1; // Fallback
-    
+    // Calcular número de grupos: si se fuerza (liguilla), usar ese número; si no, grupos de 3 (relámpago)
+    let numGroups: number;
+    if (forcedNumGroups && forcedNumGroups > 0) {
+        numGroups = forcedNumGroups;
+    } else {
+        numGroups = Math.floor(total / 3);
+        if (numGroups === 0) numGroups = 1;
+    }
+
     // 2. Ordenar por ranking para crear los "bombos"
     const sorted = [...participants].sort((a, b) => b.ranking - a.ranking);
-    
+
     const groups: Participant[][] = Array.from({ length: numGroups }, () => []);
-    
+
     // 3. Distribuir por bombos (Pots)
     // El bombo 1 tiene a los mejores N jugadores, el bombo 2 a los siguientes N, etc.
     for (let i = 0; i < sorted.length; i += numGroups) {
         // Tomar el siguiente bombo
         const pot = sorted.slice(i, i + numGroups);
-        
+
         // Mezclar el bombo usando Fisher-Yates para asegurar aleatoriedad total
         for (let k = pot.length - 1; k > 0; k--) {
             const j = Math.floor(Math.random() * (k + 1));
             [pot[k], pot[j]] = [pot[j], pot[k]];
         }
-        
+
         // Asignar cada jugador del bombo mezclado a un grupo
         pot.forEach((p, index) => {
             if (groups[index]) {
@@ -50,7 +57,7 @@ export function distributeParticipantsIntoGroups(participants: Participant[]) {
             }
         });
     }
-    
+
     return groups;
 }
 

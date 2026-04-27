@@ -17,6 +17,7 @@ import { PlayerBracketManager } from "@/components/PlayerBracketManager";
 
 
 
+
 export default async function TorneoPlayerDetailsPage({ params }: { params: { id: string } }) {
     const supabase = createClient();
     const adminSupabase = createAdminClient();
@@ -100,13 +101,13 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
     // Identificar Campeones y estado de finalización
     const campeonesPorCategoria = categoriasAMostrar.map((cat: string) => {
         const matchesCat = partidosReales.filter(p => p.nivel?.toLowerCase() === cat.toLowerCase());
-        const finalCat = matchesCat.find(p => 
-            p.lugar?.toLowerCase().includes('final') && 
+        const finalCat = matchesCat.find(p =>
+            p.lugar?.toLowerCase().includes('final') &&
             !p.lugar?.toLowerCase().includes('semi') &&
             !p.lugar?.toLowerCase().includes('cuartos') &&
             !p.lugar?.toLowerCase().includes('octavos')
         );
-        
+
         let ganador = null;
         if (finalCat?.estado === 'jugado' && finalCat?.resultado && finalCat?.estado_resultado === 'confirmado') {
             const sets = String(finalCat.resultado).split(',').map((s: string) => s.trim().split('-').map(Number));

@@ -36,6 +36,7 @@ interface Props {
     }[];
     tipoDesempate?: string;
     allParticipants?: { id: string | number; pareja_id: string; nombre: string; categoria: string; estado_pago: string; tipo: string; jugador1_id?: string; jugador2_id?: string }[];
+    formato?: string; // 'relampago' | 'liguilla'
 }
 
 interface Standing {
@@ -50,17 +51,25 @@ interface Standing {
     pts: number;
 }
 
-export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", allParticipants = [] }: Props) {
+export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", allParticipants = [], formato = "relampago" }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const [selectedCat, setSelectedCat] = useState(categorias[0] || "General");
+    const esLiguilla = formato === 'liguilla';
+
+    // Opciones específicas de liguilla
+    const [numGrupos, setNumGrupos] = useState(2);
+    const [numClasifican, setNumClasifican] = useState(4);
 
     const onGenerate = () => {
-        if (!confirm(`¿Estás seguro de generar el sorteo de GRUPOS para la categoría ${selectedCat}?`)) return;
-        
+        const confirmMsg = esLiguilla
+            ? `¿Generar ${numGrupos} grupo(s) grande(s) para la categoría ${selectedCat}? (Formato Liguilla)`
+            : `¿Estás seguro de generar el sorteo de GRUPOS para la categoría ${selectedCat}?`;
+        if (!confirm(confirmMsg)) return;
+
         startTransition(async () => {
             try {
-                const result = await generarFaseGrupos(torneoId, selectedCat);
+                const result = await generarFaseGrupos(torneoId, selectedCat, esLiguilla ? numGrupos : undefined);
                 if (result && result.success) {
                     alert(result.message || "¡Fase de grupos generada con éxito!");
                     router.refresh();
@@ -74,13 +83,17 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
     };
 
     const onGeneratePlayoffs = () => {
-        if (!confirm(`¿Estás seguro de generar las ELIMINATORIAS para la categoría ${selectedCat}? Se tomarán los dos mejores de cada grupo.`)) return;
-        
+        const confirmMsg = esLiguilla
+            ? `¿Generar fase eliminatoria para ${selectedCat}? Clasifican las ${numClasifican} mejores parejas de cada grupo.`
+            : `¿Generar eliminatorias para ${selectedCat}? Se tomarán los 2 mejores de cada grupo.`;
+        if (!confirm(confirmMsg)) return;
+
         startTransition(async () => {
             try {
-                const result = await generarFaseEliminatoria(torneoId, selectedCat);
+                const result = await generarFaseEliminatoria(torneoId, selectedCat, esLiguilla ? numClasifican : 2);
                 if (result.success) {
                     alert(result.message || "¡Fase eliminatoria generada! Revisa Cuadros de Juego.");
+                    router.refresh();
                 } else {
                     alert("Error: " + (result.message || "No se pudieron generar las eliminatorias"));
                 }
@@ -240,44 +253,80 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-neutral-900 p-4 border border-neutral-800 rounded-xl">
-                <div>
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2">
-                        <Swords className="w-5 h-5 text-emerald-500" />
-                        Sorteos de Torneo
-                    </h3>
-                    <p className="text-sm text-neutral-400 mb-4">Genera grupos o arma el cuadro de eliminatorias para cada categoría.</p>
-                    <div className="flex flex-wrap gap-2">
-                        {categorias.map(cat => (
-                            <button
-                                key={cat}
-                                onClick={() => setSelectedCat(cat)}
-                                className={cn(
-                                    "px-3 py-1.5 text-xs font-black uppercase tracking-widest rounded-lg border transition-colors",
-                                    selectedCat === cat 
-                                        ? "bg-emerald-500 text-black border-emerald-500" 
-                                        : "bg-neutral-950 text-neutral-500 border-neutral-800 hover:bg-neutral-800"
-                                )}
+            <div className="flex flex-col gap-4 bg-neutral-900 p-4 border border-neutral-800 rounded-xl">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+                    <div className="flex-1">
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-1">
+                            <Swords className="w-5 h-5 text-emerald-500" />
+                            Sorteos de Torneo
+                            {esLiguilla && (
+                                <span className="ml-2 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase rounded-lg tracking-widest">
+                                    Liguilla
+                                </span>
+                            )}
+                        </h3>
+                        <p className="text-sm text-neutral-400 mb-3">
+                            {esLiguilla
+                                ? "Formato liguilla: grupos grandes con round-robin completo, luego fase eliminatoria."
+                                : "Genera grupos o arma el cuadro de eliminatorias para cada categoría."}
+                        </p>
+                        {/* Selector de categoría */}
+                        <div className="flex flex-wrap gap-2">
+                            {categorias.map(cat => (
+                                <button
+                                    key={cat}
+                                    onClick={() => setSelectedCat(cat)}
+                                    className={cn(
+                                        "px-3 py-1.5 text-xs font-black uppercase tracking-widest rounded-lg border transition-colors",
+                                        selectedCat === cat
+                                            ? "bg-emerald-500 text-black border-emerald-500"
+                                            : "bg-neutral-950 text-neutral-500 border-neutral-800 hover:bg-neutral-800"
+                                    )}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Acciones */}
+                    <div className="flex flex-col gap-2 w-full md:w-auto shrink-0">
+                        {gruposCategoria.length === 0 ? (
+                            <Button
+                                onClick={onGenerate}
+                                disabled={isPending}
+                                variant="outline"
+                                className="bg-neutral-950 border-neutral-800 text-white hover:bg-neutral-800 font-bold"
                             >
-                                {cat}
-                            </button>
-                        ))}
+                                {isPending ? "Generando..." : (esLiguilla ? "Generar Grupos (Liguilla)" : "Sorteo Grupos")}
+                            </Button>
+                        ) : (
+                            <Button
+                                onClick={onGeneratePlayoffs}
+                                disabled={isPending}
+                                className="bg-amber-600 hover:bg-amber-500 text-white font-bold"
+                            >
+                                <Trophy className="w-4 h-4 mr-2" />
+                                {isPending ? "Generando..." : "Generar Eliminatorias"}
+                            </Button>
+                        )}
                     </div>
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
                     {gruposCategoria.length === 0 ? (
-                        <Button 
+                        <Button
                             onClick={onGenerate}
                             disabled={isPending}
                             variant="outline"
                             className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
                         >
-                            {isPending ? "Generando..." : "Sorteo Grupos"}
+                            {isPending ? "Generando..." : (esLiguilla ? "Generar Grupos (Liguilla)" : "Sorteo Grupos")}
                         </Button>
                     ) : (
                         <>
-                            <Button 
+                            <Button
                                 onClick={onGenerate}
                                 disabled={isPending}
                                 variant="outline"
@@ -285,7 +334,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                             >
                                 {isPending ? "Limpiando..." : "Reiniciar Sorteo"}
                             </Button>
-                            <Button 
+                            <Button
                                 onClick={handleCrearGrupoVacio}
                                 disabled={isPending}
                                 variant="outline"
@@ -294,7 +343,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                 <Plus className="w-4 h-4 mr-2" />
                                 {isPending ? "Añadiendo..." : "Añadir Grupo Vacío"}
                             </Button>
-                            <Button 
+                            <Button
                                 onClick={onGeneratePlayoffs}
                                 disabled={isPending}
                                 className="bg-amber-600 hover:bg-amber-500 text-white font-bold shadow-lg shadow-amber-600/20"
@@ -305,6 +354,34 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                         </>
                     )}
                 </div>
+
+                {/* Opciones específicas de liguilla */}
+                {esLiguilla && (
+                    <div className="border-t border-neutral-800 pt-4">
+                        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3">Configuración Liguilla</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-3">
+                                <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-2">Número de grupos</label>
+                                <div className="flex items-center gap-2">
+                                    {[1, 2, 3, 4].map(n => (
+                                        <button key={n} onClick={() => setNumGrupos(n)} className={cn("w-10 h-10 rounded-lg font-black text-sm border transition-colors", numGrupos === n ? "bg-emerald-500 text-black border-emerald-500" : "bg-neutral-900 text-neutral-400 border-neutral-800 hover:bg-neutral-800")}>{n}</button>
+                                    ))}
+                                    <span className="text-xs text-neutral-500 ml-1">grupo{numGrupos > 1 ? 's' : ''}</span>
+                                </div>
+                            </div>
+                            <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-3">
+                                <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-2">Clasifican por grupo</label>
+                                <div className="flex items-center gap-2">
+                                    {[2, 4, 6, 8].map(n => (
+                                        <button key={n} onClick={() => setNumClasifican(n)} className={cn("w-10 h-10 rounded-lg font-black text-sm border transition-colors", numClasifican === n ? "bg-amber-500 text-black border-amber-500" : "bg-neutral-900 text-neutral-400 border-neutral-800 hover:bg-neutral-800")}>{n}</button>
+                                    ))}
+                                    <span className="text-xs text-neutral-500 ml-1">por grupo</span>
+                                </div>
+                                <p className="text-[10px] text-neutral-600 mt-2">→ Total al bracket: <span className="text-amber-500 font-bold">{numGrupos * numClasifican}</span></p>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {gruposCategoria.length === 0 ? (
