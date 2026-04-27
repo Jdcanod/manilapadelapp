@@ -168,19 +168,19 @@ export async function generarFaseGrupos(torneoId: string, categoria: string, num
             .is('torneo_grupo_id', null)
             .is('torneo_fase_id', null);
 
-        // 3. Ejecutar algoritmo de sorteo
-        // Para liguilla: grupos grandes configurables; para relámpago: grupos de 4
-        const esLiguilla = torneoInfo?.formato === 'liguilla';
-        const groupDistributions = esLiguilla
-            ? distributeParticipantsIntoGroups(participants, numGrupos ?? Math.max(1, Math.ceil(participants.length / 16)))
-            : distributeParticipantsIntoGroups(participants);
-
-        // Get tournament info for inherited fields
+        // Get tournament info for inherited fields (debe ir antes del sorteo para detectar formato)
         const { data: torneoInfo } = await supabaseAdmin
             .from('torneos')
             .select('club_id, fecha_inicio, nombre, formato')
             .eq('id', torneoId)
             .single();
+
+        // 3. Ejecutar algoritmo de sorteo
+        // Para liguilla: grupos grandes configurables; para relámpago: grupos de 3
+        const esLiguilla = torneoInfo?.formato === 'liguilla';
+        const groupDistributions = esLiguilla
+            ? distributeParticipantsIntoGroups(participants, numGrupos ?? Math.max(1, Math.ceil(participants.length / 16)))
+            : distributeParticipantsIntoGroups(participants);
 
         // 4. Guardar grupos y partidos en la DB
         for (let i = 0; i < groupDistributions.length; i++) {
