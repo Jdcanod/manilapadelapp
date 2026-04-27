@@ -571,6 +571,7 @@ export async function eliminarInscripcion(id: string, tipo: 'master' | 'regular'
     return { success: true };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function generarFaseEliminatoria(torneoId: string, categoria: string, numAdvancingPerGroup: number = 2) {
     try {
         const supabase = createClient();
