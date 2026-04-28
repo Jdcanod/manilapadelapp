@@ -100,16 +100,17 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
     const winsMap = new Map<string, { wins: number; total: number }>();
 
     if (playerIds.length > 0) {
-        // 1) Todas las parejas de estos jugadores
-        const { data: parejasData } = await adminSupabase
-            .from('parejas')
-            .select('id, jugador1_id, jugador2_id')
-            .or(`jugador1_id.in.(${playerIds.join(',')}),jugador2_id.in.(${playerIds.join(',')})`);
+        // 1) Todas las parejas de estos jugadores (dos queries en paralelo, .or con .in no funciona en Supabase)
+        const [{ data: parejas1 }, { data: parejas2 }] = await Promise.all([
+            adminSupabase.from('parejas').select('id, jugador1_id, jugador2_id').in('jugador1_id', playerIds),
+            adminSupabase.from('parejas').select('id, jugador1_id, jugador2_id').in('jugador2_id', playerIds),
+        ]);
 
-        // pareja_id → [jugador1_id, jugador2_id]
+        // pareja_id → [jugador1_id, jugador2_id] (deduplicada)
         const parejaToPlayers = new Map<string, string[]>();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (parejasData || []).forEach((p: any) => {
+        [...(parejas1 || []), ...(parejas2 || [])].forEach((p: any) => {
+            if (parejaToPlayers.has(p.id)) return;
             const players = [p.jugador1_id, p.jugador2_id].filter(Boolean) as string[];
             parejaToPlayers.set(p.id, players);
         });
