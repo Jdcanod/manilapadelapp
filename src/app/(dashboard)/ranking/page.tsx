@@ -128,11 +128,11 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
             // 2) Todos los partidos con resultado donde aparece alguna de esas parejas
             const [{ data: m1, error: em1 }, { data: m2, error: em2 }] = await Promise.all([
                 adminSupabase.from('partidos')
-                    .select('id, pareja1_id, pareja2_id, resultado, ganador_pareja_id')
+                    .select('id, pareja1_id, pareja2_id, resultado')
                     .in('pareja1_id', allParejaIds)
                     .not('resultado', 'is', null),
                 adminSupabase.from('partidos')
-                    .select('id, pareja1_id, pareja2_id, resultado, ganador_pareja_id')
+                    .select('id, pareja1_id, pareja2_id, resultado')
                     .in('pareja2_id', allParejaIds)
                     .not('resultado', 'is', null),
             ]);
@@ -144,12 +144,10 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const matches: any[] = Array.from(matchMap.values());
 
-            // 3) Agregar W/L por jugador
+            // 3) Agregar W/L por jugador (deducir ganador del marcador)
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             matches.forEach((m: any) => {
-                const winner = m.ganador_pareja_id
-                    ? (m.ganador_pareja_id === m.pareja1_id ? 1 : m.ganador_pareja_id === m.pareja2_id ? 2 : null)
-                    : getWinner(m.resultado);
+                const winner = getWinner(m.resultado);
                 if (winner === null) return;
 
                 const winningPair = winner === 1 ? m.pareja1_id : m.pareja2_id;
