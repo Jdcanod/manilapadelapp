@@ -1,6 +1,17 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+/** Construye una redirect response que conserva las cookies que Supabase
+ *  haya escrito durante getUser() — sin esto se pierden los tokens
+ *  refrescados y el usuario aparece deslogueado en la siguiente request. */
+function redirectPreservingCookies(url: URL, sourceResponse: NextResponse): NextResponse {
+    const redirect = NextResponse.redirect(url)
+    sourceResponse.cookies.getAll().forEach(c => {
+        redirect.cookies.set(c.name, c.value, c)
+    })
+    return redirect
+}
+
 export async function updateSession(request: NextRequest) {
     const { searchParams } = request.nextUrl
     const code = searchParams.get('code')
@@ -65,7 +76,7 @@ export async function updateSession(request: NextRequest) {
         // no user, potentially respond by redirecting the user to the login page
         const url = request.nextUrl.clone()
         url.pathname = '/login'
-        return NextResponse.redirect(url)
+        return redirectPreservingCookies(url, supabaseResponse)
     }
 
     // Re-escritura de lógica para asegurar que cada rol esté en su área
@@ -90,7 +101,7 @@ export async function updateSession(request: NextRequest) {
             if (userRol === 'admin_club') url.pathname = '/club'
             else if (userRol === 'superadmin') url.pathname = '/superadmin'
             else url.pathname = '/jugador'
-            return NextResponse.redirect(url)
+            return redirectPreservingCookies(url, supabaseResponse)
         }
 
         // Protecciones de Rutas
@@ -102,21 +113,21 @@ export async function updateSession(request: NextRequest) {
         if (userRol === 'superadmin') {
             if (isPlayerRoute || isClubRoute) {
                 url.pathname = '/superadmin'
-                return NextResponse.redirect(url)
+                return redirectPreservingCookies(url, supabaseResponse)
             }
-        } 
+        }
         // Admin Club no puede entrar a jugador ni admin
         else if (userRol === 'admin_club') {
             if (isPlayerRoute || isAdminRoute) {
                 url.pathname = '/club'
-                return NextResponse.redirect(url)
+                return redirectPreservingCookies(url, supabaseResponse)
             }
         }
         // Jugador no puede entrar a club ni admin
         else if (userRol === 'jugador') {
             if (isClubRoute || isAdminRoute) {
                 url.pathname = '/jugador'
-                return NextResponse.redirect(url)
+                return redirectPreservingCookies(url, supabaseResponse)
             }
         }
     }
