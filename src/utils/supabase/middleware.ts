@@ -45,7 +45,12 @@ export async function updateSession(request: NextRequest) {
 
     const {
         data: { user },
+        error: authError,
     } = await supabase.auth.getUser()
+
+    // DEBUG temporal — visible en logs de Vercel Functions
+    const cookieNames = request.cookies.getAll().map(c => c.name).filter(n => n.startsWith('sb-')).join(',')
+    console.log(`[MW] path=${request.nextUrl.pathname} user=${user?.id ? 'YES' : 'NO'} sbCookies=[${cookieNames}] err=${authError?.message || 'none'}`)
 
     if (
         !user &&
