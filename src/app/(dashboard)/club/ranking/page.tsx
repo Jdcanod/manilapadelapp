@@ -136,9 +136,9 @@ export default async function ClubRankingPage() {
         grouped.get(key)!.push(p);
     }
 
-    for (const [, catPartidos] of grouped) {
+    grouped.forEach(catPartidos => {
         const allPairs = new Set<string>();
-        for (const p of catPartidos) {
+        for (const p of catPartidos || []) {
             if (p.pareja1_id) allPairs.add(p.pareja1_id);
             if (p.pareja2_id) allPairs.add(p.pareja2_id);
         }
@@ -198,7 +198,7 @@ export default async function ClubRankingPage() {
                 }
             }
         }
-    }
+    });
 
     // ─── Puntos base manuales ───────────────────────────────────────────────────
     const { data: basePointsData } = await adminSupabase
