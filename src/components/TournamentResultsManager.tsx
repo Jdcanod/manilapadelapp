@@ -9,7 +9,10 @@ import { Search, X, Check, RotateCcw, Loader2, AlertTriangle, Clock, Filter } fr
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { confirmarResultado, reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
 import { cn } from "@/lib/utils";
-import { formatLegacyPairName } from "@/lib/display-names";
+import { formatLegacyPairName, formatPairName } from "@/lib/display-names";
+
+type PlayerInfo = { nombre: string | null; email: string | null } | null;
+type ParejaPlayersMap = Record<string, [PlayerInfo, PlayerInfo]>;
 
 type StatusFilter = 'todos' | 'sin_resultado' | 'pendientes' | 'confirmados';
 
@@ -37,6 +40,21 @@ interface Props {
     tipoDesempate?: string;
     /** Mapa optional: user_id → nombre, para mostrar quién reportó */
     userMap?: Record<string, string>;
+    /** Mapa pareja_id → [j1, j2] con nombre y email para construir
+     *  el nombre formateado y detectar invitados (I). */
+    parejaPlayers?: ParejaPlayersMap;
+}
+
+/** Resuelve el nombre a mostrar para una pareja: usa los jugadores reales
+ *  si existen (para detectar (I) por email), sino cae al string almacenado. */
+function resolvePairName(parejaId: string | null | undefined, fallbackStored: string | null | undefined, parejaPlayers?: ParejaPlayersMap): string {
+    if (parejaId && parejaPlayers) {
+        const pair = parejaPlayers[parejaId];
+        if (pair && (pair[0] || pair[1])) {
+            return formatPairName(pair[0] || undefined, pair[1] || undefined);
+        }
+    }
+    return formatLegacyPairName(fallbackStored) || 'Pareja';
 }
 
 function timeAgo(iso: string | null | undefined): string {
@@ -51,7 +69,7 @@ function timeAgo(iso: string | null | undefined): string {
     return `hace ${d}d`;
 }
 
-export function TournamentResultsManager({ torneoId, partidos, categorias, tipoDesempate = "tercer_set", userMap = {} }: Props) {
+export function TournamentResultsManager({ torneoId, partidos, categorias, tipoDesempate = "tercer_set", userMap = {}, parejaPlayers = {} }: Props) {
     const [search, setSearch] = useState("");
     const [categoria, setCategoria] = useState<string>("todas");
     const [status, setStatus] = useState<StatusFilter>("pendientes");
@@ -73,15 +91,24 @@ export function TournamentResultsManager({ torneoId, partidos, categorias, tipoD
             if (status === 'pendientes' && !isPending) return false;
             if (status === 'confirmados' && !isConfirmed) return false;
 
-            // Búsqueda por pareja (busca tanto en el nombre original como en el formateado)
+            // Búsqueda por pareja (busca en nombre original, formateado y nombres reales de jugadores)
             if (q) {
                 const p1Raw = (p.pareja1?.nombre_pareja || '').toLowerCase();
                 const p2Raw = (p.pareja2?.nombre_pareja || '').toLowerCase();
-                const p1Fmt = formatLegacyPairName(p.pareja1?.nombre_pareja).toLowerCase();
-                const p2Fmt = formatLegacyPairName(p.pareja2?.nombre_pareja).toLowerCase();
+                const p1Fmt = resolvePairName(p.pareja1_id, p.pareja1?.nombre_pareja, parejaPlayers).toLowerCase();
+                const p2Fmt = resolvePairName(p.pareja2_id, p.pareja2?.nombre_pareja, parejaPlayers).toLowerCase();
+                // Buscar también en los nombres completos de los jugadores reales
+                const realNames: string[] = [];
+                [p.pareja1_id, p.pareja2_id].forEach(pid => {
+                    if (pid && parejaPlayers[pid]) {
+                        parejaPlayers[pid].forEach(j => {
+                            if (j?.nombre) realNames.push(j.nombre.toLowerCase());
+                        });
+                    }
+                });
                 const lugar = (p.lugar || '').toLowerCase();
                 const niv = (p.nivel || '').toLowerCase();
-                if (![p1Raw, p2Raw, p1Fmt, p2Fmt, lugar, niv].some(s => s.includes(q))) return false;
+                if (![p1Raw, p2Raw, p1Fmt, p2Fmt, lugar, niv, ...realNames].some(s => s.includes(q))) return false;
             }
             return true;
         }).sort((a, b) => {
@@ -202,6 +229,7 @@ export function TournamentResultsManager({ torneoId, partidos, categorias, tipoD
                             match={m}
                             tipoDesempate={tipoDesempate}
                             userMap={userMap}
+                            parejaPlayers={parejaPlayers}
                         />
                     ))}
                 </div>
@@ -210,7 +238,7 @@ export function TournamentResultsManager({ torneoId, partidos, categorias, tipoD
     );
 }
 
-function MatchRowCard({ torneoId, match, tipoDesempate, userMap }: { torneoId: string; match: MatchRow; tipoDesempate: string; userMap: Record<string, string> }) {
+function MatchRowCard({ torneoId, match, tipoDesempate, userMap, parejaPlayers }: { torneoId: string; match: MatchRow; tipoDesempate: string; userMap: Record<string, string>; parejaPlayers: ParejaPlayersMap }) {
     void torneoId;
     const router = useRouter();
     const [pendingConfirm, startConfirm] = useTransition();
@@ -218,8 +246,8 @@ function MatchRowCard({ torneoId, match, tipoDesempate, userMap }: { torneoId: s
     const [confirmingReset, setConfirmingReset] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const p1 = formatLegacyPairName(match.pareja1?.nombre_pareja) || 'Pareja 1';
-    const p2 = formatLegacyPairName(match.pareja2?.nombre_pareja) || 'Pareja 2';
+    const p1 = resolvePairName(match.pareja1_id, match.pareja1?.nombre_pareja, parejaPlayers) || 'Pareja 1';
+    const p2 = resolvePairName(match.pareja2_id, match.pareja2?.nombre_pareja, parejaPlayers) || 'Pareja 2';
     const hasResult = !!match.resultado;
     const isConfirmed = match.estado_resultado === 'confirmado';
     const isPending = hasResult && !isConfirmed;

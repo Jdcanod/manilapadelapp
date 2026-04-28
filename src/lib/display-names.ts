@@ -77,8 +77,8 @@ export function formatPairName(
  */
 export function formatLegacyPairName(stored: string | null | undefined): string {
     if (!stored) return 'Pareja';
-    // Soporta separadores comunes: " / ", " y ", " - "
-    const parts = stored.split(/\s*\/\s*|\s+y\s+|\s+-\s+/i);
+    // Soporta separadores comunes: " / ", " & ", " y ", " - "
+    const parts = stored.split(/\s*\/\s*|\s*&\s*|\s+y\s+|\s+-\s+/i);
     if (parts.length < 2) return stored; // No se pudo separar, devolver tal cual
     return parts.map(p => compactName(p)).join(' / ');
 }

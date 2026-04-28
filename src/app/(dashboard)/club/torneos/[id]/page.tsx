@@ -102,9 +102,35 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
             .from('parejas')
             .select('id, nombre_pareja, jugador1_id, jugador2_id')
             .in('id', Array.from(pairIdsInMatches));
-        
+
         namesData?.forEach((n: { id: string; nombre_pareja: string; jugador1_id: string; jugador2_id: string }) => parejaDataMap.set(n.id, n));
     }
+
+    // ─── Cargar jugadores reales (con email) para detectar invitados y armar
+    //     nombres formateados consistentes ─────────────────────────────────────
+    const allJugadorIds = new Set<string>();
+    parejaDataMap.forEach(p => {
+        if (p.jugador1_id) allJugadorIds.add(p.jugador1_id);
+        if (p.jugador2_id) allJugadorIds.add(p.jugador2_id);
+    });
+    const jugadorMap = new Map<string, { nombre: string | null; email: string | null }>();
+    if (allJugadorIds.size > 0) {
+        const { data: jugadoresData } = await adminSupabase
+            .from('users')
+            .select('id, nombre, email')
+            .in('id', Array.from(allJugadorIds));
+        (jugadoresData || []).forEach((u: { id: string; nombre: string | null; email: string | null }) => {
+            jugadorMap.set(u.id, { nombre: u.nombre, email: u.email });
+        });
+    }
+    // pareja_id → [jugador1, jugador2] con nombre+email para detectar (I)
+    const parejaPlayersMap: Record<string, [{ nombre: string | null; email: string | null } | null, { nombre: string | null; email: string | null } | null]> = {};
+    parejaDataMap.forEach((p, parejaId) => {
+        parejaPlayersMap[parejaId] = [
+            p.jugador1_id ? jugadorMap.get(p.jugador1_id) || null : null,
+            p.jugador2_id ? jugadorMap.get(p.jugador2_id) || null : null,
+        ];
+    });
 
     interface Participant {
         id: string | number;
@@ -414,6 +440,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                         categorias={categoriasAMostrar}
                         tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                         userMap={reporterMap}
+                        parejaPlayers={parejaPlayersMap}
                     />
                 </TabsContent>
 
