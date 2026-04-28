@@ -1,5 +1,4 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ReservaManualDialog } from "@/components/ReservaManualDialog";
 import { ClubReservationsGrid } from "@/components/ClubReservationsGrid";
 import { ClubDateNavigator } from "@/components/ClubDateNavigator";
@@ -60,7 +59,7 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
     );
 
     // ─── Inscripciones por torneo ───────────────────────────────────────────────
-    let inscripcionesMap: Record<string, number> = {};
+    const inscripcionesMap: Record<string, number> = {};
     let inscripcionesRecientes: Array<{
         torneo_id: string; torneo_nombre: string;
         pareja_nombre: string; fecha: string;
