@@ -99,12 +99,18 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
     const playerIds = jugadores.map((j: any) => j.id).filter(Boolean);
     const winsMap = new Map<string, { wins: number; total: number }>();
 
+    // DEBUG temporal
+    let debugMsg = `playerIds.length=${playerIds.length}`;
+
     if (playerIds.length > 0) {
         // 1) Todas las parejas de estos jugadores (dos queries en paralelo, .or con .in no funciona en Supabase)
-        const [{ data: parejas1 }, { data: parejas2 }] = await Promise.all([
+        const [{ data: parejas1, error: e1 }, { data: parejas2, error: e2 }] = await Promise.all([
             adminSupabase.from('parejas').select('id, jugador1_id, jugador2_id').in('jugador1_id', playerIds),
             adminSupabase.from('parejas').select('id, jugador1_id, jugador2_id').in('jugador2_id', playerIds),
         ]);
+        debugMsg += ` | parejas1=${parejas1?.length ?? 'null'} parejas2=${parejas2?.length ?? 'null'}`;
+        if (e1) debugMsg += ` | e1=${e1.message}`;
+        if (e2) debugMsg += ` | e2=${e2.message}`;
 
         // pareja_id → [jugador1_id, jugador2_id] (deduplicada)
         const parejaToPlayers = new Map<string, string[]>();
@@ -116,10 +122,11 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
         });
 
         const allParejaIds = Array.from(parejaToPlayers.keys());
+        debugMsg += ` | allParejaIds=${allParejaIds.length}`;
 
         if (allParejaIds.length > 0) {
             // 2) Todos los partidos con resultado donde aparece alguna de esas parejas
-            const [{ data: m1 }, { data: m2 }] = await Promise.all([
+            const [{ data: m1, error: em1 }, { data: m2, error: em2 }] = await Promise.all([
                 adminSupabase.from('partidos')
                     .select('id, pareja1_id, pareja2_id, resultado, ganador_pareja_id')
                     .in('pareja1_id', allParejaIds)
@@ -129,6 +136,9 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
                     .in('pareja2_id', allParejaIds)
                     .not('resultado', 'is', null),
             ]);
+            debugMsg += ` | m1=${m1?.length ?? 'null'} m2=${m2?.length ?? 'null'}`;
+            if (em1) debugMsg += ` | em1=${em1.message}`;
+            if (em2) debugMsg += ` | em2=${em2.message}`;
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const matchMap = new Map([...(m1 || []), ...(m2 || [])].map((m: any) => [m.id, m]));
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -164,6 +174,11 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
 
     return (
         <div className="space-y-6">
+            {/* DEBUG temporal */}
+            <div className="bg-yellow-950 border border-yellow-700 rounded-lg p-3 text-xs font-mono text-yellow-200 break-all">
+                🔍 DEBUG (commit e65fbeb+): {debugMsg} | winsMap.size={winsMap.size}
+            </div>
+
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 bg-gradient-to-r from-neutral-900 to-neutral-900/60 p-6 rounded-3xl border border-neutral-800 shadow-xl overflow-hidden relative">
                 <div className="absolute right-0 top-0 w-64 h-64 bg-amber-500/10 blur-3xl rounded-full pointer-events-none" />
 
