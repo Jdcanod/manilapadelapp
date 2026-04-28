@@ -11,6 +11,8 @@ import { crearTorneoCentral } from "./actions";
 export function CrearTorneoForm() {
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
+    const [formato, setFormato] = useState<string>("relampago");
+    const esLiguilla = formato === "liguilla";
 
     async function action(formData: FormData) {
         setError(null);
@@ -92,7 +94,7 @@ export function CrearTorneoForm() {
 
                 <div className="space-y-2">
                     <Label htmlFor="formato" className="text-white">Formato de Competición</Label>
-                    <Select name="formato" defaultValue="relampago" required>
+                    <Select name="formato" value={formato} onValueChange={setFormato} required>
                         <SelectTrigger id="formato" className="bg-neutral-900 border-neutral-800 text-white focus:ring-emerald-500">
                             <SelectValue placeholder="Selecciona formato" />
                         </SelectTrigger>
@@ -101,6 +103,11 @@ export function CrearTorneoForm() {
                             <SelectItem value="liguilla">Liguilla / Round Robin Largo</SelectItem>
                         </SelectContent>
                     </Select>
+                    {esLiguilla && (
+                        <p className="text-xs text-neutral-500 mt-1">
+                            La fase de grupos se juega a lo largo de varios meses en horarios acordados por las parejas. El cronograma de canchas se configurará al generar la fase final.
+                        </p>
+                    )}
                 </div>
 
                 <div className="pt-4 border-t border-neutral-800 space-y-4">
@@ -177,6 +184,7 @@ export function CrearTorneoForm() {
                     </div>
                 </div>
 
+                {!esLiguilla && (
                 <div className="pt-4 border-t border-neutral-800 space-y-4">
                     <h3 className="text-sm font-bold text-emerald-500 uppercase tracking-wider">Configuración del Cronograma</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -207,6 +215,7 @@ export function CrearTorneoForm() {
                         </div>
                     </div>
                 </div>
+                )}
             </div>
 
             {error && (
