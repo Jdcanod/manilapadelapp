@@ -78,6 +78,19 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
     const matchMap = new Map([...(m1 || []), ...(m2 || [])].map(m => [m.id, m]));
     const allMatches = Array.from(matchMap.values());
 
+    // ─── DEBUG (borrar después) ─────────────────────────────────────────────────
+    console.log('[JUGADOR-PROFILE] id:', params.id, jugador.nombre);
+    console.log('[JUGADOR-PROFILE] parejas encontradas:', playerParejaIds.length, playerParejaIds);
+    console.log('[JUGADOR-PROFILE] partidos con resultado:', allMatches.length);
+    if (allMatches.length > 0) {
+        const sample = allMatches[0];
+        console.log('[JUGADOR-PROFILE] sample resultado:', JSON.stringify(sample.resultado));
+        console.log('[JUGADOR-PROFILE] sample estado:', sample.estado, '| estado_resultado:', sample.estado_resultado);
+        console.log('[JUGADOR-PROFILE] sample pareja1_id:', sample.pareja1_id, '| pareja2_id:', sample.pareja2_id);
+        console.log('[JUGADOR-PROFILE] getWinner sample:', getWinner(sample.resultado));
+    }
+    // ───────────────────────────────────────────────────────────────────────────
+
     // ─── Calcular stats generales ───────────────────────────────────────────────
     // "played" = cualquier partido con resultado registrado (históricos pueden tener estado distinto a 'jugado')
     const played = allMatches.length;
