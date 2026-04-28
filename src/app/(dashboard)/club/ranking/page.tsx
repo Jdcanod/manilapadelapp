@@ -81,7 +81,7 @@ export default async function ClubRankingPage() {
         .select('torneo_id, pareja_id')
         .in('torneo_id', torneoIds);
 
-    const parejaIds = [...new Set((tParejas || []).map(tp => tp.pareja_id))];
+    const parejaIds = Array.from(new Set((tParejas || []).map(tp => tp.pareja_id)));
 
     // ─── Datos de parejas (player IDs) ─────────────────────────────────────────
     const parejaPlayerMap = new Map<string, { j1: string; j2: string }>();
