@@ -12,9 +12,17 @@ export function isGuestEmail(email: string | null | undefined): boolean {
 }
 
 /**
- * "Juan David Cano Gomez" → "J. Cano"
- * "María Fernanda López"  → "M. López"
- * "Pedro"                 → "Pedro"  (sin apellido detectable, devuelve tal cual)
+ * Convención usada (común en Colombia / Latinoamérica):
+ *   1 palabra:  "José"                          → "José"
+ *   2 palabras: "Pedro Pérez"                   → "P. Pérez"
+ *   3 palabras: "Juan David Cano"               → "J. Cano"   (nombre compuesto + 1 apellido)
+ *   4+ palabras:"Juan David Cano Restrepo"      → "J. Cano"   (nombre compuesto + 2 apellidos)
+ *               "María Fernanda López García"   → "M. López"
+ *
+ * NOTA: con 3 palabras hay ambigüedad real ("Pedro García López" tiene
+ * García como primer apellido, pero la heurística asumiría López). Se
+ * privilegia el caso más común (nombre compuesto). Si más adelante quieren
+ * un override exacto, agregamos un campo `apellido_display` en users.
  *
  * Si nombre es null/undefined/vacío, devuelve "Jugador".
  */
@@ -27,10 +35,9 @@ function compactName(rawName: string | null | undefined): string {
     if (parts.length === 1) return parts[0];
 
     const inicial = parts[0]!.charAt(0).toUpperCase();
-    // Asumir nombre simple (1 palabra) + apellido = parts[1]
-    // Si nombre es compuesto (2 palabras) + apellidos, igual se queda con parts[1]
-    // (suficiente para "J. Cano" en "Juan David Cano")
-    const apellido = parts[1]!;
+    // 2 palabras → apellido = parts[1]
+    // 3+ palabras → asume nombre compuesto, apellido = parts[2]
+    const apellido = parts.length === 2 ? parts[1]! : parts[2]!;
     return `${inicial}. ${apellido}`;
 }
 
