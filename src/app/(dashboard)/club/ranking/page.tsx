@@ -175,20 +175,19 @@ export default async function ClubRankingPage() {
         }
 
         // Asignar puntos a cada pareja y sus jugadores
-        for (const pairId of allPairs) {
+        const torneoId = catPartidos[0]?.torneo_id;
+        allPairs.forEach(pairId => {
             const players = parejaPlayerMap.get(pairId);
-            if (!players) continue;
+            if (!players) return;
 
             let pts = config.participacion;
             let isChamp = false, isSub = false, isThird = false;
-            if (pairId === championPair) { pts = config.campeon;      isChamp = true; }
-            else if (pairId === runnerUpPair) { pts = config.subcampeon;   isSub   = true; }
-            else if (pairId === thirdPair)    { pts = config.tercer_puesto; isThird  = true; }
+            if (pairId === championPair)      { pts = config.campeon;       isChamp = true; }
+            else if (pairId === runnerUpPair) { pts = config.subcampeon;    isSub   = true; }
+            else if (pairId === thirdPair)    { pts = config.tercer_puesto; isThird = true; }
 
-            const torneoId = catPartidos[0]?.torneo_id;
-
-            for (const jId of [players.j1, players.j2]) {
-                if (!jId) continue;
+            [players.j1, players.j2].forEach(jId => {
+                if (!jId) return;
                 earnedMap.set(jId, (earnedMap.get(jId) || 0) + pts);
                 if (isChamp)  campMap.set(jId, (campMap.get(jId) || 0) + 1);
                 if (isSub)    subMap.set(jId,  (subMap.get(jId)  || 0) + 1);
@@ -197,8 +196,8 @@ export default async function ClubRankingPage() {
                     if (!torneosPorPlayer.has(jId)) torneosPorPlayer.set(jId, new Set());
                     torneosPorPlayer.get(jId)!.add(torneoId);
                 }
-            }
-        }
+            });
+        });
     });
 
     // ─── Puntos base manuales ───────────────────────────────────────────────────
