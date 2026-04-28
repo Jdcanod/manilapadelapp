@@ -108,7 +108,8 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
 
         // pareja_id → [jugador1_id, jugador2_id]
         const parejaToPlayers = new Map<string, string[]>();
-        (parejasData || []).forEach(p => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (parejasData || []).forEach((p: any) => {
             const players = [p.jugador1_id, p.jugador2_id].filter(Boolean) as string[];
             parejaToPlayers.set(p.id, players);
         });
@@ -127,11 +128,14 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
                     .in('pareja2_id', allParejaIds)
                     .not('resultado', 'is', null),
             ]);
-            const matchMap = new Map([...(m1 || []), ...(m2 || [])].map(m => [m.id, m]));
-            const matches = Array.from(matchMap.values());
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const matchMap = new Map([...(m1 || []), ...(m2 || [])].map((m: any) => [m.id, m]));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const matches: any[] = Array.from(matchMap.values());
 
             // 3) Agregar W/L por jugador
-            matches.forEach(m => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            matches.forEach((m: any) => {
                 const winner = m.ganador_pareja_id
                     ? (m.ganador_pareja_id === m.pareja1_id ? 1 : m.ganador_pareja_id === m.pareja2_id ? 2 : null)
                     : getWinner(m.resultado);
@@ -140,11 +144,11 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
                 const winningPair = winner === 1 ? m.pareja1_id : m.pareja2_id;
                 const losingPair  = winner === 1 ? m.pareja2_id : m.pareja1_id;
 
-                (parejaToPlayers.get(winningPair) || []).forEach(pid => {
+                (parejaToPlayers.get(winningPair) || []).forEach((pid: string) => {
                     const cur = winsMap.get(pid) || { wins: 0, total: 0 };
                     winsMap.set(pid, { wins: cur.wins + 1, total: cur.total + 1 });
                 });
-                (parejaToPlayers.get(losingPair) || []).forEach(pid => {
+                (parejaToPlayers.get(losingPair) || []).forEach((pid: string) => {
                     const cur = winsMap.get(pid) || { wins: 0, total: 0 };
                     winsMap.set(pid, { wins: cur.wins, total: cur.total + 1 });
                 });
