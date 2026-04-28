@@ -11,6 +11,27 @@ import { OrganizarPartidoDialog } from "@/components/OrganizarPartidoDialog";
 import { TournamentResultModal } from "@/components/TournamentResultModal";
 import { ValidationTimer } from "@/components/ValidationTimer";
 
+/** Dado el resultado "6-3,4-6,10-7" (o con espacios/barras) devuelve qué pareja ganó: 1 o 2 */
+function getWinner(resultado: string | null | undefined): 1 | 2 | null {
+    if (!resultado) return null;
+    try {
+        const normalised = resultado.replace(/[;/|]/g, ',').replace(/\s{2,}/g, ',').trim();
+        const raw = normalised.includes(',') ? normalised : normalised.replace(/\s+/g, ',');
+        const sets = raw.split(',').map(s => s.trim().split('-').map(Number));
+        let p1 = 0, p2 = 0;
+        for (const [a, b] of sets) {
+            if (isNaN(a) || isNaN(b)) continue;
+            if (a > b) p1++;
+            else if (b > a) p2++;
+        }
+        if (p1 > p2) return 1;
+        if (p2 > p1) return 2;
+        return null;
+    } catch {
+        return null;
+    }
+}
+
 export default async function JugadorDashboard() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -123,24 +144,38 @@ export default async function JugadorDashboard() {
     let parejaActual = "Ninguna";
 
     if (misParejasIds.length > 0 || userData?.id) {
-        // Obtenemos partidos donde participo como pareja o individualmente
+        // Trae cualquier partido con resultado registrado (incluye históricos sin estado='jugado')
+        const safePairList = misParejasIds.length > 0 ? misParejasIds.join(',') : '00000000-0000-0000-0000-000000000000';
         const { data: partidosJugados } = await adminSupabase
             .from('partidos')
             .select('*')
-            .or(`pareja1_id.in.(${misParejasIds.length > 0 ? misParejasIds.join(',') : '00000000-0000-0000-0000-000000000000'}),pareja2_id.in.(${misParejasIds.length > 0 ? misParejasIds.join(',') : '00000000-0000-0000-0000-000000000000'}),creador_id.eq.${user.id}`)
-            .eq('estado', 'jugado');
+            .or(`pareja1_id.in.(${safePairList}),pareja2_id.in.(${safePairList}),creador_id.eq.${user.id}`)
+            .not('resultado', 'is', null);
 
         totalJugados = partidosJugados?.length || 0;
-        
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         partidosJugados?.forEach((p: any) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const match = p as any;
+
+            // 1) Camino "moderno": campos ganador_pareja_id / ganador_id ya seteados
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const myPairId = misParejasIds.find((id: any) => id === match.pareja1_id || id === match.pareja2_id);
             if (match.ganador_pareja_id && myPairId && match.ganador_pareja_id === myPairId) {
                 ganados++;
-            } else if (match.ganador_id && match.ganador_id === user.id) {
+                return;
+            }
+            if (match.ganador_id && match.ganador_id === user.id) {
+                ganados++;
+                return;
+            }
+
+            // 2) Camino "histórico": solo hay 'resultado' como marcador. Deducir ganador.
+            const winner = getWinner(match.resultado);
+            if (winner === null || !myPairId) return;
+            const playerIsP1 = match.pareja1_id === myPairId;
+            if ((playerIsP1 && winner === 1) || (!playerIsP1 && winner === 2)) {
                 ganados++;
             }
         });
@@ -148,7 +183,7 @@ export default async function JugadorDashboard() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const torneosUnicos = new Set(partidosJugados?.filter((p: any) => (p as any).torneo_id).map((p: any) => (p as any).torneo_id));
         numTorneos = torneosUnicos.size;
-        
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         parejaActual = misParejas && misParejas.length > 0 ? (misParejas[misParejas.length - 1] as any).nombre_pareja : "Ninguna";
     }

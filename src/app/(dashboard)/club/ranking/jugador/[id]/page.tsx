@@ -78,29 +78,6 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
     const matchMap = new Map([...(m1 || []), ...(m2 || [])].map(m => [m.id, m]));
     const allMatches = Array.from(matchMap.values());
 
-    // ─── DEBUG (borrar después) ─────────────────────────────────────────────────
-    const debugInfo = {
-        jugadorId: params.id,
-        jugadorNombre: jugador.nombre,
-        parejasCount: playerParejaIds.length,
-        parejasIds: playerParejaIds.slice(0, 5),
-        m1Count: m1?.length || 0,
-        m2Count: m2?.length || 0,
-        allMatchesCount: allMatches.length,
-        torneosCount: torneoIds.length,
-        sample: allMatches.length > 0 ? {
-            resultado: allMatches[0].resultado,
-            estado: allMatches[0].estado,
-            estado_resultado: allMatches[0].estado_resultado,
-            pareja1_id: allMatches[0].pareja1_id,
-            pareja2_id: allMatches[0].pareja2_id,
-            getWinnerResult: getWinner(allMatches[0].resultado || ''),
-            playerIsP1: playerParejaIds.includes(allMatches[0].pareja1_id),
-        } : null,
-        allResultados: allMatches.slice(0, 10).map(m => m.resultado),
-    };
-    // ───────────────────────────────────────────────────────────────────────────
-
     // ─── Calcular stats generales ───────────────────────────────────────────────
     // "played" = cualquier partido con resultado registrado (históricos pueden tener estado distinto a 'jugado')
     const played = allMatches.length;
@@ -205,15 +182,6 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
 
     return (
         <div className="space-y-6 pb-20">
-            {/* DEBUG PANEL — borrar después */}
-            <div className="bg-yellow-950 border border-yellow-700 rounded-lg p-4 text-xs font-mono text-yellow-200 overflow-x-auto">
-                <div className="font-bold text-yellow-100 mb-2">🔍 DEBUG (temporal)</div>
-                <pre className="whitespace-pre-wrap break-all">{JSON.stringify(debugInfo, null, 2)}</pre>
-                <div className="mt-2 text-yellow-100">
-                    wins: {wins} | losses: {losses} | confirmedTotal: {confirmedTotal} | winRate: {String(winRate)}
-                </div>
-            </div>
-
             {/* Header */}
             <div className="flex items-center gap-4">
                 <Link href="/club/ranking" className="p-2 bg-neutral-900 border border-neutral-800 rounded-xl text-white hover:bg-neutral-800 transition-colors">
