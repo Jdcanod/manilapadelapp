@@ -10,9 +10,14 @@ import { cn } from "@/lib/utils";
 
 function getWinner(resultado: string): 1 | 2 | null {
     try {
-        const sets = resultado.split(',').map(s => s.trim().split('-').map(Number));
+        // Normaliza separadores: coma, punto y coma, barra, espacio múltiple → coma
+        const normalised = resultado.replace(/[;/|]/g, ',').replace(/\s{2,}/g, ',').trim();
+        // Si no hay coma pero hay espacio entre sets tipo "6-3 4-6 10-7", separar por espacio
+        const raw = normalised.includes(',') ? normalised : normalised.replace(/\s+/g, ',');
+        const sets = raw.split(',').map(s => s.trim().split('-').map(Number));
         let p1 = 0, p2 = 0;
         for (const [a, b] of sets) {
+            if (isNaN(a) || isNaN(b)) continue;
             if (a > b) p1++; else if (b > a) p2++;
         }
         return p1 > p2 ? 1 : p2 > p1 ? 2 : null;
@@ -74,7 +79,8 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
     const allMatches = Array.from(matchMap.values());
 
     // ─── Calcular stats generales ───────────────────────────────────────────────
-    const played = allMatches.filter(m => m.estado === 'jugado').length;
+    // "played" = cualquier partido con resultado registrado (históricos pueden tener estado distinto a 'jugado')
+    const played = allMatches.length;
     let wins = 0;
     let losses = 0;
 

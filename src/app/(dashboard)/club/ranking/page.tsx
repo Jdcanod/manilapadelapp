@@ -13,12 +13,17 @@ const DEFAULT_CONFIG: RankingConfig = {
     participacion: 10,
 };
 
-/** Dado el resultado "6-3,4-6,10-7" devuelve qué pareja ganó: 1 o 2 */
+/** Dado el resultado "6-3,4-6,10-7" (o "6-3 4-6 10-7", "6-3/4-6/10-7") devuelve qué pareja ganó: 1 o 2 */
 function getWinner(resultado: string): 1 | 2 | null {
     try {
-        const sets = resultado.split(',').map(s => s.trim().split('-').map(Number));
+        // Normaliza separadores: coma, punto y coma, barra, pipe → coma; espacios múltiples → coma
+        const normalised = resultado.replace(/[;/|]/g, ',').replace(/\s{2,}/g, ',').trim();
+        // Si no hay coma pero hay espacios entre sets tipo "6-3 4-6 10-7", separar por espacio
+        const raw = normalised.includes(',') ? normalised : normalised.replace(/\s+/g, ',');
+        const sets = raw.split(',').map(s => s.trim().split('-').map(Number));
         let p1 = 0, p2 = 0;
         for (const [a, b] of sets) {
+            if (isNaN(a) || isNaN(b)) continue;
             if (a > b) p1++;
             else if (b > a) p2++;
         }
