@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { formatPlayerName } from "@/lib/display-names";
 
 function getWinner(resultado: string): 1 | 2 | null {
     try {
@@ -36,9 +37,14 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
     if (adminUser?.rol !== 'admin_club') redirect("/jugador");
 
     // ─── Datos del jugador ──────────────────────────────────────────────────────
-    const { data: jugador } = await adminSupabase
-        .from('users').select('id, nombre, foto').eq('id', params.id).single();
-    if (!jugador) notFound();
+    const { data: jugadorRaw } = await adminSupabase
+        .from('users').select('id, nombre, foto, email').eq('id', params.id).single();
+    if (!jugadorRaw) notFound();
+    const jugador = {
+        ...jugadorRaw,
+        nombre: formatPlayerName({ nombre: jugadorRaw.nombre, email: jugadorRaw.email }),
+        nombreOriginal: jugadorRaw.nombre,
+    };
 
     // ─── Torneos del club ───────────────────────────────────────────────────────
     const { data: torneos } = await adminSupabase
@@ -109,8 +115,8 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
     const partnerDataMap = new Map<string, string>();
     if (partnerIds.length > 0) {
         const { data: partnerUsers } = await adminSupabase
-            .from('users').select('id, nombre').in('id', partnerIds);
-        (partnerUsers || []).forEach(u => partnerDataMap.set(u.id, u.nombre));
+            .from('users').select('id, nombre, email').in('id', partnerIds);
+        (partnerUsers || []).forEach(u => partnerDataMap.set(u.id, formatPlayerName({ nombre: u.nombre, email: u.email })));
     }
 
     const sortedPartners = Object.entries(partnerMatchCount)

@@ -9,6 +9,7 @@ import { Search, X, Check, RotateCcw, Loader2, AlertTriangle, Clock, Filter } fr
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { confirmarResultado, reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
 import { cn } from "@/lib/utils";
+import { formatLegacyPairName } from "@/lib/display-names";
 
 type StatusFilter = 'todos' | 'sin_resultado' | 'pendientes' | 'confirmados';
 
@@ -72,13 +73,15 @@ export function TournamentResultsManager({ torneoId, partidos, categorias, tipoD
             if (status === 'pendientes' && !isPending) return false;
             if (status === 'confirmados' && !isConfirmed) return false;
 
-            // Búsqueda por pareja o lugar
+            // Búsqueda por pareja (busca tanto en el nombre original como en el formateado)
             if (q) {
-                const p1 = (p.pareja1?.nombre_pareja || '').toLowerCase();
-                const p2 = (p.pareja2?.nombre_pareja || '').toLowerCase();
+                const p1Raw = (p.pareja1?.nombre_pareja || '').toLowerCase();
+                const p2Raw = (p.pareja2?.nombre_pareja || '').toLowerCase();
+                const p1Fmt = formatLegacyPairName(p.pareja1?.nombre_pareja).toLowerCase();
+                const p2Fmt = formatLegacyPairName(p.pareja2?.nombre_pareja).toLowerCase();
                 const lugar = (p.lugar || '').toLowerCase();
                 const niv = (p.nivel || '').toLowerCase();
-                if (![p1, p2, lugar, niv].some(s => s.includes(q))) return false;
+                if (![p1Raw, p2Raw, p1Fmt, p2Fmt, lugar, niv].some(s => s.includes(q))) return false;
             }
             return true;
         }).sort((a, b) => {
@@ -215,8 +218,8 @@ function MatchRowCard({ torneoId, match, tipoDesempate, userMap }: { torneoId: s
     const [confirmingReset, setConfirmingReset] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const p1 = match.pareja1?.nombre_pareja || 'Pareja 1';
-    const p2 = match.pareja2?.nombre_pareja || 'Pareja 2';
+    const p1 = formatLegacyPairName(match.pareja1?.nombre_pareja) || 'Pareja 1';
+    const p2 = formatLegacyPairName(match.pareja2?.nombre_pareja) || 'Pareja 2';
     const hasResult = !!match.resultado;
     const isConfirmed = match.estado_resultado === 'confirmado';
     const isPending = hasResult && !isConfirmed;

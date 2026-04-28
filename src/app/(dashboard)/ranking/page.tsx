@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { RankingFilter } from "@/components/RankingFilter";
 import { redirect } from "next/navigation";
+import { formatPlayerName } from "@/lib/display-names";
 
 export const dynamic = 'force-dynamic';
 
@@ -64,7 +65,7 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
     let query = supabase
         .from('users')
         .select(`
-            id, auth_id, nombre, ciudad, elo, club_id, 
+            id, auth_id, nombre, email, ciudad, elo, club_id,
             club:club_id(nombre)
         `)
         .eq('rol', 'jugador')
@@ -251,12 +252,12 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
                                         <div className="flex-1 flex items-center gap-4">
                                             <Avatar className="w-11 h-11 border-2 border-neutral-900 shadow-md">
                                                 <AvatarFallback className={isCurrentUser ? "bg-emerald-900 text-white" : "bg-neutral-800 text-neutral-400"}>
-                                                    {jugador.nombre?.substring(0, 2).toUpperCase() || 'JU'}
+                                                    {(jugador.nombre || 'JU').substring(0, 2).toUpperCase()}
                                                 </AvatarFallback>
                                             </Avatar>
                                             <div className="flex flex-col">
                                                 <span className={`text-lg font-bold tracking-tight flex items-center gap-2 ${isCurrentUser ? 'text-emerald-400' : 'text-white'}`}>
-                                                    {jugador.nombre}
+                                                    {formatPlayerName({ nombre: jugador.nombre, email: jugador.email })}
                                                     {isCurrentUser && (
                                                         <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 text-emerald-500 border-0 h-4">
                                                             TÚ

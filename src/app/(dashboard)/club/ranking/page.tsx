@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ChevronLeft, Trophy } from "lucide-react";
 import Link from "next/link";
 import { RankingManager, type JugadorRankingData, type RankingConfig } from "./RankingManager";
+import { formatPlayerName } from "@/lib/display-names";
 
 const DEFAULT_CONFIG: RankingConfig = {
     campeon: 100,
@@ -127,9 +128,12 @@ export default async function ClubRankingPage() {
     if (allPlayerIds.size > 0) {
         const { data: players } = await adminSupabase
             .from('users')
-            .select('id, nombre, foto')
+            .select('id, nombre, foto, email')
             .in('id', Array.from(allPlayerIds));
-        (players || []).forEach(p => playerMap.set(p.id, { nombre: p.nombre || 'Jugador', foto: p.foto }));
+        (players || []).forEach(p => playerMap.set(p.id, {
+            nombre: formatPlayerName({ nombre: p.nombre, email: p.email }),
+            foto: p.foto,
+        }));
     }
 
     // ─── Partidos en estos torneos con resultado registrado ────────────────────

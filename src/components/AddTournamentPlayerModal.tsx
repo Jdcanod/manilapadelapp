@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,6 +8,7 @@ import { UserPlus, AlertCircle } from "lucide-react";
 import { inscribirParejaManual, obtenerTodosJugadores } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
+import { formatPlayerName, isGuestEmail } from "@/lib/display-names";
 
 interface AddTournamentPlayerModalProps {
     torneoId: string;
@@ -42,6 +43,16 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
 
     const [categoria, setCategoria] = useState(categorias[0] || "6ta");
     const [error, setError] = useState<string | null>(null);
+
+    // Ordenado alfabéticamente por el nombre formateado para que la búsqueda
+    // dentro del select sea predecible.
+    const sortedUsers = useMemo(() => {
+        return [...allUsers].sort((a, b) => {
+            const na = formatPlayerName({ nombre: a.nombre, email: a.email });
+            const nb = formatPlayerName({ nombre: b.nombre, email: b.email });
+            return na.localeCompare(nb);
+        });
+    }, [allUsers]);
 
     const checkDisabled = () => {
         if (isPending) return true;
@@ -119,12 +130,15 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
                                     <SelectValue placeholder="Seleccione al primer jugador" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
-                                    {allUsers.map((u) => (
+                                    {sortedUsers.map((u) => (
                                         <SelectItem key={u.id} value={u.id}>
-                                            {u.nombre} <span className="text-neutral-500 text-xs ml-2">({u.email})</span>
+                                            {formatPlayerName({ nombre: u.nombre, email: u.email })}
+                                            {!isGuestEmail(u.email) && (
+                                                <span className="text-neutral-500 text-xs ml-2">({u.email})</span>
+                                            )}
                                         </SelectItem>
                                     ))}
-                                    {allUsers.length === 0 && <SelectItem value="disabled" disabled>Cargando jugadores...</SelectItem>}
+                                    {sortedUsers.length === 0 && <SelectItem value="disabled" disabled>Cargando jugadores...</SelectItem>}
                                 </SelectContent>
                             </Select>
                         )}
@@ -152,12 +166,15 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
                                     <SelectValue placeholder="Seleccione al segundo jugador" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
-                                    {allUsers.map((u) => (
+                                    {sortedUsers.map((u) => (
                                         <SelectItem key={u.id} value={u.id}>
-                                            {u.nombre} <span className="text-neutral-500 text-xs ml-2">({u.email})</span>
+                                            {formatPlayerName({ nombre: u.nombre, email: u.email })}
+                                            {!isGuestEmail(u.email) && (
+                                                <span className="text-neutral-500 text-xs ml-2">({u.email})</span>
+                                            )}
                                         </SelectItem>
                                     ))}
-                                    {allUsers.length === 0 && <SelectItem value="disabled" disabled>Cargando jugadores...</SelectItem>}
+                                    {sortedUsers.length === 0 && <SelectItem value="disabled" disabled>Cargando jugadores...</SelectItem>}
                                 </SelectContent>
                             </Select>
                         )}
