@@ -60,11 +60,13 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
         adminSupabase.from('partidos')
             .select('id, torneo_id, lugar, pareja1_id, pareja2_id, estado, estado_resultado, resultado, nivel, fecha')
             .in('torneo_id', torneoIds)
-            .in('pareja1_id', playerParejaIds.length > 0 ? playerParejaIds : ['none']),
+            .in('pareja1_id', playerParejaIds.length > 0 ? playerParejaIds : ['none'])
+            .not('resultado', 'is', null),
         adminSupabase.from('partidos')
             .select('id, torneo_id, lugar, pareja1_id, pareja2_id, estado, estado_resultado, resultado, nivel, fecha')
             .in('torneo_id', torneoIds)
-            .in('pareja2_id', playerParejaIds.length > 0 ? playerParejaIds : ['none']),
+            .in('pareja2_id', playerParejaIds.length > 0 ? playerParejaIds : ['none'])
+            .not('resultado', 'is', null),
     ]);
 
     // Deduplicar por id
@@ -77,7 +79,7 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
     let losses = 0;
 
     allMatches.forEach(m => {
-        if (m.estado !== 'jugado' || !m.resultado || m.estado_resultado !== 'confirmado') return;
+        if (!m.resultado) return;
         const playerIsP1 = playerParejaIds.includes(m.pareja1_id);
         const winner = getWinner(m.resultado);
         if (winner === null) return;
@@ -133,7 +135,7 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
                 m.lugar?.toLowerCase().includes('final') &&
                 !m.lugar?.toLowerCase().includes('semi') &&
                 !m.lugar?.toLowerCase().includes('cuartos') &&
-                m.estado_resultado === 'confirmado' && m.resultado
+                m.resultado && getWinner(m.resultado) !== null
             );
             if (finalMatch) {
                 const playerIsP1 = playerParejaIds.includes(finalMatch.pareja1_id);
@@ -146,7 +148,7 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
             if (!posicion) {
                 const thirdMatch = torneoMatches.find(m =>
                     m.lugar?.toLowerCase().includes('tercer') &&
-                    m.estado_resultado === 'confirmado' && m.resultado
+                    m.resultado && getWinner(m.resultado) !== null
                 );
                 if (thirdMatch) {
                     const playerIsP1 = playerParejaIds.includes(thirdMatch.pareja1_id);

@@ -127,12 +127,14 @@ export default async function ClubRankingPage() {
         (players || []).forEach(p => playerMap.set(p.id, { nombre: p.nombre || 'Jugador', foto: p.foto }));
     }
 
-    // ─── Partidos jugados en estos torneos ─────────────────────────────────────
+    // ─── Partidos en estos torneos con resultado registrado ────────────────────
+    // Incluye 'jugado' y también partidos históricos que puedan tener otro estado
+    // pero ya tengan resultado cargado por admin
     const { data: partidos } = await adminSupabase
         .from('partidos')
         .select('id, torneo_id, nivel, lugar, pareja1_id, pareja2_id, estado_resultado, resultado')
         .in('torneo_id', torneoIds)
-        .eq('estado', 'jugado');
+        .not('resultado', 'is', null);
 
     // ─── Calcular puntos ganados ────────────────────────────────────────────────
     const earnedMap    = new Map<string, number>();
@@ -161,14 +163,14 @@ export default async function ClubRankingPage() {
         let runnerUpPair:  string | null = null;
         let thirdPair:     string | null = null;
 
-        // Partido final
+        // Partido final — acepta cualquier resultado válido sin importar estado_resultado
+        // (cubre torneos históricos donde el admin cargó resultados sin el flujo de confirmación)
         const finalMatch = catPartidos.find(p =>
             p.lugar?.toLowerCase().includes('final') &&
             !p.lugar?.toLowerCase().includes('semi') &&
             !p.lugar?.toLowerCase().includes('cuartos') &&
             !p.lugar?.toLowerCase().includes('octavos') &&
-            p.estado_resultado === 'confirmado' &&
-            p.resultado
+            p.resultado && getWinner(p.resultado) !== null
         );
         if (finalMatch) {
             const winner = getWinner(finalMatch.resultado);
@@ -179,8 +181,7 @@ export default async function ClubRankingPage() {
         // Partido tercer puesto
         const thirdMatch = catPartidos.find(p =>
             p.lugar?.toLowerCase().includes('tercer') &&
-            p.estado_resultado === 'confirmado' &&
-            p.resultado
+            p.resultado && getWinner(p.resultado) !== null
         );
         if (thirdMatch) {
             const winner = getWinner(thirdMatch.resultado);
