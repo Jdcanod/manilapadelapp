@@ -13,6 +13,7 @@ import { TournamentBracketManager } from "@/components/TournamentBracketManager"
 import { AddTournamentPlayerModal } from "@/components/AddTournamentPlayerModal";
 import { TournamentChronogram } from "@/components/TournamentChronogram";
 import { TournamentExportButton } from "@/components/TournamentExportButton";
+import { TournamentResultsManager } from "@/components/TournamentResultsManager";
 
 
 
@@ -187,6 +188,25 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     const categoriasHabilitadas = torneo.reglas_puntuacion?.categorias_habilitadas || ['2da', '3ra', '4ta', '5ta', '6ta', '7ma', 'Mixto A', 'Mixto B', 'Mixto C'];
     const categoriasAMostrar = categoriasConInscritos.length > 0 ? categoriasConInscritos : categoriasHabilitadas;
 
+    // Conteo de partidos por confirmar (para badge en el tab)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pendientesCount = (rawPartidos || []).filter((p: any) =>
+        p.pareja1_id && p.pareja2_id && p.resultado && p.estado_resultado !== 'confirmado'
+    ).length;
+
+    // Cargar nombres de quien reportó cada resultado pendiente
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const reporterIds = Array.from(new Set((rawPartidos || []).map((p: any) => p.resultado_registrado_por).filter(Boolean))) as string[];
+    const reporterMap: Record<string, string> = {};
+    if (reporterIds.length > 0) {
+        const { data: reporters } = await adminSupabase
+            .from('users')
+            .select('id, nombre')
+            .in('id', reporterIds);
+        (reporters || []).forEach((r: { id: string; nombre: string | null }) => {
+            reporterMap[r.id] = r.nombre || 'Jugador';
+        });
+    }
 
     const hasStarted = (rawPartidos || []).length > 0;
 
@@ -366,6 +386,12 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                     <TabsTrigger value="participantes" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-neutral-800">Parejas Inscritas <Badge variant="secondary" className="ml-2 bg-neutral-800 text-neutral-400 border-none">{allParticipants.length}</Badge></TabsTrigger>
                     <TabsTrigger value="grupos" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-neutral-800">Fase de Grupos</TabsTrigger>
                     <TabsTrigger value="eliminatorias" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-neutral-800">Fases Finales (Llaves)</TabsTrigger>
+                    <TabsTrigger value="resultados" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-neutral-800">
+                        Resultados
+                        {pendientesCount > 0 && (
+                            <Badge variant="secondary" className="ml-2 bg-amber-500/15 text-amber-300 border border-amber-500/30">{pendientesCount}</Badge>
+                        )}
+                    </TabsTrigger>
                     <TabsTrigger value="cronograma" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-neutral-800">Parrilla (Programación)</TabsTrigger>
                 </TabsList>
 
@@ -381,8 +407,18 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                     />
                 </TabsContent>
 
+                <TabsContent value="resultados" className="mt-6">
+                    <TournamentResultsManager
+                        torneoId={params.id}
+                        partidos={partidosReales}
+                        categorias={categoriasAMostrar}
+                        tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
+                        userMap={reporterMap}
+                    />
+                </TabsContent>
+
                 <TabsContent value="cronograma" className="mt-6">
-                    <TournamentChronogram 
+                    <TournamentChronogram
                         torneoId={params.id}
                         matches={partidosReales}
                         config={{

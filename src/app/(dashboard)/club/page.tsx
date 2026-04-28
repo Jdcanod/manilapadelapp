@@ -125,14 +125,17 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
 
     // ─── Resultados pendientes de confirmar ─────────────────────────────────────
     let resultadosPendientes = 0;
+    let primerTorneoPendienteId: string | null = null;
     if (tournamentIds.length > 0) {
-        const { count } = await adminSupabase
+        const { data: pendData } = await adminSupabase
             .from('partidos')
-            .select('*', { count: 'exact', head: true })
+            .select('torneo_id')
             .in('torneo_id', tournamentIds)
             .eq('estado', 'jugado')
-            .neq('estado_resultado', 'confirmado');
-        resultadosPendientes = count || 0;
+            .neq('estado_resultado', 'confirmado')
+            .not('resultado', 'is', null);
+        resultadosPendientes = pendData?.length || 0;
+        primerTorneoPendienteId = pendData?.[0]?.torneo_id || null;
     }
 
     // ─── Total jugadores únicos en torneos del club ─────────────────────────────
@@ -456,7 +459,10 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                                         Hay partidos de torneo jugados que esperan confirmación de ambas parejas.
                                     </p>
                                 </div>
-                                <Link href="/club/resultados-pendientes" className="text-xs font-bold text-amber-400 hover:text-amber-300 whitespace-nowrap transition-colors flex items-center gap-1">
+                                <Link
+                                    href={primerTorneoPendienteId ? `/club/torneos/${primerTorneoPendienteId}?tab=resultados` : '/club/torneos'}
+                                    className="text-xs font-bold text-amber-400 hover:text-amber-300 whitespace-nowrap transition-colors flex items-center gap-1"
+                                >
                                     Revisar <ChevronRight className="w-3 h-3" />
                                 </Link>
                             </CardContent>
