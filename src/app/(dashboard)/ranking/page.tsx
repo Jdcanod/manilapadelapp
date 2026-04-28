@@ -1,11 +1,34 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Trophy, ArrowUp, ArrowDown, ArrowRight, Medal, MapPin, Building } from "lucide-react";
+import { Trophy, Medal, MapPin, Building } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { createClient } from "@/utils/supabase/server";
+import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { RankingFilter } from "@/components/RankingFilter";
 import { redirect } from "next/navigation";
+
+export const dynamic = 'force-dynamic';
+
+/** Deduce ganador del marcador "6-3,4-6,10-7" (acepta espacios, barras, etc.) */
+function getWinner(resultado: string | null | undefined): 1 | 2 | null {
+    if (!resultado) return null;
+    try {
+        const normalised = resultado.replace(/[;/|]/g, ',').replace(/\s{2,}/g, ',').trim();
+        const raw = normalised.includes(',') ? normalised : normalised.replace(/\s+/g, ',');
+        const sets = raw.split(',').map(s => s.trim().split('-').map(Number));
+        let p1 = 0, p2 = 0;
+        for (const [a, b] of sets) {
+            if (isNaN(a) || isNaN(b)) continue;
+            if (a > b) p1++;
+            else if (b > a) p2++;
+        }
+        if (p1 > p2) return 1;
+        if (p2 > p1) return 2;
+        return null;
+    } catch {
+        return null;
+    }
+}
 
 export default async function RankingPage({ searchParams }: { searchParams: { ciudad?: string, club?: string } }) {
     const supabase = createClient();
@@ -70,6 +93,65 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
     const { data: jugadoresData } = await query;
     const jugadores = jugadoresData || [];
 
+    // ─── Calcular win rate real de cada jugador en bloque ──────────────────────
+    const adminSupabase = createPureAdminClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const playerIds = jugadores.map((j: any) => j.id).filter(Boolean);
+    const winsMap = new Map<string, { wins: number; total: number }>();
+
+    if (playerIds.length > 0) {
+        // 1) Todas las parejas de estos jugadores
+        const { data: parejasData } = await adminSupabase
+            .from('parejas')
+            .select('id, jugador1_id, jugador2_id')
+            .or(`jugador1_id.in.(${playerIds.join(',')}),jugador2_id.in.(${playerIds.join(',')})`);
+
+        // pareja_id → [jugador1_id, jugador2_id]
+        const parejaToPlayers = new Map<string, string[]>();
+        (parejasData || []).forEach(p => {
+            const players = [p.jugador1_id, p.jugador2_id].filter(Boolean) as string[];
+            parejaToPlayers.set(p.id, players);
+        });
+
+        const allParejaIds = Array.from(parejaToPlayers.keys());
+
+        if (allParejaIds.length > 0) {
+            // 2) Todos los partidos con resultado donde aparece alguna de esas parejas
+            const [{ data: m1 }, { data: m2 }] = await Promise.all([
+                adminSupabase.from('partidos')
+                    .select('id, pareja1_id, pareja2_id, resultado, ganador_pareja_id')
+                    .in('pareja1_id', allParejaIds)
+                    .not('resultado', 'is', null),
+                adminSupabase.from('partidos')
+                    .select('id, pareja1_id, pareja2_id, resultado, ganador_pareja_id')
+                    .in('pareja2_id', allParejaIds)
+                    .not('resultado', 'is', null),
+            ]);
+            const matchMap = new Map([...(m1 || []), ...(m2 || [])].map(m => [m.id, m]));
+            const matches = Array.from(matchMap.values());
+
+            // 3) Agregar W/L por jugador
+            matches.forEach(m => {
+                const winner = m.ganador_pareja_id
+                    ? (m.ganador_pareja_id === m.pareja1_id ? 1 : m.ganador_pareja_id === m.pareja2_id ? 2 : null)
+                    : getWinner(m.resultado);
+                if (winner === null) return;
+
+                const winningPair = winner === 1 ? m.pareja1_id : m.pareja2_id;
+                const losingPair  = winner === 1 ? m.pareja2_id : m.pareja1_id;
+
+                (parejaToPlayers.get(winningPair) || []).forEach(pid => {
+                    const cur = winsMap.get(pid) || { wins: 0, total: 0 };
+                    winsMap.set(pid, { wins: cur.wins + 1, total: cur.total + 1 });
+                });
+                (parejaToPlayers.get(losingPair) || []).forEach(pid => {
+                    const cur = winsMap.get(pid) || { wins: 0, total: 0 };
+                    winsMap.set(pid, { wins: cur.wins, total: cur.total + 1 });
+                });
+            });
+        }
+    }
+
     // Buscar el nombre del club y ciudad actuales para el título
     const clubSeleccionado = clubes.find(c => c.auth_id === club)?.nombre;
     const ciudadDisplay = ciudad && ciudad !== 'todas' ? ciudad.charAt(0).toUpperCase() + ciudad.slice(1) : 'Global';
@@ -114,10 +196,12 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
                                 const rank = idx + 1;
                                 const isCurrentUser = jugador.auth_id === user.id;
 
-                                // Simulamos la tendencia y win rate por ahora (en el futuro vendrá de bd)
-                                const isUp = idx % 3 === 0;
-                                const isDown = idx % 4 === 0 && !isUp;
-                                const winRate = Math.min(90, Math.round(50 + (1000 / (idx + 10))));
+                                // Win rate real desde la DB
+                                const stats = winsMap.get(jugador.id);
+                                const winRate = stats && stats.total > 0
+                                    ? Math.round((stats.wins / stats.total) * 100)
+                                    : null;
+                                const partidosJugados = stats?.total || 0;
 
                                 // Workaround para join de supabase si club reference no se retorna bien al ser la misma tabla
                                 // Si 'club' no viene, intentamos buscarlo localmente
@@ -129,7 +213,7 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
                                         className={`group flex items-center gap-4 p-4 border-b border-neutral-800/50 hover:bg-neutral-800/60 transition-colors cursor-pointer ${isCurrentUser ? 'bg-emerald-950/20 bg-gradient-to-r from-emerald-500/10 to-transparent border-l-2 border-l-emerald-500' : ''
                                             }`}
                                     >
-                                        {/* Posición y Tendencia */}
+                                        {/* Posición */}
                                         <div className="w-12 flex flex-col items-center justify-center relative">
                                             {rank === 1 && <Medal className="w-8 h-8 text-amber-400 absolute opacity-20 -z-10" />}
                                             <span className={`text-2xl font-black ${rank === 1 ? 'text-amber-400' :
@@ -138,12 +222,6 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
                                                 }`}>
                                                 {rank}
                                             </span>
-
-                                            <div className="flex items-center mt-1 text-[10px] font-bold">
-                                                {isUp ? <ArrowUp className="w-3 h-3 text-emerald-400" /> :
-                                                    isDown ? <ArrowDown className="w-3 h-3 text-red-400" /> :
-                                                        <ArrowRight className="w-3 h-3 text-neutral-600" />}
-                                            </div>
                                         </div>
 
                                         {/* Info Jugador */}
@@ -177,15 +255,19 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
 
                                         {/* WinRate md+ */}
                                         <div className="w-24 text-center hidden md:flex flex-col">
-                                            <span className="text-sm font-semibold text-neutral-300">
-                                                {winRate}%
+                                            <span className={`text-sm font-semibold ${winRate === null ? 'text-neutral-600' : 'text-neutral-300'}`}>
+                                                {winRate !== null ? `${winRate}%` : '—'}
                                             </span>
-                                            <span className="text-[10px] text-neutral-500">PJ</span>
+                                            <span className="text-[10px] text-neutral-500">
+                                                {partidosJugados} {partidosJugados === 1 ? 'PJ' : 'PJ'}
+                                            </span>
                                         </div>
 
                                         {/* Puntos ELO */}
                                         <div className="w-32 text-right pr-4 flex flex-col justify-center">
-                                            <span className="text-2xl font-black text-white font-mono">{jugador.elo || 1450}</span>
+                                            <span className={`text-2xl font-black font-mono ${jugador.elo ? 'text-white' : 'text-neutral-600'}`}>
+                                                {jugador.elo ?? '—'}
+                                            </span>
                                         </div>
                                     </div>
                                 );
