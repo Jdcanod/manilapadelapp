@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Save, Loader2, Settings, Star, Users, CheckCircle2 } from "lucide-react";
+import { Save, Loader2, Settings, Star, Users, CheckCircle2, ChevronRight } from "lucide-react";
 import { saveRankingConfig, saveBasePoints } from "./actions";
 import { cn } from "@/lib/utils";
 
@@ -124,10 +125,11 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
                             </div>
                             <div className="divide-y divide-neutral-800/60">
                                 {ranked.map((j, i) => (
-                                    <div
+                                    <Link
                                         key={j.id}
+                                        href={`/club/ranking/jugador/${j.id}`}
                                         className={cn(
-                                            "grid grid-cols-[2rem_1fr_auto] gap-3 px-5 py-3.5 items-center transition-colors hover:bg-neutral-800/30",
+                                            "grid grid-cols-[2rem_1fr_auto_1rem] gap-3 px-5 py-3.5 items-center transition-colors hover:bg-neutral-800/50 group",
                                             i === 0 && "bg-amber-500/5"
                                         )}
                                     >
@@ -165,7 +167,9 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
                                                 {basePoints[j.id] ?? j.puntos_base} + {j.puntos_ganados}
                                             </p>
                                         </div>
-                                    </div>
+
+                                        <ChevronRight className="w-3.5 h-3.5 text-neutral-700 group-hover:text-neutral-400 transition-colors" />
+                                    </Link>
                                 ))}
                             </div>
                         </>

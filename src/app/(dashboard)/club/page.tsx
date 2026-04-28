@@ -98,6 +98,26 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
             inscripcionesMap[ins.torneo_id] = (inscripcionesMap[ins.torneo_id] || 0) + 1;
         });
 
+        // Fallback: contar parejas únicas desde partidos (torneos históricos
+        // que no usan torneo_parejas ni inscripciones_torneo)
+        const { data: partRefsPairs } = await adminSupabase
+            .from('partidos')
+            .select('torneo_id, pareja1_id, pareja2_id')
+            .in('torneo_id', tournamentIds);
+
+        const parejasPorTorneo: Record<string, Set<string>> = {};
+        (partRefsPairs || []).forEach(p => {
+            if (!parejasPorTorneo[p.torneo_id]) parejasPorTorneo[p.torneo_id] = new Set();
+            if (p.pareja1_id) parejasPorTorneo[p.torneo_id].add(p.pareja1_id);
+            if (p.pareja2_id) parejasPorTorneo[p.torneo_id].add(p.pareja2_id);
+        });
+        // Solo usar este conteo si el torneo no tiene inscripciones registradas
+        Object.entries(parejasPorTorneo).forEach(([torneoId, pairs]) => {
+            if (!inscripcionesMap[torneoId]) {
+                inscripcionesMap[torneoId] = pairs.size;
+            }
+        });
+
         // Ordenar inscripciones recientes por fecha desc
         inscripcionesRecientes.sort((a, b) => b.fecha.localeCompare(a.fecha));
         inscripcionesRecientes = inscripcionesRecientes.slice(0, 5);

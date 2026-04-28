@@ -75,13 +75,26 @@ export default async function ClubRankingPage() {
         );
     }
 
-    // ─── Parejas inscritas en estos torneos ────────────────────────────────────
+    // ─── Parejas: desde torneo_parejas Y desde partidos (para torneos históricos) ─
     const { data: tParejas } = await adminSupabase
         .from('torneo_parejas')
-        .select('torneo_id, pareja_id')
+        .select('pareja_id')
         .in('torneo_id', torneoIds);
 
-    const parejaIds = Array.from(new Set((tParejas || []).map(tp => tp.pareja_id)));
+    // Traer parejas directamente desde los partidos (cubre datos históricos
+    // donde no se usó torneo_parejas)
+    const { data: partidosPairRefs } = await adminSupabase
+        .from('partidos')
+        .select('pareja1_id, pareja2_id')
+        .in('torneo_id', torneoIds);
+
+    const allParejaIdsSet = new Set<string>();
+    (tParejas || []).forEach(tp => { if (tp.pareja_id) allParejaIdsSet.add(tp.pareja_id); });
+    (partidosPairRefs || []).forEach(p => {
+        if (p.pareja1_id) allParejaIdsSet.add(p.pareja1_id);
+        if (p.pareja2_id) allParejaIdsSet.add(p.pareja2_id);
+    });
+    const parejaIds = Array.from(allParejaIdsSet);
 
     // ─── Datos de parejas (player IDs) ─────────────────────────────────────────
     const parejaPlayerMap = new Map<string, { j1: string; j2: string }>();
