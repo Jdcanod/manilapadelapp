@@ -129,7 +129,8 @@ export default async function ClubRankingPage() {
     const torneosPorPlayer = new Map<string, Set<string>>();
 
     // Agrupar por torneo + categoría
-    const grouped = new Map<string, typeof partidos>();
+    type PartidoRow = NonNullable<typeof partidos>[number];
+    const grouped = new Map<string, PartidoRow[]>();
     for (const p of (partidos || [])) {
         const key = `${p.torneo_id}__${p.nivel || '_'}`;
         if (!grouped.has(key)) grouped.set(key, []);
@@ -138,7 +139,7 @@ export default async function ClubRankingPage() {
 
     grouped.forEach(catPartidos => {
         const allPairs = new Set<string>();
-        for (const p of catPartidos || []) {
+        for (const p of catPartidos) {
             if (p.pareja1_id) allPairs.add(p.pareja1_id);
             if (p.pareja2_id) allPairs.add(p.pareja2_id);
         }
