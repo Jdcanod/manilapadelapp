@@ -456,7 +456,7 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                                         Hay partidos de torneo jugados que esperan confirmación de ambas parejas.
                                     </p>
                                 </div>
-                                <Link href="/club/torneos" className="text-xs font-bold text-amber-400 hover:text-amber-300 whitespace-nowrap transition-colors flex items-center gap-1">
+                                <Link href="/club/resultados-pendientes" className="text-xs font-bold text-amber-400 hover:text-amber-300 whitespace-nowrap transition-colors flex items-center gap-1">
                                     Revisar <ChevronRight className="w-3 h-3" />
                                 </Link>
                             </CardContent>
