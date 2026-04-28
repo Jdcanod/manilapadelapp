@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git log *)",
+      "Bash(npx tsc *)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(node_modules/next/node_modules/.bin/tsc --noEmit)",
+      "Bash(node_modules/.bin/next build *)",
+      "Bash(npm run *)",
+      "PowerShell(npm run build 2>&1)",
+      "Bash(git add *)",
+      "Bash(git rebase *)",
+      "Bash(git commit -m 'fix: suppress unused-vars ESLint error on numAdvancingPerGroup param *)",
+      "Bash(git commit -m 'fix: move torneoInfo fetch before it is used in generarFaseGrupos *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
+    ]
+  }
+}

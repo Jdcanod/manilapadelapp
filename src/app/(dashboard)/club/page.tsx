@@ -5,7 +5,7 @@ import { ClubDateNavigator } from "@/components/ClubDateNavigator";
 import {
     CheckCircle, CalendarRange, BarChart3, History,
     Trophy, Users, AlertTriangle, ChevronRight,
-    Clock, TrendingUp, UserPlus, Zap
+    Clock, TrendingUp, UserPlus, Zap, Award
 } from "lucide-react";
 import Link from "next/link";
 import { createClient, createAdminClient } from "@/utils/supabase/server";
@@ -270,19 +270,19 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
             </div>
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Link href="/club/estadisticas">
                     <Card className="bg-neutral-900 border-neutral-800 hover:border-emerald-500/50 transition-all group overflow-hidden relative h-28 flex items-center">
                         <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all">
                             <BarChart3 className="w-28 h-28 text-emerald-500" />
                         </div>
-                        <CardContent className="p-5 flex items-center gap-4 relative z-10 w-full">
-                            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors flex-shrink-0">
-                                <BarChart3 className="w-6 h-6" />
+                        <CardContent className="p-4 flex items-center gap-3 relative z-10 w-full">
+                            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors flex-shrink-0">
+                                <BarChart3 className="w-5 h-5" />
                             </div>
-                            <div>
-                                <h3 className="text-base font-bold text-white group-hover:text-emerald-400 transition-colors">Estadísticas</h3>
-                                <p className="text-neutral-500 text-xs">Horarios pico y actividad analítica</p>
+                            <div className="min-w-0">
+                                <h3 className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">Estadísticas</h3>
+                                <p className="text-neutral-500 text-[11px]">Actividad analítica</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -293,13 +293,30 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                         <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all">
                             <Trophy className="w-28 h-28 text-amber-500" />
                         </div>
-                        <CardContent className="p-5 flex items-center gap-4 relative z-10 w-full">
-                            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 group-hover:bg-amber-500 group-hover:text-black transition-colors flex-shrink-0">
-                                <Trophy className="w-6 h-6" />
+                        <CardContent className="p-4 flex items-center gap-3 relative z-10 w-full">
+                            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 group-hover:bg-amber-500 group-hover:text-black transition-colors flex-shrink-0">
+                                <Trophy className="w-5 h-5" />
                             </div>
-                            <div>
-                                <h3 className="text-base font-bold text-white group-hover:text-amber-400 transition-colors">Torneos</h3>
-                                <p className="text-neutral-500 text-xs">Gestionar inscripciones y cuadros</p>
+                            <div className="min-w-0">
+                                <h3 className="text-sm font-bold text-white group-hover:text-amber-400 transition-colors">Torneos</h3>
+                                <p className="text-neutral-500 text-[11px]">Gestionar y crear</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </Link>
+
+                <Link href="/club/ranking">
+                    <Card className="bg-neutral-900 border-neutral-800 hover:border-purple-500/50 transition-all group overflow-hidden relative h-28 flex items-center">
+                        <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all">
+                            <Award className="w-28 h-28 text-purple-500" />
+                        </div>
+                        <CardContent className="p-4 flex items-center gap-3 relative z-10 w-full">
+                            <div className="w-10 h-10 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-500 group-hover:bg-purple-500 group-hover:text-white transition-colors flex-shrink-0">
+                                <Award className="w-5 h-5" />
+                            </div>
+                            <div className="min-w-0">
+                                <h3 className="text-sm font-bold text-white group-hover:text-purple-400 transition-colors">Ranking</h3>
+                                <p className="text-neutral-500 text-[11px]">Gestionar puntuación</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -310,13 +327,13 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                         <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all">
                             <History className="w-28 h-28 text-blue-500" />
                         </div>
-                        <CardContent className="p-5 flex items-center gap-4 relative z-10 w-full">
-                            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors flex-shrink-0">
-                                <History className="w-6 h-6" />
+                        <CardContent className="p-4 flex items-center gap-3 relative z-10 w-full">
+                            <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors flex-shrink-0">
+                                <History className="w-5 h-5" />
                             </div>
-                            <div>
-                                <h3 className="text-base font-bold text-white group-hover:text-blue-400 transition-colors">Historial</h3>
-                                <p className="text-neutral-500 text-xs">Partidos jugados y resultados</p>
+                            <div className="min-w-0">
+                                <h3 className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">Historial</h3>
+                                <p className="text-neutral-500 text-[11px]">Partidos jugados</p>
                             </div>
                         </CardContent>
                     </Card>

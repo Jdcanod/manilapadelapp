@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-// import { CrearTorneoDialog } from "./CrearTorneoDialog";
+import { DeleteTournamentButton } from "@/components/DeleteTournamentButton";
 
 export const dynamic = 'force-dynamic';
 
@@ -95,9 +95,12 @@ export default async function ClubTorneosPage() {
                                 <CardContent className="p-5 flex flex-col h-full">
                                     <div className="flex justify-between items-start mb-4 gap-4">
                                         <div className="flex-1">
-                                            <Badge variant="outline" className={`mb-3 ${statusColor}`}>
-                                                {statusText}
-                                            </Badge>
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <Badge variant="outline" className={`${statusColor}`}>
+                                                    {statusText}
+                                                </Badge>
+                                                <DeleteTournamentButton torneoId={torneo.id} torneoNombre={torneo.nombre} />
+                                            </div>
                                             <h3 className="text-xl font-bold text-white mb-2 leading-tight">{torneo.nombre}</h3>
 
                                             <div className="flex items-center text-sm text-neutral-400 font-medium mt-3">
