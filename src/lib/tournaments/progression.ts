@@ -158,6 +158,10 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
 export async function sincronizarClasificados(torneoId: string, categoria: string, clubId: string | null, userId: string) {
     const supabaseAdmin = createAdminClient();
 
+    // 0. Determinar opciones de scoring según el formato del torneo
+    const { data: torneo } = await supabaseAdmin.from('torneos').select('formato').eq('id', torneoId).single();
+    const standingsOpts = torneo?.formato === 'liguilla' ? { pointsForLoss: 1 } : {};
+
     // 1. Obtener todos los grupos de la categoría
     const { data: grupos } = await supabaseAdmin
         .from('torneo_grupos')
@@ -173,11 +177,11 @@ export async function sincronizarClasificados(torneoId: string, categoria: strin
             .from('partidos')
             .select('*, pareja1:parejas!pareja1_id(nombre_pareja), pareja2:parejas!pareja2_id(nombre_pareja)')
             .eq('torneo_grupo_id', grupo.id);
-        
+
         const isFinished = (matches || []).length > 0 && (matches || []).every(m => m.estado === 'jugado' && m.estado_resultado === 'confirmado');
         if (!isFinished) continue;
 
-        const standings = calculateStandings(matches || []);
+        const standings = calculateStandings(matches || [], standingsOpts);
         const first = standings[0];
         const second = standings[1];
 

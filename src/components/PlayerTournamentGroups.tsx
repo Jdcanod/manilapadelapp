@@ -16,6 +16,7 @@ interface Standing {
     nombre: string;
     pj: number;
     pg: number;
+    pp: number;
     sg: number;
     sp: number;
     gg: number;
@@ -46,9 +47,11 @@ interface Props {
     playerPairIds: string[];
     currentUserId?: string;
     tipoDesempate?: string;
+    formato?: string; // 'relampago' | 'liguilla'
 }
 
-export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId, tipoDesempate = "tercer_set" }: Props) {
+export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId, tipoDesempate = "tercer_set", formato = "relampago" }: Props) {
+    const esLiguilla = formato === 'liguilla';
     const [isPendingAction, startTransition] = useTransition();
     const router = useRouter();
 
@@ -79,8 +82,8 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
         matches.forEach(m => {
             if (!m.pareja1_id || !m.pareja2_id) return;
             
-            if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: m.pareja1?.nombre_pareja || "TBD", pj: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
-            if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: m.pareja2?.nombre_pareja || "TBD", pj: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
+            if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: m.pareja1?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
+            if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: m.pareja2?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
 
             if (m.estado === 'jugado' && m.resultado && m.estado_resultado === 'confirmado') {
                 const s1 = map.get(m.pareja1_id)!;
@@ -107,8 +110,15 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                     }
                 });
 
-                if (setsP1InMatch > setsP2InMatch) { s1.pg += 1; s1.pts += 3; } 
-                else if (setsP2InMatch > setsP1InMatch) { s2.pg += 1; s2.pts += 3; }
+                // Liguilla: ganador 3pts, perdedor 1pt. Otros formatos: ganador 3pts, perdedor 0.
+                const pointsForLoss = esLiguilla ? 1 : 0;
+                if (setsP1InMatch > setsP2InMatch) {
+                    s1.pg += 1; s1.pts += 3;
+                    s2.pp += 1; s2.pts += pointsForLoss;
+                } else if (setsP2InMatch > setsP1InMatch) {
+                    s2.pg += 1; s2.pts += 3;
+                    s1.pp += 1; s1.pts += pointsForLoss;
+                }
             }
         });
 

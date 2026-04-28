@@ -4,6 +4,7 @@ interface Standing {
     nombre: string;
     pj: number;
     pg: number;
+    pp: number;
     sg: number;
     sp: number;
     gg: number;
@@ -11,22 +12,31 @@ interface Standing {
     pts: number;
 }
 
-export function calculateStandings(matches: { 
-    pareja1_id: string | null; 
-    pareja2_id: string | null; 
-    estado: string; 
-    resultado: string | null; 
-    estado_resultado: string | null; 
+export interface StandingsOptions {
+    /** Puntos por victoria (default 3) */
+    pointsForWin?: number;
+    /** Puntos por derrota (default 0; en liguilla = 1) */
+    pointsForLoss?: number;
+}
+
+export function calculateStandings(matches: {
+    pareja1_id: string | null;
+    pareja2_id: string | null;
+    estado: string;
+    resultado: string | null;
+    estado_resultado: string | null;
     pareja1?: { nombre_pareja: string | null } | null;
     pareja2?: { nombre_pareja: string | null } | null;
-}[]): Standing[] {
+}[], options: StandingsOptions = {}): Standing[] {
+    const pointsForWin = options.pointsForWin ?? 3;
+    const pointsForLoss = options.pointsForLoss ?? 0;
     const map = new Map<string, Standing>();
 
     matches.forEach(m => {
         if (!m.pareja1_id || !m.pareja2_id) return;
         
-        if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: m.pareja1?.nombre_pareja || "TBD", pj: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
-        if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: m.pareja2?.nombre_pareja || "TBD", pj: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
+        if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: m.pareja1?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
+        if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: m.pareja2?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
 
         if ((m.estado === 'jugado' || m.estado_resultado === 'confirmado') && m.resultado) {
             const s1 = map.get(m.pareja1_id)!;
@@ -64,10 +74,14 @@ export function calculateStandings(matches: {
 
             if (setsP1InMatch > setsP2InMatch) {
                 s1.pg += 1;
-                s1.pts += 3;
+                s1.pts += pointsForWin;
+                s2.pp += 1;
+                s2.pts += pointsForLoss;
             } else if (setsP2InMatch > setsP1InMatch) {
                 s2.pg += 1;
-                s2.pts += 3;
+                s2.pts += pointsForWin;
+                s1.pp += 1;
+                s1.pts += pointsForLoss;
             }
         }
     });

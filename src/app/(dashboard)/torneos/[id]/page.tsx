@@ -188,13 +188,14 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                 </TabsList>
 
                 <TabsContent value="grupos" className="mt-8">
-                        <PlayerTournamentGroups 
+                        <PlayerTournamentGroups
                             torneoId={params.id}
-                            grupos={grupos || []} 
-                            partidos={partidosReales || []} 
-                            playerPairIds={playerPairIds} 
+                            grupos={grupos || []}
+                            partidos={partidosReales || []}
+                            playerPairIds={playerPairIds}
                             currentUserId={typeof finalUserId !== 'undefined' ? finalUserId : undefined}
                             tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
+                            formato={torneo.formato}
                         />
                 </TabsContent>
                 <TabsContent value="cuadros" className="mt-8">

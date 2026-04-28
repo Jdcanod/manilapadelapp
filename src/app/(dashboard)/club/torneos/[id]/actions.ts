@@ -605,9 +605,10 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
 
         if (!grupos || grupos.length === 0) return { success: false, message: "No hay grupos en esta categoría." };
 
-        const { data: torneo } = await supabaseAdmin.from('torneos').select('club_id, fecha_inicio').eq('id', torneoId).single();
+        const { data: torneo } = await supabaseAdmin.from('torneos').select('club_id, fecha_inicio, formato').eq('id', torneoId).single();
         const clubId = torneo?.club_id;
         const fechaTorneo = torneo?.fecha_inicio;
+        const standingsOpts = torneo?.formato === 'liguilla' ? { pointsForLoss: 1 } : {};
 
         const groupResults: {
             grupoId: string;
@@ -629,7 +630,7 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
             const totalMatches = matches?.length || 0;
             const playedMatches = matches?.filter(m => (m.estado === 'jugado' || m.estado_resultado === 'confirmado') && m.resultado).length || 0;
             
-            const standings = calculateStandings(matches || []);
+            const standings = calculateStandings(matches || [], standingsOpts);
             // Lógica propuesta: Si el total de partidos programados es igual a los jugados, el grupo está cerrado.
             const isFinished = totalMatches > 0 && playedMatches >= totalMatches;
             
