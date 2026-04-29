@@ -11,6 +11,22 @@ import { AdminTournamentResultModal } from "@/components/AdminTournamentResultMo
 import { confirmarResultado, reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
 import { Check, Plus, RotateCcw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { formatPairName, formatLegacyPairName } from "@/lib/display-names";
+
+type PlayerInfo = { nombre: string | null; apellido: string | null; email: string | null } | null;
+type ParejaPlayersMap = Record<string, [PlayerInfo, PlayerInfo]>;
+
+/** Resuelve el nombre a mostrar para una pareja: usa los jugadores reales
+ *  si existen (para detectar (I) por email), sino cae al string almacenado. */
+function resolvePairName(parejaId: string | null | undefined, fallbackStored: string | null | undefined, parejaPlayers?: ParejaPlayersMap): string {
+    if (parejaId && parejaPlayers) {
+        const pair = parejaPlayers[parejaId];
+        if (pair && (pair[0] || pair[1])) {
+            return formatPairName(pair[0] || undefined, pair[1] || undefined);
+        }
+    }
+    return formatLegacyPairName(fallbackStored) || 'Pareja';
+}
 
 interface Props {
     torneoId: string;
@@ -37,6 +53,7 @@ interface Props {
     tipoDesempate?: string;
     allParticipants?: { id: string | number; pareja_id: string; nombre: string; categoria: string; estado_pago: string; tipo: string; jugador1_id?: string; jugador2_id?: string }[];
     formato?: string; // 'relampago' | 'liguilla'
+    parejaPlayers?: ParejaPlayersMap;
 }
 
 interface Standing {
@@ -52,7 +69,7 @@ interface Standing {
     pts: number;
 }
 
-export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", allParticipants = [], formato = "relampago" }: Props) {
+export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", allParticipants = [], formato = "relampago", parejaPlayers = {} }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const [selectedCat, setSelectedCat] = useState(categorias[0] || "General");
@@ -185,8 +202,8 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
         matches.forEach(m => {
             if (!m.pareja1_id || !m.pareja2_id) return;
             
-            if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: m.pareja1?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
-            if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: m.pareja2?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
+            if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: resolvePairName(m.pareja1_id, m.pareja1?.nombre_pareja, parejaPlayers) || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
+            if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: resolvePairName(m.pareja2_id, m.pareja2?.nombre_pareja, parejaPlayers) || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
 
             if (m.estado === 'jugado' && m.resultado && m.estado_resultado === 'confirmado') {
                 const s1 = map.get(m.pareja1_id)!;

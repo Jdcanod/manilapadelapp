@@ -19,6 +19,7 @@ interface AddTournamentPlayerModalProps {
 interface User {
     id: string;
     nombre: string;
+    apellido?: string | null;
     email: string;
 }
 
@@ -48,8 +49,8 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
     // dentro del select sea predecible.
     const sortedUsers = useMemo(() => {
         return [...allUsers].sort((a, b) => {
-            const na = formatPlayerName({ nombre: a.nombre, email: a.email });
-            const nb = formatPlayerName({ nombre: b.nombre, email: b.email });
+            const na = formatPlayerName({ nombre: a.nombre, apellido: a.apellido, email: a.email });
+            const nb = formatPlayerName({ nombre: b.nombre, apellido: b.apellido, email: b.email });
             return na.localeCompare(nb);
         });
     }, [allUsers]);
@@ -132,7 +133,7 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
                                 <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
                                     {sortedUsers.map((u) => (
                                         <SelectItem key={u.id} value={u.id}>
-                                            {formatPlayerName({ nombre: u.nombre, email: u.email })}
+                                            {formatPlayerName({ nombre: u.nombre, apellido: u.apellido, email: u.email })}
                                             {!isGuestEmail(u.email) && (
                                                 <span className="text-neutral-500 text-xs ml-2">({u.email})</span>
                                             )}
@@ -168,7 +169,7 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
                                 <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
                                     {sortedUsers.map((u) => (
                                         <SelectItem key={u.id} value={u.id}>
-                                            {formatPlayerName({ nombre: u.nombre, email: u.email })}
+                                            {formatPlayerName({ nombre: u.nombre, apellido: u.apellido, email: u.email })}
                                             {!isGuestEmail(u.email) && (
                                                 <span className="text-neutral-500 text-xs ml-2">({u.email})</span>
                                             )}

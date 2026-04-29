@@ -549,12 +549,12 @@ export async function obtenerTodosJugadores() {
     const supabase = createClient();
     const { data } = await supabase
         .from('users')
-        .select('id, nombre, email')
+        .select('id, nombre, apellido, email')
         .neq('rol', 'admin_club')
         .neq('rol', 'superadmin')
         .order('nombre', { ascending: true })
         .limit(1000);
-        
+
     return data || [];
 }
 

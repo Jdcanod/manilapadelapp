@@ -65,7 +65,7 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
     let query = supabase
         .from('users')
         .select(`
-            id, auth_id, nombre, email, ciudad, elo, club_id,
+            id, auth_id, nombre, apellido, email, ciudad, elo, club_id,
             club:club_id(nombre)
         `)
         .eq('rol', 'jugador')
@@ -257,7 +257,7 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
                                             </Avatar>
                                             <div className="flex flex-col">
                                                 <span className={`text-lg font-bold tracking-tight flex items-center gap-2 ${isCurrentUser ? 'text-emerald-400' : 'text-white'}`}>
-                                                    {formatPlayerName({ nombre: jugador.nombre, email: jugador.email })}
+                                                    {formatPlayerName({ nombre: jugador.nombre, apellido: jugador.apellido, email: jugador.email })}
                                                     {isCurrentUser && (
                                                         <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 text-emerald-500 border-0 h-4">
                                                             TÚ

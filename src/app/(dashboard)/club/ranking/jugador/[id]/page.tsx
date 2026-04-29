@@ -38,11 +38,11 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
 
     // ─── Datos del jugador ──────────────────────────────────────────────────────
     const { data: jugadorRaw } = await adminSupabase
-        .from('users').select('id, nombre, foto, email').eq('id', params.id).single();
+        .from('users').select('id, nombre, apellido, foto, email').eq('id', params.id).single();
     if (!jugadorRaw) notFound();
     const jugador = {
         ...jugadorRaw,
-        nombre: formatPlayerName({ nombre: jugadorRaw.nombre, email: jugadorRaw.email }),
+        nombre: formatPlayerName({ nombre: jugadorRaw.nombre, apellido: jugadorRaw.apellido, email: jugadorRaw.email }),
         nombreOriginal: jugadorRaw.nombre,
     };
 
@@ -115,8 +115,8 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
     const partnerDataMap = new Map<string, string>();
     if (partnerIds.length > 0) {
         const { data: partnerUsers } = await adminSupabase
-            .from('users').select('id, nombre, email').in('id', partnerIds);
-        (partnerUsers || []).forEach(u => partnerDataMap.set(u.id, formatPlayerName({ nombre: u.nombre, email: u.email })));
+            .from('users').select('id, nombre, apellido, email').in('id', partnerIds);
+        (partnerUsers || []).forEach(u => partnerDataMap.set(u.id, formatPlayerName({ nombre: u.nombre, apellido: u.apellido, email: u.email })));
     }
 
     const sortedPartners = Object.entries(partnerMatchCount)

@@ -113,18 +113,18 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         if (p.jugador1_id) allJugadorIds.add(p.jugador1_id);
         if (p.jugador2_id) allJugadorIds.add(p.jugador2_id);
     });
-    const jugadorMap = new Map<string, { nombre: string | null; email: string | null }>();
+    const jugadorMap = new Map<string, { nombre: string | null; apellido: string | null; email: string | null }>();
     if (allJugadorIds.size > 0) {
         const { data: jugadoresData } = await adminSupabase
             .from('users')
-            .select('id, nombre, email')
+            .select('id, nombre, apellido, email')
             .in('id', Array.from(allJugadorIds));
-        (jugadoresData || []).forEach((u: { id: string; nombre: string | null; email: string | null }) => {
-            jugadorMap.set(u.id, { nombre: u.nombre, email: u.email });
+        (jugadoresData || []).forEach((u: { id: string; nombre: string | null; apellido: string | null; email: string | null }) => {
+            jugadorMap.set(u.id, { nombre: u.nombre, apellido: u.apellido, email: u.email });
         });
     }
-    // pareja_id → [jugador1, jugador2] con nombre+email para detectar (I)
-    const parejaPlayersMap: Record<string, [{ nombre: string | null; email: string | null } | null, { nombre: string | null; email: string | null } | null]> = {};
+    // pareja_id → [jugador1, jugador2] con nombre+apellido+email para detectar (I)
+    const parejaPlayersMap: Record<string, [{ nombre: string | null; apellido: string | null; email: string | null } | null, { nombre: string | null; apellido: string | null; email: string | null } | null]> = {};
     parejaDataMap.forEach((p, parejaId) => {
         parejaPlayersMap[parejaId] = [
             p.jugador1_id ? jugadorMap.get(p.jugador1_id) || null : null,
@@ -430,6 +430,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                         tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                         allParticipants={allParticipants}
                         formato={torneo.formato || 'relampago'}
+                        parejaPlayers={parejaPlayersMap}
                     />
                 </TabsContent>
 

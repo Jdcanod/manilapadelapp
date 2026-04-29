@@ -11,7 +11,7 @@ import { confirmarResultado, reiniciarResultado } from "@/app/(dashboard)/torneo
 import { cn } from "@/lib/utils";
 import { formatLegacyPairName, formatPairName } from "@/lib/display-names";
 
-type PlayerInfo = { nombre: string | null; email: string | null } | null;
+type PlayerInfo = { nombre: string | null; apellido: string | null; email: string | null } | null;
 type ParejaPlayersMap = Record<string, [PlayerInfo, PlayerInfo]>;
 
 type StatusFilter = 'todos' | 'sin_resultado' | 'pendientes' | 'confirmados';

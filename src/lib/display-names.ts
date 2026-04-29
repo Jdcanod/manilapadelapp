@@ -12,45 +12,51 @@ export function isGuestEmail(email: string | null | undefined): boolean {
 }
 
 /**
- * Convención usada (común en Colombia / Latinoamérica):
- *   1 palabra:  "José"                          → "José"
- *   2 palabras: "Pedro Pérez"                   → "P. Pérez"
- *   3 palabras: "Juan David Cano"               → "J. Cano"   (nombre compuesto + 1 apellido)
- *   4+ palabras:"Juan David Cano Restrepo"      → "J. Cano"   (nombre compuesto + 2 apellidos)
- *               "María Fernanda López García"   → "M. López"
+ * Compone "Inicial. PrimerApellido" priorizando el campo `apellido`
+ * cuando viene separado en DB. Si no hay apellido, infiere desde el
+ * nombre completo.
  *
- * NOTA: con 3 palabras hay ambigüedad real ("Pedro García López" tiene
- * García como primer apellido, pero la heurística asumiría López). Se
- * privilegia el caso más común (nombre compuesto). Si más adelante quieren
- * un override exacto, agregamos un campo `apellido_display` en users.
- *
- * Si nombre es null/undefined/vacío, devuelve "Jugador".
+ * Casos:
+ *   {nombre: "Juan David", apellido: "Cano"}      → "J. Cano"
+ *   {nombre: "Juan David Cano"}                   → "J. Cano"   (heurística)
+ *   {nombre: "Pedro", apellido: "Pérez"}          → "P. Pérez"
+ *   {nombre: "Pedro Pérez"}                       → "P. Pérez"
+ *   {nombre: "José"}                              → "José"
+ *   {nombre: null}                                → "Jugador"
  */
-function compactName(rawName: string | null | undefined): string {
-    if (!rawName) return 'Jugador';
-    const trimmed = rawName.trim();
-    if (!trimmed) return 'Jugador';
+function compactName(nombre: string | null | undefined, apellido?: string | null | undefined): string {
+    const nom = (nombre || '').trim();
+    const ape = (apellido || '').trim();
 
-    const parts = trimmed.split(/\s+/);
+    // Caso ideal: ambos campos existen → "I. Apellido"
+    if (nom && ape) {
+        const inicial = nom.charAt(0).toUpperCase();
+        const primerApellido = ape.split(/\s+/)[0]!;
+        return `${inicial}. ${primerApellido}`;
+    }
+
+    // Solo nombre → heurística según número de palabras
+    if (!nom) return 'Jugador';
+    const parts = nom.split(/\s+/);
     if (parts.length === 1) return parts[0];
 
     const inicial = parts[0]!.charAt(0).toUpperCase();
     // 2 palabras → apellido = parts[1]
     // 3+ palabras → asume nombre compuesto, apellido = parts[2]
-    const apellido = parts.length === 2 ? parts[1]! : parts[2]!;
-    return `${inicial}. ${apellido}`;
+    const apellidoInferido = parts.length === 2 ? parts[1]! : parts[2]!;
+    return `${inicial}. ${apellidoInferido}`;
 }
 
 /**
  * Formatea un jugador para display.
- *   formatPlayerName({ nombre: "Juan David Cano", email: "jdc@x.com" })
+ *   formatPlayerName({ nombre: "Juan David", apellido: "Cano", email: "jdc@x.com" })
  *     → "J. Cano"
  *   formatPlayerName({ nombre: "Pedro Perez", email: "invitado_123@manilapadel.app" })
  *     → "P. Perez (I)"
  */
-export function formatPlayerName(player: { nombre?: string | null; email?: string | null } | null | undefined): string {
+export function formatPlayerName(player: { nombre?: string | null; apellido?: string | null; email?: string | null } | null | undefined): string {
     if (!player) return 'Jugador';
-    const compact = compactName(player.nombre);
+    const compact = compactName(player.nombre, player.apellido);
     return isGuestEmail(player.email) ? `${compact} (I)` : compact;
 }
 
@@ -61,18 +67,20 @@ export function formatPlayerName(player: { nombre?: string | null; email?: strin
  *
  * Útil para selects o lugares donde el espacio no es problema.
  */
-export function formatPlayerNameFull(player: { nombre?: string | null; email?: string | null } | null | undefined): string {
+export function formatPlayerNameFull(player: { nombre?: string | null; apellido?: string | null; email?: string | null } | null | undefined): string {
     if (!player) return 'Jugador';
-    const base = (player.nombre || '').trim() || 'Jugador';
-    return isGuestEmail(player.email) ? `${base} (I)` : base;
+    const nom = (player.nombre || '').trim();
+    const ape = (player.apellido || '').trim();
+    const full = [nom, ape].filter(Boolean).join(' ') || 'Jugador';
+    return isGuestEmail(player.email) ? `${full} (I)` : full;
 }
 
 /**
  * Combina dos jugadores en un nombre de pareja: "J. Cano / W. Cardona".
  */
 export function formatPairName(
-    j1: { nombre?: string | null; email?: string | null } | null | undefined,
-    j2: { nombre?: string | null; email?: string | null } | null | undefined
+    j1: { nombre?: string | null; apellido?: string | null; email?: string | null } | null | undefined,
+    j2: { nombre?: string | null; apellido?: string | null; email?: string | null } | null | undefined
 ): string {
     return `${formatPlayerName(j1)} / ${formatPlayerName(j2)}`;
 }
