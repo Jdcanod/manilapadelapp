@@ -697,12 +697,12 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                 ¿Cuántas parejas clasifican por grupo?
                             </p>
                             <div className="flex flex-wrap items-center gap-2">
-                                {[1, 2, 3, 4, 6, 8].map(n => (
+                                {[1, 2, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20].map(n => (
                                     <button
                                         key={n}
                                         onClick={() => setDialogClasifican(n)}
                                         className={cn(
-                                            "w-12 h-12 rounded-lg font-black text-sm border transition-colors",
+                                            "w-11 h-11 rounded-lg font-black text-sm border transition-colors",
                                             dialogClasifican === n
                                                 ? "bg-amber-500 text-black border-amber-500"
                                                 : "bg-neutral-950 text-neutral-300 border-neutral-700 hover:bg-neutral-800"
