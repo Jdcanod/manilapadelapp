@@ -9,7 +9,7 @@ import { Search, X, Check, RotateCcw, Loader2, AlertTriangle, Clock, Filter } fr
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { confirmarResultado, reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
 import { cn } from "@/lib/utils";
-import { formatLegacyPairName, resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
+import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 
 type StatusFilter = 'todos' | 'sin_resultado' | 'pendientes' | 'confirmados';
 
