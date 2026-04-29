@@ -3,16 +3,16 @@
 
 import React, { useState } from 'react';
 import { Badge } from "@/components/ui/badge";
-import { Swords, Loader2, RefreshCw, Trophy, Check } from "lucide-react";
+import { Loader2, RefreshCw, Trophy, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton";
-import { generarFaseEliminatoria, triggerSync } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { triggerSync } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useParams, useRouter } from 'next/navigation';
-import { cn } from "@/lib/utils";
 import { AdminEditBracketModal } from "@/components/AdminEditBracketModal";
+import { SortearEliminatoriasDialog } from "@/components/SortearEliminatoriasDialog";
 
 interface MatchItem {
     id: string;
@@ -275,31 +275,6 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate }
         (a.nombre_pareja || "").localeCompare(b.nombre_pareja || "")
     );
 
-    const handleGenerate = async () => {
-        if (!selectedCat || !torneoId) return;
-        
-        const tienePartidos = eliminatoriasPartidos.filter(p => p.nivel === selectedCat).length > 0;
-        if (tienePartidos) {
-            const confirmed = window.confirm(`¿Estás seguro de RE-SORTEAR las eliminatorias de ${selectedCat}?\n\nEsto borrará todos los cruces actuales y los resultados guardados para esta fase. Esta acción no se puede deshacer.`);
-            if (!confirmed) return;
-        }
-
-        setLoading(true);
-        try {
-            const res = await generarFaseEliminatoria(torneoId as string, selectedCat);
-            if (res.success) {
-                toast({ title: "¡Éxito!", description: `Cuadro de ${selectedCat} generado correctamente.` });
-                router.refresh();
-            } else {
-                toast({ title: "Atención", description: res.message, variant: "destructive" });
-            }
-        } catch (err: any) {
-            toast({ title: "Error", description: err.message || "No se pudo generar el cuadro.", variant: "destructive" });
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const eliminatoriasPartidos = partidos
         .filter(p => 
             !p.torneo_grupo_id && 
@@ -346,21 +321,11 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate }
                         Categoría seleccionada: {selectedCat}
                     </Badge>
                     
-                    <button
-                        onClick={handleGenerate}
-                        disabled={loading}
-                        className={cn(
-                            "flex items-center gap-2 font-black py-2 px-6 rounded-xl transition-all transform active:scale-95 uppercase text-[10px] tracking-widest border border-emerald-600/50",
-                            eliminatoriasPartidos.filter(p => p.nivel === selectedCat).length > 0 
-                                ? "bg-neutral-950 text-emerald-500 hover:bg-emerald-950/30" 
-                                : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl hover:scale-105"
-                        )}
-                    >
-                        {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Swords className="w-3 h-3" />}
-                        {eliminatoriasPartidos.filter(p => p.nivel === selectedCat).length > 0 
-                            ? `Re-Sortear Eliminatorias ${selectedCat}` 
-                            : `Sortear Eliminatorias ${selectedCat}`}
-                    </button>
+                    <SortearEliminatoriasDialog
+                        torneoId={torneoId as string}
+                        categoria={selectedCat}
+                        yaTieneBracket={eliminatoriasPartidos.filter(p => p.nivel === selectedCat).length > 0}
+                    />
 
                     {eliminatoriasPartidos.filter(p => p.nivel === selectedCat).length > 0 && (
                         <button
