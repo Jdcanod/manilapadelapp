@@ -2,9 +2,9 @@
 import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Swords, Users, Trophy } from "lucide-react";
+import { Swords, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { generarFaseGrupos, generarFaseEliminatoria, swapParejasDeGrupo, crearGrupoManual, moverParejaAGrupo } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { generarFaseGrupos, swapParejasDeGrupo, crearGrupoManual, moverParejaAGrupo } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
@@ -77,7 +77,6 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
 
     // Opciones específicas de liguilla
     const [numGrupos, setNumGrupos] = useState(2);
-    const [numClasifican, setNumClasifican] = useState(4);
     const [showSettings, setShowSettings] = useState(false);
 
     const onGenerate = () => {
@@ -97,27 +96,6 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                 }
             } catch (err: unknown) {
                 alert(err instanceof Error ? err.message : "Error desconocido");
-            }
-        });
-    };
-
-    const onGeneratePlayoffs = () => {
-        const confirmMsg = esLiguilla
-            ? `¿Generar fase eliminatoria para ${selectedCat}? Clasifican las ${numClasifican} mejores parejas de cada grupo.`
-            : `¿Generar eliminatorias para ${selectedCat}? Se tomarán los 2 mejores de cada grupo.`;
-        if (!confirm(confirmMsg)) return;
-
-        startTransition(async () => {
-            try {
-                const result = await generarFaseEliminatoria(torneoId, selectedCat, esLiguilla ? numClasifican : 2);
-                if (result.success) {
-                    alert(result.message || "¡Fase eliminatoria generada! Revisa Cuadros de Juego.");
-                    router.refresh();
-                } else {
-                    alert("Error: " + (result.message || "No se pudieron generar las eliminatorias"));
-                }
-            } catch (err: unknown) {
-                alert(err instanceof Error ? err.message : "Error desconocido al generar eliminatorias");
             }
         });
     };
@@ -315,69 +293,42 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                         </div>
                     </div>
 
-                    {/* Acciones */}
+                    {/* Acción principal del header (solo cuando aún no hay grupos sorteados).
+                        El "Sortear Eliminatorias" vive solo en el tab Fases Finales para evitar
+                        duplicar el botón. */}
                     <div className="flex flex-col gap-2 w-full md:w-auto shrink-0">
-                        {gruposCategoria.length === 0 ? (
+                        {gruposCategoria.length === 0 && (
                             <Button
                                 onClick={onGenerate}
                                 disabled={isPending}
                                 variant="outline"
-                                className="bg-neutral-950 border-neutral-800 text-white hover:bg-neutral-800 font-bold"
+                                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
                             >
                                 {isPending ? "Generando..." : (esLiguilla ? "Generar Grupos (Liguilla)" : "Sorteo Grupos")}
-                            </Button>
-                        ) : (
-                            <Button
-                                onClick={onGeneratePlayoffs}
-                                disabled={isPending}
-                                className="bg-amber-600 hover:bg-amber-500 text-white font-bold"
-                            >
-                                <Trophy className="w-4 h-4 mr-2" />
-                                {isPending ? "Generando..." : "Generar Eliminatorias"}
                             </Button>
                         )}
                     </div>
                 </div>
 
-                {/* Acciones principales: solo el botón "feliz path" + toggle de settings */}
-                <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto items-stretch sm:items-center">
-                    {gruposCategoria.length === 0 ? (
+                {/* Toggle de configuración avanzada (solo cuando ya hay grupos) */}
+                {gruposCategoria.length > 0 && (
+                    <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto items-stretch sm:items-center">
                         <Button
-                            onClick={onGenerate}
-                            disabled={isPending}
+                            type="button"
+                            onClick={() => setShowSettings(s => !s)}
                             variant="outline"
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                            size="sm"
+                            className={cn(
+                                "border-neutral-700 text-neutral-400 hover:text-white font-bold transition-colors",
+                                showSettings ? "bg-neutral-800 text-white" : "bg-neutral-900"
+                            )}
                         >
-                            {isPending ? "Generando..." : (esLiguilla ? "Generar Grupos (Liguilla)" : "Sorteo Grupos")}
+                            <Settings className="w-4 h-4 mr-2" />
+                            Configuración
+                            <ChevronDown className={cn("w-3 h-3 ml-1 transition-transform", showSettings && "rotate-180")} />
                         </Button>
-                    ) : (
-                        <>
-                            <Button
-                                onClick={onGeneratePlayoffs}
-                                disabled={isPending}
-                                className="bg-amber-600 hover:bg-amber-500 text-white font-bold shadow-lg shadow-amber-600/20"
-                            >
-                                <Trophy className="w-4 h-4 mr-2" />
-                                {isPending ? "Generando..." : "Sorteo Eliminatorias"}
-                            </Button>
-                            {/* Toggle de configuración avanzada */}
-                            <Button
-                                type="button"
-                                onClick={() => setShowSettings(s => !s)}
-                                variant="outline"
-                                size="sm"
-                                className={cn(
-                                    "border-neutral-700 text-neutral-400 hover:text-white font-bold transition-colors",
-                                    showSettings ? "bg-neutral-800 text-white" : "bg-neutral-900"
-                                )}
-                            >
-                                <Settings className="w-4 h-4 mr-2" />
-                                Configuración
-                                <ChevronDown className={cn("w-3 h-3 ml-1 transition-transform", showSettings && "rotate-180")} />
-                            </Button>
-                        </>
-                    )}
-                </div>
+                    </div>
+                )}
 
                 {/* Panel de configuración avanzada (oculto por defecto para evitar clicks accidentales) */}
                 {gruposCategoria.length > 0 && showSettings && (
@@ -416,26 +367,17 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                         {esLiguilla && (
                             <div>
                                 <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3">Configuración Liguilla</p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-3">
-                                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-2">Número de grupos</label>
-                                        <div className="flex items-center gap-2">
-                                            {[1, 2, 3, 4].map(n => (
-                                                <button key={n} onClick={() => setNumGrupos(n)} className={cn("w-10 h-10 rounded-lg font-black text-sm border transition-colors", numGrupos === n ? "bg-emerald-500 text-black border-emerald-500" : "bg-neutral-900 text-neutral-400 border-neutral-800 hover:bg-neutral-800")}>{n}</button>
-                                            ))}
-                                            <span className="text-xs text-neutral-500 ml-1">grupo{numGrupos > 1 ? 's' : ''}</span>
-                                        </div>
+                                <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-3 max-w-sm">
+                                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-2">Número de grupos</label>
+                                    <div className="flex items-center gap-2">
+                                        {[1, 2, 3, 4].map(n => (
+                                            <button key={n} onClick={() => setNumGrupos(n)} className={cn("w-10 h-10 rounded-lg font-black text-sm border transition-colors", numGrupos === n ? "bg-emerald-500 text-black border-emerald-500" : "bg-neutral-900 text-neutral-400 border-neutral-800 hover:bg-neutral-800")}>{n}</button>
+                                        ))}
+                                        <span className="text-xs text-neutral-500 ml-1">grupo{numGrupos > 1 ? 's' : ''}</span>
                                     </div>
-                                    <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-3">
-                                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-2">Clasifican por grupo</label>
-                                        <div className="flex items-center gap-2">
-                                            {[2, 4, 6, 8].map(n => (
-                                                <button key={n} onClick={() => setNumClasifican(n)} className={cn("w-10 h-10 rounded-lg font-black text-sm border transition-colors", numClasifican === n ? "bg-amber-500 text-black border-amber-500" : "bg-neutral-900 text-neutral-400 border-neutral-800 hover:bg-neutral-800")}>{n}</button>
-                                            ))}
-                                            <span className="text-xs text-neutral-500 ml-1">por grupo</span>
-                                        </div>
-                                        <p className="text-[10px] text-neutral-600 mt-2">→ Total al bracket: <span className="text-amber-500 font-bold">{numGrupos * numClasifican}</span></p>
-                                    </div>
+                                    <p className="text-[10px] text-neutral-600 mt-2">
+                                        Aplica al hacer un nuevo sorteo de grupos. Las eliminatorias se manejan en el tab <span className="text-amber-400 font-semibold">Fases Finales</span>.
+                                    </p>
                                 </div>
                             </div>
                         )}
