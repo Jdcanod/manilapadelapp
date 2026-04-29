@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { confirmarResultado, reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
-import { Check, Plus, RotateCcw } from "lucide-react";
+import { Check, Plus, RotateCcw, Settings, ChevronDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { formatPairName, formatLegacyPairName } from "@/lib/display-names";
 
@@ -78,6 +78,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
     // Opciones específicas de liguilla
     const [numGrupos, setNumGrupos] = useState(2);
     const [numClasifican, setNumClasifican] = useState(4);
+    const [showSettings, setShowSettings] = useState(false);
 
     const onGenerate = () => {
         const confirmMsg = esLiguilla
@@ -338,7 +339,8 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                     </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                {/* Acciones principales: solo el botón "feliz path" + toggle de settings */}
+                <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto items-stretch sm:items-center">
                     {gruposCategoria.length === 0 ? (
                         <Button
                             onClick={onGenerate}
@@ -351,23 +353,6 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                     ) : (
                         <>
                             <Button
-                                onClick={onGenerate}
-                                disabled={isPending}
-                                variant="outline"
-                                className="bg-neutral-800 border-neutral-700 text-neutral-400 hover:text-white font-bold"
-                            >
-                                {isPending ? "Limpiando..." : "Reiniciar Sorteo"}
-                            </Button>
-                            <Button
-                                onClick={handleCrearGrupoVacio}
-                                disabled={isPending}
-                                variant="outline"
-                                className="bg-neutral-800 border-neutral-700 text-neutral-400 hover:text-white font-bold"
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                {isPending ? "Añadiendo..." : "Añadir Grupo Vacío"}
-                            </Button>
-                            <Button
                                 onClick={onGeneratePlayoffs}
                                 disabled={isPending}
                                 className="bg-amber-600 hover:bg-amber-500 text-white font-bold shadow-lg shadow-amber-600/20"
@@ -375,35 +360,85 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                 <Trophy className="w-4 h-4 mr-2" />
                                 {isPending ? "Generando..." : "Sorteo Eliminatorias"}
                             </Button>
+                            {/* Toggle de configuración avanzada */}
+                            <Button
+                                type="button"
+                                onClick={() => setShowSettings(s => !s)}
+                                variant="outline"
+                                size="sm"
+                                className={cn(
+                                    "border-neutral-700 text-neutral-400 hover:text-white font-bold transition-colors",
+                                    showSettings ? "bg-neutral-800 text-white" : "bg-neutral-900"
+                                )}
+                            >
+                                <Settings className="w-4 h-4 mr-2" />
+                                Configuración
+                                <ChevronDown className={cn("w-3 h-3 ml-1 transition-transform", showSettings && "rotate-180")} />
+                            </Button>
                         </>
                     )}
                 </div>
 
-                {/* Opciones específicas de liguilla */}
-                {esLiguilla && (
-                    <div className="border-t border-neutral-800 pt-4">
-                        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3">Configuración Liguilla</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-3">
-                                <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-2">Número de grupos</label>
-                                <div className="flex items-center gap-2">
-                                    {[1, 2, 3, 4].map(n => (
-                                        <button key={n} onClick={() => setNumGrupos(n)} className={cn("w-10 h-10 rounded-lg font-black text-sm border transition-colors", numGrupos === n ? "bg-emerald-500 text-black border-emerald-500" : "bg-neutral-900 text-neutral-400 border-neutral-800 hover:bg-neutral-800")}>{n}</button>
-                                    ))}
-                                    <span className="text-xs text-neutral-500 ml-1">grupo{numGrupos > 1 ? 's' : ''}</span>
-                                </div>
+                {/* Panel de configuración avanzada (oculto por defecto para evitar clicks accidentales) */}
+                {gruposCategoria.length > 0 && showSettings && (
+                    <div className="border-t border-neutral-800 pt-4 space-y-4 animate-in fade-in slide-in-from-top-1 duration-150">
+                        {/* Acciones destructivas / secundarias */}
+                        <div>
+                            <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-2">Gestión de Grupos</p>
+                            <div className="flex flex-wrap gap-2">
+                                <Button
+                                    onClick={onGenerate}
+                                    disabled={isPending}
+                                    variant="outline"
+                                    size="sm"
+                                    className="bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white hover:border-red-500/40 hover:bg-red-500/5 font-semibold"
+                                >
+                                    <RotateCcw className="w-3.5 h-3.5 mr-2" />
+                                    {isPending ? "Limpiando..." : "Reiniciar Sorteo"}
+                                </Button>
+                                <Button
+                                    onClick={handleCrearGrupoVacio}
+                                    disabled={isPending}
+                                    variant="outline"
+                                    size="sm"
+                                    className="bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white font-semibold"
+                                >
+                                    <Plus className="w-3.5 h-3.5 mr-2" />
+                                    {isPending ? "Añadiendo..." : "Añadir Grupo Vacío"}
+                                </Button>
                             </div>
-                            <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-3">
-                                <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-2">Clasifican por grupo</label>
-                                <div className="flex items-center gap-2">
-                                    {[2, 4, 6, 8].map(n => (
-                                        <button key={n} onClick={() => setNumClasifican(n)} className={cn("w-10 h-10 rounded-lg font-black text-sm border transition-colors", numClasifican === n ? "bg-amber-500 text-black border-amber-500" : "bg-neutral-900 text-neutral-400 border-neutral-800 hover:bg-neutral-800")}>{n}</button>
-                                    ))}
-                                    <span className="text-xs text-neutral-500 ml-1">por grupo</span>
-                                </div>
-                                <p className="text-[10px] text-neutral-600 mt-2">→ Total al bracket: <span className="text-amber-500 font-bold">{numGrupos * numClasifican}</span></p>
-                            </div>
+                            <p className="text-[10px] text-neutral-600 mt-2">
+                                Reiniciar borra los grupos y empareja todo de nuevo. Úsalo solo si necesitas rehacer el sorteo.
+                            </p>
                         </div>
+
+                        {/* Opciones específicas de liguilla */}
+                        {esLiguilla && (
+                            <div>
+                                <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3">Configuración Liguilla</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-3">
+                                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-2">Número de grupos</label>
+                                        <div className="flex items-center gap-2">
+                                            {[1, 2, 3, 4].map(n => (
+                                                <button key={n} onClick={() => setNumGrupos(n)} className={cn("w-10 h-10 rounded-lg font-black text-sm border transition-colors", numGrupos === n ? "bg-emerald-500 text-black border-emerald-500" : "bg-neutral-900 text-neutral-400 border-neutral-800 hover:bg-neutral-800")}>{n}</button>
+                                            ))}
+                                            <span className="text-xs text-neutral-500 ml-1">grupo{numGrupos > 1 ? 's' : ''}</span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-3">
+                                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-2">Clasifican por grupo</label>
+                                        <div className="flex items-center gap-2">
+                                            {[2, 4, 6, 8].map(n => (
+                                                <button key={n} onClick={() => setNumClasifican(n)} className={cn("w-10 h-10 rounded-lg font-black text-sm border transition-colors", numClasifican === n ? "bg-amber-500 text-black border-amber-500" : "bg-neutral-900 text-neutral-400 border-neutral-800 hover:bg-neutral-800")}>{n}</button>
+                                            ))}
+                                            <span className="text-xs text-neutral-500 ml-1">por grupo</span>
+                                        </div>
+                                        <p className="text-[10px] text-neutral-600 mt-2">→ Total al bracket: <span className="text-amber-500 font-bold">{numGrupos * numClasifican}</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
