@@ -12,6 +12,7 @@ import { confirmarResultado, reiniciarResultado } from "@/app/(dashboard)/torneo
 import { Check, Plus, RotateCcw, Settings, ChevronDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
+import { GrupoMatchesList } from "@/components/GrupoMatchesList";
 
 interface Props {
     torneoId: string;
@@ -510,13 +511,12 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                         <Swords className="w-5 h-5" /> Partidos - {grupo.nombre_grupo}
                                                     </DialogTitle>
                                                 </DialogHeader>
-                                                <div className="space-y-4">
-                                                    {partidos.filter(p => p.torneo_grupo_id === grupo.id).length === 0 ? (
-                                                        <p className="text-center text-neutral-500 text-xs font-bold uppercase tracking-widest py-8">
-                                                            No hay partidos generados aún.
-                                                        </p>
-                                                    ) : (
-                                                        partidos.filter(p => p.torneo_grupo_id === grupo.id).map((match) => (
+                                                <GrupoMatchesList
+                                                    matches={partidos}
+                                                    grupoId={grupo.id}
+                                                    mode="admin"
+                                                    parejaPlayers={parejaPlayers}
+                                                    renderMatch={(match) => (
                                                             <div key={match.id} className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
                                                                 <div className="flex justify-between items-center bg-neutral-950/50 p-3 rounded-xl border border-neutral-900/50">
                                                                      <div className="flex flex-col gap-1.5 flex-1">
@@ -622,9 +622,8 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                      )}
                                                                  </div>
                                                             </div>
-                                                        ))
                                                     )}
-                                                </div>
+                                                />
                                             </DialogContent>
                                         </Dialog>
                                     </div>

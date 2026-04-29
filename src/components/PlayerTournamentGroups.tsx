@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { GrupoMatchesList } from "@/components/GrupoMatchesList";
 
 
 interface Standing {
@@ -177,7 +178,6 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {filteredGrupos.map((grupo) => {
                 const standings = getStandings(grupo.id);
-                const grupoMatches = partidos.filter(p => p.torneo_grupo_id === grupo.id);
 
                 return (
                     <Card key={grupo.id} className="bg-neutral-950 border-neutral-900 overflow-hidden rounded-3xl">
@@ -251,21 +251,20 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                 <Swords className="w-5 h-5" /> Partidos - {grupo.nombre_grupo}
                                             </DialogTitle>
                                         </DialogHeader>
-                                        <div className="space-y-4">
-                                            {grupoMatches.length === 0 ? (
-                                                <p className="text-center text-neutral-500 text-xs font-bold uppercase tracking-widest py-8">
-                                                    No hay partidos generados aún.
-                                                </p>
-                                            ) : (
-                                                grupoMatches.map((match) => {
-                                                    const isMyMatch = (match.pareja1_id && playerPairIds.includes(match.pareja1_id)) || 
+                                        <GrupoMatchesList
+                                            matches={partidos}
+                                            grupoId={grupo.id}
+                                            mode="player"
+                                            playerPairIds={playerPairIds}
+                                            renderMatch={(match) => {
+                                                    const isMyMatch = (match.pareja1_id && playerPairIds.includes(match.pareja1_id)) ||
                                                                    (match.pareja2_id && playerPairIds.includes(match.pareja2_id));
-                                                    
+
                                                     const isPending = match.estado === 'jugado' && !!match.resultado && match.estado_resultado === 'pendiente';
-                                                    
+
                                                     return (
-                                                        <div 
-                                                            key={match.id} 
+                                                        <div
+                                                            key={match.id}
                                                             className={cn(
                                                                 "bg-neutral-900/60 border rounded-2xl p-5 transition-all hover:border-neutral-700 shadow-sm",
                                                                 isMyMatch ? "border-amber-500/50 bg-amber-500/5 shadow-[0_0_20px_rgba(245,158,11,0.05)]" : "border-neutral-900"
@@ -409,9 +408,8 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                             )}
                                                         </div>
                                                     );
-                                                })
-                                            )}
-                                        </div>
+                                            }}
+                                        />
                                     </DialogContent>
                                 </Dialog>
                             </div>
