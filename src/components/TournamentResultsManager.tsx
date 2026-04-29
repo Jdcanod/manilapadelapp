@@ -125,7 +125,7 @@ export function TournamentResultsManager({ torneoId, partidos, categorias, tipoD
             const tB = b.resultado_registrado_at ? new Date(b.resultado_registrado_at).getTime() : 0;
             return tB - tA;
         });
-    }, [partidos, search, categoria, status]);
+    }, [partidos, search, categoria, status, parejaPlayers]);
 
     const counts = useMemo(() => {
         const valid = partidos.filter(p => p.pareja1_id && p.pareja2_id);

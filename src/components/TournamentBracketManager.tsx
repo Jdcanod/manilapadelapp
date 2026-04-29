@@ -10,7 +10,7 @@ import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton"
 import { triggerSync } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
 import { useToast } from "@/hooks/use-toast";
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { AdminEditBracketModal } from "@/components/AdminEditBracketModal";
 import { SortearEliminatoriasDialog } from "@/components/SortearEliminatoriasDialog";
 
@@ -263,7 +263,6 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate }
     const [loading, setLoading] = useState(false);
     const params = useParams();
     const torneoId = Array.isArray(params.id) ? params.id[0] : params.id;
-    const router = useRouter();
     const { toast } = useToast();
 
     const pairsMap = new Map<string, { id?: string; nombre_pareja: string | null }>();
