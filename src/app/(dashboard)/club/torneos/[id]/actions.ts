@@ -878,37 +878,42 @@ export async function obtenerStandingsGlobales(torneoId: string, categoria: stri
             .eq('categoria', categoria);
 
         const grupoIds = (grupos || []).map(g => g.id);
+        const grupoIdsSet = new Set(grupoIds);
 
-        // Estrategia A: traer partidos por torneo_grupo_id (camino normal)
-        let matchesA: Record<string, unknown>[] = [];
-        if (grupoIds.length > 0) {
-            const { data } = await supabaseAdmin
-                .from('partidos')
-                .select('*, pareja1:parejas!pareja1_id(nombre_pareja, jugador1_id, jugador2_id), pareja2:parejas!pareja2_id(nombre_pareja, jugador1_id, jugador2_id)')
-                .in('torneo_grupo_id', grupoIds);
-            matchesA = data || [];
-        }
-
-        // Estrategia B (fallback): partidos del torneo en esa categoría que NO sean de la fase eliminatoria
-        // Útil cuando los datos viejos no tienen torneo_grupo_id seteado o el grupo se borró.
-        const { data: matchesB } = await supabaseAdmin
+        // Estrategia única: traer TODOS los partidos del torneo y filtrar en memoria.
+        // Más robusto que .in() — evita problemas con tipos UUID, RLS sutil y
+        // datos legacy donde nivel viene en otra capitalización.
+        const { data: allTorneoMatchesRaw } = await supabaseAdmin
             .from('partidos')
             .select('*, pareja1:parejas!pareja1_id(nombre_pareja, jugador1_id, jugador2_id), pareja2:parejas!pareja2_id(nombre_pareja, jugador1_id, jugador2_id)')
-            .eq('torneo_id', torneoId)
-            .eq('nivel', categoria)
-            .or('lugar.is.null,lugar.not.ilike.%final%,lugar.not.ilike.%semifinal%,lugar.not.ilike.%cuartos%,lugar.not.ilike.%octavos%,lugar.not.ilike.%tercer%');
+            .eq('torneo_id', torneoId);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const allTorneoMatches = (allTorneoMatchesRaw || []) as any[];
 
-        // Combinar y deduplicar
+        const isBracketMatch = (m: { lugar?: string | null }) =>
+            !!m.lugar && /final|semifinal|cuartos|octavos|tercer/i.test(m.lugar);
+
+        // A: partidos vinculados al grupo de esta categoría
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const matchesA = allTorneoMatches.filter((m: any) => m.torneo_grupo_id && grupoIdsSet.has(m.torneo_grupo_id));
+
+        // B (fallback): partidos cuyo nivel matchea la categoría (case-insensitive)
+        // y NO son del bracket eliminatorio
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const matchesB = allTorneoMatches.filter((m: any) =>
+            m.pareja1_id && m.pareja2_id &&
+            (m.nivel || '').toString().toLowerCase().trim() === categoria.toLowerCase().trim() &&
+            !isBracketMatch(m)
+        );
+
+        // Combinar y deduplicar (A tiene prioridad)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const allMatchesMap = new Map<string, any>();
-        matchesA.forEach((m: Record<string, unknown>) => allMatchesMap.set(m.id as string, m));
-        (matchesB || []).forEach(m => {
-            // Solo agregar si tiene pareja1 y pareja2 — descarta filas que sean placeholder de bracket
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const mm = m as any;
-            if (mm.pareja1_id && mm.pareja2_id && !allMatchesMap.has(mm.id)) {
-                allMatchesMap.set(mm.id, mm);
-            }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        matchesA.forEach((m: any) => allMatchesMap.set(m.id, m));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        matchesB.forEach((m: any) => {
+            if (!allMatchesMap.has(m.id)) allMatchesMap.set(m.id, m);
         });
 
         const allMatches = Array.from(allMatchesMap.values());
@@ -916,20 +921,15 @@ export async function obtenerStandingsGlobales(torneoId: string, categoria: stri
         // Standings globales combinando todos los grupos
         const standings = calculateStandings(allMatches, standingsOpts);
 
-        // Diagnóstico para depurar cuando parece "vacío"
-        // — además trae todas las categorías presentes en el torneo
-        const { data: allMatchesInTorneo } = await supabaseAdmin
-            .from('partidos')
-            .select('id, nivel, torneo_grupo_id')
-            .eq('torneo_id', torneoId);
-        const categoriasEnTorneo = Array.from(new Set((allMatchesInTorneo || []).map(m => m.nivel).filter(Boolean)));
-        const matchesEnTorneo = allMatchesInTorneo?.length || 0;
-        const matchesEnTorneoConGrupo = (allMatchesInTorneo || []).filter(m => m.torneo_grupo_id).length;
+        // Diagnóstico — reutiliza los datos ya traídos
+        const categoriasEnTorneo = Array.from(new Set(allTorneoMatches.map(m => m.nivel).filter(Boolean))) as string[];
+        const matchesEnTorneo = allTorneoMatches.length;
+        const matchesEnTorneoConGrupo = allTorneoMatches.filter(m => m.torneo_grupo_id).length;
 
         const diag = {
             grupos: grupoIds.length,
             matchesPorGrupo: matchesA.length,
-            matchesPorCategoria: matchesB?.length || 0,
+            matchesPorCategoria: matchesB.length,
             matchesTotalUsados: allMatches.length,
             matchesConResultado: allMatches.filter(m => m.resultado).length,
             matchesEnTorneo,
