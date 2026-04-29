@@ -22,6 +22,14 @@ interface Standing {
     pts: number;
 }
 
+interface Diag {
+    grupos: number;
+    matchesPorGrupo: number;
+    matchesPorCategoria: number;
+    matchesTotalUsados: number;
+    matchesConResultado: number;
+}
+
 interface Props {
     torneoId: string;
     categoria: string;
@@ -33,7 +41,9 @@ const OPCIONES_CLASIFICADOS = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20];
 export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket }: Props) {
     const [open, setOpen] = useState(false);
     const [selectedN, setSelectedN] = useState<number>(8);
+    const [minMatches, setMinMatches] = useState<number>(0);
     const [standings, setStandings] = useState<Standing[]>([]);
+    const [diag, setDiag] = useState<Diag | null>(null);
     const [loadingStandings, setLoadingStandings] = useState(false);
     const [pending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
@@ -48,6 +58,7 @@ export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket
             .then(res => {
                 if (res.success) {
                     setStandings(res.standings as Standing[]);
+                    setDiag((res as { diag?: Diag }).diag || null);
                     // Sugerir un default razonable según las parejas disponibles
                     const len = res.standings.length;
                     const sugerido = OPCIONES_CLASIFICADOS.findLast?.(o => o <= len) ?? 8;
@@ -55,6 +66,7 @@ export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket
                 } else {
                     setError(res.message || 'No se pudieron cargar los standings');
                     setStandings([]);
+                    setDiag((res as { diag?: Diag }).diag || null);
                 }
             })
             .catch(e => setError(e?.message || 'Error'))
@@ -70,7 +82,7 @@ export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket
         }
         setError(null);
         startTransition(async () => {
-            const r = await generarFaseEliminatoriaTopN(torneoId, categoria, selectedN);
+            const r = await generarFaseEliminatoriaTopN(torneoId, categoria, selectedN, minMatches);
             if (!r.success) {
                 setError(r.message || 'Error al generar el cuadro');
                 return;
@@ -80,13 +92,21 @@ export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket
         });
     };
 
+    // Filtrar parejas según mínimo de partidos jugados
+    const elegibles = minMatches > 0
+        ? standings.filter(s => s.pj >= minMatches)
+        : standings;
+
     // Calcular potencia de 2 superior y byes (informativo)
     let targetTeams = 2;
     while (targetTeams < selectedN) targetTeams *= 2;
     const byes = targetTeams - selectedN;
 
-    const topNPreview = standings.slice(0, selectedN);
-    const optionsHabilitadas = OPCIONES_CLASIFICADOS.filter(n => n <= Math.max(2, standings.length));
+    const topNPreview = elegibles.slice(0, selectedN);
+    const optionsHabilitadas = OPCIONES_CLASIFICADOS.filter(n => n <= Math.max(2, elegibles.length));
+
+    // Máximo razonable de partidos jugados entre las parejas (para el selector)
+    const maxPjEntreParejas = standings.reduce((m, s) => Math.max(m, s.pj), 0);
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -112,7 +132,44 @@ export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket
                 </DialogHeader>
 
                 <div className="space-y-5 py-2">
-                    {/* Selector de cantidad */}
+                    {/* Mínimo de partidos jugados para clasificar */}
+                    <div>
+                        <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-2">
+                            Mínimo de partidos jugados para clasificar
+                        </p>
+                        <div className="flex flex-wrap gap-2 items-center">
+                            {[0, 1, 2, 3, 4, 5].map(n => {
+                                const habilitado = n === 0 || n <= maxPjEntreParejas;
+                                return (
+                                    <button
+                                        key={n}
+                                        onClick={() => habilitado && setMinMatches(n)}
+                                        disabled={!habilitado}
+                                        className={cn(
+                                            "w-10 h-10 rounded-lg font-black text-xs border transition-colors",
+                                            !habilitado
+                                                ? "bg-neutral-950/30 text-neutral-700 border-neutral-900 cursor-not-allowed"
+                                                : minMatches === n
+                                                    ? "bg-emerald-500 text-black border-emerald-500"
+                                                    : "bg-neutral-950 text-neutral-300 border-neutral-700 hover:bg-neutral-800"
+                                        )}
+                                    >
+                                        {n === 0 ? '∞' : n}
+                                    </button>
+                                );
+                            })}
+                            <span className="text-[10px] text-neutral-600 ml-2">
+                                {minMatches === 0
+                                    ? 'Todas las parejas (sin filtro)'
+                                    : `Solo parejas con ≥ ${minMatches} partido${minMatches > 1 ? 's' : ''} jugado${minMatches > 1 ? 's' : ''}`}
+                            </span>
+                        </div>
+                        <p className="text-[10px] text-neutral-700 mt-1">
+                            Útil para descartar parejas que no se presentaron o aún no jugaron suficiente.
+                        </p>
+                    </div>
+
+                    {/* Selector de cantidad de clasificados */}
                     <div>
                         <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-2">
                             ¿Cuántos clasificados al cuadro?
@@ -133,7 +190,7 @@ export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket
                                                     ? "bg-amber-500 text-black border-amber-500"
                                                     : "bg-neutral-950 text-neutral-300 border-neutral-700 hover:bg-neutral-800"
                                         )}
-                                        title={!habilitado ? `No hay suficientes parejas (${standings.length} disponibles)` : ''}
+                                        title={!habilitado ? `Solo ${elegibles.length} pareja(s) elegibles` : ''}
                                     >
                                         {n}
                                     </button>
@@ -143,7 +200,7 @@ export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket
                         <p className="text-[10px] text-neutral-600 mt-2">
                             Cuadro a generar: <span className="text-amber-400 font-bold">{targetTeams}</span> equipos
                             {byes > 0 && <> ({byes} bye{byes > 1 ? 's' : ''} para los mejores sembrados)</>}
-                            <span className="ml-2 text-neutral-700">• {standings.length} parejas con stats disponibles</span>
+                            <span className="ml-2 text-neutral-700">• {elegibles.length} pareja{elegibles.length !== 1 ? 's' : ''} elegible{elegibles.length !== 1 ? 's' : ''} (de {standings.length})</span>
                         </p>
                     </div>
 
@@ -157,8 +214,21 @@ export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket
                                 <Loader2 className="w-4 h-4 animate-spin" /> Cargando standings…
                             </div>
                         ) : standings.length === 0 ? (
-                            <div className="py-6 text-center text-neutral-500 text-sm border border-dashed border-neutral-800 rounded-lg">
-                                No hay parejas con resultados confirmados aún.
+                            <div className="py-6 text-center text-neutral-500 text-sm border border-dashed border-neutral-800 rounded-lg space-y-2">
+                                <p>No se encontraron parejas en esta categoría.</p>
+                                {diag && (
+                                    <p className="text-[10px] text-neutral-700 font-mono">
+                                        Diag · grupos:{diag.grupos} · partidos por grupo:{diag.matchesPorGrupo} · partidos por categoría:{diag.matchesPorCategoria} · usados:{diag.matchesTotalUsados} · con resultado:{diag.matchesConResultado}
+                                    </p>
+                                )}
+                                <p className="text-[10px] text-neutral-700">
+                                    Verifica que los grupos estén creados y que los partidos tengan parejas asignadas.
+                                </p>
+                            </div>
+                        ) : elegibles.length === 0 ? (
+                            <div className="py-6 text-center text-neutral-500 text-sm border border-dashed border-amber-500/40 rounded-lg space-y-1">
+                                <p>Ninguna pareja cumple el mínimo de {minMatches} partido{minMatches > 1 ? 's' : ''} jugado{minMatches > 1 ? 's' : ''}.</p>
+                                <p className="text-[10px] text-neutral-600">Baja el mínimo o espera a que se jueguen más partidos.</p>
                             </div>
                         ) : (
                             <div className="bg-neutral-950 border border-neutral-800 rounded-lg overflow-hidden max-h-[280px] overflow-y-auto">
