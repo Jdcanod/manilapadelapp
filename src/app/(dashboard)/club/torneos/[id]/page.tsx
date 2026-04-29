@@ -14,6 +14,7 @@ import { AddTournamentPlayerModal } from "@/components/AddTournamentPlayerModal"
 import { TournamentChronogram } from "@/components/TournamentChronogram";
 import { TournamentExportButton } from "@/components/TournamentExportButton";
 import { TournamentResultsManager } from "@/components/TournamentResultsManager";
+import { formatPairName } from "@/lib/display-names";
 
 
 
@@ -60,8 +61,8 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         .from('inscripciones_torneo')
         .select(`
             *,
-            jugador1:users!jugador1_id(id, nombre, puntos_ranking),
-            jugador2:users!jugador2_id(id, nombre, puntos_ranking)
+            jugador1:users!jugador1_id(id, nombre, apellido, email, puntos_ranking),
+            jugador2:users!jugador2_id(id, nombre, apellido, email, puntos_ranking)
         `)
         .eq('torneo_id', params.id);
 
@@ -150,10 +151,16 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     if (torneo.torneo_parejas) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         torneo.torneo_parejas.forEach((tp: any) => {
+            // Resolver nombre formateado usando jugadorMap si tenemos los IDs
+            const j1 = tp.pareja?.jugador1_id ? jugadorMap.get(tp.pareja.jugador1_id) : null;
+            const j2 = tp.pareja?.jugador2_id ? jugadorMap.get(tp.pareja.jugador2_id) : null;
+            const formatted = (j1 || j2)
+                ? formatPairName(j1, j2)
+                : (tp.pareja?.nombre_pareja || "Pareja s/n");
             allParticipants.push({
                 id: tp.id,
                 pareja_id: tp.pareja?.id || tp.pareja_id,
-                nombre: tp.pareja?.nombre_pareja || "Pareja s/n",
+                nombre: formatted,
                 categoria: tp.categoria,
                 estado_pago: tp.estado_pago,
                 tipo: 'regular',
@@ -163,7 +170,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
             });
         });
     }
-    
+
     // Master players (converted to pairs display)
     if (inscripcionesMaster) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -181,7 +188,10 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
             allParticipants.push({
                 id: ins.id,
                 pareja_id: foundParejaId,
-                nombre: `${ins.jugador1?.nombre || 'Jugador'} & ${ins.jugador2?.nombre || 'Jugador'}`,
+                nombre: formatPairName(
+                    ins.jugador1 ? { nombre: ins.jugador1.nombre, apellido: ins.jugador1.apellido, email: ins.jugador1.email } : null,
+                    ins.jugador2 ? { nombre: ins.jugador2.nombre, apellido: ins.jugador2.apellido, email: ins.jugador2.email } : null
+                ),
                 categoria: ins.nivel,
                 estado_pago: ins.estado || 'pendiente',
                 tipo: 'master',
@@ -454,6 +464,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                             canchas: torneo.reglas_puntuacion?.config_canchas || 1
                         }}
                         tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
+                        parejaPlayers={parejaPlayersMap}
                     />
                 </TabsContent>
 
@@ -518,10 +529,11 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
 
                 <TabsContent value="eliminatorias" className="mt-6">
                     <div className="space-y-12">
-                        <TournamentBracketManager 
-                            categorias={categoriasAMostrar} 
-                            partidos={partidosReales} 
-                            tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate} 
+                        <TournamentBracketManager
+                            categorias={categoriasAMostrar}
+                            partidos={partidosReales}
+                            tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
+                            parejaPlayers={parejaPlayersMap}
                         />
 
                         {/* SECCIÓN HISTORIAL DE GRUPOS */}

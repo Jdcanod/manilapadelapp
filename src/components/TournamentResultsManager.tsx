@@ -9,10 +9,7 @@ import { Search, X, Check, RotateCcw, Loader2, AlertTriangle, Clock, Filter } fr
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { confirmarResultado, reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
 import { cn } from "@/lib/utils";
-import { formatLegacyPairName, formatPairName } from "@/lib/display-names";
-
-type PlayerInfo = { nombre: string | null; apellido: string | null; email: string | null } | null;
-type ParejaPlayersMap = Record<string, [PlayerInfo, PlayerInfo]>;
+import { formatLegacyPairName, resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 
 type StatusFilter = 'todos' | 'sin_resultado' | 'pendientes' | 'confirmados';
 
@@ -43,18 +40,6 @@ interface Props {
     /** Mapa pareja_id → [j1, j2] con nombre y email para construir
      *  el nombre formateado y detectar invitados (I). */
     parejaPlayers?: ParejaPlayersMap;
-}
-
-/** Resuelve el nombre a mostrar para una pareja: usa los jugadores reales
- *  si existen (para detectar (I) por email), sino cae al string almacenado. */
-function resolvePairName(parejaId: string | null | undefined, fallbackStored: string | null | undefined, parejaPlayers?: ParejaPlayersMap): string {
-    if (parejaId && parejaPlayers) {
-        const pair = parejaPlayers[parejaId];
-        if (pair && (pair[0] || pair[1])) {
-            return formatPairName(pair[0] || undefined, pair[1] || undefined);
-        }
-    }
-    return formatLegacyPairName(fallbackStored) || 'Pareja';
 }
 
 function timeAgo(iso: string | null | undefined): string {

@@ -13,12 +13,15 @@ import { Input } from "@/components/ui/input";
 import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { CheckCircle2 } from "lucide-react";
+import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 
 interface Match {
     id: string;
     fecha: string | null;
     pareja1: { id?: string; nombre_pareja: string | null } | null;
     pareja2: { id?: string; nombre_pareja: string | null } | null;
+    pareja1_id?: string | null;
+    pareja2_id?: string | null;
     lugar: string | null;
     estado: string;
     torneo_grupo_id?: string | null;
@@ -41,9 +44,10 @@ interface ChronogramProps {
     isAdmin?: boolean;
     currentUserId?: string;
     tipoDesempate?: string;
+    parejaPlayers?: ParejaPlayersMap;
 }
 
-export function TournamentChronogram({ torneoId, matches: initialMatches, config, isAdmin = true, currentUserId, tipoDesempate }: ChronogramProps) {
+export function TournamentChronogram({ torneoId, matches: initialMatches, config, isAdmin = true, currentUserId, tipoDesempate, parejaPlayers }: ChronogramProps) {
     const { toast } = useToast();
     const router = useRouter();
     const [matches, setMatches] = useState(initialMatches);
@@ -240,8 +244,8 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                             <GripVertical className="w-3 h-3 text-neutral-700 group-hover:text-neutral-500 transition-colors" />
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-xs font-black text-white uppercase truncate">{match.pareja1?.nombre_pareja || "TBD"}</p>
-                                            <p className="text-xs font-black text-white uppercase truncate">{match.pareja2?.nombre_pareja || "TBD"}</p>
+                                            <p className="text-xs font-black text-white uppercase truncate">{resolvePairName(match.pareja1?.id || match.pareja1_id, match.pareja1?.nombre_pareja, parejaPlayers) || "TBD"}</p>
+                                            <p className="text-xs font-black text-white uppercase truncate">{resolvePairName(match.pareja2?.id || match.pareja2_id, match.pareja2?.nombre_pareja, parejaPlayers) || "TBD"}</p>
                                         </div>
                                     </div>
                                 ))
@@ -386,10 +390,10 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                                 <AdminConfirmResultButton matchId={matchToShow.id} compact />
                                                             )}
                                                             {isAdmin && matchToShow.estado_resultado !== 'confirmado' && (
-                                                                <AdminTournamentResultModal 
+                                                                <AdminTournamentResultModal
                                                                     matchId={matchToShow.id}
-                                                                    pareja1Nombre={matchToShow.pareja1?.nombre_pareja || "TBD"}
-                                                                    pareja2Nombre={matchToShow.pareja2?.nombre_pareja || "TBD"}
+                                                                    pareja1Nombre={resolvePairName(matchToShow.pareja1?.id || matchToShow.pareja1_id, matchToShow.pareja1?.nombre_pareja, parejaPlayers) || "TBD"}
+                                                                    pareja2Nombre={resolvePairName(matchToShow.pareja2?.id || matchToShow.pareja2_id, matchToShow.pareja2?.nombre_pareja, parejaPlayers) || "TBD"}
                                                                     initialResult={matchToShow.resultado}
                                                                     tipoDesempate={tipoDesempate}
                                                                     compact
@@ -407,7 +411,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                             <div className="flex items-center justify-between gap-1.5">
                                                                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                                                     <div className={`w-1 h-3 rounded-full flex-shrink-0 ${isMine ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                                                                    <p className="text-[10px] font-black text-white uppercase truncate">{matchToShow.pareja1?.nombre_pareja || "TBD"}</p>
+                                                                    <p className="text-[10px] font-black text-white uppercase truncate">{resolvePairName(matchToShow.pareja1?.id || matchToShow.pareja1_id, matchToShow.pareja1?.nombre_pareja, parejaPlayers) || "TBD"}</p>
                                                                 </div>
                                                                 {matchToShow.resultado && (
                                                                     <div className="flex gap-0.5">
@@ -422,7 +426,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                             <div className="flex items-center justify-between gap-1.5">
                                                                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                                                     <div className={`w-1 h-3 rounded-full flex-shrink-0 ${isMine ? 'bg-amber-500' : 'bg-blue-500'}`} />
-                                                                    <p className="text-[10px] font-black text-white uppercase truncate">{matchToShow.pareja2?.nombre_pareja || "TBD"}</p>
+                                                                    <p className="text-[10px] font-black text-white uppercase truncate">{resolvePairName(matchToShow.pareja2?.id || matchToShow.pareja2_id, matchToShow.pareja2?.nombre_pareja, parejaPlayers) || "TBD"}</p>
                                                                 </div>
                                                                 {matchToShow.resultado && (
                                                                     <div className="flex gap-0.5">

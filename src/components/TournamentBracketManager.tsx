@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useParams } from 'next/navigation';
 import { AdminEditBracketModal } from "@/components/AdminEditBracketModal";
 import { SortearEliminatoriasDialog } from "@/components/SortearEliminatoriasDialog";
+import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 
 interface MatchItem {
     id: string;
@@ -21,13 +22,19 @@ interface MatchItem {
     fecha: string | null;
     pareja1: { id?: string; nombre_pareja: string | null } | null;
     pareja2: { id?: string; nombre_pareja: string | null } | null;
+    pareja1_id?: string | null;
+    pareja2_id?: string | null;
     resultado: string | null;
     torneo_grupo_id: string | null;
     estado_resultado?: string | null;
     nivel?: string | null;
 }
 
-function BracketMatchCard({ match, tipoDesempate, allPairs }: { match: MatchItem, tipoDesempate?: string, allPairs?: { id?: string; nombre_pareja: string | null }[] }) {
+function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers }: { match: MatchItem, tipoDesempate?: string, allPairs?: { id?: string; nombre_pareja: string | null }[], parejaPlayers?: ParejaPlayersMap }) {
+    const p1Display = resolvePairName(match.pareja1?.id || match.pareja1_id, match.pareja1?.nombre_pareja, parejaPlayers);
+    const p2Display = resolvePairName(match.pareja2?.id || match.pareja2_id, match.pareja2?.nombre_pareja, parejaPlayers);
+    const p1IsTBD = !match.pareja1?.nombre_pareja || match.pareja1?.nombre_pareja === 'TBD';
+    const p2IsTBD = !match.pareja2?.nombre_pareja || match.pareja2?.nombre_pareja === 'TBD';
     return (
         <Card className="bg-neutral-950 border-neutral-800 border-l-4 border-l-amber-500 shadow-2xl overflow-visible hover:border-neutral-700 transition-all group w-full max-w-[280px] relative">
             {allPairs && match.estado !== 'jugado' && (
@@ -49,7 +56,7 @@ function BracketMatchCard({ match, tipoDesempate, allPairs }: { match: MatchItem
                 </div>
                 <div className="p-4 space-y-4">
                     <div className="flex justify-between items-center transition-transform">
-                        <span className="text-sm font-black text-white uppercase truncate pr-2">{match.pareja1?.nombre_pareja || "TBD"}</span>
+                        <span className="text-sm font-black text-white uppercase truncate pr-2">{p1IsTBD ? 'TBD' : p1Display}</span>
                         <div className="flex gap-1">
                             {(match.resultado || "-").split(',').map((setStr: string, idx: number) => (
                                 <span key={idx} className="w-6 h-6 flex items-center justify-center bg-neutral-900 text-white font-black text-[10px] rounded border border-neutral-800">
@@ -59,7 +66,7 @@ function BracketMatchCard({ match, tipoDesempate, allPairs }: { match: MatchItem
                         </div>
                     </div>
                     <div className="flex justify-between items-center border-t border-neutral-900/50 pt-4">
-                        <span className="text-sm font-black text-white uppercase truncate pr-2">{match.pareja2?.nombre_pareja || "TBD"}</span>
+                        <span className="text-sm font-black text-white uppercase truncate pr-2">{p2IsTBD ? 'TBD' : p2Display}</span>
                         <div className="flex gap-1">
                             {(match.resultado || "-").split(',').map((setStr: string, idx: number) => (
                                 <span key={idx} className="w-6 h-6 flex items-center justify-center bg-neutral-900 text-neutral-400 font-black text-[10px] rounded border border-neutral-800">
@@ -102,11 +109,11 @@ function BracketMatchCard({ match, tipoDesempate, allPairs }: { match: MatchItem
                         </div>
                     )}
 
-                    {match.estado !== 'jugado' && match.pareja1?.nombre_pareja !== "TBD" && match.pareja2?.nombre_pareja !== "TBD" && (
-                        <AdminTournamentResultModal 
-                            matchId={match.id} 
-                            pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"} 
-                            pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"} 
+                    {match.estado !== 'jugado' && !p1IsTBD && !p2IsTBD && (
+                        <AdminTournamentResultModal
+                            matchId={match.id}
+                            pareja1Nombre={p1Display}
+                            pareja2Nombre={p2Display}
                             tipoDesempate={tipoDesempate}
                         />
                     )}
@@ -116,7 +123,7 @@ function BracketMatchCard({ match, tipoDesempate, allPairs }: { match: MatchItem
     );
 }
 
-function BracketSection({ categoria, matches, tipoDesempate, allPairs }: { categoria: string, matches: MatchItem[], tipoDesempate?: string, allPairs?: { id?: string; nombre_pareja: string | null }[] }) {
+function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPlayers }: { categoria: string, matches: MatchItem[], tipoDesempate?: string, allPairs?: { id?: string; nombre_pareja: string | null }[], parejaPlayers?: ParejaPlayersMap }) {
     if (matches.length === 0) {
         return (
             <div className="text-center py-20 text-neutral-500 border-2 border-neutral-800 border-dashed rounded-3xl bg-neutral-950/50 relative z-10">
@@ -136,11 +143,11 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs }: { categ
         setsFinal.forEach((s: number[]) => { if (s[0] > s[1]) p1Wins++; else if (s[1] > s[0]) p2Wins++; });
         
         if (p1Wins > p2Wins) {
-            campeon = partidoFinal.pareja1?.nombre_pareja;
-            subcampeon = partidoFinal.pareja2?.nombre_pareja;
+            campeon = resolvePairName(partidoFinal.pareja1?.id || partidoFinal.pareja1_id, partidoFinal.pareja1?.nombre_pareja, parejaPlayers);
+            subcampeon = resolvePairName(partidoFinal.pareja2?.id || partidoFinal.pareja2_id, partidoFinal.pareja2?.nombre_pareja, parejaPlayers);
         } else if (p2Wins > p1Wins) {
-            campeon = partidoFinal.pareja2?.nombre_pareja;
-            subcampeon = partidoFinal.pareja1?.nombre_pareja;
+            campeon = resolvePairName(partidoFinal.pareja2?.id || partidoFinal.pareja2_id, partidoFinal.pareja2?.nombre_pareja, parejaPlayers);
+            subcampeon = resolvePairName(partidoFinal.pareja1?.id || partidoFinal.pareja1_id, partidoFinal.pareja1?.nombre_pareja, parejaPlayers);
         }
     }
 
@@ -153,7 +160,7 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs }: { categ
             <div key={idx} className="relative flex flex-col justify-center gap-12">
                 {pair.map(match => (
                     <div key={match.id} className="relative z-10">
-                        <BracketMatchCard match={match} tipoDesempate={tipoDesempate} allPairs={allPairs} />
+                        <BracketMatchCard match={match} tipoDesempate={tipoDesempate} allPairs={allPairs} parejaPlayers={parejaPlayers} />
                     </div>
                 ))}
                 
@@ -247,7 +254,7 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs }: { categ
                             <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8">Tercer Puesto</h4>
                             {matches.filter(p => p.lugar?.toLowerCase().includes('tercer puesto')).map((match) => (
                                 <div key={match.id} className="opacity-80 scale-95 origin-top relative">
-                                    <BracketMatchCard match={match} tipoDesempate={tipoDesempate} allPairs={allPairs} />
+                                    <BracketMatchCard match={match} tipoDesempate={tipoDesempate} allPairs={allPairs} parejaPlayers={parejaPlayers} />
                                 </div>
                             ))}
                         </div>
@@ -258,7 +265,7 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs }: { categ
     );
 }
 
-export function TournamentBracketManager({ categorias, partidos, tipoDesempate }: { categorias: string[], partidos: MatchItem[], tipoDesempate?: string }) {
+export function TournamentBracketManager({ categorias, partidos, tipoDesempate, parejaPlayers }: { categorias: string[], partidos: MatchItem[], tipoDesempate?: string, parejaPlayers?: ParejaPlayersMap }) {
     const [selectedCat, setSelectedCat] = useState(categorias[0] || '');
     const [loading, setLoading] = useState(false);
     const params = useParams();
@@ -349,11 +356,12 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate }
             </div>
 
             <div className="relative z-10">
-                <BracketSection 
-                    categoria={selectedCat} 
-                    matches={eliminatoriasPartidos.filter(p => p.nivel === selectedCat)} 
-                    tipoDesempate={tipoDesempate} 
+                <BracketSection
+                    categoria={selectedCat}
+                    matches={eliminatoriasPartidos.filter(p => p.nivel === selectedCat)}
+                    tipoDesempate={tipoDesempate}
                     allPairs={allPairs}
+                    parejaPlayers={parejaPlayers}
                 />
             </div>
         </div>

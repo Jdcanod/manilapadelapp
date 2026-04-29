@@ -97,3 +97,25 @@ export function formatLegacyPairName(stored: string | null | undefined): string 
     if (parts.length < 2) return stored; // No se pudo separar, devolver tal cual
     return parts.map(p => compactName(p)).join(' / ');
 }
+
+export type PairPlayer = { nombre?: string | null; apellido?: string | null; email?: string | null } | null | undefined;
+export type ParejaPlayersMap = Record<string, [PairPlayer, PairPlayer]>;
+
+/** Resuelve el nombre a mostrar para una pareja:
+ *  - usa los jugadores reales (nombre + apellido + email) cuando estén
+ *    disponibles, para detectar (I) por email
+ *  - cae al string almacenado (`nombre_pareja`) si no hay jugadores reales
+ *  - aplica heurística de compactado en cualquier caso */
+export function resolvePairName(
+    parejaId: string | null | undefined,
+    fallbackStored: string | null | undefined,
+    parejaPlayers?: ParejaPlayersMap
+): string {
+    if (parejaId && parejaPlayers) {
+        const pair = parejaPlayers[parejaId];
+        if (pair && (pair[0] || pair[1])) {
+            return formatPairName(pair[0] || undefined, pair[1] || undefined);
+        }
+    }
+    return formatLegacyPairName(fallbackStored) || 'Pareja';
+}

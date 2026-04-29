@@ -11,22 +11,7 @@ import { AdminTournamentResultModal } from "@/components/AdminTournamentResultMo
 import { confirmarResultado, reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
 import { Check, Plus, RotateCcw, Settings, ChevronDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { formatPairName, formatLegacyPairName } from "@/lib/display-names";
-
-type PlayerInfo = { nombre: string | null; apellido: string | null; email: string | null } | null;
-type ParejaPlayersMap = Record<string, [PlayerInfo, PlayerInfo]>;
-
-/** Resuelve el nombre a mostrar para una pareja: usa los jugadores reales
- *  si existen (para detectar (I) por email), sino cae al string almacenado. */
-function resolvePairName(parejaId: string | null | undefined, fallbackStored: string | null | undefined, parejaPlayers?: ParejaPlayersMap): string {
-    if (parejaId && parejaPlayers) {
-        const pair = parejaPlayers[parejaId];
-        if (pair && (pair[0] || pair[1])) {
-            return formatPairName(pair[0] || undefined, pair[1] || undefined);
-        }
-    }
-    return formatLegacyPairName(fallbackStored) || 'Pareja';
-}
+import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 
 interface Props {
     torneoId: string;
