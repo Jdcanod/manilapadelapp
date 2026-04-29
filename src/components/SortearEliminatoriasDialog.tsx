@@ -32,6 +32,7 @@ interface Diag {
     matchesEnTorneoConGrupo: number;
     categoriasEnTorneo: string[];
     categoriaBuscada: string;
+    queryError?: string | null;
 }
 
 interface Props {
@@ -230,6 +231,9 @@ export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket
                                             <li>• Total partidos en el torneo: <span className="text-white">{diag.matchesEnTorneo}</span> ({diag.matchesEnTorneoConGrupo} en grupos)</li>
                                             {diag.categoriasEnTorneo.length > 0 && (
                                                 <li>• Categorías existentes: <span className="text-white">{diag.categoriasEnTorneo.join(', ')}</span></li>
+                                            )}
+                                            {diag.queryError && (
+                                                <li className="text-red-400">• Error de query: <span className="break-all">{diag.queryError}</span></li>
                                             )}
                                         </ul>
 

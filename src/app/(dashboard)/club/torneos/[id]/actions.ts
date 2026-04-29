@@ -880,15 +880,35 @@ export async function obtenerStandingsGlobales(torneoId: string, categoria: stri
         const grupoIds = (grupos || []).map(g => g.id);
         const grupoIdsSet = new Set(grupoIds);
 
-        // Estrategia única: traer TODOS los partidos del torneo y filtrar en memoria.
-        // Más robusto que .in() — evita problemas con tipos UUID, RLS sutil y
-        // datos legacy donde nivel viene en otra capitalización.
-        const { data: allTorneoMatchesRaw } = await supabaseAdmin
+        // Traer todos los partidos SIN joins (más confiable: si el join falla
+        // — por RLS, FK roto, etc. — la query venía null y se interpretaba como 0).
+        const { data: rawMatches, error: matchesError } = await supabaseAdmin
             .from('partidos')
-            .select('*, pareja1:parejas!pareja1_id(nombre_pareja, jugador1_id, jugador2_id), pareja2:parejas!pareja2_id(nombre_pareja, jugador1_id, jugador2_id)')
+            .select('id, torneo_id, torneo_grupo_id, pareja1_id, pareja2_id, estado, estado_resultado, resultado, lugar, nivel, fecha')
             .eq('torneo_id', torneoId);
+
+        // Resolver nombres de pareja en una segunda query (también opcional)
+        const allParejaIds = new Set<string>();
+        (rawMatches || []).forEach(m => {
+            if (m.pareja1_id) allParejaIds.add(m.pareja1_id);
+            if (m.pareja2_id) allParejaIds.add(m.pareja2_id);
+        });
+        const parejaNameMap = new Map<string, string>();
+        if (allParejaIds.size > 0) {
+            const { data: parejasData } = await supabaseAdmin
+                .from('parejas')
+                .select('id, nombre_pareja')
+                .in('id', Array.from(allParejaIds));
+            (parejasData || []).forEach(p => parejaNameMap.set(p.id, p.nombre_pareja || 'Pareja'));
+        }
+
+        // Adjuntar pareja1 y pareja2 con la forma que espera calculateStandings
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const allTorneoMatches = (allTorneoMatchesRaw || []) as any[];
+        const allTorneoMatches = (rawMatches || []).map((m: any) => ({
+            ...m,
+            pareja1: m.pareja1_id ? { nombre_pareja: parejaNameMap.get(m.pareja1_id) || null } : null,
+            pareja2: m.pareja2_id ? { nombre_pareja: parejaNameMap.get(m.pareja2_id) || null } : null,
+        }));
 
         const isBracketMatch = (m: { lugar?: string | null }) =>
             !!m.lugar && /final|semifinal|cuartos|octavos|tercer/i.test(m.lugar);
@@ -936,6 +956,7 @@ export async function obtenerStandingsGlobales(torneoId: string, categoria: stri
             matchesEnTorneoConGrupo,
             categoriasEnTorneo,
             categoriaBuscada: categoria,
+            queryError: matchesError ? matchesError.message : null,
         };
 
         return { success: true, standings, diag };
