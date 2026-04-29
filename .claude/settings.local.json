@@ -14,7 +14,8 @@
       "Bash(git commit -m 'fix: move torneoInfo fetch before it is used in generarFaseGrupos *)",
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git fetch *)"
     ]
   }
 }

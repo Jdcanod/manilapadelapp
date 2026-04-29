@@ -441,6 +441,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                         allParticipants={allParticipants}
                         formato={torneo.formato || 'relampago'}
                         parejaPlayers={parejaPlayersMap}
+                        configClasifican={torneo.reglas_puntuacion?.config_clasifican_por_grupo}
                     />
                 </TabsContent>
 

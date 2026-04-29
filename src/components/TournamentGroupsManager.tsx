@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { confirmarResultado, reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
 import { Check, Plus, RotateCcw, Settings, ChevronDown } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 
 interface Props {
@@ -39,6 +39,9 @@ interface Props {
     allParticipants?: { id: string | number; pareja_id: string; nombre: string; categoria: string; estado_pago: string; tipo: string; jugador1_id?: string; jugador2_id?: string }[];
     formato?: string; // 'relampago' | 'liguilla'
     parejaPlayers?: ParejaPlayersMap;
+    /** Configuración de clasificados por grupo (persistida en torneo) — define cuántas
+     *  parejas de cada grupo pasan a la fase eliminatoria y se resaltan en la tabla. */
+    configClasifican?: number;
 }
 
 interface Standing {
@@ -54,7 +57,7 @@ interface Standing {
     pts: number;
 }
 
-export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", allParticipants = [], formato = "relampago", parejaPlayers = {} }: Props) {
+export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const [selectedCat, setSelectedCat] = useState(categorias[0] || "General");
@@ -64,15 +67,35 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
     const [numGrupos, setNumGrupos] = useState(2);
     const [showSettings, setShowSettings] = useState(false);
 
+    // Cuántos clasifican por grupo (persistido en torneo). Default 2.
+    const [clasificanPorGrupo, setClasificanPorGrupo] = useState<number>(configClasifican ?? 2);
+
+    // Dialog de sorteo
+    const [sorteoDialogOpen, setSorteoDialogOpen] = useState(false);
+    const [dialogGrupos, setDialogGrupos] = useState<number>(numGrupos);
+    const [dialogClasifican, setDialogClasifican] = useState<number>(clasificanPorGrupo);
+
     const onGenerate = () => {
-        const confirmMsg = esLiguilla
-            ? `¿Generar ${numGrupos} grupo(s) grande(s) para la categoría ${selectedCat}? (Formato Liguilla)`
-            : `¿Estás seguro de generar el sorteo de GRUPOS para la categoría ${selectedCat}?`;
-        if (!confirm(confirmMsg)) return;
+        // Sincronizar valores actuales en el dialog y abrirlo
+        setDialogGrupos(numGrupos);
+        setDialogClasifican(clasificanPorGrupo);
+        setSorteoDialogOpen(true);
+    };
+
+    const handleConfirmSorteo = () => {
+        setSorteoDialogOpen(false);
+        // Persistir locales
+        setNumGrupos(dialogGrupos);
+        setClasificanPorGrupo(dialogClasifican);
 
         startTransition(async () => {
             try {
-                const result = await generarFaseGrupos(torneoId, selectedCat, esLiguilla ? numGrupos : undefined);
+                const result = await generarFaseGrupos(
+                    torneoId,
+                    selectedCat,
+                    esLiguilla ? dialogGrupos : undefined,
+                    dialogClasifican,
+                );
                 if (result && result.success) {
                     alert(result.message || "¡Fase de grupos generada con éxito!");
                     router.refresh();
@@ -413,9 +436,11 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {standings.map((team, idx) => (
-                                                    <tr 
-                                                        key={team.parejaId} 
+                                                {standings.map((team, idx) => {
+                                                    const clasifica = idx < clasificanPorGrupo;
+                                                    return (
+                                                    <tr
+                                                        key={team.parejaId}
                                                         draggable
                                                         onDragStart={(e) => e.dataTransfer.setData("text/plain", team.parejaId)}
                                                         onDragOver={(e) => e.preventDefault()}
@@ -426,10 +451,24 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                 handleSwap(sourceParejaId, team.parejaId);
                                                             }
                                                         }}
-                                                        className="border-b border-neutral-800/50 hover:bg-neutral-800/30 transition-colors cursor-move"
+                                                        className={cn(
+                                                            "border-b border-neutral-800/50 hover:bg-neutral-800/30 transition-colors cursor-move relative",
+                                                            clasifica
+                                                                ? "bg-emerald-500/5 border-l-2 border-l-emerald-500"
+                                                                : "opacity-60"
+                                                        )}
                                                     >
-                                                        <td className="px-4 py-3 text-center text-neutral-500 font-bold">{idx + 1}</td>
-                                                        <td className="px-4 py-3 font-bold text-white max-w-[150px] truncate" title={team.nombre}>
+                                                        <td className={cn(
+                                                            "px-4 py-3 text-center font-bold",
+                                                            clasifica ? "text-emerald-400" : "text-neutral-500"
+                                                        )}>
+                                                            {idx + 1}
+                                                            {clasifica && <span className="ml-1 text-[8px] align-top">★</span>}
+                                                        </td>
+                                                        <td className={cn(
+                                                            "px-4 py-3 font-bold max-w-[150px] truncate",
+                                                            clasifica ? "text-white" : "text-neutral-400"
+                                                        )} title={team.nombre}>
                                                             {team.nombre}
                                                         </td>
                                                         <td className="px-2 py-3 text-center text-neutral-300">{team.pj}</td>
@@ -443,9 +482,13 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                         <td className="px-2 py-3 text-center font-bold text-emerald-500/80">
                                                             {((team.gg * 100) / (team.gg + team.gp || 1)).toFixed(0)}%
                                                         </td>
-                                                        <td className="px-4 py-3 text-center font-black text-emerald-400">{team.pts}</td>
+                                                        <td className={cn(
+                                                            "px-4 py-3 text-center font-black",
+                                                            clasifica ? "text-emerald-400" : "text-neutral-500"
+                                                        )}>{team.pts}</td>
                                                     </tr>
-                                                ))}
+                                                    );
+                                                })}
                                                 {standings.length === 0 && (
                                                     <tr>
                                                         <td colSpan={7} className="px-4 py-6 text-center text-neutral-500">Sin participantes asignados</td>
@@ -601,7 +644,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                     <p className="text-sm text-neutral-400 mb-4">Arrastra estas parejas hacia un grupo para añadirlas automáticamente.</p>
                     <div className="flex flex-wrap gap-4">
                         {parejasSinGrupo.map(p => (
-                            <div 
+                            <div
                                 key={p.id}
                                 draggable
                                 onDragStart={(e) => e.dataTransfer.setData("text/plain", p.pareja_id)}
@@ -613,6 +656,101 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                     </div>
                 </div>
             )}
+
+            {/* Dialog de configuración del sorteo */}
+            <Dialog open={sorteoDialogOpen} onOpenChange={setSorteoDialogOpen}>
+                <DialogContent className="bg-neutral-900 border-neutral-800 text-white max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Swords className="w-5 h-5 text-emerald-500" />
+                            Sortear Grupos — {selectedCat}
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-5 py-2">
+                        {esLiguilla && (
+                            <div>
+                                <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-2">
+                                    Número de grupos
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    {[1, 2, 3, 4].map(n => (
+                                        <button
+                                            key={n}
+                                            onClick={() => setDialogGrupos(n)}
+                                            className={cn(
+                                                "w-12 h-12 rounded-lg font-black text-sm border transition-colors",
+                                                dialogGrupos === n
+                                                    ? "bg-emerald-500 text-black border-emerald-500"
+                                                    : "bg-neutral-950 text-neutral-300 border-neutral-700 hover:bg-neutral-800"
+                                            )}
+                                        >
+                                            {n}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div>
+                            <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-2">
+                                ¿Cuántas parejas clasifican por grupo?
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                                {[1, 2, 3, 4, 6, 8].map(n => (
+                                    <button
+                                        key={n}
+                                        onClick={() => setDialogClasifican(n)}
+                                        className={cn(
+                                            "w-12 h-12 rounded-lg font-black text-sm border transition-colors",
+                                            dialogClasifican === n
+                                                ? "bg-amber-500 text-black border-amber-500"
+                                                : "bg-neutral-950 text-neutral-300 border-neutral-700 hover:bg-neutral-800"
+                                        )}
+                                    >
+                                        {n}
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-[10px] text-neutral-600 mt-2">
+                                Los <span className="text-amber-400 font-bold">{dialogClasifican}</span> mejor{dialogClasifican > 1 ? 'es' : ''} de cada grupo se resaltarán en la tabla.
+                                {esLiguilla && (
+                                    <> Total al bracket: <span className="text-amber-400 font-bold">{dialogGrupos * dialogClasifican}</span> parejas.</>
+                                )}
+                            </p>
+                        </div>
+
+                        <div className="bg-neutral-950 border border-neutral-800 rounded-lg p-3 text-[11px] text-neutral-400">
+                            {gruposCategoria.length > 0 ? (
+                                <span className="text-amber-300">
+                                    ⚠️ Ya existen {gruposCategoria.length} grupo{gruposCategoria.length > 1 ? 's' : ''} sorteado{gruposCategoria.length > 1 ? 's' : ''}.
+                                    Confirmar reiniciará el sorteo y borrará los partidos actuales.
+                                </span>
+                            ) : (
+                                <span>Se crearán {esLiguilla ? `${dialogGrupos} grupo${dialogGrupos > 1 ? 's' : ''}` : 'los grupos automáticamente'} con todos los inscritos de {selectedCat}.</span>
+                            )}
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setSorteoDialogOpen(false)}
+                            className="bg-neutral-900 border-neutral-800 text-neutral-400"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleConfirmSorteo}
+                            disabled={isPending}
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                        >
+                            <Swords className="w-4 h-4 mr-2" />
+                            {gruposCategoria.length > 0 ? 'Reiniciar sorteo' : 'Generar sorteo'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

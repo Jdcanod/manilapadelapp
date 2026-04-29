@@ -18,7 +18,7 @@ interface MasterResult {
     jugador2: { id: string; nombre: string; puntos_ranking: number } | null;
 }
 
-export async function generarFaseGrupos(torneoId: string, categoria: string, numGrupos?: number) {
+export async function generarFaseGrupos(torneoId: string, categoria: string, numGrupos?: number, clasificanPorGrupo?: number) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id;
@@ -29,6 +29,24 @@ export async function generarFaseGrupos(torneoId: string, categoria: string, num
 
     try {
         const supabaseAdmin = createAdminClient();
+
+        // Persistir el "clasifican por grupo" en la config del torneo (en reglas_puntuacion)
+        // para que la tabla de standings sepa cuántos resaltar como clasificados.
+        if (clasificanPorGrupo && clasificanPorGrupo >= 1) {
+            const { data: torneoActual } = await supabaseAdmin
+                .from('torneos')
+                .select('reglas_puntuacion')
+                .eq('id', torneoId)
+                .single();
+            const nuevasReglas = {
+                ...(torneoActual?.reglas_puntuacion || {}),
+                config_clasifican_por_grupo: clasificanPorGrupo,
+            };
+            await supabaseAdmin
+                .from('torneos')
+                .update({ reglas_puntuacion: nuevasReglas })
+                .eq('id', torneoId);
+        }
 
         // 1. Limpieza de datos previos (grupos y sus partidos) para esta categoría
         const { data: oldGroups } = await supabaseAdmin
