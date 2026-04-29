@@ -28,6 +28,10 @@ interface Diag {
     matchesPorCategoria: number;
     matchesTotalUsados: number;
     matchesConResultado: number;
+    matchesEnTorneo: number;
+    matchesEnTorneoConGrupo: number;
+    categoriasEnTorneo: string[];
+    categoriaBuscada: string;
 }
 
 interface Props {
@@ -214,16 +218,38 @@ export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket
                                 <Loader2 className="w-4 h-4 animate-spin" /> Cargando standings…
                             </div>
                         ) : standings.length === 0 ? (
-                            <div className="py-6 text-center text-neutral-500 text-sm border border-dashed border-neutral-800 rounded-lg space-y-2">
-                                <p>No se encontraron parejas en esta categoría.</p>
+                            <div className="py-6 px-4 text-center text-neutral-500 text-sm border border-dashed border-neutral-800 rounded-lg space-y-3">
+                                <p className="font-semibold text-neutral-300">No se encontraron parejas en la categoría &quot;{categoria}&quot;.</p>
                                 {diag && (
-                                    <p className="text-[10px] text-neutral-700 font-mono">
-                                        Diag · grupos:{diag.grupos} · partidos por grupo:{diag.matchesPorGrupo} · partidos por categoría:{diag.matchesPorCategoria} · usados:{diag.matchesTotalUsados} · con resultado:{diag.matchesConResultado}
-                                    </p>
+                                    <div className="text-left max-w-md mx-auto bg-neutral-950 border border-neutral-800 rounded-lg p-3 space-y-2">
+                                        <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Diagnóstico</p>
+                                        <ul className="text-[11px] text-neutral-400 space-y-1 font-mono">
+                                            <li>• Grupos para &quot;{categoria}&quot;: <span className="text-white">{diag.grupos}</span></li>
+                                            <li>• Partidos vinculados al grupo: <span className="text-white">{diag.matchesPorGrupo}</span></li>
+                                            <li>• Partidos en categoría &quot;{categoria}&quot;: <span className="text-white">{diag.matchesPorCategoria}</span></li>
+                                            <li>• Total partidos en el torneo: <span className="text-white">{diag.matchesEnTorneo}</span> ({diag.matchesEnTorneoConGrupo} en grupos)</li>
+                                            {diag.categoriasEnTorneo.length > 0 && (
+                                                <li>• Categorías existentes: <span className="text-white">{diag.categoriasEnTorneo.join(', ')}</span></li>
+                                            )}
+                                        </ul>
+
+                                        {diag.matchesEnTorneo === 0 ? (
+                                            <p className="text-[10px] text-neutral-500 pt-2 border-t border-neutral-800">
+                                                ⚠️ El torneo no tiene partidos creados. Genera los grupos primero en el tab <span className="text-emerald-400 font-semibold">Fase de Grupos</span>.
+                                            </p>
+                                        ) : diag.matchesPorGrupo === 0 && diag.matchesPorCategoria === 0 ? (
+                                            diag.categoriasEnTorneo.length > 0 && !diag.categoriasEnTorneo.includes(categoria) ? (
+                                                <p className="text-[10px] text-neutral-500 pt-2 border-t border-neutral-800">
+                                                    ⚠️ Tus partidos están en otras categorías ({diag.categoriasEnTorneo.join(', ')}). Selecciona una de esas arriba.
+                                                </p>
+                                            ) : (
+                                                <p className="text-[10px] text-neutral-500 pt-2 border-t border-neutral-800">
+                                                    ⚠️ El grupo de &quot;{categoria}&quot; está creado pero no tiene partidos generados. Vuelve a <span className="text-emerald-400 font-semibold">Fase de Grupos</span> y haz click en &quot;Sorteo Grupos&quot; (o &quot;Reiniciar Sorteo&quot; en Configuración).
+                                                </p>
+                                            )
+                                        ) : null}
+                                    </div>
                                 )}
-                                <p className="text-[10px] text-neutral-700">
-                                    Verifica que los grupos estén creados y que los partidos tengan parejas asignadas.
-                                </p>
                             </div>
                         ) : elegibles.length === 0 ? (
                             <div className="py-6 text-center text-neutral-500 text-sm border border-dashed border-amber-500/40 rounded-lg space-y-1">
@@ -288,12 +314,12 @@ export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket
                     </Button>
                     <Button
                         onClick={handleConfirm}
-                        disabled={pending || loadingStandings || standings.length < 2}
-                        className="bg-amber-600 hover:bg-amber-500 text-white font-bold"
+                        disabled={pending || loadingStandings || elegibles.length < 2}
+                        className="bg-amber-600 hover:bg-amber-500 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {pending
                             ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generando…</>
-                            : <><Swords className="w-4 h-4 mr-2" /> Generar cuadro de {selectedN}</>}
+                            : <><Swords className="w-4 h-4 mr-2" /> Generar cuadro de {Math.min(selectedN, elegibles.length)}</>}
                     </Button>
                 </DialogFooter>
             </DialogContent>

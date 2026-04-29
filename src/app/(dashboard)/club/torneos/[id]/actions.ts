@@ -917,12 +917,25 @@ export async function obtenerStandingsGlobales(torneoId: string, categoria: stri
         const standings = calculateStandings(allMatches, standingsOpts);
 
         // Diagnóstico para depurar cuando parece "vacío"
+        // — además trae todas las categorías presentes en el torneo
+        const { data: allMatchesInTorneo } = await supabaseAdmin
+            .from('partidos')
+            .select('id, nivel, torneo_grupo_id')
+            .eq('torneo_id', torneoId);
+        const categoriasEnTorneo = Array.from(new Set((allMatchesInTorneo || []).map(m => m.nivel).filter(Boolean)));
+        const matchesEnTorneo = allMatchesInTorneo?.length || 0;
+        const matchesEnTorneoConGrupo = (allMatchesInTorneo || []).filter(m => m.torneo_grupo_id).length;
+
         const diag = {
             grupos: grupoIds.length,
             matchesPorGrupo: matchesA.length,
             matchesPorCategoria: matchesB?.length || 0,
             matchesTotalUsados: allMatches.length,
             matchesConResultado: allMatches.filter(m => m.resultado).length,
+            matchesEnTorneo,
+            matchesEnTorneoConGrupo,
+            categoriasEnTorneo,
+            categoriaBuscada: categoria,
         };
 
         return { success: true, standings, diag };
