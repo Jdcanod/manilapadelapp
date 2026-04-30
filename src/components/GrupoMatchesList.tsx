@@ -13,10 +13,14 @@ interface MatchRow {
     estado?: string | null;
     estado_resultado?: string | null;
     resultado?: string | null;
+    resultado_registrado_por?: string | null;
+    resultado_registrado_at?: string | null;
     fecha?: string | null;
     lugar?: string | null;
     pareja1?: { id?: string; nombre_pareja?: string | null } | null;
     pareja2?: { id?: string; nombre_pareja?: string | null } | null;
+    // Campos extra que pueden venir en el match (cobertura amplia)
+    [key: string]: unknown;
 }
 
 type Mode = 'admin' | 'player';
