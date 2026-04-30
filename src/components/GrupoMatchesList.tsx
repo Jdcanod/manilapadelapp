@@ -5,6 +5,8 @@ import { Search, X, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 
+/** Forma mínima que requiere este componente. Los callers pueden pasar
+ *  un tipo más rico — el casting al renderMatch los preserva. */
 interface MatchRow {
     id: string;
     torneo_grupo_id?: string | null;
@@ -19,15 +21,13 @@ interface MatchRow {
     lugar?: string | null;
     pareja1?: { id?: string; nombre_pareja?: string | null } | null;
     pareja2?: { id?: string; nombre_pareja?: string | null } | null;
-    // Campos extra que pueden venir en el match (cobertura amplia)
-    [key: string]: unknown;
 }
 
 type Mode = 'admin' | 'player';
 type PlayerView = 'mis' | 'todos';
 
-interface Props {
-    matches: MatchRow[];
+interface Props<M extends MatchRow> {
+    matches: M[];
     grupoId: string;
     mode: Mode;
     /** IDs de parejas del jugador (solo para mode='player') */
@@ -35,7 +35,7 @@ interface Props {
     parejaPlayers?: ParejaPlayersMap;
     /** Renderiza la card de cada partido. Permite que cada llamado pase su
      *  propio render sin duplicar la lógica de acciones. */
-    renderMatch: (m: MatchRow) => React.ReactNode;
+    renderMatch: (m: M) => React.ReactNode;
 }
 
 /**
@@ -43,8 +43,11 @@ interface Props {
  *   - Buscador por pareja / lugar
  *   - Filtro de estado (todos / pendientes / sin resultado / confirmados)
  *   - Para jugador: pestañas "mis partidos" / "todos los del grupo"
+ *
+ * Genérico en M para que cada caller (admin / player) pueda pasar su propio
+ * tipo de match más rico sin perder los campos en renderMatch.
  */
-export function GrupoMatchesList({ matches, grupoId, mode, playerPairIds = [], parejaPlayers = {}, renderMatch }: Props) {
+export function GrupoMatchesList<M extends MatchRow>({ matches, grupoId, mode, playerPairIds = [], parejaPlayers = {}, renderMatch }: Props<M>) {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<'todos' | 'pendientes' | 'sin_resultado' | 'confirmados'>('todos');
     const [playerView, setPlayerView] = useState<PlayerView>('mis');
@@ -54,7 +57,7 @@ export function GrupoMatchesList({ matches, grupoId, mode, playerPairIds = [], p
         [matches, grupoId]
     );
 
-    const isMine = (m: MatchRow) =>
+    const isMine = (m: M) =>
         playerPairIds.length > 0 &&
         ((m.pareja1_id && playerPairIds.includes(m.pareja1_id)) ||
          (m.pareja2_id && playerPairIds.includes(m.pareja2_id)));
