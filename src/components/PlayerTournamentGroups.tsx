@@ -335,19 +335,20 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                  )}
                                                             </div>
                                                             
-                                                            {/* Fecha del partido */}
-                                                            {match.fecha && (
+                                                            {/* Fecha del partido — solo en relámpago (en liguilla las parejas
+                                                                coordinan sus partidos sin pasar por la parrilla). */}
+                                                            {!esLiguilla && match.fecha && (
                                                                 <div className="mt-4 pt-3 border-t border-neutral-900/50 flex items-center justify-between gap-2">
                                                                     <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest bg-neutral-950 px-2 py-1 rounded">
                                                                         {(() => {
                                                                             const isTimePending = match.lugar?.toLowerCase().includes('pendiente') || match.lugar?.toLowerCase().includes('definir');
                                                                             if (isTimePending) return "Hora por definir";
-                                                                            return new Date(match.fecha).toLocaleString('es-CO', { 
-                                                                                timeZone: 'America/Bogota', 
-                                                                                weekday: 'short', 
-                                                                                day: 'numeric', 
-                                                                                hour: '2-digit', 
-                                                                                minute: '2-digit' 
+                                                                            return new Date(match.fecha).toLocaleString('es-CO', {
+                                                                                timeZone: 'America/Bogota',
+                                                                                weekday: 'short',
+                                                                                day: 'numeric',
+                                                                                hour: '2-digit',
+                                                                                minute: '2-digit'
                                                                             });
                                                                         })()}
                                                                     </span>

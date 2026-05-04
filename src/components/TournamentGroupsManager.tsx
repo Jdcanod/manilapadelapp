@@ -547,25 +547,28 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                      </div>
                                                                  </div>
 
-                                                                 {/* Info de Programación */}
-                                                                 <div className="px-3 py-2 bg-neutral-900 rounded-xl border border-neutral-800 flex flex-col gap-1">
-                                                                     {match.fecha && match.lugar ? (
-                                                                         <div className="flex justify-between items-center">
-                                                                             <span className="text-[9px] font-black text-emerald-500 uppercase tracking-tighter">
-                                                                                 {new Date(match.fecha).toLocaleString('es-CO', { 
-                                                                                     weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
-                                                                                 })}
+                                                                 {/* Info de Programación — solo en relámpago (en liguilla las parejas
+                                                                     coordinan sus partidos sin pasar por la parrilla). */}
+                                                                 {!esLiguilla && (
+                                                                     <div className="px-3 py-2 bg-neutral-900 rounded-xl border border-neutral-800 flex flex-col gap-1">
+                                                                         {match.fecha && match.lugar && match.lugar.toLowerCase() !== 'pendiente' ? (
+                                                                             <div className="flex justify-between items-center">
+                                                                                 <span className="text-[9px] font-black text-emerald-500 uppercase tracking-tighter">
+                                                                                     {new Date(match.fecha).toLocaleString('es-CO', {
+                                                                                         weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                                                                                     })}
+                                                                                 </span>
+                                                                                 <span className="text-[9px] font-black text-neutral-400 uppercase">
+                                                                                     {match.lugar}
+                                                                                 </span>
+                                                                             </div>
+                                                                         ) : (
+                                                                             <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest text-center animate-pulse">
+                                                                                 ⚠️ Pendiente de Programar
                                                                              </span>
-                                                                             <span className="text-[9px] font-black text-neutral-400 uppercase">
-                                                                                 {match.lugar}
-                                                                             </span>
-                                                                         </div>
-                                                                     ) : (
-                                                                         <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest text-center animate-pulse">
-                                                                             ⚠️ Pendiente de Programar
-                                                                         </span>
-                                                                     )}
-                                                                 </div>
+                                                                         )}
+                                                                     </div>
+                                                                 )}
 
                                                                  <div className="flex flex-col gap-2">
                                                                      <AdminTournamentResultModal
