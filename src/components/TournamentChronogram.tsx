@@ -105,8 +105,13 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
         return getCanchaFromLugar(m.lugar) !== null;
     };
 
+    /** Un partido se considera "ya jugado" cuando tiene resultado registrado.
+     *  Estos no necesitan estar en la bolsa de pendientes para programar. */
+    const isAlreadyPlayed = (m: Match) =>
+        !!m.resultado || m.estado === 'jugado' || m.estado_resultado === 'confirmado';
+
     const scheduledMatches = matches.filter(isScheduled);
-    const pendingMatches = matches.filter(m => !isScheduled(m));
+    const pendingMatches = matches.filter(m => !isScheduled(m) && !isAlreadyPlayed(m));
 
     const handleAssign = useCallback(async (matchId: string, time: string, cancha: number) => {
         if (isUpdating) return;
@@ -362,7 +367,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                 }}
                                             >
                                                 {matchToShow ? (
-                                                    <div 
+                                                    <div
                                                         draggable={isAdmin && !isUpdating}
                                                         onDragStart={(e) => onDragStart(e, matchToShow.id)}
                                                         onClick={(e) => {
@@ -376,7 +381,8 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                             absolute inset-x-1 top-1 z-10 bg-neutral-900 border rounded-xl p-3 flex flex-col justify-between group/match shadow-2xl transition-all
                                                             ${isSelected ? 'border-amber-500 ring-2 ring-amber-500/20 scale-[1.01] z-30' : 'border-emerald-500/30 hover:border-emerald-500'}
                                                             ${isMine ? 'border-amber-500' : ''}
-                                                            ${isBeingDragged ? 'opacity-40 grayscale' : 'opacity-100'}
+                                                            ${matchToShow.estado_resultado === 'confirmado' ? 'opacity-60 saturate-[0.6] border-emerald-700/40' : ''}
+                                                            ${isBeingDragged ? 'opacity-40 grayscale' : ''}
                                                             ${isAdmin && !isUpdating ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed'}
                                                         `}
                                                     >
