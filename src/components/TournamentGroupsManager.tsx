@@ -568,13 +568,13 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                  </div>
 
                                                                  <div className="flex flex-col gap-2">
-                                                                     <AdminTournamentResultModal 
+                                                                     <AdminTournamentResultModal
                                                                          matchId={match.id}
                                                                          pareja1Nombre={match.pareja1?.nombre_pareja || "Pareja 1"}
                                                                          pareja2Nombre={match.pareja2?.nombre_pareja || "Pareja 2"}
                                                                          initialResult={match.resultado}
                                                                          tipoDesempate={tipoDesempate}
-                                                                         disabled={!match.fecha || !match.lugar}
+                                                                         disabled={!esLiguilla && (!match.fecha || !match.lugar)}
                                                                          disabledReason="Debe programar el partido en el cronograma primero"
                                                                      />
                                                                      {match.estado === 'jugado' && match.estado_resultado === 'pendiente' && (

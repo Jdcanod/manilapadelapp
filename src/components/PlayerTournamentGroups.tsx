@@ -321,13 +321,13 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                             <span className="text-[9px] font-black uppercase tracking-tighter">Tu Partido</span>
                                                                         </div>
                                                                         {match.estado !== 'jugado' && (
-                                                                            <PlayerTournamentResultModal 
+                                                                            <PlayerTournamentResultModal
                                                                                 matchId={match.id}
                                                                                 pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"}
                                                                                 pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
                                                                                 initialResult={match.resultado}
                                                                                 tipoDesempate={tipoDesempate}
-                                                                                disabled={!match.fecha || !match.lugar || match.lugar.toLowerCase().includes('pendiente')}
+                                                                                disabled={!esLiguilla && (!match.fecha || !match.lugar || match.lugar.toLowerCase().includes('pendiente'))}
                                                                                 disabledReason="El club aún no ha asignado hora o cancha"
                                                                             />
                                                                         )}
