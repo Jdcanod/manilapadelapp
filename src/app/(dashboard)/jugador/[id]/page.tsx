@@ -93,7 +93,35 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
         numTorneos = torneosUnicos.size;
     }
 
+    // Calcular la categoría del último torneo
+    let lastTournamentCategory: string | null = null;
+    const torneosMatches = (partidosJugados || []).filter(p => p.torneo_id && p.nivel);
+    if (torneosMatches.length > 0) {
+        // Ordenar por fecha reciente
+        torneosMatches.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+        const lastTorneoId = torneosMatches[0].torneo_id;
+        
+        // Extraer categorías únicas jugadas en ese torneo
+        const categoriesInLastTorneo = Array.from(new Set(
+            torneosMatches.filter(p => p.torneo_id === lastTorneoId).map(p => p.nivel)
+        ));
+
+        if (categoriesInLastTorneo.length > 0) {
+            // Ordenar para obtener la mayor (1ra es mayor que 6ta, numéricamente menor)
+            categoriesInLastTorneo.sort((a, b) => {
+                const numA = parseInt(a.replace(/\D/g, '')) || 99;
+                const numB = parseInt(b.replace(/\D/g, '')) || 99;
+                if (numA !== 99 && numB !== 99) return numA - numB;
+                return a.localeCompare(b);
+            });
+            lastTournamentCategory = categoriesInLastTorneo[0];
+        }
+    }
+
     const winRate = totalJugados > 0 ? Math.round((ganados / totalJugados) * 100) : 0;
+    const displayCategory = lastTournamentCategory 
+        ? `Categoría ${lastTournamentCategory}` 
+        : (profile.categoria || profile.nivel || 'Jugador');
     const iniciales = (profile.nombre || "Jugador").substring(0, 2).toUpperCase();
 
     return (
@@ -109,7 +137,7 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
                             <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white mb-2">{profile.nombre}</h1>
                             <p className="text-neutral-400 text-lg font-medium capitalize flex items-center justify-center lg:justify-start gap-2">
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                {profile.nivel || 'Jugador'}
+                                {displayCategory}
                             </p>
                         </div>
                         <div className="flex flex-col items-center sm:items-end gap-3">
