@@ -201,14 +201,17 @@ export default async function JugadorDashboard() {
         parejaActual = misParejas && misParejas.length > 0 ? (misParejas[misParejas.length - 1] as any).nombre_pareja : "Ninguna";
 
         // Calcular la categoría del último torneo
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const torneosMatches = (partidosJugados || []).filter((p: any) => p.torneo_id && p.nivel);
         if (torneosMatches.length > 0) {
             // Ordenar por fecha reciente
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             torneosMatches.sort((a: any, b: any) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
             const lastTorneoId = torneosMatches[0].torneo_id;
             
             // Extraer categorías únicas jugadas en ese torneo
             const categoriesInLastTorneo = Array.from(new Set(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 torneosMatches.filter((p: any) => p.torneo_id === lastTorneoId).map((p: any) => p.nivel)
             )) as string[];
 
