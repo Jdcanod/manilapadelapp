@@ -7,6 +7,7 @@ import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { RankingFilter } from "@/components/RankingFilter";
 import { redirect } from "next/navigation";
 import { formatPlayerName } from "@/lib/display-names";
+import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +32,7 @@ function getWinner(resultado: string | null | undefined): 1 | 2 | null {
     }
 }
 
-export default async function RankingPage({ searchParams }: { searchParams: { ciudad?: string, club?: string } }) {
+export default async function RankingPage({ searchParams }: { searchParams: { ciudad?: string, club?: string, q?: string } }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -51,6 +52,7 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
 
     const ciudad = searchParams?.ciudad;
     const club = searchParams?.club;
+    const queryTerm = searchParams?.q;
 
     // Obtener la lista de clubes para el filtro
     const { data: clubesData } = await supabase
@@ -89,6 +91,10 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
                 query = query.eq('id', '00000000-0000-0000-0000-000000000000'); // Force no results
             }
         }
+    }
+
+    if (queryTerm) {
+        query = query.ilike('nombre', `%${queryTerm}%`);
     }
 
     const { data: jugadoresData } = await query;
@@ -232,7 +238,8 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
                                 const clubName = jugador.club?.nombre || clubes.find(c => c.auth_id === jugador.club_id)?.nombre || 'Sin Club Base';
 
                                 return (
-                                    <div
+                                    <Link
+                                        href={`/jugador/${jugador.id}`}
                                         key={jugador.id}
                                         className={`group flex items-center gap-4 p-4 border-b border-neutral-800/50 hover:bg-neutral-800/60 transition-colors cursor-pointer ${isCurrentUser ? 'bg-emerald-950/20 bg-gradient-to-r from-emerald-500/10 to-transparent border-l-2 border-l-emerald-500' : ''
                                             }`}
@@ -293,7 +300,7 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
                                                 {jugador.elo ?? '—'}
                                             </span>
                                         </div>
-                                    </div>
+                                    </Link>
                                 );
                             })
                         )}
