@@ -129,6 +129,17 @@ export default async function JugadorDashboard() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const myRank = rankingData ? rankingData.findIndex((u: any) => (u as any).id === userData?.id) + 1 : 0;
 
+    // Fetch Follow Stats
+    const { count: followersCount } = await adminSupabase
+        .from('jugador_seguidores')
+        .select('*', { count: 'exact', head: true })
+        .eq('following_id', userData?.id);
+
+    const { count: followingCount } = await adminSupabase
+        .from('jugador_seguidores')
+        .select('*', { count: 'exact', head: true })
+        .eq('follower_id', userData?.id);
+
     // 2. Parejas y Partidos para Win Rate / Torneos
     const { data: misParejas } = await adminSupabase
         .from('parejas')
@@ -188,7 +199,35 @@ export default async function JugadorDashboard() {
         parejaActual = misParejas && misParejas.length > 0 ? (misParejas[misParejas.length - 1] as any).nombre_pareja : "Ninguna";
     }
 
+    // Calcular la categoría del último torneo
+    let lastTournamentCategory: string | null = null;
+    const torneosMatches = (partidosJugados || []).filter(p => p.torneo_id && p.nivel);
+    if (torneosMatches.length > 0) {
+        // Ordenar por fecha reciente
+        torneosMatches.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+        const lastTorneoId = torneosMatches[0].torneo_id;
+        
+        // Extraer categorías únicas jugadas en ese torneo
+        const categoriesInLastTorneo = Array.from(new Set(
+            torneosMatches.filter(p => p.torneo_id === lastTorneoId).map(p => p.nivel)
+        ));
+
+        if (categoriesInLastTorneo.length > 0) {
+            // Ordenar para obtener la mayor (1ra es mayor que 6ta, numéricamente menor)
+            categoriesInLastTorneo.sort((a, b) => {
+                const numA = parseInt(a.replace(/\D/g, '')) || 99;
+                const numB = parseInt(b.replace(/\D/g, '')) || 99;
+                if (numA !== 99 && numB !== 99) return numA - numB;
+                return a.localeCompare(b);
+            });
+            lastTournamentCategory = categoriesInLastTorneo[0];
+        }
+    }
+
     const winRate = totalJugados > 0 ? Math.round((ganados / totalJugados) * 100) : 0;
+    const displayCategory = lastTournamentCategory 
+        ? `Categoría ${lastTournamentCategory}` 
+        : (userData?.categoria || userData?.nivel || 'Jugador');
 
     return (
         <div className="space-y-6">
@@ -203,12 +242,22 @@ export default async function JugadorDashboard() {
                             <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white mb-2">{nombreReal}</h1>
                             <p className="text-neutral-400 text-lg font-medium capitalize flex items-center justify-center lg:justify-start gap-2">
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                {userData?.nivel || 'Jugador'}
+                                {displayCategory}
                             </p>
                         </div>
-                        <div className="flex items-center justify-center gap-4">
-                            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 px-4 py-1.5 text-sm font-bold">
-                                {userData?.nivel || 'N/A'}
+                        <div className="flex flex-col sm:flex-row items-center sm:items-end justify-center gap-4">
+                            <div className="flex gap-4 text-sm mr-2">
+                                <div className="text-center">
+                                    <div className="font-bold text-white text-lg">{followersCount || 0}</div>
+                                    <div className="text-neutral-500">Seguidores</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="font-bold text-white text-lg">{followingCount || 0}</div>
+                                    <div className="text-neutral-500">Seguidos</div>
+                                </div>
+                            </div>
+                            <Badge variant="outline" className="hidden sm:inline-flex border-emerald-500/30 text-emerald-400 bg-emerald-500/10 px-4 py-1.5 text-sm font-bold">
+                                {displayCategory}
                             </Badge>
                             <div className="flex items-center gap-2 bg-neutral-950 px-4 py-2 rounded-2xl border border-neutral-800 shadow-inner">
                                 <Trophy className="w-5 h-5 text-amber-400" />
