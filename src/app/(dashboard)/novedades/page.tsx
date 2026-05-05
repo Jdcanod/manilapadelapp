@@ -7,6 +7,12 @@ export const dynamic = 'force-dynamic';
 export default async function NovedadesPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
+    
+    let myUserId: string | null = null;
+    if (user) {
+        const { data: publicUser } = await supabase.from('users').select('id').eq('auth_id', user.id).single();
+        myUserId = publicUser?.id || null;
+    }
 
     // 1. Fetch News
     const { data: newsItems, error: newsError } = await supabase
@@ -56,11 +62,11 @@ export default async function NovedadesPage() {
     // 4. Format Matches
     // We also need to check if the current user has liked the match
     let userLikes: {partido_id: string}[] = [];
-    if (user) {
+    if (myUserId) {
         const { data: likes } = await supabase
             .from('partido_likes')
             .select('partido_id')
-            .eq('user_id', user.id);
+            .eq('user_id', myUserId);
         if (likes) userLikes = likes;
     }
 
@@ -111,7 +117,7 @@ export default async function NovedadesPage() {
             <div className="flex-1 w-full bg-neutral-950 rounded-2xl p-4 md:p-6 border border-neutral-800">
                 {/* We pass the interleaved feed to a generic list component */}
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                <NovedadesList feed={feed as any} currentUserId={user?.id || null} />
+                <NovedadesList feed={feed as any} currentUserId={myUserId} />
             </div>
         </div>
     );

@@ -14,8 +14,16 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
         redirect("/login");
     }
 
+    // Obtener el ID interno del usuario actual
+    const { data: publicUser } = await supabase.from('users').select('id').eq('auth_id', currentUser.id).single();
+    const myUserId = publicUser?.id;
+
+    if (!myUserId) {
+        redirect("/login");
+    }
+
     // Si es mi propio perfil, redirigir a mi dashboard
-    if (params.id === currentUser.id) {
+    if (params.id === myUserId || params.id === currentUser.id) {
         redirect("/jugador");
     }
 
@@ -47,7 +55,7 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
     const { data: isFollowing } = await supabase
         .from('jugador_seguidores')
         .select('follower_id')
-        .eq('follower_id', currentUser.id)
+        .eq('follower_id', myUserId)
         .eq('following_id', params.id)
         .single();
 
@@ -108,7 +116,7 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
                             <form action={async () => {
                                 "use server";
                                 const { toggleFollow } = await import("@/app/(dashboard)/novedades/social-actions");
-                                await toggleFollow(currentUser.id, params.id);
+                                await toggleFollow(myUserId, params.id);
                             }}>
                                 <Button 
                                     className={`w-full sm:w-auto font-bold ${isFollowing ? 'bg-neutral-800 hover:bg-neutral-700 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}
