@@ -154,6 +154,8 @@ export default async function JugadorDashboard() {
     let numTorneos = 0;
     let parejaActual = "Ninguna";
 
+    let lastTournamentCategory: string | null = null;
+
     if (misParejasIds.length > 0 || userData?.id) {
         // Trae cualquier partido con resultado registrado (incluye históricos sin estado='jugado')
         const safePairList = misParejasIds.length > 0 ? misParejasIds.join(',') : '00000000-0000-0000-0000-000000000000';
@@ -197,30 +199,29 @@ export default async function JugadorDashboard() {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         parejaActual = misParejas && misParejas.length > 0 ? (misParejas[misParejas.length - 1] as any).nombre_pareja : "Ninguna";
-    }
 
-    // Calcular la categoría del último torneo
-    let lastTournamentCategory: string | null = null;
-    const torneosMatches = (partidosJugados || []).filter(p => p.torneo_id && p.nivel);
-    if (torneosMatches.length > 0) {
-        // Ordenar por fecha reciente
-        torneosMatches.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
-        const lastTorneoId = torneosMatches[0].torneo_id;
-        
-        // Extraer categorías únicas jugadas en ese torneo
-        const categoriesInLastTorneo = Array.from(new Set(
-            torneosMatches.filter(p => p.torneo_id === lastTorneoId).map(p => p.nivel)
-        ));
+        // Calcular la categoría del último torneo
+        const torneosMatches = (partidosJugados || []).filter((p: any) => p.torneo_id && p.nivel);
+        if (torneosMatches.length > 0) {
+            // Ordenar por fecha reciente
+            torneosMatches.sort((a: any, b: any) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+            const lastTorneoId = torneosMatches[0].torneo_id;
+            
+            // Extraer categorías únicas jugadas en ese torneo
+            const categoriesInLastTorneo = Array.from(new Set(
+                torneosMatches.filter((p: any) => p.torneo_id === lastTorneoId).map((p: any) => p.nivel)
+            )) as string[];
 
-        if (categoriesInLastTorneo.length > 0) {
-            // Ordenar para obtener la mayor (1ra es mayor que 6ta, numéricamente menor)
-            categoriesInLastTorneo.sort((a, b) => {
-                const numA = parseInt(a.replace(/\D/g, '')) || 99;
-                const numB = parseInt(b.replace(/\D/g, '')) || 99;
-                if (numA !== 99 && numB !== 99) return numA - numB;
-                return a.localeCompare(b);
-            });
-            lastTournamentCategory = categoriesInLastTorneo[0];
+            if (categoriesInLastTorneo.length > 0) {
+                // Ordenar para obtener la mayor (1ra es mayor que 6ta, numéricamente menor)
+                categoriesInLastTorneo.sort((a, b) => {
+                    const numA = parseInt(a.replace(/\D/g, '')) || 99;
+                    const numB = parseInt(b.replace(/\D/g, '')) || 99;
+                    if (numA !== 99 && numB !== 99) return numA - numB;
+                    return a.localeCompare(b);
+                });
+                lastTournamentCategory = categoriesInLastTorneo[0];
+            }
         }
     }
 
