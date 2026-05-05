@@ -11,6 +11,7 @@ import Link from "next/link";
 import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { FollowersModal } from "@/components/social/FollowersModal";
 
 export const dynamic = 'force-dynamic';
 
@@ -40,6 +41,20 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
     const courts = Array.isArray(canchasConfig) && canchasConfig.length > 0
         ? canchasConfig
         : ["Cancha 1", "Cancha 2", "Cancha 3", "Cancha 4"];
+
+    // ─── Estadísticas Sociales ──────────────────────────────────────────────────
+    const { count: c1 } = await adminSupabase
+        .from('club_seguidores')
+        .select('*', { count: 'exact', head: true })
+        .eq('club_id', userData.id);
+
+    const { count: c2 } = await adminSupabase
+        .from('jugador_seguidores')
+        .select('*', { count: 'exact', head: true })
+        .eq('follower_id', userData.id);
+
+    const followersCount = c1 || 0;
+    const followingCount = c2 || 0;
 
     // ─── Torneos del Club ───────────────────────────────────────────────────────
     const { data: clubTournaments } = await adminSupabase
@@ -272,6 +287,27 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                             <span className="text-sm tracking-wide uppercase">Club Verificado (Partner)</span>
                         </div>
                         <h1 className="text-4xl font-black text-white mb-2 truncate">{nombreClub}</h1>
+                        <div className="mb-4">
+                            <FollowersModal
+                                userId={userData.id}
+                                isClub={true}
+                                followersCount={followersCount}
+                                followingCount={followingCount}
+                                customTrigger={
+                                    <button className="flex items-center gap-4 hover:bg-neutral-800/50 px-2 py-1.5 -ml-2 rounded-xl transition-colors">
+                                        <div className="text-center">
+                                            <div className="font-bold text-white text-lg leading-none">{followersCount}</div>
+                                            <div className="text-[10px] text-neutral-400 uppercase tracking-wider mt-1">Seguidores</div>
+                                        </div>
+                                        <div className="w-px h-6 bg-neutral-800" />
+                                        <div className="text-center">
+                                            <div className="font-bold text-white text-lg leading-none">{followingCount}</div>
+                                            <div className="text-[10px] text-neutral-400 uppercase tracking-wider mt-1">Seguidos</div>
+                                        </div>
+                                    </button>
+                                }
+                            />
+                        </div>
                         <div className="flex items-center gap-4 flex-wrap">
                             <span className="text-sm text-neutral-400 flex items-center gap-1.5">
                                 <Zap className="w-3.5 h-3.5 text-amber-500" />

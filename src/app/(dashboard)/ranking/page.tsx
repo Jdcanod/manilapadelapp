@@ -46,8 +46,8 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
         .eq('auth_id', user.id)
         .single();
 
-    if (userData?.rol === 'admin_club') {
-        redirect("/club");
+    if (userData?.rol === 'superadmin') {
+        // Superadmin is allowed, but handled differently if needed
     }
 
     const ciudad = searchParams?.ciudad;
