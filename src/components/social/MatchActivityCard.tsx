@@ -62,7 +62,6 @@ export function MatchActivityCard({ partido, currentUserId }: MatchActivityProps
     const isTournament = partido.tipo_partido === "torneo";
     
     // Determine title and winner display
-    let title = isTournament ? "Partido de Torneo" : "Partido Amistoso";
     let participantsDisplay: React.ReactNode = "";
 
     if (partido.pareja1 && partido.pareja2) {

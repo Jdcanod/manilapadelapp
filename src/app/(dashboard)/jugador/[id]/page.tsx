@@ -1,8 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Trophy, TrendingUp, Activity, UserPlus, UserCheck, Users } from "lucide-react";
+import { Trophy, TrendingUp, Activity, UserPlus, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = 'force-dynamic';

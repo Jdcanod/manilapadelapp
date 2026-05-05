@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { NovedadesList } from "./NovedadesList";
-import { Megaphone, Activity } from "lucide-react";
+import { Activity } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
@@ -110,6 +110,7 @@ export default async function NovedadesPage() {
 
             <div className="flex-1 w-full bg-neutral-950 rounded-2xl p-4 md:p-6 border border-neutral-800">
                 {/* We pass the interleaved feed to a generic list component */}
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <NovedadesList feed={feed as any} currentUserId={user?.id || null} />
             </div>
         </div>

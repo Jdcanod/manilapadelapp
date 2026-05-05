@@ -25,6 +25,7 @@ export function CommentSection({ partidoId, currentUserId }: { partidoId: string
         if (isOpen) {
             loadComments();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
 
     const loadComments = async () => {
