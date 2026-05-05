@@ -185,13 +185,18 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
         .order('created_at', { ascending: false });
 
     const formattedNews = (clubNews || []).map((item) => ({
+        feedType: 'news' as const,
         id: item.id,
-        club_id: item.club_id,
-        tipo: item.tipo,
-        titulo: item.titulo,
-        contenido: item.contenido,
-        created_at: item.created_at,
-        club_nombre: clubNombre
+        date: new Date(item.created_at).getTime(),
+        data: {
+            id: item.id,
+            club_id: item.club_id,
+            tipo: item.tipo,
+            titulo: item.titulo,
+            contenido: item.contenido,
+            created_at: item.created_at,
+            club_nombre: clubNombre
+        }
     }));
 
     // Obtener inscripciones del usuario actual
@@ -484,7 +489,7 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
                         </div>
                     ) : (
                         <div className="bg-neutral-950 rounded-2xl p-0 md:border md:border-neutral-800 md:p-6">
-                            <NovedadesList news={formattedNews} currentUserId={user.id} />
+                            <NovedadesList feed={formattedNews} currentUserId={user.id} />
                         </div>
                     )}
                 </TabsContent>
