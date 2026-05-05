@@ -15,6 +15,7 @@ import { BotonSeguirClub } from "@/components/BotonSeguirClub";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/server";
 import { autocancelarPartidosIncompletos } from "@/utils/cancelarPartidos";
+import { FollowersModal } from "@/components/social/FollowersModal";
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +50,7 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
     // Check if following
     let isFollowing = false;
     let seguidoresCount = 0;
+    let followingCount = 0;
 
     try {
         if (publicUser?.id) {
@@ -61,15 +63,22 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
             isFollowing = !!followRecord;
         }
 
-        const { count } = await supabase
+        const { count: c1 } = await supabase
             .from('club_seguidores')
             .select('*', { count: 'exact', head: true })
             .eq('club_id', clubData.id);
 
-        seguidoresCount = count || 0;
+        const { count: c2 } = await supabase
+            .from('jugador_seguidores')
+            .select('*', { count: 'exact', head: true })
+            .eq('follower_id', clubData.id);
+
+        seguidoresCount = c1 || 0;
+        followingCount = c2 || 0;
     } catch {
         isFollowing = false;
         seguidoresCount = 0;
+        followingCount = 0;
     }
 
     const timeSlots = [
@@ -228,9 +237,17 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
                             <Star className="w-4 h-4 fill-amber-500" />
                             <span>4.8 (120 reseñas)</span>
                             <Badge variant="outline" className="ml-2 bg-neutral-950/50 text-emerald-400 border-emerald-500/30">Abierto Ahora</Badge>
-                            <span className="hidden sm:inline-block ml-2 text-neutral-400 font-medium bg-neutral-900/50 px-2 py-0.5 rounded-full border border-neutral-800 text-xs">
-                                {seguidoresCount} Miembros
-                            </span>
+                            <FollowersModal
+                                userId={clubData.id}
+                                isClub={true}
+                                followersCount={seguidoresCount}
+                                followingCount={followingCount}
+                                customTrigger={
+                                    <button className="hidden sm:inline-block ml-2 text-neutral-400 hover:text-white transition-colors font-medium bg-neutral-900/50 hover:bg-neutral-800 px-3 py-1 rounded-full border border-neutral-800 text-xs">
+                                        {seguidoresCount} Seguidores • {followingCount} Seguidos
+                                    </button>
+                                }
+                            />
                         </div>
                         <h1 className="text-4xl font-black text-white mb-2">{clubNombre}</h1>
                         <p className="text-neutral-300 flex items-center gap-1.5 font-medium line-clamp-1">

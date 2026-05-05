@@ -99,3 +99,52 @@ export async function toggleFollow(followerId: string, followingId: string) {
     revalidatePath("/jugador/[id]", "page");
     revalidatePath("/novedades");
 }
+
+export async function getFollowData(userId: string, isClub: boolean) {
+    const { createPureAdminClient } = await import("@/utils/supabase/server");
+    const supabase = createPureAdminClient();
+
+    let followerIds: string[] = [];
+    let followingIds: string[] = [];
+
+    if (!isClub) {
+        const { data: fData } = await supabase.from('jugador_seguidores').select('follower_id').eq('following_id', userId);
+        const { data: fngData1 } = await supabase.from('jugador_seguidores').select('following_id').eq('follower_id', userId);
+        const { data: fngData2 } = await supabase.from('club_seguidores').select('club_id').eq('jugador_id', userId);
+
+        followerIds = (fData || []).map((f: { follower_id: string }) => f.follower_id);
+        followingIds = [
+            ...(fngData1 || []).map((f: { following_id: string }) => f.following_id),
+            ...(fngData2 || []).map((f: { club_id: string }) => f.club_id)
+        ];
+    } else {
+        const { data: fData } = await supabase.from('club_seguidores').select('jugador_id').eq('club_id', userId);
+        const { data: fngData } = await supabase.from('jugador_seguidores').select('following_id').eq('follower_id', userId);
+
+        followerIds = (fData || []).map((f: { jugador_id: string }) => f.jugador_id);
+        followingIds = (fngData || []).map((f: { following_id: string }) => f.following_id);
+    }
+
+    const allIds = Array.from(new Set([...followerIds, ...followingIds]));
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userMap: Record<string, any> = {};
+    if (allIds.length > 0) {
+        const { data: usersData } = await supabase
+            .from('users')
+            .select('id, nombre, nivel, categoria, rol')
+            .in('id', allIds);
+            
+        if (usersData) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            usersData.forEach((u: any) => {
+                userMap[u.id] = u;
+            });
+        }
+    }
+
+    const followers = followerIds.map(id => userMap[id]).filter(Boolean);
+    const following = followingIds.map(id => userMap[id]).filter(Boolean);
+
+    return { followers, following };
+}

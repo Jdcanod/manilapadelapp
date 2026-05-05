@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Trophy, TrendingUp, Activity, UserPlus, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FollowersModal } from "@/components/social/FollowersModal";
 
 export const dynamic = 'force-dynamic';
 
@@ -156,16 +157,12 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
                                     )}
                                 </Button>
                             </form>
-                            <div className="flex gap-4 text-sm">
-                                <div className="text-center">
-                                    <div className="font-bold text-white text-lg">{followersCount || 0}</div>
-                                    <div className="text-neutral-500">Seguidores</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="font-bold text-white text-lg">{followingCount || 0}</div>
-                                    <div className="text-neutral-500">Seguidos</div>
-                                </div>
-                            </div>
+                            <FollowersModal
+                                userId={params.id}
+                                isClub={false}
+                                followersCount={followersCount || 0}
+                                followingCount={followingCount || 0}
+                            />
                         </div>
                     </div>
 

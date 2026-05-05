@@ -10,6 +10,7 @@ import { redirect } from "next/navigation";
 import { OrganizarPartidoDialog } from "@/components/OrganizarPartidoDialog";
 import { TournamentResultModal } from "@/components/TournamentResultModal";
 import { ValidationTimer } from "@/components/ValidationTimer";
+import { FollowersModal } from "@/components/social/FollowersModal";
 
 /** Dado el resultado "6-3,4-6,10-7" (o con espacios/barras) devuelve qué pareja ganó: 1 o 2 */
 function getWinner(resultado: string | null | undefined): 1 | 2 | null {
@@ -250,16 +251,12 @@ export default async function JugadorDashboard() {
                             </p>
                         </div>
                         <div className="flex flex-col sm:flex-row items-center sm:items-end justify-center gap-4">
-                            <div className="flex gap-4 text-sm mr-2">
-                                <div className="text-center">
-                                    <div className="font-bold text-white text-lg">{followersCount || 0}</div>
-                                    <div className="text-neutral-500">Seguidores</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="font-bold text-white text-lg">{followingCount || 0}</div>
-                                    <div className="text-neutral-500">Seguidos</div>
-                                </div>
-                            </div>
+                            <FollowersModal
+                                userId={userData?.id}
+                                isClub={false}
+                                followersCount={followersCount || 0}
+                                followingCount={followingCount || 0}
+                            />
                             <Badge variant="outline" className="hidden sm:inline-flex border-emerald-500/30 text-emerald-400 bg-emerald-500/10 px-4 py-1.5 text-sm font-bold">
                                 {displayCategory}
                             </Badge>
