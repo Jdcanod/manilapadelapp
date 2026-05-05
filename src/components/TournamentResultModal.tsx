@@ -19,6 +19,7 @@ export function TournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, u
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [sets, setSets] = useState([{ p1: "", p2: "" }]);
+    const [isSuperTiebreak, setIsSuperTiebreak] = useState(tipoDesempate === 'super_tiebreak');
 
     const addSet = () => setSets([...sets, { p1: "", p2: "" }]);
 
@@ -43,7 +44,7 @@ export function TournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, u
 
             let setValido = false;
 
-            if (idx === 2 && tipoDesempate === 'super_tiebreak') {
+            if (idx === 2 && isSuperTiebreak) {
                 if (max < 10) {
                     return alert(`El 3er set es un Super Tie-break. El ganador debe llegar a 10 puntos (Ingresado: ${p1}-${p2}).`);
                 }
@@ -123,6 +124,9 @@ export function TournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, u
                     </div>
                     {sets.map((set, idx) => (
                         <div key={idx} className="flex items-center gap-3">
+                            <span className="text-[10px] font-black text-neutral-600 w-12 shrink-0">
+                                {idx === 2 ? (isSuperTiebreak ? 'STB' : 'SET 3') : `SET ${idx + 1}`}
+                            </span>
                             <Input 
                                 placeholder="0" 
                                 type="number"
@@ -148,6 +152,20 @@ export function TournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, u
                             />
                         </div>
                     ))}
+                    {sets.length > 2 && (
+                        <div className="flex items-center gap-2 mt-2 px-1">
+                            <input 
+                                type="checkbox" 
+                                id={`player-stb-toggle-${matchId}`}
+                                checked={isSuperTiebreak} 
+                                onChange={(e) => setIsSuperTiebreak(e.target.checked)}
+                                className="w-4 h-4 rounded border-neutral-700 bg-neutral-900 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-neutral-950"
+                            />
+                            <label htmlFor={`player-stb-toggle-${matchId}`} className="text-xs text-neutral-400 font-medium cursor-pointer">
+                                El 3er set es un Super Tie-break
+                            </label>
+                        </div>
+                    )}
                     <Button variant="ghost" size="sm" onClick={addSet} className="text-emerald-500 w-full">+ Añadir Set</Button>
                 </div>
                 <Button disabled={isPending} onClick={onSave} className="w-full bg-emerald-600 hover:bg-emerald-500">
