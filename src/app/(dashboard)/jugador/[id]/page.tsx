@@ -70,6 +70,7 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
     let totalJugados = 0;
     let ganados = 0;
     let numTorneos = 0;
+    let lastTournamentCategory: string | null = null;
 
     if (misParejasIds.length > 0 || params.id) {
         const { data: partidosJugados } = await supabase
@@ -91,30 +92,29 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
 
         const torneosUnicos = new Set(partidosJugados?.filter(p => p.torneo_id).map(p => p.torneo_id));
         numTorneos = torneosUnicos.size;
-    }
 
-    // Calcular la categoría del último torneo
-    let lastTournamentCategory: string | null = null;
-    const torneosMatches = (partidosJugados || []).filter(p => p.torneo_id && p.nivel);
-    if (torneosMatches.length > 0) {
-        // Ordenar por fecha reciente
-        torneosMatches.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
-        const lastTorneoId = torneosMatches[0].torneo_id;
-        
-        // Extraer categorías únicas jugadas en ese torneo
-        const categoriesInLastTorneo = Array.from(new Set(
-            torneosMatches.filter(p => p.torneo_id === lastTorneoId).map(p => p.nivel)
-        ));
+        // Calcular la categoría del último torneo
+        const torneosMatches = (partidosJugados || []).filter(p => p.torneo_id && p.nivel);
+        if (torneosMatches.length > 0) {
+            // Ordenar por fecha reciente
+            torneosMatches.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+            const lastTorneoId = torneosMatches[0].torneo_id;
+            
+            // Extraer categorías únicas jugadas en ese torneo
+            const categoriesInLastTorneo = Array.from(new Set(
+                torneosMatches.filter(p => p.torneo_id === lastTorneoId).map(p => p.nivel)
+            ));
 
-        if (categoriesInLastTorneo.length > 0) {
-            // Ordenar para obtener la mayor (1ra es mayor que 6ta, numéricamente menor)
-            categoriesInLastTorneo.sort((a, b) => {
-                const numA = parseInt(a.replace(/\D/g, '')) || 99;
-                const numB = parseInt(b.replace(/\D/g, '')) || 99;
-                if (numA !== 99 && numB !== 99) return numA - numB;
-                return a.localeCompare(b);
-            });
-            lastTournamentCategory = categoriesInLastTorneo[0];
+            if (categoriesInLastTorneo.length > 0) {
+                // Ordenar para obtener la mayor (1ra es mayor que 6ta, numéricamente menor)
+                categoriesInLastTorneo.sort((a, b) => {
+                    const numA = parseInt(a.replace(/\D/g, '')) || 99;
+                    const numB = parseInt(b.replace(/\D/g, '')) || 99;
+                    if (numA !== 99 && numB !== 99) return numA - numB;
+                    return a.localeCompare(b);
+                });
+                lastTournamentCategory = categoriesInLastTorneo[0];
+            }
         }
     }
 
