@@ -196,6 +196,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                             currentUserId={typeof finalUserId !== 'undefined' ? finalUserId : undefined}
                             tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                             formato={torneo.formato}
+                            setsCantidad={torneo.reglas_puntuacion?.sets}
                         />
                 </TabsContent>
                 <TabsContent value="cuadros" className="mt-8">
@@ -205,6 +206,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                         playerPairIds={playerPairIds} 
                         currentUserId={typeof finalUserId !== 'undefined' ? finalUserId : undefined}
                         tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
+                        setsCantidad={torneo.reglas_puntuacion?.sets}
                     />
                 </TabsContent>
 
@@ -218,6 +220,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                         }}
                         isAdmin={false}
                         currentUserId={finalUserId}
+                        setsCantidad={torneo.reglas_puntuacion?.sets}
                     />
                 </TabsContent>
             </Tabs>

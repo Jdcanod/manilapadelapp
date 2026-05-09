@@ -18,9 +18,10 @@ interface Props {
     disabled?: boolean;
     disabledReason?: string;
     compact?: boolean;
+    setsCantidad?: number;
 }
 
-export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, initialResult, tipoDesempate = "tercer_set", disabled, disabledReason, compact }: Props) {
+export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, initialResult, tipoDesempate = "tercer_set", disabled, disabledReason, compact, setsCantidad = 3 }: Props) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
@@ -28,16 +29,17 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
     const getInitialSets = useCallback(() => {
         if (initialResult) {
             try {
-                return initialResult.split(',').map(s => {
+                const parsed = initialResult.split(',').map(s => {
                     const parts = s.trim().split('-');
                     return { p1: parts[0] || "", p2: parts[1] || "" };
                 });
+                if (parsed.length > 0) return parsed;
             } catch {
-                return [{ p1: "", p2: "" }, { p1: "", p2: "" }];
+                // fall through
             }
         }
-        return [{ p1: "", p2: "" }, { p1: "", p2: "" }];
-    }, [initialResult]);
+        return setsCantidad === 1 ? [{ p1: "", p2: "" }] : [{ p1: "", p2: "" }, { p1: "", p2: "" }];
+    }, [initialResult, setsCantidad]);
 
     const [sets, setSets] = useState(getInitialSets);
     const [isSuperTiebreak, setIsSuperTiebreak] = useState(tipoDesempate === 'super_tiebreak');
@@ -53,7 +55,11 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
     const onSave = () => {
         const potentialSets = sets.filter(s => s.p1.trim() !== "" || s.p2.trim() !== "");
         
-        if (potentialSets.length < 2) return alert("Error: Los partidos deben tener al menos 2 sets registrados.");
+        if (setsCantidad === 1) {
+            if (potentialSets.length < 1) return alert("Error: Los partidos deben tener al menos 1 set registrado.");
+        } else {
+            if (potentialSets.length < 2) return alert("Error: Los partidos deben tener al menos 2 sets registrados.");
+        }
 
         let p1Sets = 0;
         let p2Sets = 0;
@@ -113,14 +119,20 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
         if (maxSetsWon === 0) {
             return alert("Error: Un equipo debe ganar al menos 1 set.");
         }
-        if (maxSetsWon === 1 && minSetsWon === 1) {
-            return alert("Error: El partido no puede terminar en empate de sets (1-1).");
-        }
-        if (maxSetsWon > 2) {
-            return alert("Error: Ningún equipo puede ganar más de 2 sets.");
-        }
-        if (maxSetsWon === 2 && minSetsWon === 2) {
-            return alert("Error: No puede haber un empate en sets (2-2).");
+        if (setsCantidad === 1) {
+            if (maxSetsWon > 1) {
+                return alert("Error: Ningún equipo puede ganar más de 1 set en este formato.");
+            }
+        } else {
+            if (maxSetsWon === 1 && minSetsWon === 1) {
+                return alert("Error: El partido no puede terminar en empate de sets (1-1).");
+            }
+            if (maxSetsWon > 2) {
+                return alert("Error: Ningún equipo puede ganar más de 2 sets.");
+            }
+            if (maxSetsWon === 2 && minSetsWon === 2) {
+                return alert("Error: No puede haber un empate en sets (2-2).");
+            }
         }
 
         const resultadoFinal = validSets
@@ -206,7 +218,7 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                             />
                         </div>
                     ))}
-                    {sets.length > 2 && (
+                    {sets.length > 2 && setsCantidad !== 1 && (
                         <div className="flex items-center gap-2 mt-2 px-1">
                             <input 
                                 type="checkbox" 
@@ -220,7 +232,9 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                             </label>
                         </div>
                     )}
-                    <Button variant="ghost" size="sm" onClick={addSet} className="text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 w-full">+ Añadir Set</Button>
+                    {setsCantidad !== 1 && (
+                        <Button variant="ghost" size="sm" onClick={addSet} className="text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 w-full">+ Añadir Set</Button>
+                    )}
                 </div>
                 <Button disabled={isPending} onClick={onSave} className="w-full bg-amber-600 hover:bg-amber-500">
                     {isPending ? "Guardando..." : "Subir Score Definitivo"}

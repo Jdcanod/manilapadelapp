@@ -43,6 +43,7 @@ interface Props {
     /** Configuración de clasificados por grupo (persistida en torneo) — define cuántas
      *  parejas de cada grupo pasan a la fase eliminatoria y se resaltan en la tabla. */
     configClasifican?: number;
+    setsCantidad?: number;
 }
 
 interface Standing {
@@ -58,7 +59,7 @@ interface Standing {
     pts: number;
 }
 
-export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican }: Props) {
+export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican, setsCantidad }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const [selectedCat, setSelectedCat] = useState(categorias[0] || "General");
@@ -572,14 +573,15 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
 
                                                                  <div className="flex flex-col gap-2">
                                                                      <AdminTournamentResultModal
-                                                                         matchId={match.id}
-                                                                         pareja1Nombre={match.pareja1?.nombre_pareja || "Pareja 1"}
-                                                                         pareja2Nombre={match.pareja2?.nombre_pareja || "Pareja 2"}
-                                                                         initialResult={match.resultado}
-                                                                         tipoDesempate={tipoDesempate}
-                                                                         disabled={!esLiguilla && (!match.fecha || !match.lugar)}
-                                                                         disabledReason="Debe programar el partido en el cronograma primero"
-                                                                     />
+                                                                        matchId={match.id}
+                                                                        pareja1Nombre={match.pareja1?.nombre_pareja || "Pareja 1"}
+                                                                        pareja2Nombre={match.pareja2?.nombre_pareja || "Pareja 2"}
+                                                                        initialResult={match.resultado}
+                                                                        tipoDesempate={tipoDesempate}
+                                                                        disabled={!esLiguilla && (!match.fecha || !match.lugar)}
+                                                                        disabledReason="Debe programar el partido en el cronograma primero"
+                                                                        setsCantidad={setsCantidad}
+                                                                    />
                                                                      {match.estado === 'jugado' && match.estado_resultado === 'pendiente' && (
                                                                          <div className="flex flex-col gap-2 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
                                                                              <div className="text-center">

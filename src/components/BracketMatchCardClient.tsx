@@ -30,9 +30,10 @@ interface BracketMatchCardClientProps {
     playerPairIds: string[];
     currentUserId?: string;
     tipoDesempate?: string;
+    setsCantidad?: number;
 }
 
-export function BracketMatchCardClient({ match, playerPairIds, currentUserId, tipoDesempate = "tercer_set" }: BracketMatchCardClientProps) {
+export function BracketMatchCardClient({ match, playerPairIds, currentUserId, tipoDesempate = "tercer_set", setsCantidad = 3 }: BracketMatchCardClientProps) {
     const [isPendingAction, startTransition] = useTransition();
 
     const isParticipant = (match.pareja1_id && playerPairIds.includes(match.pareja1_id)) || 
@@ -132,6 +133,7 @@ export function BracketMatchCardClient({ match, playerPairIds, currentUserId, ti
                                 tipoDesempate={tipoDesempate}
                                 disabled={!match.fecha || !match.lugar || match.lugar.toLowerCase().includes('pendiente')}
                                 disabledReason="Partido pendiente de programación"
+                                setsCantidad={setsCantidad}
                             />
                         )}
 
@@ -180,6 +182,7 @@ export function BracketMatchCardClient({ match, playerPairIds, currentUserId, ti
                                             initialResult={match.resultado}
                                             buttonText="Corregir"
                                             tipoDesempate={tipoDesempate}
+                                            setsCantidad={setsCantidad}
                                         />
                                     </div>
                                 </div>
