@@ -134,6 +134,7 @@ export function CrearTorneoForm() {
                                 <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
                                     <SelectItem value="4">Set de 4 juegos</SelectItem>
                                     <SelectItem value="6">Set de 6 juegos</SelectItem>
+                                    <SelectItem value="8">Set de 8 juegos</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -150,13 +151,14 @@ export function CrearTorneoForm() {
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label className="text-xs text-neutral-400">Desempate (1-1 en Sets)</Label>
+                            <Label className="text-xs text-neutral-400">Tipo de Desempate (Ej: a 1-1 en Sets o 7-7)</Label>
                             <Select name="tipo_desempate" defaultValue="tercer_set">
                                 <SelectTrigger className="bg-neutral-900 border-neutral-800 text-white">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
-                                    <SelectItem value="tercer_set">3er Set Normal</SelectItem>
+                                    <SelectItem value="tercer_set">3er Set Normal (si hay 3 sets)</SelectItem>
+                                    <SelectItem value="tiebreak">Tie-break normal (7 pts)</SelectItem>
                                     <SelectItem value="super_tiebreak">Super Tie-break (10 pts)</SelectItem>
                                 </SelectContent>
                             </Select>

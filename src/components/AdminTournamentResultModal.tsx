@@ -82,18 +82,23 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                 }
                 setValido = true;
             } else {
-                if (p1 > 7 || p2 > 7) {
-                    return alert(`Error en set ${idx + 1}: Ningún equipo puede tener más de 7 juegos en un set normal.`);
+                if (p1 > 9 || p2 > 9) {
+                    return alert(`Error en set ${idx + 1}: Formato no válido, juegos superan el límite normal.`);
                 }
-                if (max === 6 && min <= 4) {
-                    setValido = true;
-                } else if (max === 7 && (min === 5 || min === 6)) {
-                    setValido = true;
-                }
+                
+                // Set a 4 juegos
+                if (max === 4 && min <= 2) setValido = true;
+                else if (max === 5 && (min === 3 || min === 4)) setValido = true;
+                // Set a 6 juegos
+                else if (max === 6 && min <= 4) setValido = true;
+                else if (max === 7 && (min === 5 || min === 6)) setValido = true;
+                // Set a 8 juegos
+                else if (max === 8 && min <= 7) setValido = true;
+                else if (max === 9 && (min === 7 || min === 8)) setValido = true;
             }
 
             if (!setValido) {
-                return alert(`El marcador ${p1}-${p2} en el set ${idx + 1} no es válido.`);
+                return alert(`El marcador ${p1}-${p2} en el set ${idx + 1} no es válido para sets de 4, 6 u 8 juegos.`);
             }
 
             validSets.push({ p1, p2 });
@@ -101,21 +106,21 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
             else p2Sets++;
         }
 
-        // Validar que haya un ganador claro (2 sets ganados por uno de los dos)
-        if (p1Sets < 2 && p2Sets < 2) {
-            return alert("Error: Un equipo debe ganar al menos 2 sets para terminar el partido.");
-        }
+        const maxSetsWon = Math.max(p1Sets, p2Sets);
+        const minSetsWon = Math.min(p1Sets, p2Sets);
 
-        if (p1Sets === 2 && p2Sets === 2) {
-            return alert("Error: No puede haber un empate en sets (2-2). El pádel se juega a ganar 2 de 3 sets.");
+        // Validar que haya un ganador claro
+        if (maxSetsWon === 0) {
+            return alert("Error: Un equipo debe ganar al menos 1 set.");
         }
-
-        if ((p1Sets === 2 && p2Sets > 1) || (p2Sets === 2 && p1Sets > 1)) {
-            return alert("Error: El resultado no es coherente. Un equipo debe ganar 2-0 o 2-1 en sets.");
+        if (maxSetsWon === 1 && minSetsWon === 1) {
+            return alert("Error: El partido no puede terminar en empate de sets (1-1).");
         }
-
-        if (p1Sets > 2 || p2Sets > 2) {
+        if (maxSetsWon > 2) {
             return alert("Error: Ningún equipo puede ganar más de 2 sets.");
+        }
+        if (maxSetsWon === 2 && minSetsWon === 2) {
+            return alert("Error: No puede haber un empate en sets (2-2).");
         }
 
         const resultadoFinal = validSets
