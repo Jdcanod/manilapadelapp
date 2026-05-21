@@ -40,6 +40,7 @@ interface Props {
     /** Mapa pareja_id → [j1, j2] con nombre y email para construir
      *  el nombre formateado y detectar invitados (I). */
     parejaPlayers?: ParejaPlayersMap;
+    setsCantidad?: number;
 }
 
 function timeAgo(iso: string | null | undefined): string {
@@ -54,7 +55,7 @@ function timeAgo(iso: string | null | undefined): string {
     return `hace ${d}d`;
 }
 
-export function TournamentResultsManager({ torneoId, partidos, categorias, tipoDesempate = "tercer_set", userMap = {}, parejaPlayers = {} }: Props) {
+export function TournamentResultsManager({ torneoId, partidos, categorias, tipoDesempate = "tercer_set", userMap = {}, parejaPlayers = {}, setsCantidad }: Props) {
     const [search, setSearch] = useState("");
     const [categoria, setCategoria] = useState<string>("todas");
     const [status, setStatus] = useState<StatusFilter>("pendientes");
@@ -215,6 +216,7 @@ export function TournamentResultsManager({ torneoId, partidos, categorias, tipoD
                             tipoDesempate={tipoDesempate}
                             userMap={userMap}
                             parejaPlayers={parejaPlayers}
+                            setsCantidad={setsCantidad}
                         />
                     ))}
                 </div>
@@ -223,7 +225,7 @@ export function TournamentResultsManager({ torneoId, partidos, categorias, tipoD
     );
 }
 
-function MatchRowCard({ torneoId, match, tipoDesempate, userMap, parejaPlayers }: { torneoId: string; match: MatchRow; tipoDesempate: string; userMap: Record<string, string>; parejaPlayers: ParejaPlayersMap }) {
+function MatchRowCard({ torneoId, match, tipoDesempate, userMap, parejaPlayers, setsCantidad }: { torneoId: string; match: MatchRow; tipoDesempate: string; userMap: Record<string, string>; parejaPlayers: ParejaPlayersMap; setsCantidad?: number }) {
     void torneoId;
     const router = useRouter();
     const [pendingConfirm, startConfirm] = useTransition();
@@ -339,6 +341,7 @@ function MatchRowCard({ torneoId, match, tipoDesempate, userMap, parejaPlayers }
                                 pareja1Nombre={p1}
                                 pareja2Nombre={p2}
                                 tipoDesempate={tipoDesempate}
+                                setsCantidad={setsCantidad}
                             />
                         </div>
                     )}
@@ -376,6 +379,7 @@ function MatchRowCard({ torneoId, match, tipoDesempate, userMap, parejaPlayers }
                             initialResult={match.resultado}
                             tipoDesempate={tipoDesempate}
                             compact
+                            setsCantidad={setsCantidad}
                         />
                     )}
                 </div>

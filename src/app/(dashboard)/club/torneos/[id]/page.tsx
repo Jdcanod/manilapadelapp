@@ -503,6 +503,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                         formato={torneo.formato || 'relampago'}
                         parejaPlayers={parejaPlayersMap}
                         configClasifican={torneo.reglas_puntuacion?.config_clasifican_por_grupo}
+                        setsCantidad={torneo.reglas_puntuacion?.sets}
                     />
                 </TabsContent>
 
@@ -514,6 +515,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                         tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                         userMap={reporterMap}
                         parejaPlayers={parejaPlayersMap}
+                        setsCantidad={torneo.reglas_puntuacion?.sets}
                     />
                 </TabsContent>
 
@@ -527,6 +529,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                         }}
                         tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                         parejaPlayers={parejaPlayersMap}
+                        setsCantidad={torneo.reglas_puntuacion?.sets}
                     />
                 </TabsContent>
 
@@ -596,6 +599,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                             partidos={partidosReales}
                             tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                             parejaPlayers={parejaPlayersMap}
+                            setsCantidad={torneo.reglas_puntuacion?.sets}
                         />
 
                         {/* SECCIÓN HISTORIAL DE GRUPOS */}

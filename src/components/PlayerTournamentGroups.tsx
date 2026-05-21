@@ -49,9 +49,10 @@ interface Props {
     currentUserId?: string;
     tipoDesempate?: string;
     formato?: string; // 'relampago' | 'liguilla'
+    setsCantidad?: number;
 }
 
-export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId, tipoDesempate = "tercer_set", formato = "relampago" }: Props) {
+export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId, tipoDesempate = "tercer_set", formato = "relampago", setsCantidad = 3 }: Props) {
     const esLiguilla = formato === 'liguilla';
     const [isPendingAction, startTransition] = useTransition();
     const router = useRouter();
@@ -329,6 +330,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                                 tipoDesempate={tipoDesempate}
                                                                                 disabled={!esLiguilla && (!match.fecha || !match.lugar || match.lugar.toLowerCase().includes('pendiente'))}
                                                                                 disabledReason="El club aún no ha asignado hora o cancha"
+                                                                                setsCantidad={setsCantidad}
                                                                             />
                                                                         )}
                                                                     </div>
@@ -391,6 +393,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                                 pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
                                                                                 buttonText="Corregir"
                                                                                 initialResult={match.resultado}
+                                                                                setsCantidad={setsCantidad}
                                                                             />
                                                                         </div>
                                                                     </div>

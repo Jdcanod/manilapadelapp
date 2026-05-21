@@ -72,6 +72,7 @@ export default async function DashboardLayout({
                             <>
                                 <Link href="/club" className="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors">Dashboard</Link>
                                 <Link href="/club/torneos" className="text-sm font-medium text-amber-500 hover:text-amber-400 transition-colors">Torneos</Link>
+                                <Link href="/ranking" className="text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors">Jugadores</Link>
                                 <Link href="/novedades" className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors">Novedades</Link>
                             </>
                         )}
@@ -166,6 +167,10 @@ export default async function DashboardLayout({
                             <Link href="/club/torneos" className="flex flex-col items-center justify-center w-full h-full text-amber-500 hover:text-amber-400 transition-colors">
                                 <Trophy className="w-5 h-5 mb-1" />
                                 <span className="text-[10px] font-medium">Torneos</span>
+                            </Link>
+                            <Link href="/ranking" className="flex flex-col items-center justify-center w-full h-full text-purple-400 hover:text-purple-300 transition-colors">
+                                <User className="w-5 h-5 mb-1" />
+                                <span className="text-[10px] font-medium">Jugadores</span>
                             </Link>
                             <Link href="/novedades" className="flex flex-col items-center justify-center w-full h-full text-blue-400 hover:text-blue-300 transition-colors">
                                 <Megaphone className="w-5 h-5 mb-1" />

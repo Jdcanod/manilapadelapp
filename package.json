@@ -34,7 +34,8 @@
     "react-day-picker": "^9.13.2",
     "react-dom": "^18",
     "tailwind-merge": "^3.5.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "use-debounce": "^10.1.1"
   },
   "devDependencies": {
     "@types/node": "^20",

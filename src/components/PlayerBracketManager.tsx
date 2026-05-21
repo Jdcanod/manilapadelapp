@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { BracketMatchCardClient } from "./BracketMatchCardClient";
 import { type MatchItem } from "./BracketMatchCardClient";
 
-function BracketSection({ categoria, matches, playerPairIds, currentUserId, tipoDesempate }: { categoria: string, matches: MatchItem[], playerPairIds: string[], currentUserId?: string, tipoDesempate?: string }) {
+function BracketSection({ categoria, matches, playerPairIds, currentUserId, tipoDesempate, setsCantidad }: { categoria: string, matches: MatchItem[], playerPairIds: string[], currentUserId?: string, tipoDesempate?: string, setsCantidad?: number }) {
     if (matches.length === 0) {
         return (
             <div className="text-center py-20 text-neutral-500 border-2 border-neutral-800 border-dashed rounded-3xl bg-neutral-950/50 relative z-10">
@@ -48,7 +48,7 @@ function BracketSection({ categoria, matches, playerPairIds, currentUserId, tipo
             <div key={idx} className="relative flex flex-col justify-center gap-12">
                 {pair.map(match => (
                     <div key={match.id} className="relative z-10">
-                        <BracketMatchCardClient match={match} playerPairIds={playerPairIds} currentUserId={currentUserId} tipoDesempate={tipoDesempate} />
+                        <BracketMatchCardClient match={match} playerPairIds={playerPairIds} currentUserId={currentUserId} tipoDesempate={tipoDesempate} setsCantidad={setsCantidad} />
                     </div>
                 ))}
                 
@@ -109,7 +109,7 @@ function BracketSection({ categoria, matches, playerPairIds, currentUserId, tipo
                                 !p.lugar?.toLowerCase().includes('cuartos') && 
                                 !p.lugar?.toLowerCase().includes('octavos')
                             ).map((match) => (
-                                <BracketMatchCardClient key={match.id} match={match} playerPairIds={playerPairIds} currentUserId={currentUserId} tipoDesempate={tipoDesempate} />
+                                <BracketMatchCardClient key={match.id} match={match} playerPairIds={playerPairIds} currentUserId={currentUserId} tipoDesempate={tipoDesempate} setsCantidad={setsCantidad} />
                             ))}
                         </div>
 
@@ -141,7 +141,7 @@ function BracketSection({ categoria, matches, playerPairIds, currentUserId, tipo
                             <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8">Tercer Puesto</h4>
                             {matches.filter(p => p.lugar?.toLowerCase().includes('tercer puesto')).map((match) => (
                                 <div key={match.id} className="opacity-80 scale-95 origin-top relative">
-                                    <BracketMatchCardClient match={match} playerPairIds={playerPairIds} currentUserId={currentUserId} tipoDesempate={tipoDesempate} />
+                                    <BracketMatchCardClient match={match} playerPairIds={playerPairIds} currentUserId={currentUserId} tipoDesempate={tipoDesempate} setsCantidad={setsCantidad} />
                                 </div>
                             ))}
                         </div>
@@ -152,7 +152,7 @@ function BracketSection({ categoria, matches, playerPairIds, currentUserId, tipo
     );
 }
 
-export function PlayerBracketManager({ categorias, partidos, playerPairIds, currentUserId, tipoDesempate }: { categorias: string[], partidos: MatchItem[], playerPairIds: string[], currentUserId?: string, tipoDesempate?: string }) {
+export function PlayerBracketManager({ categorias, partidos, playerPairIds, currentUserId, tipoDesempate, setsCantidad }: { categorias: string[], partidos: MatchItem[], playerPairIds: string[], currentUserId?: string, tipoDesempate?: string, setsCantidad?: number }) {
     const [selectedCat, setSelectedCat] = useState(categorias[0] || '');
 
     const eliminatoriasPartidos = partidos.filter(p => 
@@ -206,6 +206,7 @@ export function PlayerBracketManager({ categorias, partidos, playerPairIds, curr
                     playerPairIds={playerPairIds}
                     currentUserId={currentUserId}
                     tipoDesempate={tipoDesempate}
+                    setsCantidad={setsCantidad}
                 />
             </div>
         </div>

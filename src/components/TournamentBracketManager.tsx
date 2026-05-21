@@ -30,7 +30,7 @@ interface MatchItem {
     nivel?: string | null;
 }
 
-function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers }: { match: MatchItem, tipoDesempate?: string, allPairs?: { id?: string; nombre_pareja: string | null }[], parejaPlayers?: ParejaPlayersMap }) {
+function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers, setsCantidad }: { match: MatchItem, tipoDesempate?: string, allPairs?: { id?: string; nombre_pareja: string | null }[], parejaPlayers?: ParejaPlayersMap, setsCantidad?: number }) {
     const p1Display = resolvePairName(match.pareja1?.id || match.pareja1_id, match.pareja1?.nombre_pareja, parejaPlayers);
     const p2Display = resolvePairName(match.pareja2?.id || match.pareja2_id, match.pareja2?.nombre_pareja, parejaPlayers);
     const p1IsTBD = !match.pareja1?.nombre_pareja || match.pareja1?.nombre_pareja === 'TBD';
@@ -115,6 +115,7 @@ function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers }: { m
                             pareja1Nombre={p1Display}
                             pareja2Nombre={p2Display}
                             tipoDesempate={tipoDesempate}
+                            setsCantidad={setsCantidad}
                         />
                     )}
                 </div>
@@ -123,7 +124,7 @@ function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers }: { m
     );
 }
 
-function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPlayers }: { categoria: string, matches: MatchItem[], tipoDesempate?: string, allPairs?: { id?: string; nombre_pareja: string | null }[], parejaPlayers?: ParejaPlayersMap }) {
+function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPlayers, setsCantidad }: { categoria: string, matches: MatchItem[], tipoDesempate?: string, allPairs?: { id?: string; nombre_pareja: string | null }[], parejaPlayers?: ParejaPlayersMap, setsCantidad?: number }) {
     if (matches.length === 0) {
         return (
             <div className="text-center py-20 text-neutral-500 border-2 border-neutral-800 border-dashed rounded-3xl bg-neutral-950/50 relative z-10">
@@ -160,7 +161,7 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPla
             <div key={idx} className="relative flex flex-col justify-center gap-12">
                 {pair.map(match => (
                     <div key={match.id} className="relative z-10">
-                        <BracketMatchCard match={match} tipoDesempate={tipoDesempate} allPairs={allPairs} parejaPlayers={parejaPlayers} />
+                        <BracketMatchCard match={match} tipoDesempate={tipoDesempate} allPairs={allPairs} parejaPlayers={parejaPlayers} setsCantidad={setsCantidad} />
                     </div>
                 ))}
                 
@@ -222,7 +223,7 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPla
                                 !p.lugar?.toLowerCase().includes('cuartos') && 
                                 !p.lugar?.toLowerCase().includes('octavos')
                             ).map((match) => (
-                                <BracketMatchCard key={match.id} match={match} tipoDesempate={tipoDesempate} allPairs={allPairs} />
+                                <BracketMatchCard key={match.id} match={match} tipoDesempate={tipoDesempate} allPairs={allPairs} setsCantidad={setsCantidad} />
                             ))}
                         </div>
 
@@ -254,7 +255,7 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPla
                             <h4 className="text-center text-xs font-black text-neutral-500 uppercase tracking-[0.4em] mb-8">Tercer Puesto</h4>
                             {matches.filter(p => p.lugar?.toLowerCase().includes('tercer puesto')).map((match) => (
                                 <div key={match.id} className="opacity-80 scale-95 origin-top relative">
-                                    <BracketMatchCard match={match} tipoDesempate={tipoDesempate} allPairs={allPairs} parejaPlayers={parejaPlayers} />
+                                    <BracketMatchCard match={match} tipoDesempate={tipoDesempate} allPairs={allPairs} parejaPlayers={parejaPlayers} setsCantidad={setsCantidad} />
                                 </div>
                             ))}
                         </div>
@@ -265,7 +266,7 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPla
     );
 }
 
-export function TournamentBracketManager({ categorias, partidos, tipoDesempate, parejaPlayers }: { categorias: string[], partidos: MatchItem[], tipoDesempate?: string, parejaPlayers?: ParejaPlayersMap }) {
+export function TournamentBracketManager({ categorias, partidos, tipoDesempate, parejaPlayers, setsCantidad }: { categorias: string[], partidos: MatchItem[], tipoDesempate?: string, parejaPlayers?: ParejaPlayersMap, setsCantidad?: number }) {
     const [selectedCat, setSelectedCat] = useState(categorias[0] || '');
     const [loading, setLoading] = useState(false);
     const params = useParams();
@@ -362,6 +363,7 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate, 
                     tipoDesempate={tipoDesempate}
                     allPairs={allPairs}
                     parejaPlayers={parejaPlayers}
+                    setsCantidad={setsCantidad}
                 />
             </div>
         </div>

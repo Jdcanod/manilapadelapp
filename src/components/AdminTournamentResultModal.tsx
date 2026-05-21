@@ -18,9 +18,10 @@ interface Props {
     disabled?: boolean;
     disabledReason?: string;
     compact?: boolean;
+    setsCantidad?: number;
 }
 
-export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, initialResult, tipoDesempate = "tercer_set", disabled, disabledReason, compact }: Props) {
+export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, initialResult, tipoDesempate = "tercer_set", disabled, disabledReason, compact, setsCantidad = 3 }: Props) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
@@ -28,18 +29,20 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
     const getInitialSets = useCallback(() => {
         if (initialResult) {
             try {
-                return initialResult.split(',').map(s => {
+                const parsed = initialResult.split(',').map(s => {
                     const parts = s.trim().split('-');
                     return { p1: parts[0] || "", p2: parts[1] || "" };
                 });
+                if (parsed.length > 0) return parsed;
             } catch {
-                return [{ p1: "", p2: "" }, { p1: "", p2: "" }];
+                // fall through
             }
         }
-        return [{ p1: "", p2: "" }, { p1: "", p2: "" }];
-    }, [initialResult]);
+        return setsCantidad === 1 ? [{ p1: "", p2: "" }] : [{ p1: "", p2: "" }, { p1: "", p2: "" }];
+    }, [initialResult, setsCantidad]);
 
     const [sets, setSets] = useState(getInitialSets);
+    const [isSuperTiebreak, setIsSuperTiebreak] = useState(tipoDesempate === 'super_tiebreak');
 
     useEffect(() => {
         if (open) {
@@ -52,7 +55,11 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
     const onSave = () => {
         const potentialSets = sets.filter(s => s.p1.trim() !== "" || s.p2.trim() !== "");
         
-        if (potentialSets.length < 2) return alert("Error: Los partidos deben tener al menos 2 sets registrados.");
+        if (setsCantidad === 1) {
+            if (potentialSets.length < 1) return alert("Error: Los partidos deben tener al menos 1 set registrado.");
+        } else {
+            if (potentialSets.length < 2) return alert("Error: Los partidos deben tener al menos 2 sets registrados.");
+        }
 
         let p1Sets = 0;
         let p2Sets = 0;
@@ -69,7 +76,7 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
 
             let setValido = false;
 
-            if (idx === 2 && tipoDesempate === 'super_tiebreak') {
+            if (idx === 2 && isSuperTiebreak) {
                 if (max < 10) {
                     return alert(`El 3er set es un Super Tie-break. El ganador debe llegar a 10 puntos (Ingresado: ${p1}-${p2}).`);
                 }
@@ -81,18 +88,23 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                 }
                 setValido = true;
             } else {
-                if (p1 > 7 || p2 > 7) {
-                    return alert(`Error en set ${idx + 1}: Ningún equipo puede tener más de 7 juegos en un set normal.`);
+                if (p1 > 9 || p2 > 9) {
+                    return alert(`Error en set ${idx + 1}: Formato no válido, juegos superan el límite normal.`);
                 }
-                if (max === 6 && min <= 4) {
-                    setValido = true;
-                } else if (max === 7 && (min === 5 || min === 6)) {
-                    setValido = true;
-                }
+                
+                // Set a 4 juegos
+                if (max === 4 && min <= 2) setValido = true;
+                else if (max === 5 && (min === 3 || min === 4)) setValido = true;
+                // Set a 6 juegos
+                else if (max === 6 && min <= 4) setValido = true;
+                else if (max === 7 && (min === 5 || min === 6)) setValido = true;
+                // Set a 8 juegos
+                else if (max === 8 && min <= 7) setValido = true;
+                else if (max === 9 && (min === 7 || min === 8)) setValido = true;
             }
 
             if (!setValido) {
-                return alert(`El marcador ${p1}-${p2} en el set ${idx + 1} no es válido.`);
+                return alert(`El marcador ${p1}-${p2} en el set ${idx + 1} no es válido para sets de 4, 6 u 8 juegos.`);
             }
 
             validSets.push({ p1, p2 });
@@ -100,21 +112,27 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
             else p2Sets++;
         }
 
-        // Validar que haya un ganador claro (2 sets ganados por uno de los dos)
-        if (p1Sets < 2 && p2Sets < 2) {
-            return alert("Error: Un equipo debe ganar al menos 2 sets para terminar el partido.");
-        }
+        const maxSetsWon = Math.max(p1Sets, p2Sets);
+        const minSetsWon = Math.min(p1Sets, p2Sets);
 
-        if (p1Sets === 2 && p2Sets === 2) {
-            return alert("Error: No puede haber un empate en sets (2-2). El pádel se juega a ganar 2 de 3 sets.");
+        // Validar que haya un ganador claro
+        if (maxSetsWon === 0) {
+            return alert("Error: Un equipo debe ganar al menos 1 set.");
         }
-
-        if ((p1Sets === 2 && p2Sets > 1) || (p2Sets === 2 && p1Sets > 1)) {
-            return alert("Error: El resultado no es coherente. Un equipo debe ganar 2-0 o 2-1 en sets.");
-        }
-
-        if (p1Sets > 2 || p2Sets > 2) {
-            return alert("Error: Ningún equipo puede ganar más de 2 sets.");
+        if (setsCantidad === 1) {
+            if (maxSetsWon > 1) {
+                return alert("Error: Ningún equipo puede ganar más de 1 set en este formato.");
+            }
+        } else {
+            if (maxSetsWon === 1 && minSetsWon === 1) {
+                return alert("Error: El partido no puede terminar en empate de sets (1-1).");
+            }
+            if (maxSetsWon > 2) {
+                return alert("Error: Ningún equipo puede ganar más de 2 sets.");
+            }
+            if (maxSetsWon === 2 && minSetsWon === 2) {
+                return alert("Error: No puede haber un empate en sets (2-2).");
+            }
         }
 
         const resultadoFinal = validSets
@@ -173,7 +191,7 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                     {sets.map((set, idx) => (
                         <div key={idx} className="flex items-center gap-3">
                             <span className="text-[10px] font-black text-neutral-600 w-12 shrink-0">
-                                {idx === 2 && tipoDesempate === 'super_tiebreak' ? 'STB' : `SET ${idx + 1}`}
+                                {idx === 2 ? (isSuperTiebreak ? 'STB' : 'SET 3') : `SET ${idx + 1}`}
                             </span>
                             <Input 
                                 placeholder="0" 
@@ -200,7 +218,23 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                             />
                         </div>
                     ))}
-                    <Button variant="ghost" size="sm" onClick={addSet} className="text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 w-full">+ Añadir Set</Button>
+                    {sets.length > 2 && setsCantidad !== 1 && (
+                        <div className="flex items-center gap-2 mt-2 px-1">
+                            <input 
+                                type="checkbox" 
+                                id={`admin-stb-toggle-${matchId}`}
+                                checked={isSuperTiebreak} 
+                                onChange={(e) => setIsSuperTiebreak(e.target.checked)}
+                                className="w-4 h-4 rounded border-neutral-700 bg-neutral-900 text-amber-500 focus:ring-amber-500 focus:ring-offset-neutral-950"
+                            />
+                            <label htmlFor={`admin-stb-toggle-${matchId}`} className="text-xs text-neutral-400 font-medium cursor-pointer">
+                                El 3er set es un Super Tie-break
+                            </label>
+                        </div>
+                    )}
+                    {setsCantidad !== 1 && (
+                        <Button variant="ghost" size="sm" onClick={addSet} className="text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 w-full">+ Añadir Set</Button>
+                    )}
                 </div>
                 <Button disabled={isPending} onClick={onSave} className="w-full bg-amber-600 hover:bg-amber-500">
                     {isPending ? "Guardando..." : "Subir Score Definitivo"}

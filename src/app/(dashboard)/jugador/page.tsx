@@ -10,6 +10,7 @@ import { redirect } from "next/navigation";
 import { OrganizarPartidoDialog } from "@/components/OrganizarPartidoDialog";
 import { TournamentResultModal } from "@/components/TournamentResultModal";
 import { ValidationTimer } from "@/components/ValidationTimer";
+import { FollowersModal } from "@/components/social/FollowersModal";
 
 /** Dado el resultado "6-3,4-6,10-7" (o con espacios/barras) devuelve qué pareja ganó: 1 o 2 */
 function getWinner(resultado: string | null | undefined): 1 | 2 | null {
@@ -129,6 +130,17 @@ export default async function JugadorDashboard() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const myRank = rankingData ? rankingData.findIndex((u: any) => (u as any).id === userData?.id) + 1 : 0;
 
+    // Fetch Follow Stats
+    const { count: followersCount } = await adminSupabase
+        .from('jugador_seguidores')
+        .select('*', { count: 'exact', head: true })
+        .eq('following_id', userData?.id);
+
+    const { count: followingCount } = await adminSupabase
+        .from('jugador_seguidores')
+        .select('*', { count: 'exact', head: true })
+        .eq('follower_id', userData?.id);
+
     // 2. Parejas y Partidos para Win Rate / Torneos
     const { data: misParejas } = await adminSupabase
         .from('parejas')
@@ -142,6 +154,8 @@ export default async function JugadorDashboard() {
     let ganados = 0;
     let numTorneos = 0;
     let parejaActual = "Ninguna";
+
+    let lastTournamentCategory: string | null = null;
 
     if (misParejasIds.length > 0 || userData?.id) {
         // Trae cualquier partido con resultado registrado (incluye históricos sin estado='jugado')
@@ -186,9 +200,39 @@ export default async function JugadorDashboard() {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         parejaActual = misParejas && misParejas.length > 0 ? (misParejas[misParejas.length - 1] as any).nombre_pareja : "Ninguna";
+
+        // Calcular la categoría del último torneo
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const torneosMatches = (partidosJugados || []).filter((p: any) => p.torneo_id && p.nivel);
+        if (torneosMatches.length > 0) {
+            // Ordenar por fecha reciente
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            torneosMatches.sort((a: any, b: any) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+            const lastTorneoId = torneosMatches[0].torneo_id;
+            
+            // Extraer categorías únicas jugadas en ese torneo
+            const categoriesInLastTorneo = Array.from(new Set(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                torneosMatches.filter((p: any) => p.torneo_id === lastTorneoId).map((p: any) => p.nivel)
+            )) as string[];
+
+            if (categoriesInLastTorneo.length > 0) {
+                // Ordenar para obtener la mayor (1ra es mayor que 6ta, numéricamente menor)
+                categoriesInLastTorneo.sort((a, b) => {
+                    const numA = parseInt(a.replace(/\D/g, '')) || 99;
+                    const numB = parseInt(b.replace(/\D/g, '')) || 99;
+                    if (numA !== 99 && numB !== 99) return numA - numB;
+                    return a.localeCompare(b);
+                });
+                lastTournamentCategory = categoriesInLastTorneo[0];
+            }
+        }
     }
 
     const winRate = totalJugados > 0 ? Math.round((ganados / totalJugados) * 100) : 0;
+    const displayCategory = lastTournamentCategory 
+        ? `Categoría ${lastTournamentCategory}` 
+        : (userData?.categoria || userData?.nivel || 'Jugador');
 
     return (
         <div className="space-y-6">
@@ -203,12 +247,18 @@ export default async function JugadorDashboard() {
                             <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white mb-2">{nombreReal}</h1>
                             <p className="text-neutral-400 text-lg font-medium capitalize flex items-center justify-center lg:justify-start gap-2">
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                {userData?.nivel || 'Jugador'}
+                                {displayCategory}
                             </p>
                         </div>
-                        <div className="flex items-center justify-center gap-4">
-                            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 px-4 py-1.5 text-sm font-bold">
-                                {userData?.nivel || 'N/A'}
+                        <div className="flex flex-col sm:flex-row items-center sm:items-end justify-center gap-4">
+                            <FollowersModal
+                                userId={userData?.id}
+                                isClub={false}
+                                followersCount={followersCount || 0}
+                                followingCount={followingCount || 0}
+                            />
+                            <Badge variant="outline" className="hidden sm:inline-flex border-emerald-500/30 text-emerald-400 bg-emerald-500/10 px-4 py-1.5 text-sm font-bold">
+                                {displayCategory}
                             </Badge>
                             <div className="flex items-center gap-2 bg-neutral-950 px-4 py-2 rounded-2xl border border-neutral-800 shadow-inner">
                                 <Trophy className="w-5 h-5 text-amber-400" />

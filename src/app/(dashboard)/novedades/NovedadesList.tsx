@@ -7,6 +7,8 @@ import { Trash2, Megaphone, Trophy, Flame, Info } from "lucide-react";
 import { deleteNewsAction } from "./actions";
 import { useState } from "react";
 
+import { MatchActivityCard } from "@/components/social/MatchActivityCard";
+
 export type NewsItem = {
     id: string;
     club_id: string;
@@ -17,7 +19,10 @@ export type NewsItem = {
     club_nombre?: string;
 };
 
-export function NovedadesList({ news, currentUserId }: { news: NewsItem[], currentUserId: string | null }) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type FeedItem = { feedType: 'news' | 'match', id: string, date: number, data: any };
+
+export function NovedadesList({ feed, currentUserId }: { feed: FeedItem[], currentUserId: string | null }) {
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
     const handleDelete = async (id: string) => {
@@ -60,7 +65,7 @@ export function NovedadesList({ news, currentUserId }: { news: NewsItem[], curre
         }
     };
 
-    if (news.length === 0) {
+    if (!feed || feed.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center p-12 text-center border border-neutral-800 rounded-2xl bg-neutral-900/50">
                 <Megaphone className="w-12 h-12 text-neutral-600 mb-4" />
@@ -71,15 +76,24 @@ export function NovedadesList({ news, currentUserId }: { news: NewsItem[], curre
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {news.map((item) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {feed.map((feedItem) => {
+                if (feedItem.feedType === 'match') {
+                    return (
+                        <div key={`match-${feedItem.id}`}>
+                            <MatchActivityCard partido={feedItem.data} currentUserId={currentUserId} />
+                        </div>
+                    );
+                }
+
+                const item = feedItem.data as NewsItem;
                 const isOwner = currentUserId && item.club_id === currentUserId;
                 const formattedDate = new Date(item.created_at).toLocaleDateString("es-CO", {
                     day: "numeric", month: "long", hour: "2-digit", minute: "2-digit"
                 });
 
                 return (
-                    <Card key={item.id} className="bg-neutral-900 border-neutral-800 shadow-xl overflow-hidden flex flex-col group relative">
+                    <Card key={`news-${item.id}`} className="bg-neutral-900 border-neutral-800 shadow-xl overflow-hidden flex flex-col group relative">
                         {isOwner && (
                             <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Button

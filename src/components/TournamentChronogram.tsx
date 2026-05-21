@@ -43,11 +43,12 @@ interface ChronogramProps {
     };
     isAdmin?: boolean;
     currentUserId?: string;
-    tipoDesempate?: string;
     parejaPlayers?: ParejaPlayersMap;
+    setsCantidad?: number;
+    tipoDesempate?: string;
 }
 
-export function TournamentChronogram({ torneoId, matches: initialMatches, config, isAdmin = true, currentUserId, tipoDesempate, parejaPlayers }: ChronogramProps) {
+export function TournamentChronogram({ torneoId, matches: initialMatches, config, isAdmin = true, currentUserId, tipoDesempate, parejaPlayers, setsCantidad }: ChronogramProps) {
     const { toast } = useToast();
     const router = useRouter();
     const [matches, setMatches] = useState(initialMatches);
@@ -403,6 +404,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                                     initialResult={matchToShow.resultado}
                                                                     tipoDesempate={tipoDesempate}
                                                                     compact
+                                                                    setsCantidad={setsCantidad}
                                                                 />
                                                             )}
                                                             <button 

@@ -16,9 +16,10 @@ interface Props {
     tipoDesempate?: string;
     disabled?: boolean;
     disabledReason?: string;
+    setsCantidad?: number;
 }
 
-export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, buttonText, initialResult, tipoDesempate = "tercer_set", disabled, disabledReason }: Props & { initialResult?: string | null }) {
+export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, buttonText, initialResult, tipoDesempate = "tercer_set", disabled, disabledReason, setsCantidad = 3 }: Props & { initialResult?: string | null }) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [statusMsg, setStatusMsg] = useState<string | null>(null);
@@ -27,16 +28,17 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
     const getInitialSets = useCallback(() => {
         if (initialResult) {
             try {
-                return initialResult.split(',').map(s => {
+                const parsed = initialResult.split(',').map(s => {
                     const parts = s.trim().split('-');
                     return { p1: parts[0] || "", p2: parts[1] || "" };
                 });
+                if (parsed.length > 0) return parsed;
             } catch {
-                return [{ p1: "", p2: "" }, { p1: "", p2: "" }];
+                // fall through
             }
         }
-        return [{ p1: "", p2: "" }, { p1: "", p2: "" }];
-    }, [initialResult]);
+        return setsCantidad === 1 ? [{ p1: "", p2: "" }] : [{ p1: "", p2: "" }, { p1: "", p2: "" }];
+    }, [initialResult, setsCantidad]);
 
     const [sets, setSets] = useState(getInitialSets);
 
@@ -51,8 +53,14 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
     const onSave = () => {
         const potentialSets = sets.filter(s => s.p1.trim() !== "" || s.p2.trim() !== "");
         
-        if (potentialSets.length < 2) {
-            return alert("Error: Los partidos deben tener al menos 2 sets registrados.");
+        if (setsCantidad === 1) {
+            if (potentialSets.length < 1) {
+                return alert("Error: Los partidos deben tener al menos 1 set registrado.");
+            }
+        } else {
+            if (potentialSets.length < 2) {
+                return alert("Error: Los partidos deben tener al menos 2 sets registrados.");
+            }
         }
 
         let p1Sets = 0;
@@ -81,18 +89,23 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
                 }
                 setValido = true;
             } else {
-                if (p1 > 7 || p2 > 7) {
-                    return alert(`Error en set ${idx + 1}: Ningún equipo puede tener más de 7 juegos en un set normal.`);
+                if (p1 > 9 || p2 > 9) {
+                    return alert(`Error en set ${idx + 1}: Formato no válido, juegos superan el límite normal.`);
                 }
-                if (max === 6 && min <= 4) {
-                    setValido = true;
-                } else if (max === 7 && (min === 5 || min === 6)) {
-                    setValido = true;
-                }
+                
+                // Set a 4 juegos
+                if (max === 4 && min <= 2) setValido = true;
+                else if (max === 5 && (min === 3 || min === 4)) setValido = true;
+                // Set a 6 juegos
+                else if (max === 6 && min <= 4) setValido = true;
+                else if (max === 7 && (min === 5 || min === 6)) setValido = true;
+                // Set a 8 juegos
+                else if (max === 8 && min <= 7) setValido = true;
+                else if (max === 9 && (min === 7 || min === 8)) setValido = true;
             }
 
             if (!setValido) {
-                return alert(`El marcador ${p1}-${p2} en el set ${idx + 1} no es válido.`);
+                return alert(`El marcador ${p1}-${p2} en el set ${idx + 1} no es válido para sets de 4, 6 u 8 juegos.`);
             }
 
             validSets.push({ p1, p2 });
@@ -100,21 +113,27 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
             else p2Sets++;
         }
 
-        // Validar que haya un ganador claro (2 sets ganados por uno de los dos)
-        if (p1Sets < 2 && p2Sets < 2) {
-            return alert("Error: Un equipo debe ganar al menos 2 sets para terminar el partido.");
-        }
+        const maxSetsWon = Math.max(p1Sets, p2Sets);
+        const minSetsWon = Math.min(p1Sets, p2Sets);
 
-        if (p1Sets === 2 && p2Sets === 2) {
-            return alert("Error: No puede haber un empate en sets (2-2). El pádel se juega a ganar 2 de 3 sets.");
+        // Validar que haya un ganador claro
+        if (maxSetsWon === 0) {
+            return alert("Error: Un equipo debe ganar al menos 1 set.");
         }
-
-        if ((p1Sets === 2 && p2Sets > 1) || (p2Sets === 2 && p1Sets > 1)) {
-            return alert("Error: El resultado no es coherente. Un equipo debe ganar 2-0 o 2-1 en sets.");
-        }
-
-        if (p1Sets > 2 || p2Sets > 2) {
-            return alert("Error: Ningún equipo puede ganar más de 2 sets.");
+        if (setsCantidad === 1) {
+            if (maxSetsWon > 1) {
+                return alert("Error: Ningún equipo puede ganar más de 1 set en este formato.");
+            }
+        } else {
+            if (maxSetsWon === 1 && minSetsWon === 1) {
+                return alert("Error: El partido no puede terminar en empate de sets (1-1).");
+            }
+            if (maxSetsWon > 2) {
+                return alert("Error: Ningún equipo puede ganar más de 2 sets.");
+            }
+            if (maxSetsWon === 2 && minSetsWon === 2) {
+                return alert("Error: No puede haber un empate en sets (2-2).");
+            }
         }
 
         const resultadoFinal = validSets.map(s => `${s.p1}-${s.p2}`).join(", ");
@@ -206,9 +225,11 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
                     </div>
 
                     <div className="flex gap-3">
-                        <Button variant="outline" onClick={addSet} disabled={sets.length >= 3} className="flex-1 border-neutral-800 bg-transparent hover:bg-neutral-900 text-neutral-400 font-bold text-[10px] uppercase tracking-widest h-10 rounded-xl">
-                            + Añadir Set
-                        </Button>
+                        {setsCantidad !== 1 && (
+                            <Button variant="outline" onClick={addSet} disabled={sets.length >= 3} className="flex-1 border-neutral-800 bg-transparent hover:bg-neutral-900 text-neutral-400 font-bold text-[10px] uppercase tracking-widest h-10 rounded-xl">
+                                + Añadir Set
+                            </Button>
+                        )}
                         <Button onClick={onSave} disabled={isPending} className="flex-[2] bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase tracking-widest h-10 rounded-xl">
                             {isPending ? "Enviando..." : "Guardar Resultado"}
                         </Button>
