@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient, createAdminClient } from "@/utils/supabase/server";
+import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -31,7 +31,7 @@ export async function crearPartidoCopa({
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { success: false, message: "No autenticado" };
 
-        const admin = createAdminClient();
+        const admin = createPureAdminClient();
 
         // Validar permisos: debe ser admin del torneo o del club rival
         const { data: me } = await admin
@@ -102,7 +102,7 @@ export async function borrarPartidoCopa(partidoId: string) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { success: false, message: "No autenticado" };
 
-        const admin = createAdminClient();
+        const admin = createPureAdminClient();
         const { data: me } = await admin.from('users').select('id, rol').eq('auth_id', user.id).single();
         if (!me || me.rol !== 'admin_club') return { success: false, message: "Sin permisos" };
 
@@ -161,7 +161,7 @@ export async function inscribirParejaCopa({
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { success: false, message: "No autenticado" };
 
-        const admin = createAdminClient();
+        const admin = createPureAdminClient();
 
         const { data: me } = await admin.from('users').select('id, rol').eq('auth_id', user.id).single();
         if (!me || me.rol !== 'admin_club') return { success: false, message: "Solo un admin de club puede inscribir parejas" };
@@ -291,7 +291,7 @@ export async function inscribirParejaCopa({
  */
 export async function obtenerParejasInscritasCopa(torneoId: string) {
     try {
-        const admin = createAdminClient();
+        const admin = createPureAdminClient();
 
         const { data: inscripciones } = await admin
             .from('torneo_parejas')
@@ -329,7 +329,7 @@ export async function obtenerParejasInscritasCopa(torneoId: string) {
  * (Mismo set que en `obtenerTodosJugadores` del módulo de torneos regulares.)
  */
 export async function obtenerJugadoresParaCopa() {
-    const admin = createAdminClient();
+    const admin = createPureAdminClient();
     const { data } = await admin
         .from('users')
         .select('id, nombre, apellido, email')
@@ -350,7 +350,7 @@ export async function borrarInscripcionCopa(inscripcionId: string) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { success: false, message: "No autenticado" };
 
-        const admin = createAdminClient();
+        const admin = createPureAdminClient();
         const { data: me } = await admin.from('users').select('id, rol').eq('auth_id', user.id).single();
         if (!me || me.rol !== 'admin_club') return { success: false, message: "Sin permisos" };
 
@@ -385,7 +385,7 @@ export async function borrarInscripcionCopa(inscripcionId: string) {
  */
 export async function obtenerParejasInscritasPorClub(torneoId: string, clubId: string) {
     try {
-        const admin = createAdminClient();
+        const admin = createPureAdminClient();
         const { data: inscripciones } = await admin
             .from('torneo_parejas')
             .select('pareja_id, categoria, pareja:parejas(id, nombre_pareja, jugador1_id, jugador2_id)')

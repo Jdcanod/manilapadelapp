@@ -52,6 +52,9 @@ interface Props {
     parejaPlayers?: ParejaPlayersMap;
     inscripciones?: InscripcionCopa[];
     inscripcionesJugadores?: JugadorLite[];
+    /** Categorías definidas al crear el torneo. Se usan como opciones en los
+     *  dialogs de inscribir pareja y añadir partido. */
+    categoriasHabilitadas?: string[];
 }
 
 /** "6-3,4-6,10-7" → 1 si ganó pareja1, 2 si ganó pareja2, null si no se puede */
@@ -72,7 +75,7 @@ function getWinner(resultado: string | null | undefined): 1 | 2 | null {
     } catch { return null; }
 }
 
-export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tipoDesempate, parejaPlayers = {}, inscripciones = [], inscripcionesJugadores = [] }: Props) {
+export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tipoDesempate, parejaPlayers = {}, inscripciones = [], inscripcionesJugadores = [], categoriasHabilitadas = [] }: Props) {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [pending, startTransition] = useTransition();
     const router = useRouter();
@@ -108,7 +111,13 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
         return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
     }, [partidos]);
 
-    const categoriasSugeridas = Array.from(new Set(partidos.map(p => p.nivel).filter(Boolean))) as string[];
+    // Las categorías habilitadas del torneo + las ya usadas en partidos/inscripciones
+    const categoriasSugeridas = useMemo(() => {
+        const set = new Set<string>(categoriasHabilitadas.filter(Boolean));
+        partidos.forEach(p => { if (p.nivel) set.add(p.nivel); });
+        inscripciones.forEach(i => { if (i.categoria) set.add(i.categoria); });
+        return Array.from(set);
+    }, [categoriasHabilitadas, partidos, inscripciones]);
 
     const handleDelete = (partidoId: string) => {
         if (!confirm("¿Borrar este partido? Esta acción no se puede deshacer.")) return;

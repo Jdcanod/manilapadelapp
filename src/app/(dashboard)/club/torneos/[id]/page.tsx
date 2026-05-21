@@ -474,6 +474,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                             parejaPlayers={parejaPlayersMap}
                             inscripciones={inscripcionesCopa as unknown as Parameters<typeof CopaDavisManager>[0]['inscripciones']}
                             inscripcionesJugadores={inscripcionesJugadores}
+                            categoriasHabilitadas={torneo.reglas_puntuacion?.categorias_habilitadas || []}
                         />
                     )}
                 </div>

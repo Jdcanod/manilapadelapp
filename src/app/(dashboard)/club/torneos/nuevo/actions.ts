@@ -43,13 +43,14 @@ export async function crearTorneoCentral(formData: FormData) {
 
     const reglasPuntuacion = esCopaDavis
         ? {
-            // Copa Davis: sin grilla de canchas, sin categorías pre-fijadas.
-            // El organizador decide cada partido sobre la marcha.
+            // Copa Davis: sin grilla de canchas. Las categorías sí se eligen
+            // al crear el torneo para luego ofrecerlas como opciones al
+            // inscribir parejas y crear partidos.
             sets: parseInt(formData.get("sets") as string) || 3,
             juegos: parseInt(formData.get("juegos") as string) || 6,
             ventaja: 'oro',
             tipo_desempate: 'super_tiebreak',
-            categorias_habilitadas: [],
+            categorias_habilitadas: formData.getAll("categorias") as string[],
         }
         : {
             sets: parseInt(formData.get("sets") as string) || 3,

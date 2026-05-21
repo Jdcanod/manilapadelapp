@@ -218,17 +218,20 @@ export function CrearTorneoForm() {
                 </div>
                 )}
 
-                {!esCopaDavis && (
+                {/* Categorías habilitadas — siempre visible (también para Copa Davis) */}
                 <div className="pt-4 border-t border-neutral-800 space-y-4">
-                    <h3 className="text-sm font-bold text-amber-500 uppercase tracking-wider">Categorías Habilitadas</h3>
+                    <h3 className="text-sm font-bold text-amber-500 uppercase tracking-wider">
+                        Categorías Habilitadas
+                        {esCopaDavis && <span className="text-[10px] text-purple-400 ml-2 normal-case">(luego al inscribir parejas y crear partidos se eligen de estas)</span>}
+                    </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         {['2da', '3ra', '4ta', '5ta', '6ta', '7ma', 'Mixto A', 'Mixto B', 'Mixto C'].map((cat) => (
                             <div key={cat} className="flex items-center space-x-2">
-                                <Checkbox 
-                                    id={`cat-${cat}`} 
-                                    name="categorias" 
-                                    value={cat} 
-                                    defaultChecked={['3ra', '4ta', '5ta', '6ta'].includes(cat)} 
+                                <Checkbox
+                                    id={`cat-${cat}`}
+                                    name="categorias"
+                                    value={cat}
+                                    defaultChecked={['3ra', '4ta', '5ta', '6ta'].includes(cat)}
                                     className="border-neutral-700 data-[state=checked]:bg-amber-500 data-[state=checked]:text-black"
                                 />
                                 <Label htmlFor={`cat-${cat}`} className="text-sm font-medium leading-none text-white cursor-pointer">
@@ -238,7 +241,6 @@ export function CrearTorneoForm() {
                         ))}
                     </div>
                 </div>
-                )}
 
                 {!esLiguilla && !esCopaDavis && (
                 <div className="pt-4 border-t border-neutral-800 space-y-4">

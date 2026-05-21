@@ -153,17 +153,24 @@ export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, cate
                     {/* Categoría */}
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Categoría</label>
-                        <Input
-                            list="cats-copa-inscripcion"
-                            value={categoria}
-                            onChange={e => setCategoria(e.target.value)}
-                            placeholder="Ej. 4ta, Mixto A, Open…"
-                            className="bg-neutral-950 border-neutral-800 text-white"
-                        />
-                        {categoriasSugeridas.length > 0 && (
-                            <datalist id="cats-copa-inscripcion">
-                                {categoriasSugeridas.map(c => <option key={c} value={c} />)}
-                            </datalist>
+                        {categoriasSugeridas.length > 0 ? (
+                            <Select value={categoria} onValueChange={setCategoria}>
+                                <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
+                                    <SelectValue placeholder="Selecciona categoría…" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[260px]">
+                                    {categoriasSugeridas.map(c => (
+                                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        ) : (
+                            <Input
+                                value={categoria}
+                                onChange={e => setCategoria(e.target.value)}
+                                placeholder="Sin categorías habilitadas — escribe una"
+                                className="bg-neutral-950 border-neutral-800 text-white"
+                            />
                         )}
                     </div>
 
