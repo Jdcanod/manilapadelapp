@@ -301,9 +301,9 @@ export async function obtenerParejasInscritasCopa(torneoId: string) {
             .eq('torneo_id', torneoId);
 
         const allUserIds = new Set<string>();
-        (inscripciones || []).forEach(i => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const p = (i as any).pareja;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (inscripciones || []).forEach((i: any) => {
+            const p = i.pareja;
             if (p?.jugador1_id) allUserIds.add(p.jugador1_id);
             if (p?.jugador2_id) allUserIds.add(p.jugador2_id);
         });
@@ -396,17 +396,16 @@ export async function obtenerParejasInscritasPorClub(torneoId: string, clubId: s
 
         const allUserIds = new Set<string>();
         const parejas: { id: string; nombre_pareja: string | null; jugador1_id: string; jugador2_id: string; categoria: string }[] = [];
-        (inscripciones || []).forEach(i => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const p = (i as any).pareja;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (inscripciones || []).forEach((i: any) => {
+            const p = i.pareja;
             if (p?.id) {
                 parejas.push({
                     id: p.id,
                     nombre_pareja: p.nombre_pareja,
                     jugador1_id: p.jugador1_id,
                     jugador2_id: p.jugador2_id,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    categoria: (i as any).categoria || '',
+                    categoria: i.categoria || '',
                 });
                 if (p.jugador1_id) allUserIds.add(p.jugador1_id);
                 if (p.jugador2_id) allUserIds.add(p.jugador2_id);
