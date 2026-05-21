@@ -1,18 +1,34 @@
 "use client";
 
-import { useTransition, useState } from "react";
+import { useTransition, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { crearTorneoCentral } from "./actions";
+import { crearTorneoCentral, obtenerClubesRivales } from "./actions";
+
+interface ClubRival {
+    id: string;
+    nombre: string;
+    ciudad?: string | null;
+}
 
 export function CrearTorneoForm() {
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
     const [formato, setFormato] = useState<string>("relampago");
+    const [clubRivalId, setClubRivalId] = useState<string>("");
+    const [clubesRivales, setClubesRivales] = useState<ClubRival[]>([]);
     const esLiguilla = formato === "liguilla";
+    const esCopaDavis = formato === "copa_davis";
+
+    // Cargar clubes disponibles cuando se elige copa_davis
+    useEffect(() => {
+        if (esCopaDavis && clubesRivales.length === 0) {
+            obtenerClubesRivales().then(setClubesRivales).catch(() => setClubesRivales([]));
+        }
+    }, [esCopaDavis, clubesRivales.length]);
 
     async function action(formData: FormData) {
         setError(null);
@@ -101,6 +117,7 @@ export function CrearTorneoForm() {
                         <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
                             <SelectItem value="relampago">Torneo Relámpago (Grupos y Eliminatorias)</SelectItem>
                             <SelectItem value="liguilla">Liguilla / Round Robin Largo</SelectItem>
+                            <SelectItem value="copa_davis">Copa Davis (Club vs Club)</SelectItem>
                         </SelectContent>
                     </Select>
                     {esLiguilla && (
@@ -108,8 +125,42 @@ export function CrearTorneoForm() {
                             La fase de grupos se juega a lo largo de varios meses en horarios acordados por las parejas. El cronograma de canchas se configurará al generar la fase final.
                         </p>
                     )}
+                    {esCopaDavis && (
+                        <p className="text-xs text-neutral-500 mt-1">
+                            Dos clubes se enfrentan. El organizador va creando los partidos según se van jugando y asigna puntos (1 o 3) a cada uno. Gana el club con más puntos.
+                        </p>
+                    )}
                 </div>
 
+                {/* Selector de club rival — solo Copa Davis */}
+                {esCopaDavis && (
+                    <div className="pt-4 border-t border-neutral-800 space-y-3">
+                        <h3 className="text-sm font-bold text-purple-400 uppercase tracking-wider">Club Rival</h3>
+                        <div className="space-y-2">
+                            <Label htmlFor="club_rival_id" className="text-white">Club Visitante</Label>
+                            <Select name="club_rival_id" value={clubRivalId} onValueChange={setClubRivalId} required={esCopaDavis}>
+                                <SelectTrigger className="bg-neutral-900 border-neutral-800 text-white focus:ring-purple-500">
+                                    <SelectValue placeholder={clubesRivales.length === 0 ? "Cargando clubes..." : "Selecciona el club rival"} />
+                                </SelectTrigger>
+                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
+                                    {clubesRivales.map(c => (
+                                        <SelectItem key={c.id} value={c.id}>
+                                            {c.nombre}{c.ciudad ? ` — ${c.ciudad}` : ''}
+                                        </SelectItem>
+                                    ))}
+                                    {clubesRivales.length === 0 && (
+                                        <SelectItem value="empty" disabled>No hay otros clubes registrados</SelectItem>
+                                    )}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-[10px] text-neutral-500">
+                                Solo se muestran clubes registrados como admin_club distintos al tuyo.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {!esCopaDavis && (
                 <div className="pt-4 border-t border-neutral-800 space-y-4">
                     <h3 className="text-sm font-bold text-amber-500 uppercase tracking-wider">Reglas de los Partidos</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -163,7 +214,9 @@ export function CrearTorneoForm() {
                         </div>
                     </div>
                 </div>
+                )}
 
+                {!esCopaDavis && (
                 <div className="pt-4 border-t border-neutral-800 space-y-4">
                     <h3 className="text-sm font-bold text-amber-500 uppercase tracking-wider">Categorías Habilitadas</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -183,8 +236,9 @@ export function CrearTorneoForm() {
                         ))}
                     </div>
                 </div>
+                )}
 
-                {!esLiguilla && (
+                {!esLiguilla && !esCopaDavis && (
                 <div className="pt-4 border-t border-neutral-800 space-y-4">
                     <h3 className="text-sm font-bold text-emerald-500 uppercase tracking-wider">Configuración del Cronograma</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -14,6 +14,7 @@ import { AddTournamentPlayerModal } from "@/components/AddTournamentPlayerModal"
 import { TournamentChronogram } from "@/components/TournamentChronogram";
 import { TournamentExportButton } from "@/components/TournamentExportButton";
 import { TournamentResultsManager } from "@/components/TournamentResultsManager";
+import { CopaDavisManager } from "@/components/CopaDavisManager";
 import { formatPairName } from "@/lib/display-names";
 
 
@@ -45,7 +46,8 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
             torneo_fases(*)
         `)
         .eq('id', params.id)
-        .eq('club_id', userData.id)
+        // Permitir acceso al admin del club host O al admin del club rival (Copa Davis)
+        .or(`club_id.eq.${userData.id},club_rival_id.eq.${userData.id}`)
         .single();
 
     if (torneoError || !torneo) {
@@ -246,6 +248,17 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
 
     const hasStarted = (rawPartidos || []).length > 0;
 
+    // Copa Davis: cargar info del club rival para el header
+    let rivalClubData: { id: string; nombre: string } | null = null;
+    if (torneo.formato === 'copa_davis' && torneo.club_rival_id) {
+        const { data: rd } = await adminSupabase
+            .from('users')
+            .select('id, nombre')
+            .eq('id', torneo.club_rival_id)
+            .single();
+        if (rd) rivalClubData = { id: rd.id, nombre: rd.nombre || 'Rival' };
+    }
+
 
     interface MatchReal {
         id: string;
@@ -417,6 +430,26 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                 </div>
             </div>
 
+            {/* COPA DAVIS: vista propia que reemplaza los tabs */}
+            {torneo.formato === 'copa_davis' ? (
+                <div className="mt-8">
+                    {!rivalClubData ? (
+                        <div className="p-6 border border-dashed border-amber-500/30 rounded-xl bg-amber-500/5 text-center">
+                            <p className="text-amber-400 font-semibold">Este torneo Copa Davis no tiene club rival asignado.</p>
+                            <p className="text-xs text-neutral-500 mt-1">Edítalo desde la configuración para asignar uno.</p>
+                        </div>
+                    ) : (
+                        <CopaDavisManager
+                            torneoId={params.id}
+                            clubLocal={{ id: String(clubInfo?.id || torneo.club_id), nombre: clubInfo?.nombre || 'Local' }}
+                            clubRival={rivalClubData}
+                            partidos={partidosReales as unknown as Parameters<typeof CopaDavisManager>[0]['partidos']}
+                            tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
+                            parejaPlayers={parejaPlayersMap}
+                        />
+                    )}
+                </div>
+            ) : (
             <Tabs defaultValue="participantes" className="w-full mt-8">
                 <TabsList className="bg-neutral-900 border border-neutral-800 p-1 w-full flex overflow-x-auto justify-start sm:w-auto overflow-y-hidden">
                     <TabsTrigger value="participantes" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-neutral-800">Parejas Inscritas <Badge variant="secondary" className="ml-2 bg-neutral-800 text-neutral-400 border-none">{allParticipants.length}</Badge></TabsTrigger>
@@ -555,6 +588,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                     </div>
                 </TabsContent>
             </Tabs>
+            )}
         </div>
     );
 }
