@@ -237,8 +237,10 @@ export async function inscribirParejaCopa({
                 }
                 return 'Jugador';
             };
-            const u1 = jugadores?.find(u => u.id === j1Id);
-            const u2 = jugadores?.find(u => u.id === j2Id);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const u1 = jugadores?.find((u: any) => u.id === j1Id);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const u2 = jugadores?.find((u: any) => u.id === j2Id);
             const nombre_pareja = `${nombreCorto(u1 || {})} / ${nombreCorto(u2 || {})}`;
 
             const { data: nuevaPareja, error: errP } = await admin
