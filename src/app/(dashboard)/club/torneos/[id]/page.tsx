@@ -248,8 +248,11 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
 
     const hasStarted = (rawPartidos || []).length > 0;
 
-    // Copa Davis: cargar info del club rival para el header
+    // Copa Davis: cargar info del club rival y de las parejas inscritas
     let rivalClubData: { id: string; nombre: string } | null = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let inscripcionesCopa: any[] = [];
+    let inscripcionesJugadores: { id: string; nombre: string | null; apellido: string | null; email: string | null }[] = [];
     if (torneo.formato === 'copa_davis' && torneo.club_rival_id) {
         const { data: rd } = await adminSupabase
             .from('users')
@@ -257,6 +260,29 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
             .eq('id', torneo.club_rival_id)
             .single();
         if (rd) rivalClubData = { id: rd.id, nombre: rd.nombre || 'Rival' };
+
+        // Inscripciones del torneo (con info de la pareja)
+        const { data: insData } = await adminSupabase
+            .from('torneo_parejas')
+            .select('id, pareja_id, categoria, representando_club_id, pareja:parejas(id, nombre_pareja, jugador1_id, jugador2_id)')
+            .eq('torneo_id', params.id);
+        inscripcionesCopa = insData || [];
+
+        // Jugadores referenciados en las inscripciones
+        const userIds = new Set<string>();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        inscripcionesCopa.forEach((i: any) => {
+            const p = i.pareja;
+            if (p?.jugador1_id) userIds.add(p.jugador1_id);
+            if (p?.jugador2_id) userIds.add(p.jugador2_id);
+        });
+        if (userIds.size > 0) {
+            const { data: jugData } = await adminSupabase
+                .from('users')
+                .select('id, nombre, apellido, email')
+                .in('id', Array.from(userIds));
+            inscripcionesJugadores = (jugData || []) as typeof inscripcionesJugadores;
+        }
     }
 
 
@@ -446,6 +472,8 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                             partidos={partidosReales as unknown as Parameters<typeof CopaDavisManager>[0]['partidos']}
                             tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                             parejaPlayers={parejaPlayersMap}
+                            inscripciones={inscripcionesCopa as unknown as Parameters<typeof CopaDavisManager>[0]['inscripciones']}
+                            inscripcionesJugadores={inscripcionesJugadores}
                         />
                     )}
                 </div>

@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trophy, Trash2, Check, Loader2, Swords } from "lucide-react";
+import { Trophy, Trash2, Check, Loader2, Swords, Users, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnadirPartidoCopaDialog } from "@/components/AnadirPartidoCopaDialog";
+import { InscribirParejaCopaDialog } from "@/components/InscribirParejaCopaDialog";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { confirmarResultado, reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
-import { borrarPartidoCopa } from "@/app/(dashboard)/club/torneos/[id]/copa-actions";
-import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
+import { borrarPartidoCopa, borrarInscripcionCopa } from "@/app/(dashboard)/club/torneos/[id]/copa-actions";
+import { resolvePairName, formatPairName, type ParejaPlayersMap } from "@/lib/display-names";
 
 interface PartidoCopa {
     id: string;
@@ -32,6 +33,16 @@ interface ClubLite {
     nombre: string;
 }
 
+interface InscripcionCopa {
+    id: string;
+    pareja_id: string;
+    categoria: string | null;
+    representando_club_id: string | null;
+    pareja?: { id: string; nombre_pareja: string | null; jugador1_id: string; jugador2_id: string } | null;
+}
+
+interface JugadorLite { id: string; nombre: string | null; apellido: string | null; email: string | null; }
+
 interface Props {
     torneoId: string;
     clubLocal: ClubLite;
@@ -39,6 +50,8 @@ interface Props {
     partidos: PartidoCopa[];
     tipoDesempate?: string;
     parejaPlayers?: ParejaPlayersMap;
+    inscripciones?: InscripcionCopa[];
+    inscripcionesJugadores?: JugadorLite[];
 }
 
 /** "6-3,4-6,10-7" → 1 si ganó pareja1, 2 si ganó pareja2, null si no se puede */
@@ -59,7 +72,7 @@ function getWinner(resultado: string | null | undefined): 1 | 2 | null {
     } catch { return null; }
 }
 
-export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tipoDesempate, parejaPlayers = {} }: Props) {
+export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tipoDesempate, parejaPlayers = {}, inscripciones = [], inscripcionesJugadores = [] }: Props) {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [pending, startTransition] = useTransition();
     const router = useRouter();
@@ -174,6 +187,16 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                     </div>
                 </CardContent>
             </Card>
+
+            {/* ── PAREJAS INSCRITAS ────────────────────────────────────────── */}
+            <ParejasInscritasSection
+                torneoId={torneoId}
+                clubLocal={clubLocal}
+                clubRival={clubRival}
+                inscripciones={inscripciones}
+                jugadores={inscripcionesJugadores}
+                categoriasSugeridas={categoriasSugeridas}
+            />
 
             {/* Header con botón añadir */}
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -334,6 +357,134 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                     })}
                 </div>
             )}
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Sección de Parejas Inscritas (con botón para inscribir nuevas)
+// ─────────────────────────────────────────────────────────────────────
+function ParejasInscritasSection({
+    torneoId, clubLocal, clubRival, inscripciones, jugadores, categoriasSugeridas,
+}: {
+    torneoId: string;
+    clubLocal: ClubLite;
+    clubRival: ClubLite;
+    inscripciones: InscripcionCopa[];
+    jugadores: JugadorLite[];
+    categoriasSugeridas: string[];
+}) {
+    const router = useRouter();
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [pending, startTransition] = useTransition();
+
+    const jugadorMap = useMemo(() => {
+        const m = new Map<string, JugadorLite>();
+        jugadores.forEach(j => m.set(j.id, j));
+        return m;
+    }, [jugadores]);
+
+    const localInscripciones = inscripciones.filter(i => i.representando_club_id === clubLocal.id);
+    const rivalInscripciones = inscripciones.filter(i => i.representando_club_id === clubRival.id);
+
+    const handleDelete = (id: string) => {
+        if (!confirm("¿Quitar esta pareja del torneo?")) return;
+        setDeletingId(id);
+        startTransition(async () => {
+            const r = await borrarInscripcionCopa(id);
+            setDeletingId(null);
+            if (!r.success) alert(r.message);
+            else router.refresh();
+        });
+    };
+
+    const renderColumn = (
+        titulo: string,
+        color: 'emerald' | 'purple',
+        list: InscripcionCopa[],
+    ) => (
+        <Card className="bg-neutral-900 border-neutral-800">
+            <CardContent className="p-0">
+                <div className={cn(
+                    "px-4 py-3 border-b border-neutral-800 flex items-center justify-between",
+                    color === 'emerald' ? "bg-emerald-500/5" : "bg-purple-500/5"
+                )}>
+                    <div className="flex items-center gap-2">
+                        <Users className={cn("w-4 h-4", color === 'emerald' ? "text-emerald-400" : "text-purple-400")} />
+                        <span className="text-xs font-black uppercase tracking-widest text-white">{titulo}</span>
+                    </div>
+                    <Badge variant="outline" className={cn(
+                        "text-[10px] font-black",
+                        color === 'emerald' ? "border-emerald-500/40 text-emerald-300" : "border-purple-500/40 text-purple-300"
+                    )}>
+                        {list.length}
+                    </Badge>
+                </div>
+                {list.length === 0 ? (
+                    <div className="px-4 py-6 text-center text-xs text-neutral-600">
+                        Aún no hay parejas inscritas para este club.
+                    </div>
+                ) : (
+                    <div className="divide-y divide-neutral-800/50">
+                        {list.map(ins => {
+                            const j1 = ins.pareja ? jugadorMap.get(ins.pareja.jugador1_id) : null;
+                            const j2 = ins.pareja ? jugadorMap.get(ins.pareja.jugador2_id) : null;
+                            const display = (j1 || j2)
+                                ? formatPairName(j1 || undefined, j2 || undefined)
+                                : (ins.pareja?.nombre_pareja || 'Pareja');
+                            return (
+                                <div key={ins.id} className="px-4 py-2.5 flex items-center justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-sm font-bold text-white truncate">{display}</p>
+                                        {ins.categoria && (
+                                            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">
+                                                {ins.categoria}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => handleDelete(ins.id)}
+                                        disabled={pending && deletingId === ins.id}
+                                        className="text-neutral-600 hover:text-red-400 hover:bg-red-500/10 h-7 w-7 p-0 flex-shrink-0"
+                                    >
+                                        {pending && deletingId === ins.id
+                                            ? <Loader2 className="w-3 h-3 animate-spin" />
+                                            : <X className="w-3.5 h-3.5" />}
+                                    </Button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+
+    return (
+        <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <Users className="w-5 h-5 text-emerald-400" />
+                        Parejas Inscritas
+                    </h3>
+                    <p className="text-xs text-neutral-500 mt-0.5">
+                        Inscribe las parejas asignándoles club y categoría. Luego en <strong className="text-purple-400">Añadir Partido</strong> aparecerán para emparejarlas.
+                    </p>
+                </div>
+                <InscribirParejaCopaDialog
+                    torneoId={torneoId}
+                    clubLocal={clubLocal}
+                    clubRival={clubRival}
+                    categoriasSugeridas={categoriasSugeridas}
+                />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {renderColumn(clubLocal.nombre, 'emerald', localInscripciones)}
+                {renderColumn(clubRival.nombre, 'purple', rivalInscripciones)}
+            </div>
         </div>
     );
 }

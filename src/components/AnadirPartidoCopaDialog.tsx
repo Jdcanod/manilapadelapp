@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Loader2, Trophy, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { crearPartidoCopa, obtenerParejasDeClub } from "@/app/(dashboard)/club/torneos/[id]/copa-actions";
+import { crearPartidoCopa, obtenerParejasInscritasPorClub } from "@/app/(dashboard)/club/torneos/[id]/copa-actions";
 import { formatPairName } from "@/lib/display-names";
 
 interface ClubLite {
@@ -29,6 +29,7 @@ interface Pareja {
     nombre_pareja: string | null;
     jugador1_id: string;
     jugador2_id: string;
+    categoria?: string;
 }
 
 interface Jugador {
@@ -56,13 +57,13 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
     const [rivalParejas, setRivalParejas] = useState<Pareja[]>([]);
     const [rivalJugadores, setRivalJugadores] = useState<Jugador[]>([]);
 
-    // Cargar parejas al abrir
+    // Cargar parejas inscritas en el torneo por club (no por club_id del usuario)
     useEffect(() => {
         if (!open) return;
         setLoading(true);
         Promise.all([
-            obtenerParejasDeClub(torneoId, clubLocal.id),
-            obtenerParejasDeClub(torneoId, clubRival.id),
+            obtenerParejasInscritasPorClub(torneoId, clubLocal.id),
+            obtenerParejasInscritasPorClub(torneoId, clubRival.id),
         ]).then(([a, b]) => {
             setLocalParejas(a.parejas);
             setLocalJugadores(a.jugadores);
@@ -80,8 +81,10 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
     const labelPareja = (p: Pareja) => {
         const j1 = jugadorMap.get(p.jugador1_id);
         const j2 = jugadorMap.get(p.jugador2_id);
-        if (j1 || j2) return formatPairName(j1 || undefined, j2 || undefined);
-        return p.nombre_pareja || 'Pareja sin nombre';
+        const base = (j1 || j2)
+            ? formatPairName(j1 || undefined, j2 || undefined)
+            : (p.nombre_pareja || 'Pareja sin nombre');
+        return p.categoria ? `${base}  ·  ${p.categoria}` : base;
     };
 
     const reset = () => {
@@ -165,7 +168,7 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                                 </label>
                                 {localParejas.length === 0 ? (
                                     <div className="text-[11px] text-amber-400 bg-amber-500/5 border border-amber-500/20 rounded-lg p-2">
-                                        Este club no tiene parejas registradas. Inscribe primero algunas parejas/jugadores con club_id = {clubLocal.id.slice(0, 8)}…
+                                        Este club aún no tiene parejas inscritas. Usa <strong>+ Inscribir Pareja</strong> en la pantalla anterior.
                                     </div>
                                 ) : (
                                     <Select value={parejaLocalId} onValueChange={setParejaLocalId}>
@@ -186,7 +189,7 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                                 </label>
                                 {rivalParejas.length === 0 ? (
                                     <div className="text-[11px] text-amber-400 bg-amber-500/5 border border-amber-500/20 rounded-lg p-2">
-                                        El club rival no tiene parejas registradas todavía.
+                                        El club rival aún no tiene parejas inscritas. Inscríbelas desde la pantalla anterior.
                                     </div>
                                 ) : (
                                     <Select value={parejaRivalId} onValueChange={setParejaRivalId}>
