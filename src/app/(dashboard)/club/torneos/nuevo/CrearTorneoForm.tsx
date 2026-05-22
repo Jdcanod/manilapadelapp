@@ -30,7 +30,7 @@ export function CrearTorneoForm() {
     const [copaCatConfig, setCopaCatConfig] = useState<Record<string, { parejas: number; partidos: number }>>({});
 
     const toggleCat = (cat: string, on: boolean) => {
-        setSelectedCats(prev => on ? [...new Set([...prev, cat])] : prev.filter(c => c !== cat));
+        setSelectedCats(prev => on ? Array.from(new Set([...prev, cat])) : prev.filter(c => c !== cat));
         if (on && !copaCatConfig[cat]) {
             setCopaCatConfig(prev => ({ ...prev, [cat]: { parejas: 2, partidos: 2 } }));
         }
