@@ -75,6 +75,23 @@ export function CrearTorneoForm() {
         }
     }, [esCopaDavis, clubesRivales.length]);
 
+    // Asegurar que TODAS las categorías seleccionadas tengan entry en copaCatConfig
+    // (las pre-marcadas inicialmente no pasaban por toggleCat, así que quedaban vacías
+    // y el cálculo de "Total partidos a generar" daba 0 para ellas).
+    useEffect(() => {
+        setCopaCatConfig(prev => {
+            const next = { ...prev };
+            let changed = false;
+            selectedCats.forEach(cat => {
+                if (!next[cat]) {
+                    next[cat] = { parejas: 2, partidos: 2 };
+                    changed = true;
+                }
+            });
+            return changed ? next : prev;
+        });
+    }, [selectedCats]);
+
     async function action(formData: FormData) {
         setError(null);
         startTransition(() => {
@@ -384,7 +401,7 @@ export function CrearTorneoForm() {
                                     })}
                                     <p className="text-[10px] text-neutral-600 pt-1">
                                         Total partidos a generar: <span className="text-amber-400 font-bold">
-                                            {selectedCats.reduce((acc, c) => acc + (copaCatConfig[c]?.partidos || 0), 0)}
+                                            {selectedCats.reduce((acc, c) => acc + (copaCatConfig[c]?.partidos ?? 2), 0)}
                                         </span>
                                     </p>
                                 </div>
