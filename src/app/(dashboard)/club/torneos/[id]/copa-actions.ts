@@ -65,6 +65,9 @@ export async function crearPartidoCopa({
         // Si NO se pasaron parejas: el partido entra como placeholder en la bolsa.
         // Si SÍ se pasaron: se crea ya con parejas asignadas.
         const tieneParejas = !!parejaLocalId && !!parejaRivalId;
+        // partidos.fecha es NOT NULL — siempre damos un valor sentinel (fecha_inicio del torneo).
+        // La fecha real se asigna al arrastrar al cronograma.
+        const fechaFinal = (tieneParejas && fecha) ? fecha : (torneo.fecha_inicio || new Date().toISOString());
 
         const { data, error } = await admin
             .from('partidos')
@@ -76,7 +79,7 @@ export async function crearPartidoCopa({
                 pareja2_id: parejaRivalId || null,
                 nivel: categoria.trim(),
                 lugar: 'Pendiente', // queda en la bolsa hasta que se arrastre al cronograma
-                fecha: tieneParejas && fecha ? fecha : null,
+                fecha: fechaFinal,
                 estado: 'programado',
                 tipo_partido: 'torneo',
                 puntos_partido: puntos,

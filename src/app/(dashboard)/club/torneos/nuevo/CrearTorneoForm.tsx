@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition, useState, useEffect } from "react";
+import { useTransition, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,15 +25,36 @@ export function CrearTorneoForm() {
 
     // Para Copa Davis: configurar por cada categoría seleccionada cuántas
     // parejas POR CLUB y cuántos partidos se generarán.
-    const TODAS_CATS = ['2da', '3ra', '4ta', '5ta', '6ta', '7ma', 'Mixto A', 'Mixto B', 'Mixto C'];
+    const CATS_PREDEFINIDAS = ['2da', '3ra', '4ta', '5ta', '6ta', '7ma', 'Mixto A', 'Mixto B', 'Mixto C'];
+    const [catsExtras, setCatsExtras] = useState<string[]>([]);
+    const todasLasCats = useMemo(
+        () => [...CATS_PREDEFINIDAS, ...catsExtras],
+        [catsExtras]
+    );
     const [selectedCats, setSelectedCats] = useState<string[]>(['3ra', '4ta', '5ta', '6ta']);
     const [copaCatConfig, setCopaCatConfig] = useState<Record<string, { parejas: number; partidos: number }>>({});
+    const [nuevaCatInput, setNuevaCatInput] = useState("");
 
     const toggleCat = (cat: string, on: boolean) => {
         setSelectedCats(prev => on ? Array.from(new Set([...prev, cat])) : prev.filter(c => c !== cat));
         if (on && !copaCatConfig[cat]) {
             setCopaCatConfig(prev => ({ ...prev, [cat]: { parejas: 2, partidos: 2 } }));
         }
+    };
+
+    const agregarCategoriaCustom = () => {
+        const nombre = nuevaCatInput.trim();
+        if (!nombre) return;
+        // Evitar duplicados (case-insensitive)
+        const yaExiste = todasLasCats.some(c => c.toLowerCase() === nombre.toLowerCase());
+        if (yaExiste) {
+            // Si ya existe, solo seleccionarla
+            toggleCat(todasLasCats.find(c => c.toLowerCase() === nombre.toLowerCase())!, true);
+        } else {
+            setCatsExtras(prev => [...prev, nombre]);
+            toggleCat(nombre, true);
+        }
+        setNuevaCatInput("");
     };
 
     const updateCatConfig = (cat: string, key: 'parejas' | 'partidos', value: number) => {
@@ -252,7 +273,7 @@ export function CrearTorneoForm() {
                     {!esCopaDavis ? (
                         // Vista clásica: solo checkboxes
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                            {TODAS_CATS.map((cat) => (
+                            {todasLasCats.map((cat) => (
                                 <div key={cat} className="flex items-center space-x-2">
                                     <Checkbox
                                         id={`cat-${cat}`}
@@ -271,7 +292,7 @@ export function CrearTorneoForm() {
                         // Copa Davis: por cada categoría seleccionada, parejas por club + partidos
                         <div className="space-y-3">
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                {TODAS_CATS.map((cat) => {
+                                {todasLasCats.map((cat) => {
                                     const checked = selectedCats.includes(cat);
                                     return (
                                         <button
@@ -288,6 +309,31 @@ export function CrearTorneoForm() {
                                         </button>
                                     );
                                 })}
+                            </div>
+
+                            {/* Input para añadir categoría custom */}
+                            <div className="flex gap-2 items-center">
+                                <Input
+                                    type="text"
+                                    placeholder="Añadir categoría personalizada (ej. Open, Veteranos)…"
+                                    value={nuevaCatInput}
+                                    onChange={e => setNuevaCatInput(e.target.value)}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            agregarCategoriaCustom();
+                                        }
+                                    }}
+                                    className="bg-neutral-950 border-neutral-800 text-white text-sm h-9 flex-1"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={agregarCategoriaCustom}
+                                    disabled={!nuevaCatInput.trim()}
+                                    className="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:bg-neutral-800 disabled:text-neutral-600 text-white font-bold text-xs uppercase tracking-widest transition-colors"
+                                >
+                                    + Añadir
+                                </button>
                             </div>
 
                             {/* Inputs hidden para que el form envíe las categorías marcadas */}
