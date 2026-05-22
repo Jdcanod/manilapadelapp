@@ -23,6 +23,30 @@ export function CrearTorneoForm() {
     const esLiguilla = formato === "liguilla";
     const esCopaDavis = formato === "copa_davis";
 
+    // Para Copa Davis: configurar por cada categoría seleccionada cuántas
+    // parejas POR CLUB y cuántos partidos se generarán.
+    const TODAS_CATS = ['2da', '3ra', '4ta', '5ta', '6ta', '7ma', 'Mixto A', 'Mixto B', 'Mixto C'];
+    const [selectedCats, setSelectedCats] = useState<string[]>(['3ra', '4ta', '5ta', '6ta']);
+    const [copaCatConfig, setCopaCatConfig] = useState<Record<string, { parejas: number; partidos: number }>>({});
+
+    const toggleCat = (cat: string, on: boolean) => {
+        setSelectedCats(prev => on ? [...new Set([...prev, cat])] : prev.filter(c => c !== cat));
+        if (on && !copaCatConfig[cat]) {
+            setCopaCatConfig(prev => ({ ...prev, [cat]: { parejas: 2, partidos: 2 } }));
+        }
+    };
+
+    const updateCatConfig = (cat: string, key: 'parejas' | 'partidos', value: number) => {
+        setCopaCatConfig(prev => ({
+            ...prev,
+            [cat]: {
+                parejas: prev[cat]?.parejas ?? 2,
+                partidos: prev[cat]?.partidos ?? 2,
+                [key]: Math.max(1, Math.min(20, value)),
+            },
+        }));
+    };
+
     // Cargar clubes disponibles cuando se elige copa_davis
     useEffect(() => {
         if (esCopaDavis && clubesRivales.length === 0) {
@@ -218,29 +242,133 @@ export function CrearTorneoForm() {
                 </div>
                 )}
 
-                {/* Categorías habilitadas — siempre visible (también para Copa Davis) */}
+                {/* Categorías habilitadas — siempre visible */}
                 <div className="pt-4 border-t border-neutral-800 space-y-4">
                     <h3 className="text-sm font-bold text-amber-500 uppercase tracking-wider">
                         Categorías Habilitadas
-                        {esCopaDavis && <span className="text-[10px] text-purple-400 ml-2 normal-case">(luego al inscribir parejas y crear partidos se eligen de estas)</span>}
+                        {esCopaDavis && <span className="text-[10px] text-purple-400 ml-2 normal-case">(configura cuántas parejas y partidos por categoría)</span>}
                     </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        {['2da', '3ra', '4ta', '5ta', '6ta', '7ma', 'Mixto A', 'Mixto B', 'Mixto C'].map((cat) => (
-                            <div key={cat} className="flex items-center space-x-2">
-                                <Checkbox
-                                    id={`cat-${cat}`}
-                                    name="categorias"
-                                    value={cat}
-                                    defaultChecked={['3ra', '4ta', '5ta', '6ta'].includes(cat)}
-                                    className="border-neutral-700 data-[state=checked]:bg-amber-500 data-[state=checked]:text-black"
-                                />
-                                <Label htmlFor={`cat-${cat}`} className="text-sm font-medium leading-none text-white cursor-pointer">
-                                    {cat}
-                                </Label>
+
+                    {!esCopaDavis ? (
+                        // Vista clásica: solo checkboxes
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            {TODAS_CATS.map((cat) => (
+                                <div key={cat} className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id={`cat-${cat}`}
+                                        name="categorias"
+                                        value={cat}
+                                        defaultChecked={['3ra', '4ta', '5ta', '6ta'].includes(cat)}
+                                        className="border-neutral-700 data-[state=checked]:bg-amber-500 data-[state=checked]:text-black"
+                                    />
+                                    <Label htmlFor={`cat-${cat}`} className="text-sm font-medium leading-none text-white cursor-pointer">
+                                        {cat}
+                                    </Label>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        // Copa Davis: por cada categoría seleccionada, parejas por club + partidos
+                        <div className="space-y-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                {TODAS_CATS.map((cat) => {
+                                    const checked = selectedCats.includes(cat);
+                                    return (
+                                        <button
+                                            key={cat}
+                                            type="button"
+                                            onClick={() => toggleCat(cat, !checked)}
+                                            className={`px-3 py-2 rounded-lg border-2 font-bold text-xs uppercase tracking-widest transition-all ${
+                                                checked
+                                                    ? 'bg-amber-500/15 border-amber-500 text-amber-300'
+                                                    : 'bg-neutral-950 border-neutral-800 text-neutral-500 hover:text-neutral-300'
+                                            }`}
+                                        >
+                                            {cat}
+                                        </button>
+                                    );
+                                })}
                             </div>
-                        ))}
+
+                            {/* Inputs hidden para que el form envíe las categorías marcadas */}
+                            {selectedCats.map(c => (
+                                <input key={`hidden-${c}`} type="hidden" name="categorias" value={c} />
+                            ))}
+
+                            {selectedCats.length === 0 ? (
+                                <div className="text-[11px] text-amber-400 bg-amber-500/5 border border-amber-500/20 rounded-lg p-3">
+                                    Selecciona al menos una categoría.
+                                </div>
+                            ) : (
+                                <div className="space-y-2 bg-neutral-950/50 border border-neutral-800 rounded-xl p-4">
+                                    <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest">
+                                        Configuración por categoría
+                                    </p>
+                                    {selectedCats.map(cat => {
+                                        const cfg = copaCatConfig[cat] || { parejas: 2, partidos: 2 };
+                                        return (
+                                            <div key={cat} className="grid grid-cols-[1fr_auto_auto] gap-3 items-center py-2 border-b border-neutral-800/50 last:border-0">
+                                                <span className="text-sm font-bold text-white">{cat}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] text-neutral-500 uppercase tracking-wide">Parejas/club</span>
+                                                    <Input
+                                                        type="number"
+                                                        min={1}
+                                                        max={20}
+                                                        value={cfg.parejas}
+                                                        onChange={e => updateCatConfig(cat, 'parejas', parseInt(e.target.value) || 1)}
+                                                        name={`copa_parejas_${cat}`}
+                                                        className="w-16 h-8 bg-neutral-900 border-neutral-800 text-white text-center text-sm"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] text-neutral-500 uppercase tracking-wide">Partidos</span>
+                                                    <Input
+                                                        type="number"
+                                                        min={1}
+                                                        max={20}
+                                                        value={cfg.partidos}
+                                                        onChange={e => updateCatConfig(cat, 'partidos', parseInt(e.target.value) || 1)}
+                                                        name={`copa_partidos_${cat}`}
+                                                        className="w-16 h-8 bg-neutral-900 border-neutral-800 text-white text-center text-sm"
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    <p className="text-[10px] text-neutral-600 pt-1">
+                                        Total partidos a generar: <span className="text-amber-400 font-bold">
+                                            {selectedCats.reduce((acc, c) => acc + (copaCatConfig[c]?.partidos || 0), 0)}
+                                        </span>
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Copa Davis: solo pedimos canchas (duración fija 60 min) */}
+                {esCopaDavis && (
+                <div className="pt-4 border-t border-neutral-800 space-y-4">
+                    <h3 className="text-sm font-bold text-emerald-500 uppercase tracking-wider">Cronograma</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="config_canchas_copa" className="text-white">Canchas Habilitadas</Label>
+                            <Input
+                                id="config_canchas_copa"
+                                name="config_canchas"
+                                type="number"
+                                min="1"
+                                max="20"
+                                defaultValue="2"
+                                className="bg-neutral-900 border-neutral-800 text-white focus:border-emerald-500"
+                            />
+                            <p className="text-[10px] text-neutral-500">Cada partido dura 60 minutos.</p>
+                        </div>
+                        <input type="hidden" name="config_duracion" value="60" />
                     </div>
                 </div>
+                )}
 
                 {!esLiguilla && !esCopaDavis && (
                 <div className="pt-4 border-t border-neutral-800 space-y-4">

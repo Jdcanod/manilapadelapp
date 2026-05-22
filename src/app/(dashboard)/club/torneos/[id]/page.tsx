@@ -309,9 +309,15 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         [key: string]: any;
     }
 
+    const esCopaDavis = torneo.formato === 'copa_davis';
     const partidosReales: MatchReal[] = (rawPartidos || [])
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((p: any) => p.torneo_grupo_id || p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/))
+        .filter((p: any) => {
+            // Copa Davis: incluir todos los partidos del torneo (placeholders + ya asignados)
+            if (esCopaDavis) return true;
+            // Otros formatos: solo de grupos o de fases finales nombradas
+            return p.torneo_grupo_id || p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/);
+        })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map((p: any) => {
         const p1 = parejaDataMap.get(p.pareja1_id);
@@ -476,6 +482,23 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                             inscripcionesJugadores={inscripcionesJugadores}
                             categoriasHabilitadas={torneo.reglas_puntuacion?.categorias_habilitadas || []}
                         />
+
+                        {/* Cronograma — los partidos placeholder caen en la bolsa y se programan aquí */}
+                        <div className="mt-8 pt-8 border-t border-neutral-800">
+                            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                📅 Parrilla de Programación
+                            </h3>
+                            <TournamentChronogram
+                                torneoId={params.id}
+                                matches={partidosReales}
+                                config={{
+                                    duracion: torneo.reglas_puntuacion?.config_duracion || 60,
+                                    canchas: torneo.reglas_puntuacion?.config_canchas || 2
+                                }}
+                                tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
+                                parejaPlayers={parejaPlayersMap}
+                            />
+                        </div>
                     )}
                 </div>
             ) : (

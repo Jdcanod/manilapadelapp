@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient, createAdminClient } from "@/utils/supabase/server";
+import { createClient, createAdminClient, createPureAdminClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -41,16 +41,31 @@ export async function crearTorneoCentral(formData: FormData) {
         if (clubRivalId === userData.id) throw new Error("No puedes elegirte a ti mismo como rival.");
     }
 
+    const categoriasSeleccionadas = formData.getAll("categorias") as string[];
+
+    // Copa Davis: leer la configuración por categoría (parejas + partidos)
+    const copaConfigPorCategoria: Record<string, { parejas: number; partidos: number }> = {};
+    if (esCopaDavis) {
+        categoriasSeleccionadas.forEach(cat => {
+            const parejas = parseInt(formData.get(`copa_parejas_${cat}`) as string);
+            const partidos = parseInt(formData.get(`copa_partidos_${cat}`) as string);
+            copaConfigPorCategoria[cat] = {
+                parejas: isNaN(parejas) ? 2 : Math.max(1, parejas),
+                partidos: isNaN(partidos) ? 2 : Math.max(1, partidos),
+            };
+        });
+    }
+
     const reglasPuntuacion = esCopaDavis
         ? {
-            // Copa Davis: sin grilla de canchas. Las categorías sí se eligen
-            // al crear el torneo para luego ofrecerlas como opciones al
-            // inscribir parejas y crear partidos.
             sets: parseInt(formData.get("sets") as string) || 3,
             juegos: parseInt(formData.get("juegos") as string) || 6,
             ventaja: 'oro',
             tipo_desempate: 'super_tiebreak',
-            categorias_habilitadas: formData.getAll("categorias") as string[],
+            categorias_habilitadas: categoriasSeleccionadas,
+            config_duracion: 60,
+            config_canchas: parseInt(formData.get("config_canchas") as string) || 2,
+            copa_categorias_config: copaConfigPorCategoria,
         }
         : {
             sets: parseInt(formData.get("sets") as string) || 3,
@@ -80,6 +95,40 @@ export async function crearTorneoCentral(formData: FormData) {
 
     if (error) {
         throw new Error("Error creando el torneo: " + error.message);
+    }
+
+    // Copa Davis: generar partidos placeholder por categoría según la config
+    if (esCopaDavis && Object.keys(copaConfigPorCategoria).length > 0) {
+        const adminBypass = createPureAdminClient();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const partidosACrear: any[] = [];
+        Object.entries(copaConfigPorCategoria).forEach(([cat, cfg]) => {
+            for (let i = 1; i <= cfg.partidos; i++) {
+                partidosACrear.push({
+                    torneo_id: data.id,
+                    club_id: userData.id,
+                    creador_id: userData.id,
+                    pareja1_id: null,
+                    pareja2_id: null,
+                    nivel: cat,
+                    // El "lugar" arranca como Pendiente para que aparezca en la bolsa del cronograma
+                    lugar: 'Pendiente',
+                    fecha: null,
+                    estado: 'programado',
+                    tipo_partido: 'torneo',
+                    puntos_partido: 1, // Default 1, el admin puede cambiarlo al confirmar
+                    cupos_totales: 4,
+                    cupos_disponibles: 0,
+                });
+            }
+        });
+        if (partidosACrear.length > 0) {
+            const { error: pErr } = await adminBypass.from('partidos').insert(partidosACrear);
+            if (pErr) {
+                // No bloqueamos: el torneo ya está creado. Avisamos en consola.
+                console.error('Error creando partidos placeholder Copa Davis:', pErr.message);
+            }
+        }
     }
 
     revalidatePath("/club/torneos");
