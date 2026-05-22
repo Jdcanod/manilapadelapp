@@ -62,8 +62,6 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
     const [loading, setLoading] = useState(false);
     const [localParejas, setLocalParejas] = useState<Pareja[]>([]);
     const [localJugadores, setLocalJugadores] = useState<Jugador[]>([]);
-    const [rivalParejas, setRivalParejas] = useState<Pareja[]>([]);
-    const [rivalJugadores, setRivalJugadores] = useState<Jugador[]>([]);
 
     // En modo asignar: solo cargamos las parejas del club del admin actual.
     // En modo crear (a la bolsa): no necesitamos parejas — el placeholder
@@ -78,16 +76,13 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                 setLocalJugadores(a.jugadores);
             })
             .finally(() => setLoading(false));
-        // Marcar rivales vacíos (no se usan en este modo)
-        setRivalParejas([]);
-        setRivalJugadores([]);
     }, [open, esModoAsignar, torneoId, miClubId]);
 
     const jugadorMap = useMemo(() => {
         const m = new Map<string, Jugador>();
-        [...localJugadores, ...rivalJugadores].forEach(j => m.set(j.id, j));
+        localJugadores.forEach(j => m.set(j.id, j));
         return m;
-    }, [localJugadores, rivalJugadores]);
+    }, [localJugadores]);
 
     const labelPareja = (p: Pareja) => {
         const j1 = jugadorMap.get(p.jugador1_id);
