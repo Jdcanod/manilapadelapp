@@ -56,11 +56,11 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
     const followersCount = c1 || 0;
     const followingCount = c2 || 0;
 
-    // ─── Torneos del Club ───────────────────────────────────────────────────────
+    // ─── Torneos del Club (host O rival en Copa Davis) ──────────────────────────
     const { data: clubTournaments } = await adminSupabase
         .from('torneos')
         .select('id, nombre, fecha_inicio, fecha_fin, formato, estado')
-        .eq('club_id', userData.id)
+        .or(`club_id.eq.${userData.id},club_rival_id.eq.${userData.id}`)
         .order('fecha_inicio', { ascending: false });
 
     const tournamentIds = (clubTournaments || []).map(t => t.id);

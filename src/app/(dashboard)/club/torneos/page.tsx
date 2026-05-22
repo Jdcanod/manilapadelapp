@@ -27,6 +27,7 @@ export default async function ClubTorneosPage() {
         redirect("/jugador");
     }
 
+    // Listar torneos donde el club es host O rival (Copa Davis)
     const { data: torneos, error } = await supabase
         .from('torneos')
         .select(`
@@ -35,7 +36,7 @@ export default async function ClubTorneosPage() {
             inscripciones:inscripciones_torneo(count),
             torneo_fases(count)
         `)
-        .eq('club_id', clubData.id)
+        .or(`club_id.eq.${clubData.id},club_rival_id.eq.${clubData.id}`)
         .order('fecha_inicio', { ascending: false });
 
     console.log("torneos:", torneos, "error:", error);
