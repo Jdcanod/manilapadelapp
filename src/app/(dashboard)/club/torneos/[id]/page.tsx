@@ -292,7 +292,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     }
 
     // Mapa pareja_id → club que representa (necesario para privacidad en partidos)
-    const parejaToClub = new Map<string, string>();
+    const parejaToClub: Map<string, string> = new Map();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     inscripcionesCopa.forEach((i: any) => {
         if (i.pareja_id && i.representando_club_id) {
@@ -334,12 +334,10 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
 
     const esCopaDavis = torneo.formato === 'copa_davis';
     const nowMs = Date.now();
-    const HIDDEN_TEXT = '🤫 Por revelar';
-    /** Decide si una pareja específica debe ser oculta al currentClub.
-     *  Reglas (Copa Davis):
-     *   - Si la pareja es del mismo club que el admin → visible
-     *   - Si es del rival → visible solo si el partido tiene resultado o
-     *     faltan ≤ 30 min para su fecha. Si no, oculta. */
+    const HIDDEN_TEXT = 'Por revelar';
+    // Decide si una pareja debe ocultarse al admin actual en Copa Davis.
+    // Pareja del mismo club: siempre visible. Pareja del rival: solo se revela
+    // si el partido ya tiene resultado o faltan 30 min o menos para su fecha.
     const debeOcultar = (parejaId: string | null | undefined, partidoFecha: string | null, tieneResultado: boolean): boolean => {
         if (!esCopaDavis) return false;
         if (!parejaId) return false;
