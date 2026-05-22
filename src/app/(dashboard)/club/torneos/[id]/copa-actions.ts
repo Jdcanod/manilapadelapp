@@ -74,7 +74,7 @@ export async function crearPartidoCopa({
             .insert({
                 torneo_id: torneoId,
                 club_id: torneo.club_id,
-                creador_id: me.id,
+                creador_id: user.id, // FK apunta a auth.users.id, no a users.id
                 pareja1_id: parejaLocalId || null,
                 pareja2_id: parejaRivalId || null,
                 nivel: categoria.trim(),

@@ -107,8 +107,8 @@ export async function crearTorneoCentral(formData: FormData) {
             for (let i = 1; i <= cfg.partidos; i++) {
                 partidosACrear.push({
                     torneo_id: data.id,
-                    club_id: userData.id,
-                    creador_id: userData.id,
+                    club_id: userData.id,    // FK a users.id (owner del torneo)
+                    creador_id: user.id,     // FK a auth.users.id — IMPORTANTE
                     pareja1_id: null,
                     pareja2_id: null,
                     nivel: cat,
