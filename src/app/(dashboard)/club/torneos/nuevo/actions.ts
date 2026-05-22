@@ -102,6 +102,7 @@ export async function crearTorneoCentral(formData: FormData) {
         const adminBypass = createPureAdminClient();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const partidosACrear: any[] = [];
+        const fechaSentinel = new Date(fechaInicio).toISOString(); // fecha de inicio del torneo
         Object.entries(copaConfigPorCategoria).forEach(([cat, cfg]) => {
             for (let i = 1; i <= cfg.partidos; i++) {
                 partidosACrear.push({
@@ -111,12 +112,13 @@ export async function crearTorneoCentral(formData: FormData) {
                     pareja1_id: null,
                     pareja2_id: null,
                     nivel: cat,
-                    // El "lugar" arranca como Pendiente para que aparezca en la bolsa del cronograma
+                    // 'Pendiente' como lugar para que la chronograma lo detecte como NO programado
+                    // y lo muestre en la bolsa (la fecha real se asigna al arrastrar a un slot).
                     lugar: 'Pendiente',
-                    fecha: null,
+                    fecha: fechaSentinel, // partidos.fecha es NOT NULL en la tabla — usamos la del torneo
                     estado: 'programado',
                     tipo_partido: 'torneo',
-                    puntos_partido: 1, // Default 1, el admin puede cambiarlo al confirmar
+                    puntos_partido: 1, // Default 1, el admin puede cambiarlo al asignar parejas
                     cupos_totales: 4,
                     cupos_disponibles: 0,
                 });
@@ -125,8 +127,8 @@ export async function crearTorneoCentral(formData: FormData) {
         if (partidosACrear.length > 0) {
             const { error: pErr } = await adminBypass.from('partidos').insert(partidosACrear);
             if (pErr) {
-                // No bloqueamos: el torneo ya está creado. Avisamos en consola.
-                console.error('Error creando partidos placeholder Copa Davis:', pErr.message);
+                // El torneo ya está creado — surface a la consola del server.
+                console.error('Error creando partidos placeholder Copa Davis:', pErr.message, pErr);
             }
         }
     }
