@@ -19,9 +19,10 @@ import { formatPairName } from "@/lib/display-names";
 
 
 
-export default async function TorneoDetailsPage({ params }: { params: { id: string } }) {
+export default async function TorneoDetailsPage({ params, searchParams }: { params: { id: string }; searchParams?: { creation_warning?: string } }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
+    const creationWarning = searchParams?.creation_warning ? decodeURIComponent(searchParams.creation_warning) : null;
 
     if (!user) {
         redirect("/login");
@@ -439,6 +440,12 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
 
     return (
         <div className="space-y-6">
+            {creationWarning && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-amber-300 text-sm">
+                    <p className="font-bold mb-1">⚠️ Aviso al crear el torneo</p>
+                    <p className="text-xs text-amber-200/80">{creationWarning}</p>
+                </div>
+            )}
             <div className="flex items-start gap-4 mb-2">
                 <Link
                     href="/club/torneos"

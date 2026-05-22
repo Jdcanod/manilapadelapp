@@ -128,11 +128,13 @@ export async function crearTorneoCentral(formData: FormData) {
             const { error: pErr } = await adminBypass.from('partidos').insert(partidosACrear);
             if (pErr) {
                 console.error('Error creando partidos placeholder Copa Davis:', pErr);
-                // Surface al UI: el torneo ya está creado pero le faltan los partidos.
-                // Lanzamos error para que el form muestre el detalle.
-                throw new Error(
-                    `Torneo creado pero hubo un error generando los ${partidosACrear.length} partidos: ${pErr.message}. Puedes añadirlos manualmente desde el torneo.`
+                // No bloqueamos: el torneo ya está creado. Redirigimos con warning
+                // visible en query para que la página del torneo lo muestre.
+                revalidatePath("/club/torneos");
+                const msg = encodeURIComponent(
+                    `No se pudieron crear los ${partidosACrear.length} partidos placeholder: ${pErr.message}. Puedes añadirlos manualmente.`
                 );
+                redirect(`/club/torneos/${data.id}?creation_warning=${msg}`);
             }
         }
     }
