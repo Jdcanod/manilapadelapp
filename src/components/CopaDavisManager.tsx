@@ -55,6 +55,9 @@ interface Props {
     /** Categorías definidas al crear el torneo. Se usan como opciones en los
      *  dialogs de inscribir pareja y añadir partido. */
     categoriasHabilitadas?: string[];
+    /** ID del club del admin actual — para forzar inscripción solo de su club
+     *  y filtrar la sección de "Parejas Inscritas" a su columna. */
+    currentClubId: string;
 }
 
 /** "6-3,4-6,10-7" → 1 si ganó pareja1, 2 si ganó pareja2, null si no se puede */
@@ -75,7 +78,7 @@ function getWinner(resultado: string | null | undefined): 1 | 2 | null {
     } catch { return null; }
 }
 
-export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tipoDesempate, parejaPlayers = {}, inscripciones = [], inscripcionesJugadores = [], categoriasHabilitadas = [] }: Props) {
+export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tipoDesempate, parejaPlayers = {}, inscripciones = [], inscripcionesJugadores = [], categoriasHabilitadas = [], currentClubId }: Props) {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [pending, startTransition] = useTransition();
     const router = useRouter();
@@ -205,6 +208,7 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                 inscripciones={inscripciones}
                 jugadores={inscripcionesJugadores}
                 categoriasSugeridas={categoriasSugeridas}
+                currentClubId={currentClubId}
             />
 
             {/* Header con botón añadir */}
@@ -302,14 +306,27 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
 
                                                     {/* Acciones */}
                                                     <div className="flex items-center gap-2 lg:justify-end flex-wrap">
-                                                        <AdminTournamentResultModal
-                                                            matchId={p.id}
-                                                            pareja1Nombre={p1Display}
-                                                            pareja2Nombre={p2Display}
-                                                            initialResult={p.resultado}
-                                                            tipoDesempate={tipoDesempate}
-                                                            compact={!!p.resultado}
-                                                        />
+                                                        {/* Si el partido es un placeholder (sin parejas asignadas), mostrar
+                                                            "Asignar parejas" en lugar del modal de score */}
+                                                        {(!p.pareja1_id || !p.pareja2_id) ? (
+                                                            <AnadirPartidoCopaDialog
+                                                                torneoId={torneoId}
+                                                                clubLocal={clubLocal}
+                                                                clubRival={clubRival}
+                                                                categoriasSugeridas={categoriasSugeridas}
+                                                                asignarAPartidoId={p.id}
+                                                                categoriaFija={p.nivel || undefined}
+                                                            />
+                                                        ) : (
+                                                            <AdminTournamentResultModal
+                                                                matchId={p.id}
+                                                                pareja1Nombre={p1Display}
+                                                                pareja2Nombre={p2Display}
+                                                                initialResult={p.resultado}
+                                                                tipoDesempate={tipoDesempate}
+                                                                compact={!!p.resultado}
+                                                            />
+                                                        )}
                                                         {isConfirmed && (
                                                             <Button
                                                                 size="sm"
@@ -374,7 +391,7 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
 // Sección de Parejas Inscritas (con botón para inscribir nuevas)
 // ─────────────────────────────────────────────────────────────────────
 function ParejasInscritasSection({
-    torneoId, clubLocal, clubRival, inscripciones, jugadores, categoriasSugeridas,
+    torneoId, clubLocal, clubRival, inscripciones, jugadores, categoriasSugeridas, currentClubId,
 }: {
     torneoId: string;
     clubLocal: ClubLite;
@@ -382,6 +399,7 @@ function ParejasInscritasSection({
     inscripciones: InscripcionCopa[];
     jugadores: JugadorLite[];
     categoriasSugeridas: string[];
+    currentClubId: string;
 }) {
     const router = useRouter();
     const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -393,8 +411,16 @@ function ParejasInscritasSection({
         return m;
     }, [jugadores]);
 
+    // Privacidad: el admin solo ve las inscripciones de SU club. Las del rival
+    // se ocultaron en el server y nunca llegan al cliente.
+    const esLocal = currentClubId === clubLocal.id;
+    const miClub = esLocal ? clubLocal : clubRival;
+    const miColor: 'emerald' | 'purple' = esLocal ? 'emerald' : 'purple';
+    const otroClub = esLocal ? clubRival : clubLocal;
+    const otroColor: 'emerald' | 'purple' = esLocal ? 'purple' : 'emerald';
     const localInscripciones = inscripciones.filter(i => i.representando_club_id === clubLocal.id);
     const rivalInscripciones = inscripciones.filter(i => i.representando_club_id === clubRival.id);
+    const misInscripciones = esLocal ? localInscripciones : rivalInscripciones;
 
     const handleDelete = (id: string) => {
         if (!confirm("¿Quitar esta pareja del torneo?")) return;
@@ -488,11 +514,35 @@ function ParejasInscritasSection({
                     clubLocal={clubLocal}
                     clubRival={clubRival}
                     categoriasSugeridas={categoriasSugeridas}
+                    currentClubId={currentClubId}
                 />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {renderColumn(clubLocal.nombre, 'emerald', localInscripciones)}
-                {renderColumn(clubRival.nombre, 'purple', rivalInscripciones)}
+                {renderColumn(miClub.nombre, miColor, misInscripciones)}
+                {/* Columna del rival oculta — preserva la intriga */}
+                <Card className="bg-neutral-900 border-neutral-800 border-dashed">
+                    <CardContent className="p-0">
+                        <div className={cn(
+                            "px-4 py-3 border-b border-neutral-800 flex items-center justify-between",
+                            otroColor === 'emerald' ? "bg-emerald-500/5" : "bg-purple-500/5"
+                        )}>
+                            <div className="flex items-center gap-2">
+                                <Users className={cn("w-4 h-4", otroColor === 'emerald' ? "text-emerald-400" : "text-purple-400")} />
+                                <span className="text-xs font-black uppercase tracking-widest text-white">{otroClub.nombre}</span>
+                            </div>
+                            <Badge variant="outline" className="text-[10px] font-black border-neutral-700 text-neutral-500">
+                                🤫
+                            </Badge>
+                        </div>
+                        <div className="px-4 py-8 text-center text-xs text-neutral-500 space-y-1.5">
+                            <p className="text-2xl">🎭</p>
+                            <p className="font-semibold text-neutral-400">Parejas ocultas</p>
+                            <p className="text-[10px] text-neutral-600">
+                                Las parejas del club rival se revelan 30 min antes de cada partido para mantener la intriga.
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     );

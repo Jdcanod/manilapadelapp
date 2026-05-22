@@ -23,7 +23,7 @@ export async function crearPartidoCopa({
     categoria: string;
     parejaLocalId: string;
     parejaRivalId: string;
-    puntos: 1 | 3;
+    puntos: 1 | 2 | 3;
     fecha?: string | null;
 }) {
     try {
@@ -57,7 +57,7 @@ export async function crearPartidoCopa({
         if (!categoria?.trim()) return { success: false, message: "La categoría es requerida" };
         if (!parejaLocalId || !parejaRivalId) return { success: false, message: "Debes seleccionar las dos parejas" };
         if (parejaLocalId === parejaRivalId) return { success: false, message: "Las parejas no pueden ser la misma" };
-        if (puntos !== 1 && puntos !== 3) return { success: false, message: "Los puntos deben ser 1 o 3" };
+        if (![1, 2, 3].includes(puntos)) return { success: false, message: "Los puntos deben ser 1, 2 o 3" };
 
         const lugar = `Copa Davis · ${categoria.trim()}`;
         const fechaFinal = fecha || torneo.fecha_inicio || new Date().toISOString();
@@ -87,6 +87,73 @@ export async function crearPartidoCopa({
         revalidatePath(`/club/torneos/${torneoId}`);
         revalidatePath(`/torneos/${torneoId}`);
         return { success: true, partidoId: data.id };
+    } catch (err: unknown) {
+        const e = err as Error;
+        return { success: false, message: e.message || "Error desconocido" };
+    }
+}
+
+/**
+ * Asigna parejas (local + rival) y puntos a un partido placeholder existente.
+ * Se usa cuando el torneo se creó con N placeholders por categoría y el admin
+ * empieza a llenarlos.
+ */
+export async function asignarPartidoCopa({
+    partidoId,
+    parejaLocalId,
+    parejaRivalId,
+    puntos,
+    fecha,
+}: {
+    partidoId: string;
+    parejaLocalId: string;
+    parejaRivalId: string;
+    puntos: 1 | 2 | 3;
+    fecha?: string | null;
+}) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado" };
+
+        const admin = createPureAdminClient();
+        const { data: me } = await admin.from('users').select('id, rol').eq('auth_id', user.id).single();
+        if (!me || me.rol !== 'admin_club') return { success: false, message: "Sin permisos" };
+
+        const { data: partido } = await admin
+            .from('partidos')
+            .select('id, torneo_id, nivel')
+            .eq('id', partidoId)
+            .single();
+        if (!partido) return { success: false, message: "Partido no encontrado" };
+
+        const { data: torneo } = await admin
+            .from('torneos')
+            .select('club_id, club_rival_id, formato, fecha_inicio')
+            .eq('id', partido.torneo_id)
+            .single();
+        if (torneo?.formato !== 'copa_davis') return { success: false, message: "Solo en Copa Davis" };
+        const esLocal = String(torneo.club_id) === String(me.id);
+        const esRival = String(torneo.club_rival_id) === String(me.id);
+        if (!esLocal && !esRival) return { success: false, message: "No eres parte de este torneo" };
+
+        if (!parejaLocalId || !parejaRivalId) return { success: false, message: "Debes seleccionar las dos parejas" };
+        if (parejaLocalId === parejaRivalId) return { success: false, message: "Las parejas no pueden ser la misma" };
+        if (![1, 2, 3].includes(puntos)) return { success: false, message: "Los puntos deben ser 1, 2 o 3" };
+
+        const updateData: Record<string, unknown> = {
+            pareja1_id: parejaLocalId,
+            pareja2_id: parejaRivalId,
+            puntos_partido: puntos,
+        };
+        if (fecha) updateData.fecha = fecha;
+
+        const { error } = await admin.from('partidos').update(updateData).eq('id', partidoId);
+        if (error) return { success: false, message: "Error asignando partido: " + error.message };
+
+        revalidatePath(`/club/torneos/${partido.torneo_id}`);
+        revalidatePath(`/torneos/${partido.torneo_id}`);
+        return { success: true };
     } catch (err: unknown) {
         const e = err as Error;
         return { success: false, message: e.message || "Error desconocido" };
@@ -182,6 +249,10 @@ export async function inscribirParejaCopa({
         if (!representandoClubId) return { success: false, message: "Falta el club que representan" };
         if (representandoClubId !== torneo.club_id && representandoClubId !== torneo.club_rival_id) {
             return { success: false, message: "El club debe ser uno de los dos del torneo" };
+        }
+        // SEGURIDAD: cada club solo puede inscribir parejas de sí mismo, no del rival.
+        if (String(representandoClubId) !== String(me.id)) {
+            return { success: false, message: "Solo puedes inscribir parejas de tu propio club" };
         }
         if (!jugador1Sel || !jugador2Sel) return { success: false, message: "Selecciona los dos jugadores" };
 

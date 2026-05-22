@@ -19,9 +19,11 @@ interface Props {
     clubLocal: ClubLite;
     clubRival: ClubLite;
     categoriasSugeridas?: string[];
+    /** ID del club del admin actual — fuerza a que solo inscriba SUS parejas. */
+    currentClubId: string;
 }
 
-export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, categoriasSugeridas = [] }: Props) {
+export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, categoriasSugeridas = [], currentClubId }: Props) {
     const [open, setOpen] = useState(false);
     const router = useRouter();
     const [pending, startTransition] = useTransition();
@@ -31,7 +33,9 @@ export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, cate
     const [loading, setLoading] = useState(false);
 
     const [categoria, setCategoria] = useState("");
-    const [representandoClubId, setRepresentandoClubId] = useState<string>(clubLocal.id);
+    // El club se fuerza al del admin actual — no se puede inscribir parejas del rival
+    const representandoClubId = currentClubId;
+    const miClubNombre = currentClubId === clubLocal.id ? clubLocal.nombre : clubRival.nombre;
 
     // Jugador 1
     const [j1Manual, setJ1Manual] = useState(false);
@@ -63,7 +67,6 @@ export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, cate
 
     const reset = () => {
         setCategoria("");
-        setRepresentandoClubId(clubLocal.id);
         setJ1Manual(false); setJ1Sel(""); setJ1Name("");
         setJ2Manual(false); setJ2Sel(""); setJ2Name("");
         setError(null);
@@ -119,34 +122,19 @@ export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, cate
                 </DialogHeader>
 
                 <div className="space-y-4 py-2">
-                    {/* Club que representa */}
+                    {/* Club fijo (solo se inscriben parejas del club del admin actual) */}
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">¿Para qué club juega?</label>
-                        <div className="grid grid-cols-2 gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setRepresentandoClubId(clubLocal.id)}
-                                className={cn(
-                                    "py-3 px-3 rounded-lg border-2 font-bold transition-all text-sm uppercase tracking-tight",
-                                    representandoClubId === clubLocal.id
-                                        ? "bg-emerald-500/15 border-emerald-500 text-emerald-300"
-                                        : "bg-neutral-950 border-neutral-800 text-neutral-500 hover:text-neutral-300"
-                                )}
-                            >
-                                {clubLocal.nombre}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setRepresentandoClubId(clubRival.id)}
-                                className={cn(
-                                    "py-3 px-3 rounded-lg border-2 font-bold transition-all text-sm uppercase tracking-tight",
-                                    representandoClubId === clubRival.id
-                                        ? "bg-purple-500/15 border-purple-500 text-purple-300"
-                                        : "bg-neutral-950 border-neutral-800 text-neutral-500 hover:text-neutral-300"
-                                )}
-                            >
-                                {clubRival.nombre}
-                            </button>
+                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Esta pareja juega para</label>
+                        <div className={cn(
+                            "py-3 px-4 rounded-lg border-2 font-bold text-sm uppercase tracking-tight",
+                            currentClubId === clubLocal.id
+                                ? "bg-emerald-500/15 border-emerald-500 text-emerald-300"
+                                : "bg-purple-500/15 border-purple-500 text-purple-300"
+                        )}>
+                            {miClubNombre}
+                            <span className="block text-[10px] font-normal text-neutral-500 mt-1 normal-case tracking-normal">
+                                Cada club solo inscribe sus propias parejas. El club rival no las verá hasta 30 min antes del partido.
+                            </span>
                         </div>
                     </div>
 

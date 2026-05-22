@@ -248,11 +248,14 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
 
     const hasStarted = (rawPartidos || []).length > 0;
 
-    // Copa Davis: cargar info del club rival y de las parejas inscritas
+    // Copa Davis: cargar info del club rival y aplicar privacidad de "intriga"
+    // El club rival no ve las parejas del otro club hasta 30 min antes de cada partido.
     let rivalClubData: { id: string; nombre: string } | null = null;
+    let currentClubIdCopa: string = String(userData.id);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let inscripcionesCopa: any[] = [];
     let inscripcionesJugadores: { id: string; nombre: string | null; apellido: string | null; email: string | null }[] = [];
+    const REVEAL_MINUTES = 30; // ventana de revelación antes del partido
     if (torneo.formato === 'copa_davis' && torneo.club_rival_id) {
         const { data: rd } = await adminSupabase
             .from('users')
@@ -283,6 +286,26 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                 .in('id', Array.from(userIds));
             inscripcionesJugadores = (jugData || []) as typeof inscripcionesJugadores;
         }
+        // PRIVACIDAD: el admin actual solo ve las inscripciones de SU club.
+        // Las del rival se ocultan completamente (no se envían al cliente).
+        currentClubIdCopa = String(userData.id);
+    }
+
+    // Mapa pareja_id → club que representa (necesario para privacidad en partidos)
+    const parejaToClub = new Map<string, string>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    inscripcionesCopa.forEach((i: any) => {
+        if (i.pareja_id && i.representando_club_id) {
+            parejaToClub.set(i.pareja_id, String(i.representando_club_id));
+        }
+    });
+
+    // Filtrar inscripciones para enviar al cliente: solo las del club del admin
+    if (torneo.formato === 'copa_davis') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        inscripcionesCopa = inscripcionesCopa.filter((i: any) =>
+            String(i.representando_club_id) === currentClubIdCopa
+        );
     }
 
 
@@ -310,6 +333,26 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
     }
 
     const esCopaDavis = torneo.formato === 'copa_davis';
+    const nowMs = Date.now();
+    const HIDDEN_TEXT = '🤫 Por revelar';
+    /** Decide si una pareja específica debe ser oculta al currentClub.
+     *  Reglas (Copa Davis):
+     *   - Si la pareja es del mismo club que el admin → visible
+     *   - Si es del rival → visible solo si el partido tiene resultado o
+     *     faltan ≤ 30 min para su fecha. Si no, oculta. */
+    const debeOcultar = (parejaId: string | null | undefined, partidoFecha: string | null, tieneResultado: boolean): boolean => {
+        if (!esCopaDavis) return false;
+        if (!parejaId) return false;
+        const clubDeLaPareja = parejaToClub.get(parejaId);
+        if (!clubDeLaPareja) return false;
+        if (clubDeLaPareja === currentClubIdCopa) return false;
+        // Es del rival — solo se revela si ya jugó o si faltan ≤30 min
+        if (tieneResultado) return false;
+        if (!partidoFecha) return true;
+        const diffMin = (new Date(partidoFecha).getTime() - nowMs) / 60000;
+        return diffMin > REVEAL_MINUTES;
+    };
+
     const partidosReales: MatchReal[] = (rawPartidos || [])
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .filter((p: any) => {
@@ -322,14 +365,21 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
         .map((p: any) => {
         const p1 = parejaDataMap.get(p.pareja1_id);
         const p2 = parejaDataMap.get(p.pareja2_id);
+        const tieneResultado = !!p.resultado;
+        const oculta1 = debeOcultar(p.pareja1_id, p.fecha, tieneResultado);
+        const oculta2 = debeOcultar(p.pareja2_id, p.fecha, tieneResultado);
         return {
             ...p,
-            pareja1: { id: p.pareja1_id, nombre_pareja: p1?.nombre_pareja || "TBD" },
-            pareja2: { id: p.pareja2_id, nombre_pareja: p2?.nombre_pareja || "TBD" },
-            jugador1_id: p1?.jugador1_id,
-            jugador2_id: p1?.jugador2_id,
-            jugador3_id: p2?.jugador1_id,
-            jugador4_id: p2?.jugador2_id
+            // Si la pareja es del rival y aún no se revela, mandamos un placeholder.
+            // También quitamos el ID para que el cliente no la pueda re-derivar.
+            pareja1_id: oculta1 ? null : p.pareja1_id,
+            pareja2_id: oculta2 ? null : p.pareja2_id,
+            pareja1: { id: oculta1 ? null : p.pareja1_id, nombre_pareja: oculta1 ? HIDDEN_TEXT : (p1?.nombre_pareja || "TBD") },
+            pareja2: { id: oculta2 ? null : p.pareja2_id, nombre_pareja: oculta2 ? HIDDEN_TEXT : (p2?.nombre_pareja || "TBD") },
+            jugador1_id: oculta1 ? undefined : p1?.jugador1_id,
+            jugador2_id: oculta1 ? undefined : p1?.jugador2_id,
+            jugador3_id: oculta2 ? undefined : p2?.jugador1_id,
+            jugador4_id: oculta2 ? undefined : p2?.jugador2_id
         } as MatchReal;
     });
 
@@ -481,6 +531,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                             inscripciones={inscripcionesCopa as unknown as Parameters<typeof CopaDavisManager>[0]['inscripciones']}
                             inscripcionesJugadores={inscripcionesJugadores}
                             categoriasHabilitadas={torneo.reglas_puntuacion?.categorias_habilitadas || []}
+                            currentClubId={currentClubIdCopa}
                         />
 
                         {/* Cronograma — los partidos placeholder caen en la bolsa y se programan aquí */}
