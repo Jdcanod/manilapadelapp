@@ -222,7 +222,7 @@ export function CrearTorneoForm() {
                     </div>
                 )}
 
-                {!esCopaDavis && (
+                {/* Reglas de los partidos — aplican a todos los formatos, incluido Copa Davis */}
                 <div className="pt-4 border-t border-neutral-800 space-y-4">
                     <h3 className="text-sm font-bold text-amber-500 uppercase tracking-wider">Reglas de los Partidos</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -278,7 +278,6 @@ export function CrearTorneoForm() {
                         </div>
                     </div>
                 </div>
-                )}
 
                 {/* Categorías habilitadas — siempre visible */}
                 <div className="pt-4 border-t border-neutral-800 space-y-4">

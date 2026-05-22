@@ -60,8 +60,8 @@ export async function crearTorneoCentral(formData: FormData) {
         ? {
             sets: parseInt(formData.get("sets") as string) || 3,
             juegos: parseInt(formData.get("juegos") as string) || 6,
-            ventaja: 'oro',
-            tipo_desempate: 'super_tiebreak',
+            ventaja: (formData.get("ventaja") as string) || 'oro',
+            tipo_desempate: (formData.get("tipo_desempate") as string) || 'super_tiebreak',
             categorias_habilitadas: categoriasSeleccionadas,
             config_duracion: 60,
             config_canchas: parseInt(formData.get("config_canchas") as string) || 2,
