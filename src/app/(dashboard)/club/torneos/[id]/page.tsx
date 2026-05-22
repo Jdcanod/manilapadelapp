@@ -519,6 +519,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                             <p className="text-xs text-neutral-500 mt-1">Edítalo desde la configuración para asignar uno.</p>
                         </div>
                     ) : (
+                        <>
                         <CopaDavisManager
                             torneoId={params.id}
                             clubLocal={{ id: String(clubInfo?.id || torneo.club_id), nombre: clubInfo?.nombre || 'Local' }}
@@ -548,6 +549,7 @@ export default async function TorneoDetailsPage({ params }: { params: { id: stri
                                 parejaPlayers={parejaPlayersMap}
                             />
                         </div>
+                        </>
                     )}
                 </div>
             ) : (
