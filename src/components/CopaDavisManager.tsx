@@ -262,11 +262,12 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                                         </div>
                                     </div>
                                     <div className="divide-y divide-neutral-800">
-                                        {ps.map(p => {
+                                        {ps.map((p, idx) => {
                                             const winner = getWinner(p.resultado);
                                             const p1Display = resolvePairName(p.pareja1?.id || p.pareja1_id, p.pareja1?.nombre_pareja, parejaPlayers) || 'TBD';
                                             const p2Display = resolvePairName(p.pareja2?.id || p.pareja2_id, p.pareja2?.nombre_pareja, parejaPlayers) || 'TBD';
                                             const isConfirmed = p.estado_resultado === 'confirmado';
+                                            const numeroPartido = idx + 1;
                                             return (
                                                 <div key={p.id} className={cn(
                                                     "px-5 py-4 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-center",
@@ -275,11 +276,16 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                                                     <div className="space-y-1.5 min-w-0">
                                                         {/* Header chip */}
                                                         <div className="flex items-center gap-2 flex-wrap">
+                                                            <Badge variant="outline" className="text-[9px] font-black border-neutral-700 text-neutral-300 bg-neutral-950 h-4 px-1.5">
+                                                                {cat} · Partido {numeroPartido}/{ps.length}
+                                                            </Badge>
                                                             <Badge className={cn(
                                                                 "text-[9px] font-black border h-4 px-1.5",
                                                                 p.puntos_partido === 3
                                                                     ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
-                                                                    : "bg-neutral-800 border-neutral-700 text-neutral-300"
+                                                                    : p.puntos_partido === 2
+                                                                        ? "bg-purple-500/15 border-purple-500/40 text-purple-300"
+                                                                        : "bg-neutral-800 border-neutral-700 text-neutral-300"
                                                             )}>
                                                                 {p.puntos_partido || 0} pt{(p.puntos_partido || 0) !== 1 ? 's' : ''}
                                                             </Badge>

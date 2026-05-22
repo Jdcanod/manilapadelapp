@@ -246,6 +246,12 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                 <Badge variant="outline" className={`text-[9px] font-black uppercase border ${getFaseLabel(match).color}`}>
                                                     {getFaseLabel(match).label}
                                                 </Badge>
+                                                {/* Identificador del partido placeholder (Copa Davis genera "Pendiente · cat #N") */}
+                                                {match.lugar?.startsWith('Pendiente · ') && (
+                                                    <Badge variant="outline" className="bg-purple-500/10 text-purple-300 border-purple-500/30 text-[9px] font-black uppercase">
+                                                        {match.lugar.replace('Pendiente · ', '')}
+                                                    </Badge>
+                                                )}
                                             </div>
                                             <GripVertical className="w-3 h-3 text-neutral-700 group-hover:text-neutral-500 transition-colors" />
                                         </div>

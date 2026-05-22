@@ -112,9 +112,10 @@ export async function crearTorneoCentral(formData: FormData) {
                     pareja1_id: null,
                     pareja2_id: null,
                     nivel: cat,
-                    // 'Pendiente' como lugar para que la chronograma lo detecte como NO programado
-                    // y lo muestre en la bolsa (la fecha real se asigna al arrastrar a un slot).
-                    lugar: 'Pendiente',
+                    // Identificador único en el lugar para diferenciar placeholders
+                    // dentro de la misma categoría. La chronograma sigue detectándolo
+                    // como NO programado porque no contiene "Cancha N".
+                    lugar: `Pendiente · ${cat} #${i}`,
                     fecha: fechaSentinel, // partidos.fecha es NOT NULL en la tabla — usamos la del torneo
                     estado: 'programado',
                     tipo_partido: 'torneo',
