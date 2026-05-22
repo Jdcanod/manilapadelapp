@@ -21,8 +21,10 @@ export async function crearPartidoCopa({
 }: {
     torneoId: string;
     categoria: string;
-    parejaLocalId: string;
-    parejaRivalId: string;
+    /** Opcional: si se omite, el partido queda como placeholder en la bolsa. */
+    parejaLocalId?: string;
+    /** Opcional: si se omite, el partido queda como placeholder en la bolsa. */
+    parejaRivalId?: string;
     puntos: 1 | 2 | 3;
     fecha?: string | null;
 }) {
@@ -55,12 +57,14 @@ export async function crearPartidoCopa({
 
         // Validaciones básicas
         if (!categoria?.trim()) return { success: false, message: "La categoría es requerida" };
-        if (!parejaLocalId || !parejaRivalId) return { success: false, message: "Debes seleccionar las dos parejas" };
-        if (parejaLocalId === parejaRivalId) return { success: false, message: "Las parejas no pueden ser la misma" };
+        if (parejaLocalId && parejaRivalId && parejaLocalId === parejaRivalId) {
+            return { success: false, message: "Las parejas no pueden ser la misma" };
+        }
         if (![1, 2, 3].includes(puntos)) return { success: false, message: "Los puntos deben ser 1, 2 o 3" };
 
-        const lugar = `Copa Davis · ${categoria.trim()}`;
-        const fechaFinal = fecha || torneo.fecha_inicio || new Date().toISOString();
+        // Si NO se pasaron parejas: el partido entra como placeholder en la bolsa.
+        // Si SÍ se pasaron: se crea ya con parejas asignadas.
+        const tieneParejas = !!parejaLocalId && !!parejaRivalId;
 
         const { data, error } = await admin
             .from('partidos')
@@ -68,11 +72,11 @@ export async function crearPartidoCopa({
                 torneo_id: torneoId,
                 club_id: torneo.club_id,
                 creador_id: me.id,
-                pareja1_id: parejaLocalId,
-                pareja2_id: parejaRivalId,
+                pareja1_id: parejaLocalId || null,
+                pareja2_id: parejaRivalId || null,
                 nivel: categoria.trim(),
-                lugar,
-                fecha: fechaFinal,
+                lugar: 'Pendiente', // queda en la bolsa hasta que se arrastre al cronograma
+                fecha: tieneParejas && fecha ? fecha : null,
                 estado: 'programado',
                 tipo_partido: 'torneo',
                 puntos_partido: puntos,
@@ -98,18 +102,24 @@ export async function crearPartidoCopa({
  * Se usa cuando el torneo se creó con N placeholders por categoría y el admin
  * empieza a llenarlos.
  */
+/**
+ * Cada admin de club asigna SU pareja a un partido placeholder. El slot
+ * (pareja1 o pareja2) se determina automáticamente según el club del admin:
+ *   - Admin del club host  → llena pareja1_id (slot local)
+ *   - Admin del club rival → llena pareja2_id (slot visitante)
+ * Mantiene la intriga: ningún admin necesita ver las parejas del oponente
+ * para asignar las suyas.
+ *
+ * Los puntos los puede ajustar cualquier admin (último valor gana).
+ */
 export async function asignarPartidoCopa({
     partidoId,
-    parejaLocalId,
-    parejaRivalId,
+    miParejaId,
     puntos,
-    fecha,
 }: {
     partidoId: string;
-    parejaLocalId: string;
-    parejaRivalId: string;
+    miParejaId: string;
     puntos: 1 | 2 | 3;
-    fecha?: string | null;
 }) {
     try {
         const supabase = createClient();
@@ -122,14 +132,14 @@ export async function asignarPartidoCopa({
 
         const { data: partido } = await admin
             .from('partidos')
-            .select('id, torneo_id, nivel')
+            .select('id, torneo_id, nivel, pareja1_id, pareja2_id')
             .eq('id', partidoId)
             .single();
         if (!partido) return { success: false, message: "Partido no encontrado" };
 
         const { data: torneo } = await admin
             .from('torneos')
-            .select('club_id, club_rival_id, formato, fecha_inicio')
+            .select('club_id, club_rival_id, formato')
             .eq('id', partido.torneo_id)
             .single();
         if (torneo?.formato !== 'copa_davis') return { success: false, message: "Solo en Copa Davis" };
@@ -137,16 +147,32 @@ export async function asignarPartidoCopa({
         const esRival = String(torneo.club_rival_id) === String(me.id);
         if (!esLocal && !esRival) return { success: false, message: "No eres parte de este torneo" };
 
-        if (!parejaLocalId || !parejaRivalId) return { success: false, message: "Debes seleccionar las dos parejas" };
-        if (parejaLocalId === parejaRivalId) return { success: false, message: "Las parejas no pueden ser la misma" };
+        if (!miParejaId) return { success: false, message: "Selecciona tu pareja" };
         if (![1, 2, 3].includes(puntos)) return { success: false, message: "Los puntos deben ser 1, 2 o 3" };
 
+        // Validar que la pareja pertenezca al club del admin (vía torneo_parejas)
+        const { data: insp } = await admin
+            .from('torneo_parejas')
+            .select('id, representando_club_id')
+            .eq('torneo_id', partido.torneo_id)
+            .eq('pareja_id', miParejaId)
+            .single();
+        if (!insp) return { success: false, message: "Esa pareja no está inscrita en este torneo" };
+        if (String(insp.representando_club_id) !== String(me.id)) {
+            return { success: false, message: "Solo puedes asignar parejas de tu propio club" };
+        }
+
+        // Determinar a qué slot va: pareja1 = local (club_id del torneo), pareja2 = rival
+        const slotKey = esLocal ? 'pareja1_id' : 'pareja2_id';
+        const otroSlot = esLocal ? partido.pareja2_id : partido.pareja1_id;
+        if (otroSlot && otroSlot === miParejaId) {
+            return { success: false, message: "La pareja no puede estar en los dos lados" };
+        }
+
         const updateData: Record<string, unknown> = {
-            pareja1_id: parejaLocalId,
-            pareja2_id: parejaRivalId,
+            [slotKey]: miParejaId,
             puntos_partido: puntos,
         };
-        if (fecha) updateData.fecha = fecha;
 
         const { error } = await admin.from('partidos').update(updateData).eq('id', partidoId);
         if (error) return { success: false, message: "Error asignando partido: " + error.message };

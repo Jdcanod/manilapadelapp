@@ -28,6 +28,8 @@ interface Props {
     categoriaFija?: string;
     /** Custom trigger button (opcional, sino usa "Añadir Partido") */
     triggerLabel?: string;
+    /** ID del club del admin actual — para que en modo asignar solo vea sus parejas. */
+    currentClubId?: string;
 }
 
 interface Pareja {
@@ -45,7 +47,7 @@ interface Jugador {
     email?: string | null;
 }
 
-export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, categoriasSugeridas = [], asignarAPartidoId, categoriaFija, triggerLabel }: Props) {
+export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, categoriasSugeridas = [], asignarAPartidoId, categoriaFija, triggerLabel, currentClubId }: Props) {
     const esModoAsignar = !!asignarAPartidoId;
     const [open, setOpen] = useState(false);
     const router = useRouter();
@@ -54,9 +56,8 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
 
     const [categoria, setCategoria] = useState(categoriaFija || "");
     const [puntos, setPuntos] = useState<1 | 2 | 3>(1);
-    const [parejaLocalId, setParejaLocalId] = useState("");
-    const [parejaRivalId, setParejaRivalId] = useState("");
-    const [fecha, setFecha] = useState("");
+    // Solo se asigna LA pareja del admin actual (sea local o rival).
+    const [miParejaId, setMiParejaId] = useState("");
 
     const [loading, setLoading] = useState(false);
     const [localParejas, setLocalParejas] = useState<Pareja[]>([]);
@@ -64,20 +65,23 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
     const [rivalParejas, setRivalParejas] = useState<Pareja[]>([]);
     const [rivalJugadores, setRivalJugadores] = useState<Jugador[]>([]);
 
-    // Cargar parejas inscritas en el torneo por club (no por club_id del usuario)
+    // En modo asignar: solo cargamos las parejas del club del admin actual.
+    // En modo crear (a la bolsa): no necesitamos parejas — el placeholder
+    // se asigna después.
+    const miClubId = currentClubId || clubLocal.id;
     useEffect(() => {
-        if (!open) return;
+        if (!open || !esModoAsignar) return;
         setLoading(true);
-        Promise.all([
-            obtenerParejasInscritasPorClub(torneoId, clubLocal.id),
-            obtenerParejasInscritasPorClub(torneoId, clubRival.id),
-        ]).then(([a, b]) => {
-            setLocalParejas(a.parejas);
-            setLocalJugadores(a.jugadores);
-            setRivalParejas(b.parejas);
-            setRivalJugadores(b.jugadores);
-        }).finally(() => setLoading(false));
-    }, [open, torneoId, clubLocal.id, clubRival.id]);
+        obtenerParejasInscritasPorClub(torneoId, miClubId)
+            .then(a => {
+                setLocalParejas(a.parejas);
+                setLocalJugadores(a.jugadores);
+            })
+            .finally(() => setLoading(false));
+        // Marcar rivales vacíos (no se usan en este modo)
+        setRivalParejas([]);
+        setRivalJugadores([]);
+    }, [open, esModoAsignar, torneoId, miClubId]);
 
     const jugadorMap = useMemo(() => {
         const m = new Map<string, Jugador>();
@@ -95,36 +99,30 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
     };
 
     const reset = () => {
-        setCategoria("");
-        setPuntos(3);
-        setParejaLocalId("");
-        setParejaRivalId("");
-        setFecha("");
+        setCategoria(categoriaFija || "");
+        setPuntos(1);
+        setMiParejaId("");
         setError(null);
     };
 
     const handleSubmit = () => {
         setError(null);
         if (!categoria.trim()) return setError("La categoría es requerida");
-        if (!parejaLocalId) return setError(`Selecciona pareja de ${clubLocal.nombre}`);
-        if (!parejaRivalId) return setError(`Selecciona pareja de ${clubRival.nombre}`);
+        // Si es modo asignar: solo se asigna LA pareja del admin actual.
+        // El club rival asignará la suya por separado.
+        if (esModoAsignar && !miParejaId) return setError("Selecciona tu pareja");
 
         startTransition(async () => {
             const r = esModoAsignar && asignarAPartidoId
                 ? await asignarPartidoCopa({
                     partidoId: asignarAPartidoId,
-                    parejaLocalId,
-                    parejaRivalId,
+                    miParejaId,
                     puntos,
-                    fecha: fecha ? new Date(fecha).toISOString() : null,
                 })
                 : await crearPartidoCopa({
                     torneoId,
                     categoria: categoria.trim(),
-                    parejaLocalId,
-                    parejaRivalId,
                     puntos,
-                    fecha: fecha ? new Date(fecha).toISOString() : null,
                 });
             if (!r.success) {
                 setError(r.message || "Error al guardar");
@@ -188,55 +186,44 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                     </div>
                     )}
 
-                    {/* Pareja local + Pareja rival */}
-                    {loading ? (
+                    {/* Tu pareja — solo se muestra en modo asignar.
+                        Cada admin solo asigna SU pareja. La del rival es invisible
+                        hasta 30 min antes para mantener la intriga. */}
+                    {esModoAsignar && (loading ? (
                         <div className="py-8 text-center text-sm text-neutral-500 flex items-center justify-center gap-2">
-                            <Loader2 className="w-4 h-4 animate-spin" /> Cargando parejas…
+                            <Loader2 className="w-4 h-4 animate-spin" /> Cargando tus parejas…
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 gap-3">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
-                                    Pareja de {clubLocal.nombre}
-                                </label>
-                                {localParejas.length === 0 ? (
-                                    <div className="text-[11px] text-amber-400 bg-amber-500/5 border border-amber-500/20 rounded-lg p-2">
-                                        Este club aún no tiene parejas inscritas. Usa <strong>+ Inscribir Pareja</strong> en la pantalla anterior.
-                                    </div>
-                                ) : (
-                                    <Select value={parejaLocalId} onValueChange={setParejaLocalId}>
-                                        <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
-                                            <SelectValue placeholder="Selecciona pareja…" />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[260px]">
-                                            {localParejas.map(p => (
-                                                <SelectItem key={p.id} value={p.id}>{labelPareja(p)}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                )}
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest">
-                                    Pareja de {clubRival.nombre}
-                                </label>
-                                {rivalParejas.length === 0 ? (
-                                    <div className="text-[11px] text-amber-400 bg-amber-500/5 border border-amber-500/20 rounded-lg p-2">
-                                        El club rival aún no tiene parejas inscritas. Inscríbelas desde la pantalla anterior.
-                                    </div>
-                                ) : (
-                                    <Select value={parejaRivalId} onValueChange={setParejaRivalId}>
-                                        <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
-                                            <SelectValue placeholder="Selecciona pareja…" />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[260px]">
-                                            {rivalParejas.map(p => (
-                                                <SelectItem key={p.id} value={p.id}>{labelPareja(p)}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                )}
-                            </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                                Tu pareja ({miClubId === clubLocal.id ? clubLocal.nombre : clubRival.nombre})
+                            </label>
+                            {localParejas.length === 0 ? (
+                                <div className="text-[11px] text-amber-400 bg-amber-500/5 border border-amber-500/20 rounded-lg p-2">
+                                    Aún no tienes parejas inscritas. Usa <strong>+ Inscribir Pareja</strong> primero.
+                                </div>
+                            ) : (
+                                <Select value={miParejaId} onValueChange={setMiParejaId}>
+                                    <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
+                                        <SelectValue placeholder="Selecciona tu pareja…" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[260px]">
+                                        {localParejas.map(p => (
+                                            <SelectItem key={p.id} value={p.id}>{labelPareja(p)}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                            <p className="text-[10px] text-neutral-600 mt-1">
+                                El club rival asignará su pareja por separado para mantener la intriga.
+                            </p>
+                        </div>
+                    ))}
+
+                    {/* Mensaje informativo cuando es crear (no asignar) */}
+                    {!esModoAsignar && (
+                        <div className="text-[11px] text-blue-300 bg-blue-500/5 border border-blue-500/20 rounded-lg p-3">
+                            Este partido se guardará como <strong>placeholder</strong> en la bolsa. Después podrás arrastrarlo al cronograma para programar fecha y cancha, y asignarle las parejas.
                         </div>
                     )}
 
@@ -265,16 +252,7 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                         </div>
                     </div>
 
-                    {/* Fecha opcional */}
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Fecha y hora (opcional)</label>
-                        <Input
-                            type="datetime-local"
-                            value={fecha}
-                            onChange={e => setFecha(e.target.value)}
-                            className="bg-neutral-950 border-neutral-800 text-white [color-scheme:dark]"
-                        />
-                    </div>
+                    {/* La fecha NO se pide aquí — se asigna arrastrando el partido al cronograma. */}
 
                     {error && (
                         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2.5 text-xs text-red-300 flex items-start gap-2">

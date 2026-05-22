@@ -219,7 +219,7 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                         Partidos
                     </h3>
                     <p className="text-xs text-neutral-500 mt-0.5">
-                        Crea partidos sobre la marcha. Cada uno vale 1 o 3 puntos para el club que gane.
+                        Crea partidos a la bolsa (sin parejas, sin fecha). Después arrástralos al cronograma y cada club asigna su pareja (1, 2 o 3 puntos).
                     </p>
                 </div>
                 <AnadirPartidoCopaDialog
@@ -227,6 +227,7 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                     clubLocal={clubLocal}
                     clubRival={clubRival}
                     categoriasSugeridas={categoriasSugeridas}
+                    currentClubId={currentClubId}
                 />
             </div>
 
@@ -316,6 +317,7 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                                                                 categoriasSugeridas={categoriasSugeridas}
                                                                 asignarAPartidoId={p.id}
                                                                 categoriaFija={p.nivel || undefined}
+                                                                currentClubId={currentClubId}
                                                             />
                                                         ) : (
                                                             <AdminTournamentResultModal
