@@ -293,12 +293,15 @@ export async function inscribirParejaCopa({
                 // Separar nombre y apellido por el primer espacio (resto va al apellido)
                 const [primerNombre, ...restoNombre] = fullName.split(/\s+/);
                 const apellido = restoNombre.join(' ') || null;
+                // No seteamos club_id en el user: el vínculo al club queda en
+                // torneo_parejas.representando_club_id. users.club_id tiene una FK
+                // distinta que provoca constraint violation al pasar el users.id
+                // del admin.
                 const { data, error } = await admin.from('users').insert({
                     nombre: primerNombre,
                     apellido,
                     email: `invitado_${Date.now()}_${Math.random().toString(36).substring(7)}@manilapadel.app`,
                     rol: 'jugador',
-                    club_id: representandoClubId,
                 }).select('id').single();
                 if (error) throw new Error("Error creando invitado: " + error.message);
                 return data.id;
