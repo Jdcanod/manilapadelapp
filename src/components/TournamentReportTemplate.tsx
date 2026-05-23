@@ -19,9 +19,12 @@ interface Props {
     participantes: any[];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     grupos: any[];
+    modoMisterio?: boolean;
+    nombreClubExporta?: string;
+    soloLogosManila?: boolean;
 }
 
-export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(({ torneo, clubInfo, partidos, participantes, grupos }, ref) => {
+export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(({ torneo, clubInfo, partidos, participantes, grupos, modoMisterio, nombreClubExporta, soloLogosManila }, ref) => {
     
     // Organizar partidos por fecha para el cronograma (Deduplicación Lógica)
     // Evitamos que el mismo enfrentamiento aparezca dos veces en el mismo grupo/nivel
@@ -83,12 +86,15 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
             {/* ENCABEZADO */}
             <div className="pdf-section pdf-header flex justify-between items-center border-b-2 border-black pb-6 mb-8">
                 <div className="flex items-center gap-4">
-                    {clubInfo?.foto && (
+                    {soloLogosManila ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src="/images/logo.png" alt="Logo Manila" className="w-16 h-16 object-contain" />
+                    ) : clubInfo?.foto ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
                         <img src={clubInfo.foto} alt="Logo Club" className="w-20 h-20 object-contain" />
-                    )}
+                    ) : null}
                     <div>
-                        <h1 className="text-2xl font-bold uppercase">{clubInfo?.nombre || "CLUB DE PADEL"}</h1>
+                        <h1 className="text-2xl font-bold uppercase">{nombreClubExporta || clubInfo?.nombre || "CLUB DE PADEL"}</h1>
                         <p className="text-gray-600 text-sm">Reporte Oficial de Torneo</p>
                     </div>
                 </div>
@@ -164,7 +170,9 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                             }
                                                             return sorted.map((p, idx) => (
                                                                 <tr key={idx} className="border-b border-gray-100">
-                                                                    <td className="p-2 font-medium">{p.nombre}</td>
+                                                                    <td className="p-2 font-medium">
+                                                                        {modoMisterio ? <span className="italic text-neutral-400 font-normal">Pareja Oculta (Misterio)</span> : p.nombre}
+                                                                    </td>
                                                                     <td className="p-2 text-center">{p.pj}</td>
                                                                     <td className="p-2 text-center text-gray-500">{p.pg}</td>
                                                                     <td className="p-2 text-center text-gray-400">{p.sg}-{p.sp}</td>
@@ -214,7 +222,9 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                 {partidosPorFecha[fechaKey].map((partido: any) => (
                                     <tr key={partido.id} className="border-b border-gray-100 hover:bg-gray-50">
                                         <td className="py-2 font-bold">{partido.hora || "--:--"}</td>
-                                        <td className="py-2">{partido.pareja1?.nombre_pareja || "TBD"}</td>
+                                        <td className="py-2">
+                                            {modoMisterio && partido.pareja1?.nombre_pareja ? <span className="italic text-neutral-400">Oculta (Misterio)</span> : (partido.pareja1?.nombre_pareja || "TBD")}
+                                        </td>
                                         <td className="py-2 text-center">
                                             {partido.resultado ? (
                                                 <span className="font-bold text-emerald-600">{partido.resultado}</span>
@@ -222,7 +232,9 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                 <span className="text-gray-300 italic">vs</span>
                                             )}
                                         </td>
-                                        <td className="py-2">{partido.pareja2?.nombre_pareja || "TBD"}</td>
+                                        <td className="py-2">
+                                            {modoMisterio && partido.pareja2?.nombre_pareja ? <span className="italic text-neutral-400">Oculta (Misterio)</span> : (partido.pareja2?.nombre_pareja || "TBD")}
+                                        </td>
                                         <td className="py-2 text-right font-medium text-blue-700">{partido.lugar || "Pendiente"}</td>
                                     </tr>
                                 ))}
