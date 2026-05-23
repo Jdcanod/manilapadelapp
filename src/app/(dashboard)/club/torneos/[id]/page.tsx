@@ -171,7 +171,8 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                 tipo: 'regular',
                 jugador1_id: tp.pareja?.jugador1_id,
                 jugador2_id: tp.pareja?.jugador2_id,
-                grupo_id: tp.torneo_grupo_id ? String(tp.torneo_grupo_id) : null
+                grupo_id: tp.torneo_grupo_id ? String(tp.torneo_grupo_id) : null,
+                representando_club_id: tp.representando_club_id
             });
         });
     }
