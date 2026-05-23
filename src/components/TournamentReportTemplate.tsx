@@ -155,11 +155,43 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                 </div>
             )}
 
+            {/* SECCIÓN DE PAREJAS DEL CLUB (COPA DAVIS) */}
+            {isCopaDavis && (
+                <div className="mb-10">
+                    <h3 className="text-lg font-bold bg-gray-100 p-2 mb-4 uppercase border-l-4 border-blue-900">Parejas Representantes ({clubInfo?.nombre})</h3>
+                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <table className="w-full text-xs text-left">
+                            <thead className="bg-gray-800 text-white font-bold uppercase tracking-widest text-[10px]">
+                                <tr>
+                                    <th className="p-3">Pareja</th>
+                                    <th className="p-3">Categoría</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {participantes
+                                    .filter(p => String(p.representando_club_id) === String(currentClubId))
+                                    .map((p, idx) => (
+                                        <tr key={p.id || idx} className="border-b border-gray-100 hover:bg-gray-50">
+                                            <td className="p-3 font-medium text-black">{p.nombre}</td>
+                                            <td className="p-3">
+                                                <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-bold text-[10px]">
+                                                    {p.categoria}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
             {/* SECCIÓN DE GRUPOS */}
-            <div className="mb-10">
-                <h3 className="text-lg font-bold bg-gray-100 p-2 mb-4 uppercase border-l-4 border-blue-900">Configuración de Grupos</h3>
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {Array.from({ length: Math.ceil(grupos.length / 2) }, (_, i) => grupos.slice(i * 2, i * 2 + 2)).map((fila: any[], filaIdx) => (
+            {grupos.length > 0 && (
+                <div className="mb-10">
+                    <h3 className="text-lg font-bold bg-gray-100 p-2 mb-4 uppercase border-l-4 border-blue-900">Configuración de Grupos</h3>
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    {Array.from({ length: Math.ceil(grupos.length / 2) }, (_, i) => grupos.slice(i * 2, i * 2 + 2)).map((fila: any[], filaIdx) => (
                     <div key={filaIdx} className="pdf-section mb-4">
                         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 0' }}>
                             <tbody>
@@ -239,17 +271,18 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                             });
                                                         })()}
                                                     </tbody>
-                                                </table>
-                                            </div>
-                                        </td>
-                                    ))}
-                                    {fila.length === 1 && <td style={{ width: '50%' }} />}
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                ))}
-            </div>
+                                                    </table>
+                                                </div>
+                                            </td>
+                                        ))}
+                                        {fila.length === 1 && <td style={{ width: '50%' }} />}
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {/* SECCIÓN DE CRONOGRAMA */}
             <div className="mb-10">
