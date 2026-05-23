@@ -69,6 +69,8 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
         setMatches(initialMatches);
     }, [initialMatches]);
     const [isUpdating, setIsUpdating] = useState(false);
+    // Filtro de bolsa por categoría — ayuda cuando hay muchos placeholders
+    const [bolsaCatFilter, setBolsaCatFilter] = useState<string>('all');
     const [draggedMatchId, setDraggedMatchId] = useState<string | null>(null);
 
     const timeSlots: string[] = [];
@@ -122,6 +124,11 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
 
     const scheduledMatches = matches.filter(isScheduled);
     const pendingMatches = matches.filter(m => !isScheduled(m) && !isAlreadyPlayed(m));
+    // Lista de categorías presentes en la bolsa (para el filtro)
+    const bolsaCategorias = Array.from(new Set(pendingMatches.map(m => m.nivel).filter(Boolean))) as string[];
+    const pendingMatchesFiltrados = bolsaCatFilter === 'all'
+        ? pendingMatches
+        : pendingMatches.filter(m => m.nivel === bolsaCatFilter);
 
     const handleAssign = useCallback(async (matchId: string, time: string, cancha: number) => {
         if (isUpdating) return;
@@ -218,22 +225,45 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
             {isAdmin && (
                 <div className="w-full xl:w-80 shrink-0 xl:sticky xl:top-6 self-start">
                     <Card className="bg-neutral-900 border-neutral-800 h-full overflow-hidden flex flex-col shadow-2xl">
-                        <div className="p-4 border-b border-neutral-800 bg-neutral-950/50 flex justify-between items-center">
-                            <div>
-                                <h3 className="font-black text-amber-500 uppercase tracking-widest text-xs flex items-center gap-2">
-                                    <AlertCircle className="w-4 h-4" /> Bolsa de Pendientes
-                                </h3>
-                                <p className="text-[10px] text-neutral-500 mt-1 uppercase font-bold">Arrastra o selecciona un partido</p>
+                        <div className="p-4 border-b border-neutral-800 bg-neutral-950/50 space-y-3">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h3 className="font-black text-amber-500 uppercase tracking-widest text-xs flex items-center gap-2">
+                                        <AlertCircle className="w-4 h-4" /> Bolsa de Pendientes
+                                    </h3>
+                                    <p className="text-[10px] text-neutral-500 mt-1 uppercase font-bold">Arrastra o selecciona un partido</p>
+                                </div>
+                                <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-300">
+                                    {pendingMatchesFiltrados.length}/{pendingMatches.length}
+                                </Badge>
                             </div>
+                            {/* Filtro por categoría — solo cuando hay más de una */}
+                            {bolsaCategorias.length > 1 && (
+                                <select
+                                    value={bolsaCatFilter}
+                                    onChange={e => setBolsaCatFilter(e.target.value)}
+                                    className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500/40"
+                                >
+                                    <option value="all">Todas las categorías ({pendingMatches.length})</option>
+                                    {bolsaCategorias.sort().map(cat => {
+                                        const count = pendingMatches.filter(m => m.nivel === cat).length;
+                                        return (
+                                            <option key={cat} value={cat}>{cat} ({count})</option>
+                                        );
+                                    })}
+                                </select>
+                            )}
                         </div>
                         <div className="flex-1 overflow-y-auto p-3 space-y-3 max-h-[500px] xl:max-h-[800px] scrollbar-hide">
-                            {pendingMatches.length === 0 ? (
+                            {pendingMatchesFiltrados.length === 0 ? (
                                 <div className="text-center py-20 opacity-30 italic text-xs flex flex-col items-center gap-3">
                                     <Clock className="w-6 h-6" />
-                                    Sin partidos pendientes
+                                    {pendingMatches.length === 0
+                                        ? 'Sin partidos pendientes'
+                                        : `Sin partidos pendientes en ${bolsaCatFilter}`}
                                 </div>
                             ) : (
-                                pendingMatches.map(match => (
+                                pendingMatchesFiltrados.map(match => (
                                     <div 
                                         key={match.id} 
                                         draggable={isAdmin && !isUpdating}
