@@ -16,15 +16,12 @@ interface Props {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     partidos: any[]; 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    participantes: any[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     grupos: any[];
-    modoMisterio?: boolean;
-    nombreClubExporta?: string;
-    soloLogosManila?: boolean;
+    currentClubId: string;
 }
 
-export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(({ torneo, clubInfo, partidos, participantes, grupos, modoMisterio, nombreClubExporta, soloLogosManila }, ref) => {
+export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(({ torneo, clubInfo, partidos, participantes, grupos, currentClubId }, ref) => {
+    const isCopaDavis = !!torneo.club_rival_id;
     
     // Organizar partidos por fecha para el cronograma (Deduplicación Lógica)
     // Evitamos que el mismo enfrentamiento aparezca dos veces en el mismo grupo/nivel
@@ -86,16 +83,15 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
             {/* ENCABEZADO */}
             <div className="pdf-section pdf-header flex justify-between items-center border-b-2 border-black pb-6 mb-8">
                 <div className="flex items-center gap-4">
-                    {soloLogosManila ? (
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/images/logo.png" alt="Logo Manila" className="w-16 h-16 object-contain" />
+                    {clubInfo?.foto && (
                         /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src="/images/logo.png" alt="Logo Manila" className="w-16 h-16 object-contain" />
-                    ) : clubInfo?.foto ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={clubInfo.foto} alt="Logo Club" className="w-20 h-20 object-contain" />
-                    ) : null}
-                    <div>
-                        <h1 className="text-2xl font-bold uppercase">{nombreClubExporta || clubInfo?.nombre || "CLUB DE PADEL"}</h1>
-                        <p className="text-gray-600 text-sm">Reporte Oficial de Torneo</p>
+                        <img src={clubInfo.foto} alt="Logo Club" className="w-20 h-20 object-contain ml-2" />
+                    )}
+                    <div className="ml-2">
+                        <h1 className="text-2xl font-bold uppercase">{clubInfo?.nombre || "CLUB DE PADEL"}</h1>
+                        <p className="text-gray-600 text-sm">{torneo.nombre || "Reporte Oficial de Torneo"}</p>
                     </div>
                 </div>
                 <div className="text-right">
@@ -168,18 +164,21 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                             if (sorted.length === 0) {
                                                                 return <tr><td colSpan={6} className="p-4 text-center text-gray-400 italic">Sin parejas asignadas</td></tr>;
                                                             }
-                                                            return sorted.map((p, idx) => (
-                                                                <tr key={idx} className="border-b border-gray-100">
-                                                                    <td className="p-2 font-medium">
-                                                                        {modoMisterio ? <span className="italic text-neutral-400 font-normal">Pareja Oculta (Misterio)</span> : p.nombre}
-                                                                    </td>
-                                                                    <td className="p-2 text-center">{p.pj}</td>
-                                                                    <td className="p-2 text-center text-gray-500">{p.pg}</td>
-                                                                    <td className="p-2 text-center text-gray-400">{p.sg}-{p.sp}</td>
-                                                                    <td className="p-2 text-center text-gray-400">{p.gg}-{p.gp}</td>
-                                                                    <td className="p-2 text-center font-black text-blue-900">{p.pts}</td>
-                                                                </tr>
-                                                            ));
+                                                            return sorted.map((p, idx) => {
+                                                                const isRival = isCopaDavis && p.representando_club_id && p.representando_club_id !== currentClubId;
+                                                                return (
+                                                                    <tr key={idx} className="border-b border-gray-100">
+                                                                        <td className="p-2 font-medium">
+                                                                            {isRival ? <span className="italic text-neutral-400 font-normal">Pareja Oculta</span> : p.nombre}
+                                                                        </td>
+                                                                        <td className="p-2 text-center">{p.pj}</td>
+                                                                        <td className="p-2 text-center text-gray-500">{p.pg}</td>
+                                                                        <td className="p-2 text-center text-gray-400">{p.sg}-{p.sp}</td>
+                                                                        <td className="p-2 text-center text-gray-400">{p.gg}-{p.gp}</td>
+                                                                        <td className="p-2 text-center font-black text-blue-900">{p.pts}</td>
+                                                                    </tr>
+                                                                );
+                                                            });
                                                         })()}
                                                     </tbody>
                                                 </table>
@@ -223,7 +222,11 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                     <tr key={partido.id} className="border-b border-gray-100 hover:bg-gray-50">
                                         <td className="py-2 font-bold">{partido.hora || "--:--"}</td>
                                         <td className="py-2">
-                                            {modoMisterio && partido.pareja1?.nombre_pareja ? <span className="italic text-neutral-400">Oculta (Misterio)</span> : (partido.pareja1?.nombre_pareja || "TBD")}
+                                            {(() => {
+                                                const pt = participantes.find(pt => pt.pareja_id === partido.pareja1_id || pt.pareja_id === partido.pareja1?.id);
+                                                const isRival = isCopaDavis && pt?.representando_club_id && pt.representando_club_id !== currentClubId;
+                                                return isRival ? <span className="italic text-neutral-400">Oculta (Misterio)</span> : (partido.pareja1?.nombre_pareja || "TBD");
+                                            })()}
                                         </td>
                                         <td className="py-2 text-center">
                                             {partido.resultado ? (
@@ -233,7 +236,11 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                             )}
                                         </td>
                                         <td className="py-2">
-                                            {modoMisterio && partido.pareja2?.nombre_pareja ? <span className="italic text-neutral-400">Oculta (Misterio)</span> : (partido.pareja2?.nombre_pareja || "TBD")}
+                                            {(() => {
+                                                const pt = participantes.find(pt => pt.pareja_id === partido.pareja2_id || pt.pareja_id === partido.pareja2?.id);
+                                                const isRival = isCopaDavis && pt?.representando_club_id && pt.representando_club_id !== currentClubId;
+                                                return isRival ? <span className="italic text-neutral-400">Oculta (Misterio)</span> : (partido.pareja2?.nombre_pareja || "TBD");
+                                            })()}
                                         </td>
                                         <td className="py-2 text-right font-medium text-blue-700">{partido.lugar || "Pendiente"}</td>
                                     </tr>

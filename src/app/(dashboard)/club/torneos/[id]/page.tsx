@@ -43,6 +43,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         .select(`
             *,
             club:users!club_id(id, nombre, foto),
+            club_rival:users!club_rival_id(id, nombre, foto),
             torneo_parejas(*, pareja:parejas(*)),
             torneo_fases(*)
         `)
@@ -57,7 +58,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const clubInfo = (torneo as any).club;
+    const clubInfo = userData.id === torneo.club_rival_id ? (torneo as any).club_rival : (torneo as any).club;
 
     // Cargar inscripciones Master por separado
     const { data: inscripcionesMaster } = await supabase
@@ -146,6 +147,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         jugador1_id?: string;
         jugador2_id?: string;
         grupo_id?: string | null;
+        representando_club_id?: string | null;
     }
 
     const allParticipants: Participant[] = [];
@@ -200,7 +202,8 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                 tipo: 'master',
                 jugador1_id: ins.jugador1_id,
                 jugador2_id: ins.jugador2_id,
-                grupo_id: ins.torneo_grupo_id ? String(ins.torneo_grupo_id) : null
+                grupo_id: ins.torneo_grupo_id ? String(ins.torneo_grupo_id) : null,
+                representando_club_id: ins.representando_club_id
             });
         });
     }
@@ -481,6 +484,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         <TournamentExportButton 
                             torneo={torneo}
                             clubInfo={clubInfo}
+                            currentClubId={userData.id}
                             partidos={(rawPartidos || [])
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 .filter((p: any) => p.lugar && p.lugar.toLowerCase().includes('cancha') && p.fecha)
