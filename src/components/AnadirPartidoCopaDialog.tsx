@@ -30,6 +30,8 @@ interface Props {
     triggerLabel?: string;
     /** ID del club del admin actual — para que en modo asignar solo vea sus parejas. */
     currentClubId?: string;
+    /** Puntos actuales del partido (en modo asignar). Solo el host puede cambiarlos. */
+    puntosActuales?: number;
 }
 
 interface Pareja {
@@ -47,15 +49,20 @@ interface Jugador {
     email?: string | null;
 }
 
-export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, categoriasSugeridas = [], asignarAPartidoId, categoriaFija, triggerLabel, currentClubId }: Props) {
+export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, categoriasSugeridas = [], asignarAPartidoId, categoriaFija, triggerLabel, currentClubId, puntosActuales }: Props) {
     const esModoAsignar = !!asignarAPartidoId;
+    // El club host (creador del torneo) es el único que puede setear/cambiar puntos.
+    const esHost = currentClubId === clubLocal.id;
+    const puedeEditarPuntos = !esModoAsignar || esHost;
     const [open, setOpen] = useState(false);
     const router = useRouter();
     const [pending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
 
     const [categoria, setCategoria] = useState(categoriaFija || "");
-    const [puntos, setPuntos] = useState<1 | 2 | 3>(1);
+    const [puntos, setPuntos] = useState<1 | 2 | 3>(
+        (puntosActuales === 1 || puntosActuales === 2 || puntosActuales === 3) ? puntosActuales : 1
+    );
     // Solo se asigna LA pareja del admin actual (sea local o rival).
     const [miParejaId, setMiParejaId] = useState("");
 
@@ -222,7 +229,7 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                         </div>
                     )}
 
-                    {/* Puntos del partido */}
+                    {/* Puntos del partido — solo editable por el club host */}
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">¿Cuánto vale este partido?</label>
                         <div className="grid grid-cols-3 gap-2">
@@ -230,9 +237,11 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                                 <button
                                     key={n}
                                     type="button"
-                                    onClick={() => setPuntos(n)}
+                                    onClick={() => puedeEditarPuntos && setPuntos(n)}
+                                    disabled={!puedeEditarPuntos}
                                     className={cn(
                                         "py-3 rounded-lg border-2 font-black transition-all",
+                                        !puedeEditarPuntos && "cursor-not-allowed opacity-50",
                                         puntos === n
                                             ? "bg-purple-500/15 border-purple-500 text-purple-300"
                                             : "bg-neutral-950 border-neutral-800 text-neutral-500 hover:text-neutral-300"
@@ -245,6 +254,11 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                                 </button>
                             ))}
                         </div>
+                        {!puedeEditarPuntos && (
+                            <p className="text-[10px] text-neutral-500 mt-1">
+                                🔒 Solo el club organizador del torneo ({clubLocal.nombre}) puede asignar los puntos.
+                            </p>
+                        )}
                     </div>
 
                     {/* La fecha NO se pide aquí — se asigna arrastrando el partido al cronograma. */}

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trophy, Trash2, Check, Loader2, Swords, Users, X } from "lucide-react";
+import { Trophy, Trash2, Check, Loader2, Swords, Users, X, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnadirPartidoCopaDialog } from "@/components/AnadirPartidoCopaDialog";
 import { InscribirParejaCopaDialog } from "@/components/InscribirParejaCopaDialog";
@@ -254,27 +254,33 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                     </CardContent>
                 </Card>
             ) : (
-                <div className="space-y-6">
+                <div className="space-y-4">
                     {grupos.map(([cat, ps]) => {
                         const localPtsCat = ps.reduce((acc, p) => acc + (getWinner(p.resultado) === 1 ? (p.puntos_partido || 0) : 0), 0);
                         const rivalPtsCat = ps.reduce((acc, p) => acc + (getWinner(p.resultado) === 2 ? (p.puntos_partido || 0) : 0), 0);
+                        const confirmados = ps.filter(p => p.estado_resultado === 'confirmado').length;
                         return (
-                            <Card key={cat} className="bg-neutral-900 border-neutral-800">
-                                <CardContent className="p-0">
-                                    <div className="px-5 py-3 border-b border-neutral-800 flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <h4 className="text-sm font-black text-white uppercase tracking-widest">{cat}</h4>
-                                            <Badge variant="outline" className="text-[10px] border-neutral-700 text-neutral-400">
-                                                {ps.length} partido{ps.length !== 1 ? 's' : ''}
+                            <details key={cat} className="group bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden">
+                                <summary className="px-5 py-3 border-b border-neutral-800 flex items-center justify-between cursor-pointer hover:bg-neutral-800/40 transition-colors list-none [&::-webkit-details-marker]:hidden">
+                                    <div className="flex items-center gap-3">
+                                        <ChevronDown className="w-4 h-4 text-neutral-500 group-open:rotate-180 transition-transform" />
+                                        <h4 className="text-sm font-black text-white uppercase tracking-widest">{cat}</h4>
+                                        <Badge variant="outline" className="text-[10px] border-neutral-700 text-neutral-400">
+                                            {ps.length} partido{ps.length !== 1 ? 's' : ''}
+                                        </Badge>
+                                        {confirmados > 0 && (
+                                            <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-400 bg-emerald-500/5">
+                                                {confirmados}/{ps.length} jugados
                                             </Badge>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
-                                            <span className="text-emerald-400">{localPtsCat}</span>
-                                            <span className="text-neutral-700">·</span>
-                                            <span className="text-purple-400">{rivalPtsCat}</span>
-                                        </div>
+                                        )}
                                     </div>
-                                    <div className="divide-y divide-neutral-800">
+                                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+                                        <span className="text-emerald-400">{localPtsCat}</span>
+                                        <span className="text-neutral-700">·</span>
+                                        <span className="text-purple-400">{rivalPtsCat}</span>
+                                    </div>
+                                </summary>
+                                <div className="divide-y divide-neutral-800">
                                         {ps.map((p, idx) => {
                                             const winner = getWinner(p.resultado);
                                             const p1Display = resolvePairName(p.pareja1?.id || p.pareja1_id, p.pareja1?.nombre_pareja, parejaPlayers) || 'TBD';
@@ -341,6 +347,7 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                                                                 asignarAPartidoId={p.id}
                                                                 categoriaFija={p.nivel || undefined}
                                                                 currentClubId={currentClubId}
+                                                                puntosActuales={p.puntos_partido ?? undefined}
                                                             />
                                                         ) : (
                                                             <AdminTournamentResultModal
@@ -401,9 +408,8 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                                                 </div>
                                             );
                                         })}
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                </div>
+                            </details>
                         );
                     })}
                 </div>

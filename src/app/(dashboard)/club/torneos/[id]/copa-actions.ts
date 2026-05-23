@@ -172,10 +172,14 @@ export async function asignarPartidoCopa({
             return { success: false, message: "La pareja no puede estar en los dos lados" };
         }
 
+        // Los puntos solo los asigna/modifica el club HOST (creador del torneo).
+        // El rival solo asigna su pareja.
         const updateData: Record<string, unknown> = {
             [slotKey]: miParejaId,
-            puntos_partido: puntos,
         };
+        if (esLocal) {
+            updateData.puntos_partido = puntos;
+        }
 
         const { error } = await admin.from('partidos').update(updateData).eq('id', partidoId);
         if (error) return { success: false, message: "Error asignando partido: " + error.message };
