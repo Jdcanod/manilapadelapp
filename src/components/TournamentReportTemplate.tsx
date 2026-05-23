@@ -268,9 +268,9 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                             <thead>
                                 <tr className="border-b border-gray-300 text-gray-500">
                                     <th className="py-2 text-left w-16">Hora</th>
-                                    <th className="py-2 text-left">Pareja 1</th>
+                                    <th className="py-2 text-left">{isCopaDavis ? `Pareja ${torneo.club?.nombre || 'Local'}` : 'Pareja 1'}</th>
                                     <th className="py-2 text-center w-8">vs</th>
-                                    <th className="py-2 text-left">Pareja 2</th>
+                                    <th className="py-2 text-left">{isCopaDavis ? `Pareja ${torneo.club_rival?.nombre || 'Rival'}` : 'Pareja 2'}</th>
                                     <th className="py-2 text-right">Cancha</th>
                                 </tr>
                             </thead>
