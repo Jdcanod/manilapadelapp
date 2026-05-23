@@ -112,15 +112,13 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
     const handleSubmit = () => {
         setError(null);
         if (!categoria.trim()) return setError("La categoría es requerida");
-        // Si es modo asignar: solo se asigna LA pareja del admin actual.
-        // El club rival asignará la suya por separado.
-        if (esModoAsignar && !miParejaId) return setError("Selecciona tu pareja");
+        // En modo asignar la selección puede ser "__none__" (Quitar pareja) — permitido.
 
         startTransition(async () => {
             const r = esModoAsignar && asignarAPartidoId
                 ? await asignarPartidoCopa({
                     partidoId: asignarAPartidoId,
-                    miParejaId,
+                    miParejaId: miParejaId === '__none__' ? null : miParejaId,
                     puntos,
                 })
                 : await crearPartidoCopa({
@@ -225,6 +223,7 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                                         {localParejas.map(p => (
                                             <SelectItem key={p.id} value={p.id}>{labelPareja(p)}</SelectItem>
                                         ))}
+                                        <SelectItem value="__none__" className="text-red-300 italic">— Quitar mi pareja (dejar TBD) —</SelectItem>
                                     </SelectContent>
                                 </Select>
                             )}
@@ -292,7 +291,11 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                         className="bg-purple-600 hover:bg-purple-500 text-white font-bold">
                         {pending
                             ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Guardando…</>
-                            : <><Plus className="w-4 h-4 mr-2" /> {esModoAsignar ? 'Asignar' : 'Crear partido'}</>}
+                            : esModoAsignar
+                                ? (miParejaId === '__none__'
+                                    ? <><Trophy className="w-4 h-4 mr-2" /> Quitar pareja</>
+                                    : <><Plus className="w-4 h-4 mr-2" /> Asignar</>)
+                                : <><Plus className="w-4 h-4 mr-2" /> Crear partido</>}
                     </Button>
                 </DialogFooter>
             </DialogContent>

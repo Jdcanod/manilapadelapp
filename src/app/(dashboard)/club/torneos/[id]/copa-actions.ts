@@ -121,7 +121,8 @@ export async function asignarPartidoCopa({
     puntos,
 }: {
     partidoId: string;
-    miParejaId: string;
+    /** ID de la pareja a asignar, o cadena vacía/null para quitar la pareja del slot del admin. */
+    miParejaId: string | null;
     puntos: 1 | 2 | 3;
 }) {
     try {
@@ -150,32 +151,37 @@ export async function asignarPartidoCopa({
         const esRival = String(torneo.club_rival_id) === String(me.id);
         if (!esLocal && !esRival) return { success: false, message: "No eres parte de este torneo" };
 
-        if (!miParejaId) return { success: false, message: "Selecciona tu pareja" };
         if (![1, 2, 3].includes(puntos)) return { success: false, message: "Los puntos deben ser 1, 2 o 3" };
-
-        // Validar que la pareja pertenezca al club del admin (vía torneo_parejas)
-        const { data: insp } = await admin
-            .from('torneo_parejas')
-            .select('id, representando_club_id')
-            .eq('torneo_id', partido.torneo_id)
-            .eq('pareja_id', miParejaId)
-            .single();
-        if (!insp) return { success: false, message: "Esa pareja no está inscrita en este torneo" };
-        if (String(insp.representando_club_id) !== String(me.id)) {
-            return { success: false, message: "Solo puedes asignar parejas de tu propio club" };
-        }
 
         // Determinar a qué slot va: pareja1 = local (club_id del torneo), pareja2 = rival
         const slotKey = esLocal ? 'pareja1_id' : 'pareja2_id';
-        const otroSlot = esLocal ? partido.pareja2_id : partido.pareja1_id;
-        if (otroSlot && otroSlot === miParejaId) {
-            return { success: false, message: "La pareja no puede estar en los dos lados" };
+
+        // Si miParejaId es null/vacío → QUITAR la pareja del slot (volver a TBD)
+        const esQuitar = !miParejaId;
+
+        if (!esQuitar) {
+            // Validar que la pareja pertenezca al club del admin (vía torneo_parejas)
+            const { data: insp } = await admin
+                .from('torneo_parejas')
+                .select('id, representando_club_id')
+                .eq('torneo_id', partido.torneo_id)
+                .eq('pareja_id', miParejaId)
+                .single();
+            if (!insp) return { success: false, message: "Esa pareja no está inscrita en este torneo" };
+            if (String(insp.representando_club_id) !== String(me.id)) {
+                return { success: false, message: "Solo puedes asignar parejas de tu propio club" };
+            }
+
+            const otroSlot = esLocal ? partido.pareja2_id : partido.pareja1_id;
+            if (otroSlot && otroSlot === miParejaId) {
+                return { success: false, message: "La pareja no puede estar en los dos lados" };
+            }
         }
 
         // Los puntos solo los asigna/modifica el club HOST (creador del torneo).
         // El rival solo asigna su pareja.
         const updateData: Record<string, unknown> = {
-            [slotKey]: miParejaId,
+            [slotKey]: esQuitar ? null : miParejaId,
         };
         if (esLocal) {
             updateData.puntos_partido = puntos;
