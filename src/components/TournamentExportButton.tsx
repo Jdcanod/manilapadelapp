@@ -13,7 +13,10 @@ interface Props {
         id: string;
         nombre: string;
         formato: string;
+        club_id?: string;
         club_rival_id?: string;
+        club?: { nombre: string };
+        club_rival?: { nombre: string };
     };
     clubInfo: {
         nombre: string;

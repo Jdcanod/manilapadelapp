@@ -8,7 +8,10 @@ interface Props {
     torneo: {
         nombre: string;
         formato: string;
+        club_id?: string;
         club_rival_id?: string;
+        club?: { nombre: string };
+        club_rival?: { nombre: string };
     };
     clubInfo: {
         nombre: string;
@@ -34,6 +37,29 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
         const ptConClub = pts.find(pt => pt.representando_club_id);
         return ptConClub ? ptConClub.representando_club_id : null;
     };
+
+    // Calcular el marcador de la Copa Davis
+    const scoreboard = React.useMemo(() => {
+        if (!isCopaDavis) return null;
+        let local = 0, rival = 0;
+        partidos.forEach(p => {
+            if (!p.resultado) return;
+            try {
+                const normalised = p.resultado.replace(/[;/|]/g, ',').replace(/\s{2,}/g, ',').trim();
+                const raw = normalised.includes(',') ? normalised : normalised.replace(/\s+/g, ',');
+                const sets = raw.split(',').map((s: string) => s.trim().split('-').map(Number));
+                let p1 = 0, p2 = 0;
+                for (const [a, b] of sets) {
+                    if (isNaN(a) || isNaN(b)) continue;
+                    if (a > b) p1++; else if (b > a) p2++;
+                }
+                const valor = p.puntos_partido || 0;
+                if (p1 > p2) local += valor;
+                else if (p2 > p1) rival += valor;
+            } catch { /* ignore */ }
+        });
+        return { local, rival };
+    }, [isCopaDavis, partidos]);
     
     // Organizar partidos por fecha para el cronograma (Deduplicación Lógica)
     // Evitamos que el mismo enfrentamiento aparezca dos veces en el mismo grupo/nivel
@@ -111,6 +137,23 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                     <p className="text-xs text-gray-400 mt-1">{format(new Date(), "PPpp", { locale: es })}</p>
                 </div>
             </div>
+
+            {/* SCOREBOARD COPA DAVIS */}
+            {isCopaDavis && scoreboard && (
+                <div className="mb-8 flex justify-center">
+                    <div className="bg-blue-900 text-white px-8 py-4 rounded-xl shadow-lg flex items-center gap-8">
+                        <div className="text-center">
+                            <p className="text-xs text-blue-200 font-bold uppercase tracking-widest mb-1">{torneo.club?.nombre || 'Local'}</p>
+                            <p className="text-4xl font-black">{scoreboard.local}</p>
+                        </div>
+                        <div className="text-2xl font-black text-blue-300">-</div>
+                        <div className="text-center">
+                            <p className="text-xs text-blue-200 font-bold uppercase tracking-widest mb-1">{torneo.club_rival?.nombre || 'Rival'}</p>
+                            <p className="text-4xl font-black">{scoreboard.rival}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* SECCIÓN DE GRUPOS */}
             <div className="mb-10">
