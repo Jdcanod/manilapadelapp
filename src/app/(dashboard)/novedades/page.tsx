@@ -27,12 +27,10 @@ export default async function NovedadesPage() {
     if (newsError) console.error("Error fetching news:", newsError);
 
     // 2. Fetch Played Matches (Activities)
-    const { data: matches, error: matchesError } = await supabase
+    const { data: rawMatches, error: matchesError } = await supabase
         .from('partidos')
         .select(`
             *,
-            pareja1:parejas!pareja1_id(id, nombre_pareja),
-            pareja2:parejas!pareja2_id(id, nombre_pareja),
             creador:users!creador_id(id, nombre),
             partido_likes(count),
             partido_comentarios(count)
@@ -42,6 +40,31 @@ export default async function NovedadesPage() {
         .limit(20);
 
     if (matchesError) console.error("Error fetching matches:", matchesError);
+
+    // Obtener nombres de parejas manualmente para evitar errores de hint de PostgREST
+    const pairIdsToFetch = new Set<string>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (rawMatches || []).forEach((p: any) => {
+        if (p.pareja1_id) pairIdsToFetch.add(p.pareja1_id);
+        if (p.pareja2_id) pairIdsToFetch.add(p.pareja2_id);
+    });
+
+    const parejaNamesMap = new Map<string, {id: string, nombre_pareja: string}>();
+    if (pairIdsToFetch.size > 0) {
+        const { data: namesData } = await supabase
+            .from('parejas')
+            .select('id, nombre_pareja')
+            .in('id', Array.from(pairIdsToFetch));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        namesData?.forEach((n: any) => parejaNamesMap.set(n.id, n));
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const matches = (rawMatches || []).map((p: any) => ({
+        ...p,
+        pareja1: p.pareja1_id ? parejaNamesMap.get(p.pareja1_id) : null,
+        pareja2: p.pareja2_id ? parejaNamesMap.get(p.pareja2_id) : null
+    }));
 
     // 3. Format News
     const formattedNews = (newsItems || []).map((item) => ({

@@ -70,17 +70,38 @@ export default async function JugadorDashboard() {
     const safePairList = misParejasIds.length > 0 ? misParejasIds.join(',') : '00000000-0000-0000-0000-000000000000';
 
     // Ahora sí, buscar LOS PRÓXIMOS PARTIDOS DEL USUARIO (que no hayan pasado)
-    const { data: misProximosPartidos } = await adminSupabase
+    const { data: rawProximosPartidos } = await adminSupabase
         .from('partidos')
-        .select(`
-            *,
-            pareja1:parejas!pareja1_id(nombre_pareja),
-            pareja2:parejas!pareja2_id(nombre_pareja)
-        `)
+        .select('*')
         .or(`creador_id.eq.${user.id},pareja1_id.in.(${safePairList}),pareja2_id.in.(${safePairList})`)
         .gte('fecha', new Date().toISOString())
         .order('fecha', { ascending: true })
         .limit(5);
+
+    // Obtener nombres de parejas manualmente para evitar errores de hint de PostgREST
+    const pairIdsToFetch = new Set<string>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (rawProximosPartidos || []).forEach((p: any) => {
+        if (p.pareja1_id) pairIdsToFetch.add(p.pareja1_id);
+        if (p.pareja2_id) pairIdsToFetch.add(p.pareja2_id);
+    });
+
+    const parejaNamesMap = new Map<string, string>();
+    if (pairIdsToFetch.size > 0) {
+        const { data: namesData } = await adminSupabase
+            .from('parejas')
+            .select('id, nombre_pareja')
+            .in('id', Array.from(pairIdsToFetch));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        namesData?.forEach((n: any) => parejaNamesMap.set(n.id, n.nombre_pareja));
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const misProximosPartidos = (rawProximosPartidos || []).map((p: any) => ({
+        ...p,
+        pareja1: { nombre_pareja: p.pareja1_id ? parejaNamesMap.get(p.pareja1_id) : "TBD" },
+        pareja2: { nombre_pareja: p.pareja2_id ? parejaNamesMap.get(p.pareja2_id) : "TBD" }
+    }));
 
     const proximoPartido = misProximosPartidos?.[0];
 
