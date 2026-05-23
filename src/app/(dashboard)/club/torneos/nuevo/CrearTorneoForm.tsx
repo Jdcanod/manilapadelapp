@@ -25,10 +25,12 @@ export function CrearTorneoForm() {
 
     // Para Copa Davis: configurar por cada categoría seleccionada cuántas
     // parejas POR CLUB y cuántos partidos se generarán.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const CATS_PREDEFINIDAS = ['2da', '3ra', '4ta', '5ta', '6ta', '7ma', 'Mixto A', 'Mixto B', 'Mixto C'];
     const [catsExtras, setCatsExtras] = useState<string[]>([]);
     const todasLasCats = useMemo(
         () => [...CATS_PREDEFINIDAS, ...catsExtras],
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         [catsExtras]
     );
     const [selectedCats, setSelectedCats] = useState<string[]>(['3ra', '4ta', '5ta', '6ta']);

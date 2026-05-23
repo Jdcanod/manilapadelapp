@@ -22,6 +22,7 @@ interface PartidoCopa {
     pareja2?: { id?: string; nombre_pareja?: string | null } | null;
     nivel: string | null;
     fecha: string | null;
+    lugar: string | null;
     estado: string | null;
     estado_resultado?: string | null;
     resultado: string | null;
