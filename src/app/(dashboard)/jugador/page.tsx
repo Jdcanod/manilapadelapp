@@ -132,10 +132,6 @@ export default async function JugadorDashboard() {
         club_nombre: typeof item.users === 'object' && item.users ? ((item.users as { nombre?: string }).nombre || 'Club') : 'Club'
     }));
 
-    // --- LOGICA FUNCIONAL DE ESTADISTICAS ---
-    const { createPureAdminClient } = await import("@/utils/supabase/server");
-    const adminSupabase = createPureAdminClient();
-
     // 1. Ranking Global
     const { data: rankingData } = await adminSupabase
         .from('users')
