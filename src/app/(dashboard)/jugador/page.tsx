@@ -54,14 +54,30 @@ export default async function JugadorDashboard() {
     const nombreReal = userData?.nombre || "Jugador";
     const iniciales = nombreReal.substring(0, 2).toUpperCase();
 
-    const { data: misProximosPartidos } = await supabase
+    // --- LOGICA FUNCIONAL DE ESTADISTICAS ---
+    const { createPureAdminClient } = await import("@/utils/supabase/server");
+    const adminSupabase = createPureAdminClient();
+
+    // Traer las parejas del usuario PRIMERO para poder filtrar sus partidos
+    const { data: misParejas } = await adminSupabase
+        .from('parejas')
+        .select('id, nombre_pareja')
+        .or(`jugador1_id.eq.${userData?.id},jugador2_id.eq.${userData?.id}`);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const misParejasIds = misParejas?.map((p: any) => (p as any).id) || [];
+    const safePairList = misParejasIds.length > 0 ? misParejasIds.join(',') : '00000000-0000-0000-0000-000000000000';
+
+    // Ahora sí, buscar LOS PRÓXIMOS PARTIDOS DEL USUARIO (que no hayan pasado)
+    const { data: misProximosPartidos } = await adminSupabase
         .from('partidos')
         .select(`
             *,
             pareja1:parejas!pareja1_id(nombre_pareja),
             pareja2:parejas!pareja2_id(nombre_pareja)
         `)
-        .or(`creador_id.eq.${user.id},pareja1_id.not.is.null,pareja2_id.not.is.null`)
+        .or(`creador_id.eq.${user.id},pareja1_id.in.(${safePairList}),pareja2_id.in.(${safePairList})`)
+        .gte('fecha', new Date().toISOString())
         .order('fecha', { ascending: true })
         .limit(5);
 
@@ -142,13 +158,7 @@ export default async function JugadorDashboard() {
         .eq('follower_id', userData?.id);
 
     // 2. Parejas y Partidos para Win Rate / Torneos
-    const { data: misParejas } = await adminSupabase
-        .from('parejas')
-        .select('id, nombre_pareja')
-        .or(`jugador1_id.eq.${userData?.id},jugador2_id.eq.${userData?.id}`);
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const misParejasIds = misParejas?.map((p: any) => (p as any).id) || [];
+    // Fetch Follow Stats
     
     let totalJugados = 0;
     let ganados = 0;

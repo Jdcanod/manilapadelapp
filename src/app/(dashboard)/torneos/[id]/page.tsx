@@ -48,7 +48,8 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
         .from('torneos')
         .select(`
             *,
-            club:users!club_id(nombre)
+            club:users!club_id(nombre),
+            club_rival:users!club_rival_id(nombre)
         `)
         .eq('id', params.id)
         .single();
@@ -80,7 +81,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
 
     const partidosReales = (rawPartidos || [])
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((p: any) => p.torneo_grupo_id || p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/))
+        .filter((p: any) => torneo.formato === 'copa_davis' || p.torneo_grupo_id || p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/))
         .map(p => {
         const p1 = parejaDataMap.get(p.pareja1_id);
         const p2 = parejaDataMap.get(p.pareja2_id);
@@ -137,6 +138,29 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
 
     const isPast = new Date(torneo.fecha_fin) < new Date();
 
+    // Helper para puntuación
+    const scoreboard = (() => {
+        if (torneo.formato !== 'copa_davis') return null;
+        let local = 0, rival = 0;
+        partidosReales.forEach(p => {
+            if (!p.resultado) return;
+            try {
+                const normalised = String(p.resultado).replace(/[;/|]/g, ',').replace(/\s{2,}/g, ',').trim();
+                const raw = normalised.includes(',') ? normalised : normalised.replace(/\s+/g, ',');
+                const sets = raw.split(',').map((s: string) => s.trim().split('-').map(Number));
+                let p1 = 0, p2 = 0;
+                for (const [a, b] of sets) {
+                    if (isNaN(a) || isNaN(b)) continue;
+                    if (a > b) p1++; else if (b > a) p2++;
+                }
+                const valor = p.puntos_partido || 0;
+                if (p1 > p2) local += valor;
+                else if (p2 > p1) rival += valor;
+            } catch { /* ignore */ }
+        });
+        return { local, rival };
+    })();
+
     return (
         <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
             {/* HEADER */}
@@ -180,50 +204,84 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                 )}
             </div>
 
-            <Tabs defaultValue="grupos" className="w-full">
-                <TabsList className="bg-neutral-950 border border-neutral-800 p-1 h-auto w-full max-w-2xl mx-auto flex flex-wrap sm:grid sm:grid-cols-3 rounded-2xl">
-                    <TabsTrigger value="grupos" className="data-[state=active]:bg-neutral-800 flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Fase de Grupos</TabsTrigger>
-                    <TabsTrigger value="cuadros" className="data-[state=active]:bg-neutral-800 flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Cuadros de Juego</TabsTrigger>
-                    <TabsTrigger value="cronograma" className="data-[state=active]:bg-neutral-800 flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Cronograma</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="grupos" className="mt-8">
-                        <PlayerTournamentGroups
-                            torneoId={params.id}
-                            grupos={grupos || []}
-                            partidos={partidosReales || []}
-                            playerPairIds={playerPairIds}
-                            currentUserId={typeof finalUserId !== 'undefined' ? finalUserId : undefined}
-                            tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
-                            formato={torneo.formato}
+            {torneo.formato === 'copa_davis' ? (
+                <div className="mt-8 space-y-8">
+                    {/* SCOREBOARD COPA DAVIS */}
+                    {scoreboard && (
+                        <div className="flex justify-center animate-in fade-in zoom-in duration-500">
+                            <div className="bg-blue-950 border border-blue-900/50 text-white px-10 py-6 rounded-3xl shadow-2xl flex items-center gap-10">
+                                <div className="text-center w-32">
+                                    <p className="text-[10px] text-blue-300 font-black uppercase tracking-widest mb-2 line-clamp-2 leading-tight">{torneo.club?.nombre || 'Local'}</p>
+                                    <p className="text-5xl font-black">{scoreboard.local}</p>
+                                </div>
+                                <div className="text-3xl font-black text-blue-500/50">-</div>
+                                <div className="text-center w-32">
+                                    <p className="text-[10px] text-blue-300 font-black uppercase tracking-widest mb-2 line-clamp-2 leading-tight">{torneo.club_rival?.nombre || 'Rival'}</p>
+                                    <p className="text-5xl font-black">{scoreboard.rival}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <div className="bg-neutral-900/50 rounded-3xl border border-neutral-800 p-6">
+                        <TournamentChronogram 
+                            torneoId={torneo.id}
+                            matches={partidosReales}
+                            config={{
+                                duracion: torneo.reglas_puntuacion?.config_duracion || 60,
+                                canchas: torneo.reglas_puntuacion?.config_canchas || 1
+                            }}
+                            isAdmin={false}
+                            currentUserId={finalUserId}
                             setsCantidad={torneo.reglas_puntuacion?.sets}
                         />
-                </TabsContent>
-                <TabsContent value="cuadros" className="mt-8">
-                    <PlayerBracketManager 
-                        categorias={categoriasAMostrar} 
-                        partidos={partidosReales} 
-                        playerPairIds={playerPairIds} 
-                        currentUserId={typeof finalUserId !== 'undefined' ? finalUserId : undefined}
-                        tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
-                        setsCantidad={torneo.reglas_puntuacion?.sets}
-                    />
-                </TabsContent>
+                    </div>
+                </div>
+            ) : (
+                <Tabs defaultValue="grupos" className="w-full">
+                    <TabsList className="bg-neutral-950 border border-neutral-800 p-1 h-auto w-full max-w-2xl mx-auto flex flex-wrap sm:grid sm:grid-cols-3 rounded-2xl">
+                        <TabsTrigger value="grupos" className="data-[state=active]:bg-neutral-800 flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Fase de Grupos</TabsTrigger>
+                        <TabsTrigger value="cuadros" className="data-[state=active]:bg-neutral-800 flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Cuadros de Juego</TabsTrigger>
+                        <TabsTrigger value="cronograma" className="data-[state=active]:bg-neutral-800 flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Cronograma</TabsTrigger>
+                    </TabsList>
 
-                <TabsContent value="cronograma" className="mt-6">
-                    <TournamentChronogram 
-                        torneoId={torneo.id}
-                        matches={partidosReales}
-                        config={{
-                            duracion: torneo.reglas_puntuacion?.config_duracion || 60,
-                            canchas: torneo.reglas_puntuacion?.config_canchas || 1
-                        }}
-                        isAdmin={false}
-                        currentUserId={finalUserId}
-                        setsCantidad={torneo.reglas_puntuacion?.sets}
-                    />
-                </TabsContent>
-            </Tabs>
+                    <TabsContent value="grupos" className="mt-8">
+                            <PlayerTournamentGroups
+                                torneoId={params.id}
+                                grupos={grupos || []}
+                                partidos={partidosReales || []}
+                                playerPairIds={playerPairIds}
+                                currentUserId={typeof finalUserId !== 'undefined' ? finalUserId : undefined}
+                                tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
+                                formato={torneo.formato}
+                                setsCantidad={torneo.reglas_puntuacion?.sets}
+                            />
+                    </TabsContent>
+                    <TabsContent value="cuadros" className="mt-8">
+                        <PlayerBracketManager 
+                            categorias={categoriasAMostrar} 
+                            partidos={partidosReales} 
+                            playerPairIds={playerPairIds} 
+                            currentUserId={typeof finalUserId !== 'undefined' ? finalUserId : undefined}
+                            tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
+                            setsCantidad={torneo.reglas_puntuacion?.sets}
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="cronograma" className="mt-6">
+                        <TournamentChronogram 
+                            torneoId={torneo.id}
+                            matches={partidosReales}
+                            config={{
+                                duracion: torneo.reglas_puntuacion?.config_duracion || 60,
+                                canchas: torneo.reglas_puntuacion?.config_canchas || 1
+                            }}
+                            isAdmin={false}
+                            currentUserId={finalUserId}
+                            setsCantidad={torneo.reglas_puntuacion?.sets}
+                        />
+                    </TabsContent>
+                </Tabs>
+            )}
         </div>
     );
 }
