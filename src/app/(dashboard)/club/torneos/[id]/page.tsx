@@ -368,6 +368,20 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         .map((p: any) => {
         const p1 = parejaDataMap.get(p.pareja1_id);
         const p2 = parejaDataMap.get(p.pareja2_id);
+        
+        // Formatear nombres correctamente usando los jugadores individuales
+        let nombreP1 = p1?.nombre_pareja;
+        if (!nombreP1 && p.pareja1_id) {
+            const players = parejaPlayersMap[p.pareja1_id];
+            if (players) nombreP1 = formatPairName(players[0], players[1]);
+        }
+        
+        let nombreP2 = p2?.nombre_pareja;
+        if (!nombreP2 && p.pareja2_id) {
+            const players = parejaPlayersMap[p.pareja2_id];
+            if (players) nombreP2 = formatPairName(players[0], players[1]);
+        }
+        
         const tieneResultado = !!p.resultado;
         const oculta1 = debeOcultar(p.pareja1_id, p.fecha, tieneResultado);
         const oculta2 = debeOcultar(p.pareja2_id, p.fecha, tieneResultado);
@@ -377,8 +391,8 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
             // También quitamos el ID para que el cliente no la pueda re-derivar.
             pareja1_id: oculta1 ? null : p.pareja1_id,
             pareja2_id: oculta2 ? null : p.pareja2_id,
-            pareja1: { id: oculta1 ? null : p.pareja1_id, nombre_pareja: oculta1 ? HIDDEN_TEXT : (p1?.nombre_pareja || "TBD") },
-            pareja2: { id: oculta2 ? null : p.pareja2_id, nombre_pareja: oculta2 ? HIDDEN_TEXT : (p2?.nombre_pareja || "TBD") },
+            pareja1: { id: oculta1 ? null : p.pareja1_id, nombre_pareja: oculta1 ? HIDDEN_TEXT : (nombreP1 || "TBD") },
+            pareja2: { id: oculta2 ? null : p.pareja2_id, nombre_pareja: oculta2 ? HIDDEN_TEXT : (nombreP2 || "TBD") },
             jugador1_id: oculta1 ? undefined : p1?.jugador1_id,
             jugador2_id: oculta1 ? undefined : p1?.jugador2_id,
             jugador3_id: oculta2 ? undefined : p2?.jugador1_id,
