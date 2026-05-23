@@ -26,14 +26,16 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
     // Obtener el ID interno del usuario y sus parejas usando el cliente admin para evitar RLS
     let playerPairIds: string[] = [];
     let finalUserId: string | undefined = undefined;
+    let finalUserRol: string | undefined = undefined;
     if (user) {
         const { data: userData } = await adminSupabase
             .from('users')
-            .select('id')
+            .select('id, rol')
             .eq('auth_id', user.id)
             .single();
 
         finalUserId = userData?.id || user.id;
+        finalUserRol = userData?.rol;
 
         // Buscar IDs de parejas donde el usuario participa
         const { data: userPairs } = await adminSupabase
@@ -79,16 +81,45 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
         namesData?.forEach(n => parejaDataMap.set(n.id, n));
     }
 
+    let isLocalClubPlayer = false;
+    let isRivalClubPlayer = false;
+    
+    if (finalUserRol === 'admin_club') {
+        if (String(finalUserId) === String(torneo.club_id)) isLocalClubPlayer = true;
+        if (String(finalUserId) === String(torneo.club_rival_id)) isRivalClubPlayer = true;
+    } else {
+        if (playerPairIds.length > 0) {
+            isLocalClubPlayer = (rawPartidos || []).some(p => playerPairIds.includes(p.pareja1_id));
+            isRivalClubPlayer = (rawPartidos || []).some(p => playerPairIds.includes(p.pareja2_id));
+        }
+    }
+
     const partidosReales = (rawPartidos || [])
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .filter((p: any) => torneo.formato === 'copa_davis' || p.torneo_grupo_id || p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/))
         .map(p => {
         const p1 = parejaDataMap.get(p.pareja1_id);
         const p2 = parejaDataMap.get(p.pareja2_id);
+        
+        let name1 = p1?.nombre_pareja || "TBD";
+        let name2 = p2?.nombre_pareja || "TBD";
+        
+        if (torneo.formato === 'copa_davis') {
+            if (!isLocalClubPlayer && !isRivalClubPlayer) {
+                // Spectator
+                name1 = "Pareja Local";
+                name2 = "Pareja Rival";
+            } else if (isLocalClubPlayer) {
+                name2 = "Pareja Oculta";
+            } else if (isRivalClubPlayer) {
+                name1 = "Pareja Oculta";
+            }
+        }
+
         return {
             ...p,
-            pareja1: { nombre_pareja: p1?.nombre_pareja || "TBD" },
-            pareja2: { nombre_pareja: p2?.nombre_pareja || "TBD" },
+            pareja1: { nombre_pareja: name1 },
+            pareja2: { nombre_pareja: name2 },
             jugador1_id: p1?.jugador1_id,
             jugador2_id: p1?.jugador2_id,
             jugador3_id: p2?.jugador1_id,
