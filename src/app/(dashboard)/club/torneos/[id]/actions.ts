@@ -1243,7 +1243,11 @@ export async function updateMatchSchedule(matchId: string, fecha: string, cancha
         if (partido?.lugar) {
             // Eliminar prefijo de cancha existente si lo hay (ej: "Cancha 1 | " o "Cancha 1 ")
             const cleanLugar = partido.lugar.replace(/^Cancha\s*\d+\s*\|?\s*/i, '').trim();
-            if (cleanLugar && cleanLugar.toLowerCase() !== cancha.toLowerCase()) {
+            // El placeholder de Copa Davis usa "Pendiente · cat #N" — al programar
+            // lo descartamos por completo (no es una fase real, solo un identificador
+            // de la bolsa). Cualquier otro lugar (Final, Semifinal, etc.) sí se preserva.
+            const esPlaceholderCopa = /^pendiente\b/i.test(cleanLugar);
+            if (cleanLugar && !esPlaceholderCopa && cleanLugar.toLowerCase() !== cancha.toLowerCase()) {
                 nuevoLugar = `${cancha} | ${cleanLugar}`;
             }
         }
