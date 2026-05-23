@@ -204,15 +204,33 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
         e.dataTransfer.effectAllowed = "move";
     };
 
-    const onDragOver = (e: React.DragEvent) => {
+    // Identificador del slot sobre el que está pasando un drag (para resaltarlo)
+    const [hoverSlot, setHoverSlot] = useState<{ time: string; cancha: number } | null>(null);
+
+    const onDragOver = (e: React.DragEvent, time?: string, cancha?: number) => {
         if (!isAdmin || isUpdating) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
+        if (time != null && cancha != null) {
+            // Solo actualizamos si cambió, para evitar re-renders innecesarios
+            if (!hoverSlot || hoverSlot.time !== time || hoverSlot.cancha !== cancha) {
+                setHoverSlot({ time, cancha });
+            }
+        }
+    };
+
+    const onDragLeave = (e: React.DragEvent, time?: string, cancha?: number) => {
+        // Solo limpiamos si nos vamos DEL slot que estaba marcado
+        if (time != null && cancha != null && hoverSlot?.time === time && hoverSlot?.cancha === cancha) {
+            setHoverSlot(null);
+        }
+        void e;
     };
 
     const onDrop = (e: React.DragEvent, time: string, cancha: number) => {
         if (!isAdmin || isUpdating) return;
         e.preventDefault();
+        setHoverSlot(null);
         const matchId = e.dataTransfer.getData("matchId");
         if (matchId) {
             handleAssign(matchId, time, cancha);
@@ -414,17 +432,26 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                         // Calcular cuántos slots ocupa el partido
                                         const rowSpan = Math.ceil((config.duracion || 60) / slotInterval);
 
+                                        const isHoverDrop = hoverSlot?.time === time && hoverSlot?.cancha === canchaNum;
+                                        const slotLibre = !matchToShow && !matchOccupying;
                                         return (
-                                            <div 
-                                                key={i} 
-                                                onDragOver={onDragOver}
+                                            <div
+                                                key={i}
+                                                onDragOver={(e) => onDragOver(e, time, canchaNum)}
+                                                onDragLeave={(e) => onDragLeave(e, time, canchaNum)}
                                                 onDrop={(e) => onDrop(e, time, canchaNum)}
                                                 className={`
                                                     p-1 min-h-[60px] border-r border-neutral-800/30 last:border-r-0 relative transition-all
-                                                    ${!matchToShow && !matchOccupying && selectedMatchId && isAdmin ? 'bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer' : 'hover:bg-neutral-900/20'}
+                                                    ${isHoverDrop && slotLibre
+                                                        ? 'bg-amber-500/20 ring-2 ring-amber-500 ring-inset shadow-[inset_0_0_30px_rgba(245,158,11,0.25)]'
+                                                        : isHoverDrop && !slotLibre
+                                                            ? 'bg-red-500/15 ring-2 ring-red-500/60 ring-inset'
+                                                            : slotLibre && selectedMatchId && isAdmin
+                                                                ? 'bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer'
+                                                                : 'hover:bg-neutral-900/20'}
                                                 `}
                                                 onClick={() => {
-                                                    if (!matchToShow && !matchOccupying && selectedMatchId && isAdmin) handleAssign(selectedMatchId, time, canchaNum);
+                                                    if (slotLibre && selectedMatchId && isAdmin) handleAssign(selectedMatchId, time, canchaNum);
                                                 }}
                                             >
                                                 {matchToShow ? (
@@ -553,9 +580,13 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                         )}
                                                     </div>
                                                 ) : !matchOccupying ? (
-                                                    <div className="h-full w-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${selectedMatchId ? 'text-amber-500 animate-pulse' : 'text-neutral-700'}`}>
-                                                            {selectedMatchId ? 'Mover aquí' : 'Libre'}
+                                                    <div className={`h-full w-full flex items-center justify-center transition-opacity ${isHoverDrop ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                                        <span className={`text-xs font-black uppercase tracking-widest ${
+                                                            isHoverDrop ? 'text-amber-300 animate-pulse' :
+                                                            selectedMatchId ? 'text-amber-500 animate-pulse' :
+                                                            'text-neutral-700'
+                                                        }`}>
+                                                            {isHoverDrop ? '⬇ Soltar aquí' : selectedMatchId ? 'Mover aquí' : 'Libre'}
                                                         </span>
                                                     </div>
                                                 ) : null}
