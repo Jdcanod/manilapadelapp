@@ -25,6 +25,15 @@ interface Props {
 
 export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(({ torneo, clubInfo, partidos, participantes, grupos, currentClubId }, ref) => {
     const isCopaDavis = !!torneo.club_rival_id;
+
+    // Helper para encontrar el club correcto de la pareja, ya que puede estar
+    // duplicada en participantes (como regular y master)
+    const getParejaClubId = (parejaId: string | undefined | null) => {
+        if (!parejaId) return null;
+        const pts = participantes.filter(pt => pt.pareja_id === parejaId);
+        const ptConClub = pts.find(pt => pt.representando_club_id);
+        return ptConClub ? ptConClub.representando_club_id : null;
+    };
     
     // Organizar partidos por fecha para el cronograma (Deduplicación Lógica)
     // Evitamos que el mismo enfrentamiento aparezca dos veces en el mismo grupo/nivel
@@ -136,9 +145,12 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                             participantes
                                                                 .filter(p => String(p.grupo_id) === String(grupo.id))
                                                                 .forEach(p => {
+                                                                    const existing = map.get(String(p.pareja_id));
+                                                                    const clubId = existing?.representando_club_id || getParejaClubId(p.pareja_id);
                                                                     map.set(String(p.pareja_id), {
                                                                         nombre: p.nombre,
-                                                                        pj: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0
+                                                                        representando_club_id: clubId,
+                                                                        pj: existing?.pj || 0, pg: existing?.pg || 0, sg: existing?.sg || 0, sp: existing?.sp || 0, gg: existing?.gg || 0, gp: existing?.gp || 0, pts: existing?.pts || 0
                                                                     });
                                                                 });
                                                             matches.forEach(m => {
@@ -226,8 +238,9 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                         <td className="py-2 font-bold">{partido.hora || "--:--"}</td>
                                         <td className="py-2">
                                             {(() => {
-                                                const pt = participantes.find(pt => pt.pareja_id === partido.pareja1_id || pt.pareja_id === partido.pareja1?.id);
-                                                const isRival = isCopaDavis && pt?.representando_club_id && pt.representando_club_id !== currentClubId;
+                                                const pId = partido.pareja1_id || partido.pareja1?.id;
+                                                const clubId = getParejaClubId(pId);
+                                                const isRival = isCopaDavis && clubId && clubId !== currentClubId;
                                                 return isRival ? <span className="italic text-neutral-400">Oculta (Misterio)</span> : (partido.pareja1?.nombre_pareja || "TBD");
                                             })()}
                                         </td>
@@ -240,8 +253,9 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                         </td>
                                         <td className="py-2">
                                             {(() => {
-                                                const pt = participantes.find(pt => pt.pareja_id === partido.pareja2_id || pt.pareja_id === partido.pareja2?.id);
-                                                const isRival = isCopaDavis && pt?.representando_club_id && pt.representando_club_id !== currentClubId;
+                                                const pId = partido.pareja2_id || partido.pareja2?.id;
+                                                const clubId = getParejaClubId(pId);
+                                                const isRival = isCopaDavis && clubId && clubId !== currentClubId;
                                                 return isRival ? <span className="italic text-neutral-400">Oculta (Misterio)</span> : (partido.pareja2?.nombre_pareja || "TBD");
                                             })()}
                                         </td>
