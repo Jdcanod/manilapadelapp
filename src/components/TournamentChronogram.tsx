@@ -422,7 +422,21 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                                   <Star className="w-2 h-2 text-black fill-black" />
                                                             </div>
                                                         )}
-                                                        <div className="absolute top-0 right-0 p-2 opacity-0 group-hover/match:opacity-100 transition-all z-20 flex gap-1">
+                                                        <div className="absolute top-0 right-0 p-2 opacity-0 group-hover/match:opacity-100 transition-all z-20 flex gap-1" onClick={e => e.stopPropagation()}>
+                                                            {/* Gestionar Partido (solo Copa Davis) */}
+                                                            {isAdmin && copaDavisContext && matchToShow.estado_resultado !== 'confirmado' && (
+                                                                <AnadirPartidoCopaDialog
+                                                                    torneoId={torneoId}
+                                                                    clubLocal={copaDavisContext.clubLocal}
+                                                                    clubRival={copaDavisContext.clubRival}
+                                                                    categoriasSugeridas={copaDavisContext.categoriasSugeridas}
+                                                                    asignarAPartidoId={matchToShow.id}
+                                                                    categoriaFija={matchToShow.nivel || undefined}
+                                                                    currentClubId={copaDavisContext.currentClubId}
+                                                                    puntosActuales={(matchToShow as Match & { puntos_partido?: number }).puntos_partido ?? undefined}
+                                                                    iconOnly
+                                                                />
+                                                            )}
                                                             {isAdmin && matchToShow.estado === 'jugado' && matchToShow.estado_resultado === 'pendiente' && (
                                                                 <AdminConfirmResultButton matchId={matchToShow.id} compact />
                                                             )}
@@ -437,7 +451,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                                     setsCantidad={setsCantidad}
                                                                 />
                                                             )}
-                                                            <button 
+                                                            <button
                                                                 disabled={isUpdating}
                                                                 onClick={(e) => { e.stopPropagation(); handleUnschedule(matchToShow.id); }}
                                                                 className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors disabled:opacity-30"

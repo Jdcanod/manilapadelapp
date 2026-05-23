@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Loader2, Trophy, AlertCircle } from "lucide-react";
+import { Plus, Loader2, Trophy, AlertCircle, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { crearPartidoCopa, asignarPartidoCopa, obtenerParejasInscritasPorClub } from "@/app/(dashboard)/club/torneos/[id]/copa-actions";
@@ -28,6 +28,8 @@ interface Props {
     categoriaFija?: string;
     /** Custom trigger button (opcional, sino usa "Añadir Partido") */
     triggerLabel?: string;
+    /** Renderiza el trigger como un botón pequeño solo con ícono settings (para slots del cronograma). */
+    iconOnly?: boolean;
     /** ID del club del admin actual — para que en modo asignar solo vea sus parejas. */
     currentClubId?: string;
     /** Puntos actuales del partido (en modo asignar). Solo el host puede cambiarlos. */
@@ -49,7 +51,7 @@ interface Jugador {
     email?: string | null;
 }
 
-export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, categoriasSugeridas = [], asignarAPartidoId, categoriaFija, triggerLabel, currentClubId, puntosActuales }: Props) {
+export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, categoriasSugeridas = [], asignarAPartidoId, categoriaFija, triggerLabel, iconOnly, currentClubId, puntosActuales }: Props) {
     const esModoAsignar = !!asignarAPartidoId;
     // El club host (creador del torneo) es el único que puede setear/cambiar puntos.
     const esHost = currentClubId === clubLocal.id;
@@ -140,10 +142,20 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
             <DialogTrigger asChild>
                 {esModoAsignar ? (
-                    <Button size="sm" variant="outline" className="bg-purple-500/10 border-purple-500/40 text-purple-300 hover:bg-purple-500/20 hover:text-white font-bold h-8 px-3">
-                        <Plus className="w-3.5 h-3.5 mr-1" />
-                        {triggerLabel || 'Gestionar Partido'}
-                    </Button>
+                    iconOnly ? (
+                        <button
+                            type="button"
+                            title="Gestionar Partido"
+                            className="p-1.5 bg-purple-500/10 text-purple-300 rounded-lg hover:bg-purple-500 hover:text-white transition-colors"
+                        >
+                            <Settings className="w-3 h-3" />
+                        </button>
+                    ) : (
+                        <Button size="sm" variant="outline" className="bg-purple-500/10 border-purple-500/40 text-purple-300 hover:bg-purple-500/20 hover:text-white font-bold h-8 px-3">
+                            <Settings className="w-3.5 h-3.5 mr-1" />
+                            {triggerLabel || 'Gestionar Partido'}
+                        </Button>
+                    )
                 ) : (
                     <Button className="bg-purple-600 hover:bg-purple-500 text-white font-bold">
                         <Plus className="w-4 h-4 mr-2" />
