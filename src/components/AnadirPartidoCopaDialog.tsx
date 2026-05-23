@@ -135,7 +135,7 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                 {esModoAsignar ? (
                     <Button size="sm" variant="outline" className="bg-purple-500/10 border-purple-500/40 text-purple-300 hover:bg-purple-500/20 hover:text-white font-bold h-8 px-3">
                         <Plus className="w-3.5 h-3.5 mr-1" />
-                        {triggerLabel || 'Asignar parejas'}
+                        {triggerLabel || 'Gestionar Partido'}
                     </Button>
                 ) : (
                     <Button className="bg-purple-600 hover:bg-purple-500 text-white font-bold">
@@ -149,7 +149,7 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                     <DialogTitle className="flex items-center gap-2">
                         <Trophy className="w-5 h-5 text-purple-400" />
                         {esModoAsignar
-                            ? `Asignar Parejas${categoriaFija ? ` — ${categoriaFija}` : ''}`
+                            ? `Gestionar Partido${categoriaFija ? ` — ${categoriaFija}` : ''}`
                             : 'Nuevo Partido — Copa Davis'}
                     </DialogTitle>
                 </DialogHeader>
