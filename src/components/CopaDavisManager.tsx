@@ -103,7 +103,17 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
         return { local, rival, jugados, pendientes, sinResultado, total: partidos.length };
     }, [partidos]);
 
-    // Agrupar partidos por categoría
+    // Extrae el número del placeholder desde `lugar = "Pendiente · cat #N"` o
+    // "Cancha X | Pendiente · cat #N". Si no encuentra, devuelve un número alto
+    // para que esos partidos (creados manualmente sin numerar) queden al final.
+    const extraerNumeroPlaceholder = (lugar: string | null | undefined): number => {
+        if (!lugar) return 9999;
+        const m = lugar.match(/#(\d+)/);
+        return m ? parseInt(m[1], 10) : 9999;
+    };
+
+    // Agrupar partidos por categoría y ordenar dentro del grupo por el número
+    // del placeholder, para que "Partido 1/N" coincida con "cat #1".
     const grupos = useMemo(() => {
         const map = new Map<string, PartidoCopa[]>();
         partidos.forEach(p => {
@@ -111,6 +121,8 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
             if (!map.has(cat)) map.set(cat, []);
             map.get(cat)!.push(p);
         });
+        // Ordenar partidos dentro de cada categoría por el número del lugar
+        map.forEach(arr => arr.sort((a, b) => extraerNumeroPlaceholder(a.lugar) - extraerNumeroPlaceholder(b.lugar)));
         return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
     }, [partidos]);
 
@@ -267,7 +279,11 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                                             const p1Display = resolvePairName(p.pareja1?.id || p.pareja1_id, p.pareja1?.nombre_pareja, parejaPlayers) || 'TBD';
                                             const p2Display = resolvePairName(p.pareja2?.id || p.pareja2_id, p.pareja2?.nombre_pareja, parejaPlayers) || 'TBD';
                                             const isConfirmed = p.estado_resultado === 'confirmado';
-                                            const numeroPartido = idx + 1;
+                                            // Usar el número del placeholder (extraído del lugar) para que coincida
+                                            // con el badge de la bolsa del cronograma. Si no hay número (partido
+                                            // manual sin numerar), caer al índice del array.
+                                            const numPh = extraerNumeroPlaceholder(p.lugar);
+                                            const numeroPartido = numPh < 9999 ? numPh : idx + 1;
                                             return (
                                                 <div key={p.id} className={cn(
                                                     "px-5 py-4 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-center",
