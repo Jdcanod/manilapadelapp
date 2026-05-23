@@ -8,6 +8,7 @@ interface Props {
     torneo: {
         nombre: string;
         formato: string;
+        club_rival_id?: string;
     };
     clubInfo: {
         nombre: string;
@@ -15,6 +16,8 @@ interface Props {
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     partidos: any[]; 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    participantes: any[];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     grupos: any[];
     currentClubId: string;
