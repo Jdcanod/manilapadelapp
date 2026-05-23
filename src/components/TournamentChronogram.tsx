@@ -14,6 +14,7 @@ import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton"
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { CheckCircle2 } from "lucide-react";
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
+import { AnadirPartidoCopaDialog } from "@/components/AnadirPartidoCopaDialog";
 
 interface Match {
     id: string;
@@ -46,9 +47,17 @@ interface ChronogramProps {
     parejaPlayers?: ParejaPlayersMap;
     setsCantidad?: number;
     tipoDesempate?: string;
+    /** Cuando el torneo es Copa Davis pasamos este contexto para que las cards
+     *  de partido (bolsa y grilla) permitan abrir el dialog "Gestionar Partido". */
+    copaDavisContext?: {
+        clubLocal: { id: string; nombre: string };
+        clubRival: { id: string; nombre: string };
+        categoriasSugeridas?: string[];
+        currentClubId: string;
+    };
 }
 
-export function TournamentChronogram({ torneoId, matches: initialMatches, config, isAdmin = true, currentUserId, tipoDesempate, parejaPlayers, setsCantidad }: ChronogramProps) {
+export function TournamentChronogram({ torneoId, matches: initialMatches, config, isAdmin = true, currentUserId, tipoDesempate, parejaPlayers, setsCantidad, copaDavisContext }: ChronogramProps) {
     const { toast } = useToast();
     const router = useRouter();
     const [matches, setMatches] = useState(initialMatches);
@@ -259,6 +268,21 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                             <p className="text-xs font-black text-white uppercase truncate">{resolvePairName(match.pareja1?.id || match.pareja1_id, match.pareja1?.nombre_pareja, parejaPlayers) || "TBD"}</p>
                                             <p className="text-xs font-black text-white uppercase truncate">{resolvePairName(match.pareja2?.id || match.pareja2_id, match.pareja2?.nombre_pareja, parejaPlayers) || "TBD"}</p>
                                         </div>
+                                        {/* Botón Gestionar Partido (solo Copa Davis) */}
+                                        {copaDavisContext && (
+                                            <div className="mt-3 pt-2 border-t border-neutral-800/50" onClick={e => e.stopPropagation()}>
+                                                <AnadirPartidoCopaDialog
+                                                    torneoId={torneoId}
+                                                    clubLocal={copaDavisContext.clubLocal}
+                                                    clubRival={copaDavisContext.clubRival}
+                                                    categoriasSugeridas={copaDavisContext.categoriasSugeridas}
+                                                    asignarAPartidoId={match.id}
+                                                    categoriaFija={match.nivel || undefined}
+                                                    currentClubId={copaDavisContext.currentClubId}
+                                                    puntosActuales={(match as Match & { puntos_partido?: number }).puntos_partido ?? undefined}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 ))
                             )}

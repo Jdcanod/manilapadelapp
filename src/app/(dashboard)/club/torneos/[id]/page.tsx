@@ -554,6 +554,12 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                                 }}
                                 tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                                 parejaPlayers={parejaPlayersMap}
+                                copaDavisContext={{
+                                    clubLocal: { id: String(clubInfo?.id || torneo.club_id), nombre: clubInfo?.nombre || 'Local' },
+                                    clubRival: rivalClubData,
+                                    categoriasSugeridas: torneo.reglas_puntuacion?.categorias_habilitadas || [],
+                                    currentClubId: currentClubIdCopa,
+                                }}
                             />
                         </div>
                         </>
