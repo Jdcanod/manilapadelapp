@@ -347,6 +347,15 @@ function MatchRowCard({ torneoId, match, tipoDesempate, userMap, parejaPlayers, 
                     )}
                     {isPending && (
                         <>
+                            <AdminTournamentResultModal
+                                matchId={match.id}
+                                pareja1Nombre={p1}
+                                pareja2Nombre={p2}
+                                initialResult={match.resultado}
+                                tipoDesempate={tipoDesempate}
+                                compact
+                                setsCantidad={setsCantidad}
+                            />
                             <Button
                                 onClick={handleReset}
                                 disabled={pendingReset}

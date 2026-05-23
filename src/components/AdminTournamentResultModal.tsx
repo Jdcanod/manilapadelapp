@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { registrarResultadoPorClub } from "@/app/(dashboard)/club/torneos/[id]/actions";
-import { Trophy } from "lucide-react";
+import { Trophy, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -160,9 +160,10 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                 {compact ? (
                     <button 
                         disabled={disabled}
+                        title={initialResult ? "Corregir resultado" : "Ingresar resultado"}
                         className="p-1.5 bg-amber-600/10 text-amber-500 rounded-lg hover:bg-amber-600 hover:text-white transition-colors disabled:opacity-30"
                     >
-                        <Trophy className="w-3.5 h-3.5" />
+                        {initialResult ? <Pencil className="w-3.5 h-3.5" /> : <Trophy className="w-3.5 h-3.5" />}
                     </button>
                 ) : (
                     <Button 
@@ -180,10 +181,10 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
             </DialogTrigger>
             <DialogContent className="bg-neutral-900 border-neutral-800 text-white max-w-sm">
                 <DialogHeader>
-                    <DialogTitle>Resultado del Partido (Admin)</DialogTitle>
+                    <DialogTitle>{initialResult ? "Corregir Resultado" : "Ingresar Resultado"}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                    <p className="text-xs text-neutral-400 text-center mb-4">El resultado ingresado será definitivo y marcará el partido como jugado.</p>
+                    <p className="text-xs text-neutral-400 text-center mb-4">{initialResult ? `Corrigiendo: ${initialResult}` : "El resultado ingresado será definitivo y marcará el partido como jugado."}</p>
                     <div className="grid grid-cols-2 gap-4 text-center text-xs font-bold text-neutral-500 uppercase">
                         <span className="line-clamp-1">{pareja1Nombre}</span>
                         <span className="line-clamp-1">{pareja2Nombre}</span>
@@ -237,7 +238,7 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                     )}
                 </div>
                 <Button disabled={isPending} onClick={onSave} className="w-full bg-amber-600 hover:bg-amber-500">
-                    {isPending ? "Guardando..." : "Subir Score Definitivo"}
+                    {isPending ? "Guardando..." : initialResult ? "Guardar Corrección" : "Subir Score Definitivo"}
                 </Button>
             </DialogContent>
         </Dialog>
