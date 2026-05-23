@@ -160,10 +160,12 @@ export default async function PartidosPage() {
                 
                 // FILTRO ANTI-HUÉRFANOS: 
                 // Si es un partido de torneo, debe tener grupo O ser de fase final (bracket)
+                // O haber sido agendado en el cronograma (tiene "Cancha" en el lugar)
                 const isBracketMatch = m.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos/);
                 const hasGroup = !!m.torneo_grupo_id;
+                const isScheduled = m.lugar?.toLowerCase().includes('cancha') && m.fecha !== null;
                 
-                return hasGroup || isBracketMatch;
+                return hasGroup || isBracketMatch || isScheduled;
             }
             return false;
         });
