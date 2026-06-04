@@ -609,10 +609,14 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
 
         if (!grupos || grupos.length === 0) return { success: false, message: "No hay grupos en esta categoría." };
 
-        const { data: torneo } = await supabaseAdmin.from('torneos').select('club_id, fecha_inicio, formato').eq('id', torneoId).single();
+        const { data: torneo } = await supabaseAdmin.from('torneos').select('club_id, fecha_inicio, formato, reglas_puntuacion').eq('id', torneoId).single();
         const clubId = torneo?.club_id;
         const fechaTorneo = torneo?.fecha_inicio;
         const standingsOpts = torneo?.formato === 'liguilla' ? { pointsForLoss: 1 } : {};
+        // Resolver tipo de desempate para la categoría actual.
+        const tipoDesempateGlobal = torneo?.reglas_puntuacion?.tipo_desempate;
+        const tipoDesempatePorCat = torneo?.reglas_puntuacion?.tipo_desempate_por_categoria || {};
+        const tipoDesempateCat = tipoDesempatePorCat[categoria] || tipoDesempateGlobal || null;
 
         const groupResults: {
             grupoId: string;
@@ -634,7 +638,12 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
             const totalMatches = matches?.length || 0;
             const playedMatches = matches?.filter(m => (m.estado === 'jugado' || m.estado_resultado === 'confirmado') && m.resultado).length || 0;
             
-            const standings = calculateStandings(matches || [], standingsOpts);
+            // Enriquecer cada match con su tipoDesempate (= el de la categoría)
+            // para que calculateStandings decida correctamente si los games del
+            // 3er set cuentan o no.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const matchesConTipo = (matches || []).map((m: any) => ({ ...m, tipoDesempate: tipoDesempateCat }));
+            const standings = calculateStandings(matchesConTipo, standingsOpts);
             // Lógica propuesta: Si el total de partidos programados es igual a los jugados, el grupo está cerrado.
             const isFinished = totalMatches > 0 && playedMatches >= totalMatches;
             
@@ -870,9 +879,12 @@ export async function obtenerStandingsGlobales(torneoId: string, categoria: stri
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
-        // Formato del torneo (para el scoring liguilla 3/1)
-        const { data: torneo } = await supabaseAdmin.from('torneos').select('formato').eq('id', torneoId).single();
+        // Formato del torneo (para el scoring liguilla 3/1) y reglas de desempate
+        const { data: torneo } = await supabaseAdmin.from('torneos').select('formato, reglas_puntuacion').eq('id', torneoId).single();
         const standingsOpts = torneo?.formato === 'liguilla' ? { pointsForLoss: 1 } : {};
+        const tipoDesempateGlobalGS = torneo?.reglas_puntuacion?.tipo_desempate;
+        const tipoDesempatePorCatGS = torneo?.reglas_puntuacion?.tipo_desempate_por_categoria || {};
+        const tipoDesempateCatGS = tipoDesempatePorCatGS[categoria] || tipoDesempateGlobalGS || null;
 
         // Grupos de la categoría
         const { data: grupos } = await supabaseAdmin
@@ -906,12 +918,15 @@ export async function obtenerStandingsGlobales(torneoId: string, categoria: stri
             (parejasData || []).forEach(p => parejaNameMap.set(p.id, p.nombre_pareja || 'Pareja'));
         }
 
-        // Adjuntar pareja1 y pareja2 con la forma que espera calculateStandings
+        // Adjuntar pareja1 y pareja2 con la forma que espera calculateStandings,
+        // y enriquecer cada partido con su tipoDesempate (el resuelto para
+        // la categoría que estamos analizando).
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const allTorneoMatches = (rawMatches || []).map((m: any) => ({
             ...m,
             pareja1: m.pareja1_id ? { nombre_pareja: parejaNameMap.get(m.pareja1_id) || null } : null,
             pareja2: m.pareja2_id ? { nombre_pareja: parejaNameMap.get(m.pareja2_id) || null } : null,
+            tipoDesempate: tipoDesempateCatGS,
         }));
 
         const isBracketMatch = (m: { lugar?: string | null }) =>

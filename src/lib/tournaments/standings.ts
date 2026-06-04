@@ -27,6 +27,11 @@ export function calculateStandings(matches: {
     estado_resultado: string | null;
     pareja1?: { nombre_pareja: string | null } | null;
     pareja2?: { nombre_pareja: string | null } | null;
+    /** Si se pasa, define cómo cuenta el 3er set para esta partido:
+     *   'tercer_set' = set normal → sus games SÍ suman a GG/GP.
+     *   'tiebreak' | 'super_tiebreak' = puntaje de desempate → NO suma.
+     *  Si no viene, se aplica la heurística clásica (no sumar si algún score >= 10). */
+    tipoDesempate?: string | null;
 }[], options: StandingsOptions = {}): Standing[] {
     const pointsForWin = options.pointsForWin ?? 3;
     const pointsForLoss = options.pointsForLoss ?? 0;
@@ -34,25 +39,42 @@ export function calculateStandings(matches: {
 
     matches.forEach(m => {
         if (!m.pareja1_id || !m.pareja2_id) return;
-        
+
         if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: m.pareja1?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
         if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: m.pareja2?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
 
         if ((m.estado === 'jugado' || m.estado_resultado === 'confirmado') && m.resultado) {
             const s1 = map.get(m.pareja1_id)!;
             const s2 = map.get(m.pareja2_id)!;
-            
+
             s1.pj += 1;
             s2.pj += 1;
 
             const sets = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
-            let setsP1InMatch = 0; 
+            let setsP1InMatch = 0;
             let setsP2InMatch = 0;
-            
-            sets.forEach((set: number[]) => {
+
+            // Si la modalidad del partido es 'tercer_set' explícito, el 3er set
+            // cuenta como set normal y sus games SÍ suman. Si es tiebreak o
+            // super_tiebreak, el 3er set es solo puntaje de desempate.
+            const tercerSetCuentaGames = m.tipoDesempate === 'tercer_set';
+            const tercerSetNoCuentaGames = m.tipoDesempate === 'tiebreak' || m.tipoDesempate === 'super_tiebreak';
+
+            sets.forEach((set: number[], index: number) => {
                 if (set.length === 2 && !isNaN(set[0]) && !isNaN(set[1])) {
-                    // Sumar games (No sumar si es un Super Tie-break, usualmente definido por puntuación >= 10)
-                    if (set[0] < 10 && set[1] < 10) {
+                    // Decidir si este set cuenta para games.
+                    let cuentaGames: boolean;
+                    if (index < 2) {
+                        cuentaGames = true; // Primeros dos sets siempre cuentan
+                    } else if (tercerSetCuentaGames) {
+                        cuentaGames = true; // Explícitamente "tercer_set"
+                    } else if (tercerSetNoCuentaGames) {
+                        cuentaGames = false; // Explícitamente desempate corto
+                    } else {
+                        // Heurística legacy: si tiene pinta de super tiebreak (>= 10), no cuenta.
+                        cuentaGames = set[0] < 10 && set[1] < 10;
+                    }
+                    if (cuentaGames) {
                         s1.gg += set[0];
                         s1.gp += set[1];
                         s2.gg += set[1];

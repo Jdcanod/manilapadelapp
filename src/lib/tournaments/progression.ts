@@ -158,9 +158,12 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
 export async function sincronizarClasificados(torneoId: string, categoria: string, clubId: string | null, userId: string) {
     const supabaseAdmin = createAdminClient();
 
-    // 0. Determinar opciones de scoring según el formato del torneo
-    const { data: torneo } = await supabaseAdmin.from('torneos').select('formato').eq('id', torneoId).single();
+    // 0. Determinar opciones de scoring según el formato del torneo y resolver tipo de desempate
+    const { data: torneo } = await supabaseAdmin.from('torneos').select('formato, reglas_puntuacion').eq('id', torneoId).single();
     const standingsOpts = torneo?.formato === 'liguilla' ? { pointsForLoss: 1 } : {};
+    const tipoDesempateGlobal = torneo?.reglas_puntuacion?.tipo_desempate;
+    const tipoDesempatePorCat = torneo?.reglas_puntuacion?.tipo_desempate_por_categoria || {};
+    const tipoDesempateCat = tipoDesempatePorCat[categoria] || tipoDesempateGlobal || null;
 
     // 1. Obtener todos los grupos de la categoría
     const { data: grupos } = await supabaseAdmin
@@ -181,7 +184,9 @@ export async function sincronizarClasificados(torneoId: string, categoria: strin
         const isFinished = (matches || []).length > 0 && (matches || []).every(m => m.estado === 'jugado' && m.estado_resultado === 'confirmado');
         if (!isFinished) continue;
 
-        const standings = calculateStandings(matches || [], standingsOpts);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const matchesConTipo = (matches || []).map((m: any) => ({ ...m, tipoDesempate: tipoDesempateCat }));
+        const standings = calculateStandings(matchesConTipo, standingsOpts);
         const first = standings[0];
         const second = standings[1];
 

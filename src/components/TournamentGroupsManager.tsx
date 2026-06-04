@@ -209,13 +209,23 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                 s2.pj += 1;
 
                 const sets = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
-                let setsP1InMatch = 0; 
+                let setsP1InMatch = 0;
                 let setsP2InMatch = 0;
-                
+
+                // Resolver tipo de desempate para ESTE partido según su categoría.
+                // Si la modalidad es 'tercer_set', el 3er set se juega como set
+                // normal y sus games SÍ cuentan para GG/GP. Si es tiebreak o
+                // super_tiebreak, el "3er set" es realmente un puntaje de
+                // desempate (ej. 10-8) y NO debe sumar a games.
+                const matchCat = m.nivel || selectedCat;
+                const matchTipoDesempate = tipoDesempatePorCategoria[matchCat] || tipoDesempate;
+                const tercerSetCuentaGames = matchTipoDesempate === 'tercer_set';
+
                 sets.forEach((set: number[], index: number) => {
                     if (set.length === 2 && !isNaN(set[0]) && !isNaN(set[1])) {
-                        // Sumar games (El 3er set o super tie-break NUNCA suma games para el desempate, solo cuenta el set)
-                        if (index < 2) {
+                        // Games: los primeros 2 sets SIEMPRE cuentan. El 3er set
+                        // cuenta SOLO si la modalidad es 'tercer_set' (set normal).
+                        if (index < 2 || tercerSetCuentaGames) {
                             s1.gg += set[0];
                             s1.gp += set[1];
                             s2.gg += set[1];
