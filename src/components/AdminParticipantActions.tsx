@@ -9,10 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Trash2, Edit2, CreditCard, UserPlus, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatPlayerNameFull, isGuestEmail } from "@/lib/display-names";
 
 interface User {
     id: string;
     nombre: string;
+    apellido?: string | null;
     email: string;
 }
 
@@ -170,11 +172,21 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                                             <SelectValue placeholder="Seleccionar jugador" />
                                         </SelectTrigger>
                                         <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
-                                            {allUsers.map(u => (
-                                                <SelectItem key={u.id} value={u.id} className="focus:bg-amber-500/10 focus:text-amber-500">
-                                                    {u.nombre} <span className="text-[10px] text-neutral-500 ml-2 italic">{u.email}</span>
-                                                </SelectItem>
-                                            ))}
+                                            {allUsers.map(u => {
+                                                const inv = isGuestEmail(u.email);
+                                                return (
+                                                    <SelectItem key={u.id} value={u.id} className="focus:bg-amber-500/10 focus:text-amber-500">
+                                                        <span className="inline-flex items-center gap-2">
+                                                            <span className={inv ? "text-amber-300" : ""}>
+                                                                {formatPlayerNameFull({ nombre: u.nombre, apellido: u.apellido, email: u.email })}
+                                                            </span>
+                                                            {!inv && (
+                                                                <span className="text-[10px] text-neutral-500 italic">{u.email}</span>
+                                                            )}
+                                                        </span>
+                                                    </SelectItem>
+                                                );
+                                            })}
                                         </SelectContent>
                                     </Select>
                                 )}
@@ -202,11 +214,21 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                                             <SelectValue placeholder="Seleccionar jugador" />
                                         </SelectTrigger>
                                         <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
-                                            {allUsers.map(u => (
-                                                <SelectItem key={u.id} value={u.id} className="focus:bg-amber-500/10 focus:text-amber-500">
-                                                    {u.nombre} <span className="text-[10px] text-neutral-500 ml-2 italic">{u.email}</span>
-                                                </SelectItem>
-                                            ))}
+                                            {allUsers.map(u => {
+                                                const inv = isGuestEmail(u.email);
+                                                return (
+                                                    <SelectItem key={u.id} value={u.id} className="focus:bg-amber-500/10 focus:text-amber-500">
+                                                        <span className="inline-flex items-center gap-2">
+                                                            <span className={inv ? "text-amber-300" : ""}>
+                                                                {formatPlayerNameFull({ nombre: u.nombre, apellido: u.apellido, email: u.email })}
+                                                            </span>
+                                                            {!inv && (
+                                                                <span className="text-[10px] text-neutral-500 italic">{u.email}</span>
+                                                            )}
+                                                        </span>
+                                                    </SelectItem>
+                                                );
+                                            })}
                                         </SelectContent>
                                     </Select>
                                 )}
