@@ -37,6 +37,14 @@ export function CrearTorneoForm() {
     const [copaCatConfig, setCopaCatConfig] = useState<Record<string, { parejas: number; partidos: number }>>({});
     const [nuevaCatInput, setNuevaCatInput] = useState("");
 
+    // Relámpago con pre-creación de slots TBD
+    const [precargarTBD, setPrecargarTBD] = useState<boolean>(false);
+    const [relampagoTBDConfig, setRelampagoTBDConfig] = useState<Record<string, number>>({});
+    const updateRelampagoTBD = (cat: string, value: number) => {
+        const v = Math.max(0, Math.min(50, isNaN(value) ? 0 : value));
+        setRelampagoTBDConfig(prev => ({ ...prev, [cat]: v }));
+    };
+
     const toggleCat = (cat: string, on: boolean) => {
         setSelectedCats(prev => on ? Array.from(new Set([...prev, cat])) : prev.filter(c => c !== cat));
         if (on && !copaCatConfig[cat]) {
@@ -289,23 +297,93 @@ export function CrearTorneoForm() {
                     </h3>
 
                     {!esCopaDavis ? (
-                        // Vista clásica: solo checkboxes
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                            {todasLasCats.map((cat) => (
-                                <div key={cat} className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id={`cat-${cat}`}
-                                        name="categorias"
-                                        value={cat}
-                                        defaultChecked={['3ra', '4ta', '5ta', '6ta'].includes(cat)}
-                                        className="border-neutral-700 data-[state=checked]:bg-amber-500 data-[state=checked]:text-black"
-                                    />
-                                    <Label htmlFor={`cat-${cat}`} className="text-sm font-medium leading-none text-white cursor-pointer">
-                                        {cat}
-                                    </Label>
+                        // Vista clásica: checkboxes + (Relámpago) pre-carga TBD opcional
+                        <>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                {todasLasCats.map((cat) => {
+                                    const checked = selectedCats.includes(cat);
+                                    return (
+                                        <div key={cat} className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id={`cat-${cat}`}
+                                                name="categorias"
+                                                value={cat}
+                                                checked={checked}
+                                                onCheckedChange={(v) => {
+                                                    const on = !!v;
+                                                    setSelectedCats(prev =>
+                                                        on ? Array.from(new Set([...prev, cat])) : prev.filter(c => c !== cat)
+                                                    );
+                                                }}
+                                                className="border-neutral-700 data-[state=checked]:bg-amber-500 data-[state=checked]:text-black"
+                                            />
+                                            <Label htmlFor={`cat-${cat}`} className="text-sm font-medium leading-none text-white cursor-pointer">
+                                                {cat}
+                                            </Label>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Pre-carga de slots TBD — solo Relámpago */}
+                            {formato === "relampago" && (
+                                <div className="mt-4 pt-4 border-t border-neutral-800/60 space-y-3">
+                                    <div className="flex items-start gap-3">
+                                        <Checkbox
+                                            id="precargar-tbd"
+                                            checked={precargarTBD}
+                                            onCheckedChange={(v) => setPrecargarTBD(!!v)}
+                                            className="mt-0.5 border-neutral-700 data-[state=checked]:bg-emerald-500 data-[state=checked]:text-black"
+                                        />
+                                        <div className="space-y-1">
+                                            <Label htmlFor="precargar-tbd" className="text-sm font-bold text-emerald-400 cursor-pointer">
+                                                Pre-cargar grupos con parejas TBD
+                                            </Label>
+                                            <p className="text-[11px] text-neutral-500 leading-snug">
+                                                El sistema arma los grupos y partidos round-robin con &quot;parejas pendientes&quot; (TBD).
+                                                Después podrás asignar las parejas reales desde el panel del torneo, una por una.
+                                                Ideal cuando aún no tienes confirmadas las inscripciones pero ya quieres publicar el bracket.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {precargarTBD && selectedCats.length > 0 && (
+                                        <div className="space-y-2 bg-neutral-950/40 border border-emerald-500/20 rounded-xl p-4">
+                                            <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                                                ¿Cuántas parejas por categoría?
+                                            </p>
+                                            {selectedCats.map(cat => {
+                                                const n = relampagoTBDConfig[cat] ?? 0;
+                                                const grupos = n >= 2 ? Math.max(1, Math.floor(n / 3)) : 0;
+                                                return (
+                                                    <div key={cat} className="grid grid-cols-[1fr_auto_auto] gap-3 items-center py-2 border-b border-neutral-800/40 last:border-0">
+                                                        <span className="text-sm font-bold text-white">{cat}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] text-neutral-500 uppercase tracking-wide">Parejas</span>
+                                                            <Input
+                                                                type="number"
+                                                                min={0}
+                                                                max={50}
+                                                                value={n}
+                                                                onChange={e => updateRelampagoTBD(cat, parseInt(e.target.value))}
+                                                                name={`relampago_pre_parejas_${cat}`}
+                                                                className="w-16 h-8 bg-neutral-900 border-neutral-800 text-white text-center text-sm"
+                                                            />
+                                                        </div>
+                                                        <span className="text-[10px] text-neutral-500 min-w-[80px] text-right">
+                                                            {grupos > 0 ? `→ ${grupos} grupo${grupos > 1 ? 's' : ''}` : '—'}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
+                                            <p className="text-[10px] text-neutral-600 pt-1">
+                                                Los grupos se arman de 3 parejas. Si no llega múltiplo exacto, sobra una pareja por grupo en algunos.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
-                            ))}
-                        </div>
+                            )}
+                        </>
                     ) : (
                         // Copa Davis: por cada categoría seleccionada, parejas por club + partidos
                         <div className="space-y-3">

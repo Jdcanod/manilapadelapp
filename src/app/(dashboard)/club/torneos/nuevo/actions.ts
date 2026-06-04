@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient, createAdminClient, createPureAdminClient } from "@/utils/supabase/server";
+import { crearGruposRelampagoConTBD } from "@/app/(dashboard)/club/torneos/[id]/slots-actions";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -134,6 +135,33 @@ export async function crearTorneoCentral(formData: FormData) {
                 revalidatePath("/club/torneos");
                 const msg = encodeURIComponent(
                     `No se pudieron crear los ${partidosACrear.length} partidos placeholder: ${pErr.message}. Puedes añadirlos manualmente.`
+                );
+                redirect(`/club/torneos/${data.id}?creation_warning=${msg}`);
+            }
+        }
+    }
+
+    // Relámpago con pre-creación de slots TBD: si el form trae
+    // `relampago_pre_parejas_<cat>` > 0, generamos placeholders + grupos + partidos.
+    if (!esCopaDavis && formato === "relampago") {
+        const preConfig: Record<string, number> = {};
+        for (const cat of categoriasSeleccionadas) {
+            const raw = formData.get(`relampago_pre_parejas_${cat}`);
+            const n = raw ? parseInt(raw as string, 10) : 0;
+            if (!isNaN(n) && n >= 2) preConfig[cat] = n;
+        }
+        if (Object.keys(preConfig).length > 0) {
+            const result = await crearGruposRelampagoConTBD({
+                torneoId: data.id,
+                creadorAuthId: user.id,
+                clubId: userData.id,
+                fechaSentinel: new Date(fechaInicio).toISOString(),
+                configPorCategoria: preConfig,
+            });
+            if (!result.success) {
+                revalidatePath("/club/torneos");
+                const msg = encodeURIComponent(
+                    `Torneo creado, pero la pre-carga de slots TBD falló: ${result.error}. Puedes crear grupos manualmente.`
                 );
                 redirect(`/club/torneos/${data.id}?creation_warning=${msg}`);
             }

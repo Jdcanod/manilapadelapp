@@ -13,6 +13,10 @@ import { Check, Plus, RotateCcw, Settings, ChevronDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 import { GrupoMatchesList } from "@/components/GrupoMatchesList";
+import { AsignarParejaSlotDialog } from "@/components/AsignarParejaSlotDialog";
+
+const TBD_PREFIX_CLIENT = "TBD ·";
+const esTBD = (nombre?: string | null) => !!nombre && nombre.startsWith(TBD_PREFIX_CLIENT);
 
 interface Props {
     torneoId: string;
@@ -468,10 +472,24 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                             {clasifica && <span className="ml-1 text-[8px] align-top">★</span>}
                                                         </td>
                                                         <td className={cn(
-                                                            "px-4 py-3 font-bold max-w-[150px] truncate",
+                                                            "px-4 py-3 font-bold max-w-[200px]",
                                                             clasifica ? "text-white" : "text-neutral-400"
                                                         )} title={team.nombre}>
-                                                            {team.nombre}
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={cn(
+                                                                    "truncate",
+                                                                    esTBD(team.nombre) && "italic text-neutral-500 font-normal"
+                                                                )}>
+                                                                    {team.nombre}
+                                                                </span>
+                                                                <AsignarParejaSlotDialog
+                                                                    torneoId={torneoId}
+                                                                    placeholderParejaId={team.parejaId}
+                                                                    nombreActual={team.nombre}
+                                                                    categoria={selectedCat}
+                                                                    yaAsignada={!esTBD(team.nombre)}
+                                                                />
+                                                            </div>
                                                         </td>
                                                         <td className="px-2 py-3 text-center text-neutral-300">{team.pj}</td>
                                                         <td className="px-2 py-3 text-center text-neutral-400 text-xs">{team.sg}</td>
