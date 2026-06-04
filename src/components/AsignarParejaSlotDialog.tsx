@@ -60,17 +60,32 @@ function JugadorAutocomplete({
     value: JugadorSlot;
     onChange: (s: JugadorSlot) => void;
 }) {
-    const [text, setText] = useState<string>(value ? labelDeSlot(value) : "");
+    const initialText = value
+        ? (value.type === "user" ? formatPlayerNameFull(value.jugador) : value.nombre)
+        : "";
+    const [text, setText] = useState<string>(initialText);
     const [results, setResults] = useState<JugadorLite[]>([]);
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
 
-    // Si el valor cambia desde fuera, sincronizar el text mostrado
+    // Si el valor cambia desde fuera (por ejemplo `Cancelar` resetea, o se
+    // selecciona un usuario del dropdown), sincronizamos el texto mostrado.
+    // Importante: NO agregamos " (I)" aquí — el marcador se muestra debajo
+    // como preview. Si lo agregáramos, cada keystroke en modo "manual"
+    // dispararía un re-set con el sufijo concatenado al texto que estaba
+    // escribiendo, produciendo "j (I)d (I)d (I)…".
     useEffect(() => {
-        setText(value ? labelDeSlot(value) : "");
-    }, [value]);
+        if (!value) {
+            setText("");
+        } else if (value.type === "user") {
+            setText(formatPlayerNameFull(value.jugador));
+        }
+        // value.type === "manual": dejamos el texto tal como el usuario lo está
+        // escribiendo. No tocamos `text` aquí.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [value?.type === "user" ? value.jugador.id : null]);
 
     // Cerrar al click fuera
     useEffect(() => {
