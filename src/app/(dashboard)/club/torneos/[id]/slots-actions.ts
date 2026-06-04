@@ -13,6 +13,11 @@ import { revalidatePath } from "next/cache";
  * Se llama desde `crearTorneoCentral` para Relámpago cuando el admin marca
  * "pre-cargar con parejas TBD" y dice cuántas parejas habrá por categoría.
  */
+/** Config por categoría para la pre-creación de slots TBD.
+ *  `parejas` = cuántos placeholders crear.
+ *  `grupos` (opcional) = cuántos grupos armar. Si no se pasa, default = max(1, floor(parejas/3)). */
+export type CrearGruposCatCfg = number | { parejas: number; grupos?: number };
+
 export async function crearGruposRelampagoConTBD({
     torneoId,
     creadorAuthId,
@@ -24,7 +29,7 @@ export async function crearGruposRelampagoConTBD({
     creadorAuthId: string;
     clubId: string;
     fechaSentinel: string; // ISO — usado en partidos.fecha (NOT NULL)
-    configPorCategoria: Record<string, number>; // { '4ta': 6, '5ta': 8, ... }
+    configPorCategoria: Record<string, CrearGruposCatCfg>;
 }): Promise<{ success: boolean; error?: string; placeholdersCreados?: number; gruposCreados?: number }> {
     try {
         const admin = createPureAdminClient();
@@ -32,8 +37,11 @@ export async function crearGruposRelampagoConTBD({
         let totalPlaceholders = 0;
         let totalGrupos = 0;
 
-        for (const [categoria, nParejas] of Object.entries(configPorCategoria)) {
-            const N = Math.max(0, Math.floor(Number(nParejas) || 0));
+        for (const [categoria, cfg] of Object.entries(configPorCategoria)) {
+            const parsedCfg = typeof cfg === "number"
+                ? { parejas: cfg, grupos: undefined as number | undefined }
+                : { parejas: cfg.parejas, grupos: cfg.grupos };
+            const N = Math.max(0, Math.floor(Number(parsedCfg.parejas) || 0));
             if (N < 2) continue;
 
             // 1) Crear N parejas placeholder
@@ -69,8 +77,10 @@ export async function crearGruposRelampagoConTBD({
                 return { success: false, error: `Error inscribiendo placeholders: ${insErr.message}` };
             }
 
-            // 3) Calcular cuántos grupos (de 3, mínimo 1)
-            const numGrupos = Math.max(1, Math.floor(N / 3));
+            // 3) Calcular cuántos grupos: override manual si viene, sino default de 3 por grupo.
+            const numGrupos = parsedCfg.grupos != null && parsedCfg.grupos >= 1
+                ? Math.min(parsedCfg.grupos, N) // no más grupos que parejas
+                : Math.max(1, Math.floor(N / 3));
             totalGrupos += numGrupos;
 
             // 4) Distribuir placeholders secuencialmente entre grupos

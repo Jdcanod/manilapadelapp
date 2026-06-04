@@ -40,9 +40,22 @@ export function CrearTorneoForm() {
     // Relámpago con pre-creación de slots TBD
     const [precargarTBD, setPrecargarTBD] = useState<boolean>(false);
     const [relampagoTBDConfig, setRelampagoTBDConfig] = useState<Record<string, number>>({});
+    /** Override manual de cantidad de grupos por categoría. Si no está seteado,
+     *  se calcula automáticamente como max(1, floor(parejas/3)). */
+    const [relampagoGruposConfig, setRelampagoGruposConfig] = useState<Record<string, number>>({});
     const updateRelampagoTBD = (cat: string, value: number) => {
         const v = Math.max(0, Math.min(50, isNaN(value) ? 0 : value));
         setRelampagoTBDConfig(prev => ({ ...prev, [cat]: v }));
+        // Resetear el override de grupos al sugerido cuando cambia parejas, así
+        // el usuario ve el valor recalculado y puede reajustarlo si quiere.
+        const sugerido = v >= 2 ? Math.max(1, Math.floor(v / 3)) : 0;
+        setRelampagoGruposConfig(prev => ({ ...prev, [cat]: sugerido }));
+    };
+    const updateRelampagoGrupos = (cat: string, value: number) => {
+        const parejas = relampagoTBDConfig[cat] ?? 0;
+        const max = Math.max(1, parejas); // no más grupos que parejas
+        const v = Math.max(1, Math.min(max, isNaN(value) ? 1 : value));
+        setRelampagoGruposConfig(prev => ({ ...prev, [cat]: v }));
     };
 
     const toggleCat = (cat: string, on: boolean) => {
@@ -384,13 +397,17 @@ export function CrearTorneoForm() {
                                     {precargarTBD && selectedCats.length > 0 && (
                                         <div className="space-y-2 bg-neutral-950/40 border border-emerald-500/20 rounded-xl p-4">
                                             <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
-                                                ¿Cuántas parejas por categoría?
+                                                ¿Cuántas parejas y grupos por categoría?
                                             </p>
                                             {selectedCats.map(cat => {
                                                 const n = relampagoTBDConfig[cat] ?? 0;
-                                                const grupos = n >= 2 ? Math.max(1, Math.floor(n / 3)) : 0;
+                                                const sugerido = n >= 2 ? Math.max(1, Math.floor(n / 3)) : 0;
+                                                const gruposManual = relampagoGruposConfig[cat];
+                                                const grupos = gruposManual != null ? gruposManual : sugerido;
+                                                // Tamaño promedio por grupo (informativo)
+                                                const tamano = grupos > 0 ? (n / grupos) : 0;
                                                 return (
-                                                    <div key={cat} className="grid grid-cols-[1fr_auto_auto] gap-3 items-center py-2 border-b border-neutral-800/40 last:border-0">
+                                                    <div key={cat} className="grid grid-cols-[60px_auto_auto_1fr] gap-3 items-center py-2 border-b border-neutral-800/40 last:border-0">
                                                         <span className="text-sm font-bold text-white">{cat}</span>
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-[10px] text-neutral-500 uppercase tracking-wide">Parejas</span>
@@ -404,14 +421,29 @@ export function CrearTorneoForm() {
                                                                 className="w-16 h-8 bg-neutral-900 border-neutral-800 text-white text-center text-sm"
                                                             />
                                                         </div>
-                                                        <span className="text-[10px] text-neutral-500 min-w-[80px] text-right">
-                                                            {grupos > 0 ? `→ ${grupos} grupo${grupos > 1 ? 's' : ''}` : '—'}
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] text-neutral-500 uppercase tracking-wide">Grupos</span>
+                                                            <Input
+                                                                type="number"
+                                                                min={1}
+                                                                max={Math.max(1, n)}
+                                                                disabled={n < 2}
+                                                                value={n < 2 ? '' : grupos}
+                                                                onChange={e => updateRelampagoGrupos(cat, parseInt(e.target.value))}
+                                                                name={`relampago_pre_grupos_${cat}`}
+                                                                className="w-16 h-8 bg-neutral-900 border-neutral-800 text-white text-center text-sm disabled:opacity-40"
+                                                            />
+                                                        </div>
+                                                        <span className="text-[10px] text-neutral-500 text-right">
+                                                            {n >= 2 && grupos > 0
+                                                                ? <>≈ <span className="text-emerald-400 font-bold">{tamano.toFixed(1)}</span> parejas/grupo</>
+                                                                : '—'}
                                                         </span>
                                                     </div>
                                                 );
                                             })}
                                             <p className="text-[10px] text-neutral-600 pt-1">
-                                                Los grupos se arman de 3 parejas. Si no llega múltiplo exacto, sobra una pareja por grupo en algunos.
+                                                Por defecto se arman grupos de 3 parejas, pero puedes editar la cantidad. Si no llega múltiplo exacto, algunos grupos tendrán una pareja extra.
                                             </p>
                                         </div>
                                     )}

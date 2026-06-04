@@ -156,12 +156,20 @@ export async function crearTorneoCentral(formData: FormData) {
 
     // Relámpago con pre-creación de slots TBD: si el form trae
     // `relampago_pre_parejas_<cat>` > 0, generamos placeholders + grupos + partidos.
+    // Adicionalmente, si `relampago_pre_grupos_<cat>` viene seteado, se respeta
+    // como override manual del número de grupos para esa categoría (default = max(1, floor(N/3))).
     if (!esCopaDavis && formato === "relampago") {
-        const preConfig: Record<string, number> = {};
+        const preConfig: Record<string, { parejas: number; grupos?: number }> = {};
         for (const cat of categoriasSeleccionadas) {
-            const raw = formData.get(`relampago_pre_parejas_${cat}`);
-            const n = raw ? parseInt(raw as string, 10) : 0;
-            if (!isNaN(n) && n >= 2) preConfig[cat] = n;
+            const rawParejas = formData.get(`relampago_pre_parejas_${cat}`);
+            const n = rawParejas ? parseInt(rawParejas as string, 10) : 0;
+            if (isNaN(n) || n < 2) continue;
+            const rawGrupos = formData.get(`relampago_pre_grupos_${cat}`);
+            const g = rawGrupos ? parseInt(rawGrupos as string, 10) : NaN;
+            preConfig[cat] = {
+                parejas: n,
+                grupos: !isNaN(g) && g >= 1 ? Math.min(g, n) : undefined,
+            };
         }
         if (Object.keys(preConfig).length > 0) {
             const result = await crearGruposRelampagoConTBD({
