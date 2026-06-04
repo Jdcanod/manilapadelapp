@@ -10,7 +10,6 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Trophy, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/utils/supabase/client";
-import { crearPerfilUsuarioAction } from "./actions";
 
 export default function RegistroPage() {
     const router = useRouter();
@@ -93,23 +92,28 @@ export default function RegistroPage() {
             if (authData?.user) {
                 // 2. Guardar su perfil en la tabla pública "users" usando una acción de servidor (Admin)
                 // Esto evita el error de RLS ya que el usuario aún no ha confirmado su email
-                const resultado = await crearPerfilUsuarioAction({
-                    auth_id: authData.user.id,
-                    nombre: nombreCompleto,
-                    apellido: apellido,
-                    email: email,
-                    ciudad: ciudad,
-                    rol: userRole,
-                    telefono: telefono,
-                    fecha_nacimiento: fecha_nacimiento || null,
-                    club_preferencia: club_preferencia || null,
-                    categoria: categoria,
-                    nivel: nivelValidado
+                const response = await fetch("/api/registro/perfil", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        auth_id: authData.user.id,
+                        nombre: nombreCompleto,
+                        apellido: apellido,
+                        email: email,
+                        ciudad: ciudad,
+                        rol: userRole,
+                        telefono: telefono,
+                        fecha_nacimiento: fecha_nacimiento || null,
+                        club_preferencia: club_preferencia || null,
+                        categoria: categoria,
+                        nivel: nivelValidado,
+                    }),
                 });
 
-                console.log("[registro] resultado del server action:", resultado);
+                const resultado = await response.json().catch(() => null);
+                console.log("[registro] resultado del API:", resultado);
                 const success = resultado?.success ?? false;
-                const dbError = resultado?.error ?? `(action retornó: ${JSON.stringify(resultado)})`;
+                const dbError = resultado?.error ?? `(HTTP ${response.status})`;
 
                 if (!success) {
                     console.error("Profile saving error:", dbError);
