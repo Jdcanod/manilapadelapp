@@ -93,7 +93,7 @@ export default function RegistroPage() {
             if (authData?.user) {
                 // 2. Guardar su perfil en la tabla pública "users" usando una acción de servidor (Admin)
                 // Esto evita el error de RLS ya que el usuario aún no ha confirmado su email
-                const { success, error: dbError } = await crearPerfilUsuarioAction({
+                const resultado = await crearPerfilUsuarioAction({
                     auth_id: authData.user.id,
                     nombre: nombreCompleto,
                     apellido: apellido,
@@ -107,6 +107,9 @@ export default function RegistroPage() {
                     nivel: nivelValidado
                 });
 
+                const success = resultado?.success ?? false;
+                const dbError = resultado?.error ?? "Respuesta inesperada del servidor";
+
                 if (!success) {
                     console.error("Profile saving error:", dbError);
                     toast({
@@ -117,7 +120,7 @@ export default function RegistroPage() {
                 } else {
                     toast({
                         title: "¡Bienvenido a ManilaPadel!",
-                        description: "Tu cuenta fue creada con éxito. Revisa tu correo para confirmar tu cuenta y poder ingresar.",
+                        description: "Tu cuenta fue creada con éxito.",
                     });
                 }
 

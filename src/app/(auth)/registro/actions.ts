@@ -15,14 +15,20 @@ export async function crearPerfilUsuarioAction(userData: {
     categoria: string;
     nivel: string;
 }) {
-    const supabaseAdmin = createAdminClient();
+    try {
+        const supabaseAdmin = createAdminClient();
 
-    const { error } = await supabaseAdmin.from('users').insert(userData);
+        const { error } = await supabaseAdmin.from('users').insert(userData);
 
-    if (error) {
-        console.error("Error creating user profile with admin client:", error);
-        return { success: false, error: error.message };
+        if (error) {
+            console.error("Error creating user profile with admin client:", error);
+            return { success: false, error: error.message };
+        }
+
+        return { success: true, error: null };
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "Error desconocido en crearPerfilUsuarioAction";
+        console.error("Excepción en crearPerfilUsuarioAction:", e);
+        return { success: false, error: msg };
     }
-
-    return { success: true };
 }
