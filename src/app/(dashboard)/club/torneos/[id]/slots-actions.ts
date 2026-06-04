@@ -340,7 +340,7 @@ export async function listarParejasCatalogo(torneoId: string): Promise<ParejaCat
         if (p.jugador1_id) jugadorIds.add(p.jugador1_id);
         if (p.jugador2_id) jugadorIds.add(p.jugador2_id);
     });
-    let jugadoresMap = new Map<string, JugadorLite>();
+    const jugadoresMap = new Map<string, JugadorLite>();
     if (jugadorIds.size > 0) {
         const { data: jugadores } = await admin
             .from("users")
