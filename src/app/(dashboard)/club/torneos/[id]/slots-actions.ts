@@ -359,7 +359,7 @@ export async function quitarParejaDelSlot({
                     const m = (p.nombre_pareja || "").match(/#(\d+)$/);
                     return m ? parseInt(m[1], 10) : 0;
                 })
-                .filter(n => !isNaN(n));
+                .filter((n: number) => !isNaN(n));
             nextNum = (nums.length ? Math.max(...nums) : 0) + 1;
         }
 
