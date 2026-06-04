@@ -33,7 +33,7 @@ WITH agrupados AS (
     SELECT
         id,
         pg_temp.norm_nombre(nombre || ' ' || coalesce(apellido, '')) AS key,
-        created_at
+        fecha_registro
     FROM users
     WHERE rol = 'jugador'
       AND email LIKE 'invitado_%@manilapadel.app'
@@ -42,8 +42,8 @@ canon AS (
     SELECT key, id AS canon_id
     FROM (
         SELECT
-            key, id, created_at,
-            ROW_NUMBER() OVER (PARTITION BY key ORDER BY created_at ASC, id ASC) AS rn
+            key, id, fecha_registro,
+            ROW_NUMBER() OVER (PARTITION BY key ORDER BY fecha_registro ASC, id ASC) AS rn
         FROM agrupados
     ) t
     WHERE rn = 1
@@ -114,7 +114,7 @@ WITH normalizadas AS (
         id,
         LEAST(jugador1_id::text, jugador2_id::text) AS a,
         GREATEST(jugador1_id::text, jugador2_id::text) AS b,
-        created_at
+        creado_en
     FROM parejas
     WHERE jugador1_id IS NOT NULL AND jugador2_id IS NOT NULL
 ),
@@ -122,8 +122,8 @@ canon AS (
     SELECT a, b, id AS canon_id
     FROM (
         SELECT
-            a, b, id, created_at,
-            ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY created_at ASC, id ASC) AS rn
+            a, b, id, creado_en,
+            ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY creado_en ASC, id ASC) AS rn
         FROM normalizadas
     ) t
     WHERE rn = 1
