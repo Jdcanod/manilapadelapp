@@ -40,12 +40,6 @@ function jugadorSlotToRef(s: JugadorSlot): string | null {
     return `manual:${n}`;
 }
 
-function labelDeSlot(s: JugadorSlot, fallback = ""): string {
-    if (!s) return fallback;
-    if (s.type === "user") return formatPlayerNameFull(s.jugador);
-    return `${s.nombre} (I)`;
-}
-
 /* ============================================================
    Sub-componente: autocomplete de jugador
    ============================================================ */
