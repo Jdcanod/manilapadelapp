@@ -4,6 +4,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { Participant, distributeParticipantsIntoGroups, generateMatchesForGroup } from "@/lib/tournaments/logic";
 import { createClient, createAdminClient, createPureAdminClient } from "@/utils/supabase/server";
 import { calculateStandings } from "@/lib/tournaments/standings";
+import { getOrCreateInvitado } from "@/lib/invitados";
 import { revalidatePath } from "next/cache";
 import { format } from "date-fns";
 
@@ -364,27 +365,12 @@ export async function inscribirParejaManual(torneoId: string, jugador1Sel: strin
         let j1Id = jugador1Sel;
         let j2Id = jugador2Sel;
 
-        // 1. Create ghost users if needed
+        // 1. Resolver invitados reutilizando si ya existe uno con el mismo nombre.
         if (j1Id.startsWith("manual:")) {
-            const name = j1Id.replace("manual:", "").trim();
-            const { data, error } = await supabaseAdmin.from('users').insert({
-                nombre: name,
-                email: `invitado_${Date.now()}_${Math.random().toString(36).substring(7)}@manilapadel.app`,
-                rol: 'jugador'
-            }).select('id').single();
-            if (error) throw new Error("Error creando invitado 1: " + error.message);
-            if (data) j1Id = data.id;
+            j1Id = await getOrCreateInvitado(supabaseAdmin, j1Id);
         }
-
         if (j2Id.startsWith("manual:")) {
-            const name = j2Id.replace("manual:", "").trim();
-            const { data, error } = await supabaseAdmin.from('users').insert({
-                nombre: name,
-                email: `invitado_${Date.now()}_${Math.random().toString(36).substring(7)}@manilapadel.app`,
-                rol: 'jugador'
-            }).select('id').single();
-            if (error) throw new Error("Error creando invitado 2: " + error.message);
-            if (data) j2Id = data.id;
+            j2Id = await getOrCreateInvitado(supabaseAdmin, j2Id);
         }
 
         // 2. Find or Create the 'Pareja' (using Admin to be sure we see the ghost users)
@@ -1519,27 +1505,12 @@ export async function editarParticipantesInscripcion(
     let j1Id = jugador1Sel;
     let j2Id = jugador2Sel;
 
-    // 1. Crear invitados si es necesario
+    // 1. Resolver invitados reutilizando si ya existe uno con el mismo nombre.
     if (j1Id.startsWith("manual:")) {
-        const name = j1Id.replace("manual:", "").trim();
-        const { data, error } = await supabaseAdmin.from('users').insert({
-            nombre: name,
-            email: `invitado_${Date.now()}_${Math.random().toString(36).substring(7)}@manilapadel.app`,
-            rol: 'jugador'
-        }).select('id').single();
-        if (error) throw new Error("Error creando invitado 1: " + error.message);
-        if (data) j1Id = data.id;
+        j1Id = await getOrCreateInvitado(supabaseAdmin, j1Id);
     }
-
     if (j2Id.startsWith("manual:")) {
-        const name = j2Id.replace("manual:", "").trim();
-        const { data, error } = await supabaseAdmin.from('users').insert({
-            nombre: name,
-            email: `invitado_${Date.now()}_${Math.random().toString(36).substring(7)}@manilapadel.app`,
-            rol: 'jugador'
-        }).select('id').single();
-        if (error) throw new Error("Error creando invitado 2: " + error.message);
-        if (data) j2Id = data.id;
+        j2Id = await getOrCreateInvitado(supabaseAdmin, j2Id);
     }
 
     // 2. Buscar o crear la nueva pareja (para obtener su ID real)

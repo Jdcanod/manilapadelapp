@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient, createPureAdminClient } from "@/utils/supabase/server";
+import { getOrCreateInvitado } from "@/lib/invitados";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -295,26 +296,11 @@ export async function inscribirParejaCopa({
         }
         if (!jugador1Sel || !jugador2Sel) return { success: false, message: "Selecciona los dos jugadores" };
 
-        // 1. Resolver jugadores (crear invitados si vienen como "manual:Nombre")
+        // 1. Resolver jugadores: si vienen como "manual:Nombre" reutilizamos
+        //    un invitado existente con ese mismo nombre, o lo creamos.
         const resolveJugador = async (sel: string): Promise<string> => {
             if (sel.startsWith("manual:")) {
-                const fullName = sel.replace("manual:", "").trim();
-                if (!fullName) throw new Error("Nombre vacío en invitado");
-                // Separar nombre y apellido por el primer espacio (resto va al apellido)
-                const [primerNombre, ...restoNombre] = fullName.split(/\s+/);
-                const apellido = restoNombre.join(' ') || null;
-                // No seteamos club_id en el user: el vínculo al club queda en
-                // torneo_parejas.representando_club_id. users.club_id tiene una FK
-                // distinta que provoca constraint violation al pasar el users.id
-                // del admin.
-                const { data, error } = await admin.from('users').insert({
-                    nombre: primerNombre,
-                    apellido,
-                    email: `invitado_${Date.now()}_${Math.random().toString(36).substring(7)}@manilapadel.app`,
-                    rol: 'jugador',
-                }).select('id').single();
-                if (error) throw new Error("Error creando invitado: " + error.message);
-                return data.id;
+                return await getOrCreateInvitado(admin, sel);
             }
             return sel;
         };
