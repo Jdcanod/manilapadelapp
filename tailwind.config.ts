@@ -9,7 +9,31 @@ const config: Config = {
 	],
 	theme: {
 		extend: {
+			fontFamily: {
+				display: ['var(--font-display)', 'Bebas Neue', 'system-ui', 'sans-serif'],
+				sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+			},
 			colors: {
+				/* === Pádel Manía vintage palette === */
+				paper: {
+					DEFAULT: '#F5EFE0',
+					soft: '#EDE5D3',
+					dark: '#DDD2B7',
+				},
+				olive: {
+					DEFAULT: '#5E6118',
+					dark: '#3F3F10',
+					light: '#7A7E2A',
+				},
+				ochre: {
+					DEFAULT: '#A88A4B',
+					dark: '#7E663C',
+					soft: '#C6A674',
+				},
+				ink: {
+					DEFAULT: '#2A2A0A',
+					soft: '#4A4A20',
+				},
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				card: {

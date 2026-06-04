@@ -173,7 +173,7 @@ export function ConfigClubForm({ initialData }: { initialData: ConfigData }) {
                                         <Input 
                                             name="nombre" 
                                             defaultValue={initialData.nombre} 
-                                            placeholder="Ej. Manila Padel Club"
+                                            placeholder="Ej. Pádel Manía Club"
                                             className="bg-neutral-950 border-neutral-800 text-white h-12" 
                                         />
                                     </div>

@@ -349,10 +349,10 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                 <p className="text-[10px] text-gray-400 uppercase tracking-widest">Reporte oficial del torneo</p>
                 <div className="flex items-center gap-3">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/images/logo.png" alt="Logo Manila" className="w-10 h-10 object-contain" />
+                    <img src="/logo.png" alt="Pádel Manía" className="w-10 h-10 object-contain" />
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-blue-900 uppercase tracking-widest">Manila Padel App</span>
-                        <span className="text-[9px] text-gray-400 font-medium">— manilapadelapp.com</span>
+                        <span className="text-[10px] font-black text-blue-900 uppercase tracking-widest">Pádel Manía</span>
+                        <span className="text-[9px] text-gray-400 font-medium">— Tu Club · Tu Juego · Tu Ranking</span>
                     </div>
                 </div>
             </div>

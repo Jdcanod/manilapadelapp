@@ -124,7 +124,7 @@ export default function RegistroPage() {
                     });
                 } else {
                     toast({
-                        title: "¡Bienvenido a ManilaPadel!",
+                        title: "¡Bienvenido a Pádel Manía!",
                         description: "Tu cuenta fue creada con éxito.",
                     });
                 }
@@ -157,20 +157,21 @@ export default function RegistroPage() {
 
     return (
         <div className="flex flex-col items-center">
-            <Link href="/" className="self-start mb-6 inline-flex items-center text-sm text-neutral-400 hover:text-white transition-colors">
+            <Link href="/" className="self-start mb-6 inline-flex items-center text-sm font-bold uppercase tracking-widest text-olive hover:text-olive-dark transition-colors">
                 <ArrowLeft className="w-4 h-4 mr-2" /> Volver al Inicio
             </Link>
 
-            <Card className="w-full bg-neutral-900/50 border-neutral-800 backdrop-blur-xl shadow-2xl">
-                <CardHeader className="space-y-1 text-center">
+            <Card className="w-full bg-paper-soft border-olive/20 shadow-xl">
+                <CardHeader className="space-y-3 text-center">
                     <div className="flex justify-center mb-2">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-green-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/20">
-                            <Trophy className="w-5 h-5 text-white" />
+                        <div className="w-20 h-20 rounded-full overflow-hidden shadow-md ring-4 ring-paper">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src="/logo.png" alt="Pádel Manía" className="w-full h-full object-cover" />
                         </div>
                     </div>
-                    <CardTitle className="text-2xl font-bold text-white tracking-tight">Crea tu cuenta</CardTitle>
-                    <CardDescription className="text-neutral-400">
-                        Únete a la mejor comunidad de pádel en Manizales
+                    <CardTitle className="font-display tracking-[0.08em] uppercase text-3xl text-olive">Crea tu cuenta</CardTitle>
+                    <CardDescription className="text-ink-soft text-sm">
+                        Únete a la comunidad de Pádel Manía
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -179,70 +180,70 @@ export default function RegistroPage() {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="name" className="text-neutral-300">Nombre</Label>
+                                <Label htmlFor="name" className="text-olive-dark text-xs font-black uppercase tracking-widest">Nombre</Label>
                                 <Input
                                     id="name"
                                     name="name"
                                     placeholder="Ej. Juan"
                                     required
-                                    className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
+                                    className="bg-paper border-olive/30 text-ink placeholder:text-ink-soft/50 focus:border-olive focus:ring-olive/20"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="apellido" className="text-neutral-300">Apellido</Label>
+                                <Label htmlFor="apellido" className="text-olive-dark text-xs font-black uppercase tracking-widest">Apellido</Label>
                                 <Input
                                     id="apellido"
                                     name="apellido"
                                     placeholder="Ej. Pérez"
                                     required
-                                    className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
+                                    className="bg-paper border-olive/30 text-ink placeholder:text-ink-soft/50 focus:border-olive focus:ring-olive/20"
                                 />
                             </div>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="email" className="text-neutral-300">Correo Electrónico</Label>
+                                <Label htmlFor="email" className="text-olive-dark text-xs font-black uppercase tracking-widest">Correo Electrónico</Label>
                                 <Input
                                     id="email"
                                     name="email"
                                     type="email"
                                     placeholder="juan@ejemplo.com"
                                     required
-                                    className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
+                                    className="bg-paper border-olive/30 text-ink placeholder:text-ink-soft/50 focus:border-olive focus:ring-olive/20"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="telefono" className="text-neutral-300">Teléfono</Label>
+                                <Label htmlFor="telefono" className="text-olive-dark text-xs font-black uppercase tracking-widest">Teléfono</Label>
                                 <Input
                                     id="telefono"
                                     name="telefono"
                                     type="tel"
                                     placeholder="Ej. 3001234567"
                                     required
-                                    className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
+                                    className="bg-paper border-olive/30 text-ink placeholder:text-ink-soft/50 focus:border-olive focus:ring-olive/20"
                                 />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="fecha_nacimiento" className="text-neutral-300">Fecha de Nac.</Label>
+                                <Label htmlFor="fecha_nacimiento" className="text-olive-dark text-xs font-black uppercase tracking-widest">Fecha de Nac.</Label>
                                 <Input
                                     id="fecha_nacimiento"
                                     name="fecha_nacimiento"
                                     type="date"
                                     required
-                                    className="bg-neutral-950 border-neutral-800 text-neutral-100 [color-scheme:dark]"
+                                    className="bg-paper border-olive/30 text-ink focus:border-olive focus:ring-olive/20"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="categoria" className="text-neutral-300">Categoría</Label>
+                                <Label htmlFor="categoria" className="text-olive-dark text-xs font-black uppercase tracking-widest">Categoría</Label>
                                 <select 
                                     id="categoria" 
                                     name="categoria" 
                                     required
-                                    className="flex h-10 w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex h-10 w-full rounded-md border border-olive/30 bg-paper px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-olive/20 focus:border-olive disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     <option value="" disabled selected>Selecciona...</option>
                                     <option value="1ra">1ra Categoría</option>
@@ -258,11 +259,11 @@ export default function RegistroPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="club_preferencia" className="text-neutral-300">Club de Preferencia (Opcional)</Label>
+                            <Label htmlFor="club_preferencia" className="text-olive-dark text-xs font-black uppercase tracking-widest">Club de Preferencia (Opcional)</Label>
                             <select
                                 id="club_preferencia"
                                 name="club_preferencia"
-                                className="flex h-10 w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex h-10 w-full rounded-md border border-olive/30 bg-paper px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-olive/20 focus:border-olive disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 <option value="" disabled selected>Selecciona tu club...</option>
                                 <option value="">Ninguno</option>
@@ -275,39 +276,39 @@ export default function RegistroPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="ciudad" className="text-neutral-300">Ciudad</Label>
+                            <Label htmlFor="ciudad" className="text-olive-dark text-xs font-black uppercase tracking-widest">Ciudad</Label>
                             <Input
                                 id="ciudad"
                                 name="ciudad"
                                 placeholder="Ej. Manizales"
                                 defaultValue="Manizales"
                                 required
-                                className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
+                                className="bg-paper border-olive/30 text-ink placeholder:text-ink-soft/50 focus:border-olive focus:ring-olive/20"
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="password" className="text-neutral-300">Contraseña</Label>
+                            <Label htmlFor="password" className="text-olive-dark text-xs font-black uppercase tracking-widest">Contraseña</Label>
                             <Input
                                 id="password"
                                 name="password"
                                 type="password"
                                 required
-                                className="bg-neutral-950 border-neutral-800 text-neutral-100"
+                                className="bg-paper border-olive/30 text-ink focus:border-olive focus:ring-olive/20"
                             />
                         </div>
 
                         <div className="pt-2">
-                            <Button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white border-0 shadow-lg shadow-green-900/20 active:scale-[0.98] transition-all">
+                            <Button type="submit" disabled={loading} className="w-full bg-olive hover:bg-olive-dark text-paper font-black uppercase tracking-widest shadow-md hover:shadow-lg active:scale-[0.98] transition-all">
                                 {loading ? "Creando cuenta..." : "Registrarme"}
                             </Button>
                         </div>
                     </form>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4 text-center">
-                    <div className="text-sm text-neutral-400">
+                    <div className="text-sm text-ink-soft">
                         ¿Ya tienes una cuenta?{" "}
-                        <Link href="/login" className="text-green-400 hover:text-green-300 hover:underline transition-colors font-medium">
+                        <Link href="/login" className="text-ochre-dark hover:text-ochre hover:underline transition-colors font-bold">
                             Inicia sesión aquí
                         </Link>
                     </div>

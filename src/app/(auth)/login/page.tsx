@@ -85,40 +85,46 @@ export default function LoginPage() {
 
     return (
         <div className="flex flex-col items-center">
-            <Link href="/" className="self-start mb-6 inline-flex items-center text-sm text-neutral-400 hover:text-white transition-colors">
+            <Link href="/" className="self-start mb-6 inline-flex items-center text-sm font-bold uppercase tracking-widest text-olive hover:text-olive-dark transition-colors">
                 <ArrowLeft className="w-4 h-4 mr-2" /> Volver al Inicio
             </Link>
 
-            <Card className="w-full bg-neutral-900/50 border-neutral-800 backdrop-blur-xl shadow-2xl">
-                <CardHeader className="space-y-1 text-center">
-                    <div className="flex justify-center mb-4">
-                        <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-2xl border border-neutral-800 bg-neutral-950">
+            <Card className="w-full bg-paper-soft border-olive/20 shadow-xl">
+                <CardHeader className="space-y-3 text-center">
+                    <div className="flex justify-center">
+                        <div className="w-24 h-24 rounded-full overflow-hidden shadow-md ring-4 ring-paper">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src="/images/logo.png" alt="Logo Manila Padel" className="w-full h-full object-cover" />
+                            <img src="/logo.png" alt="Pádel Manía" className="w-full h-full object-cover" />
                         </div>
                     </div>
-                    <CardTitle className="text-2xl font-bold text-white tracking-tight">Bienvenido de nuevo</CardTitle>
-                    <CardDescription className="text-neutral-400">
-                        Ingresa a tu cuenta para gestionar tus partidos
+                    <CardTitle className="font-display tracking-[0.08em] uppercase text-3xl text-olive">
+                        Bienvenido de nuevo
+                    </CardTitle>
+                    <CardDescription className="text-ink-soft text-sm">
+                        Ingresa a tu cuenta para seguir jugando
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="email" className="text-neutral-300">Correo Electrónico</Label>
+                            <Label htmlFor="email" className="text-olive-dark text-xs font-black uppercase tracking-widest">
+                                Correo Electrónico
+                            </Label>
                             <Input
                                 id="email"
                                 name="email"
                                 type="email"
                                 placeholder="juan@ejemplo.com"
                                 required
-                                className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600"
+                                className="bg-paper border-olive/30 text-ink placeholder:text-ink-soft/50 focus:border-olive focus:ring-olive/20"
                             />
                         </div>
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="password" className="text-neutral-300">Contraseña</Label>
-                                <Link href="/recuperar" className="text-xs text-green-400 hover:text-green-300 hover:underline">
+                                <Label htmlFor="password" className="text-olive-dark text-xs font-black uppercase tracking-widest">
+                                    Contraseña
+                                </Label>
+                                <Link href="/recuperar" className="text-xs text-ochre-dark hover:text-ochre hover:underline font-bold">
                                     ¿Olvidaste tu contraseña?
                                 </Link>
                             </div>
@@ -127,21 +133,25 @@ export default function LoginPage() {
                                 name="password"
                                 type="password"
                                 required
-                                className="bg-neutral-950 border-neutral-800 text-neutral-100"
+                                className="bg-paper border-olive/30 text-ink focus:border-olive focus:ring-olive/20"
                             />
                         </div>
 
                         <div className="pt-2">
-                            <Button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white border-0 shadow-lg shadow-green-900/20 active:scale-[0.98] transition-all">
-                                {loading ? "Iniciando sesión..." : "Entrar a la cancha"}
+                            <Button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full bg-olive hover:bg-olive-dark text-paper font-black uppercase tracking-widest shadow-md hover:shadow-lg active:scale-[0.98] transition-all"
+                            >
+                                {loading ? "Iniciando sesión..." : "Entrar"}
                             </Button>
                         </div>
                     </form>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4 text-center">
-                    <div className="text-sm text-neutral-400">
+                    <div className="text-sm text-ink-soft">
                         ¿Aún no eres miembro?{" "}
-                        <Link href="/registro" className="text-green-400 hover:text-green-300 hover:underline transition-colors font-medium">
+                        <Link href="/registro" className="text-ochre-dark hover:text-ochre hover:underline transition-colors font-bold">
                             Vincúlate gratis
                         </Link>
                     </div>

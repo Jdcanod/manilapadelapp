@@ -1,27 +1,37 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Bebas_Neue } from "next/font/google";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+    subsets: ["latin"],
+    variable: "--font-sans",
+});
+
+const bebas = Bebas_Neue({
+    subsets: ["latin"],
+    weight: "400",
+    variable: "--font-display",
+});
 
 export const metadata: Metadata = {
-  title: "ManilaPadelAPP | Comunidad Pádel Manizales",
-  description: "La comunidad de pádel en Manizales. Encuentra partidos, clubes y compite en el ranking.",
-  metadataBase: new URL('https://manilapadel.com'), // Replace with actual URL
+    title: "Pádel Manía | Tu Club · Tu Juego · Tu Ranking",
+    description:
+        "Pádel Manía es la comunidad de pádel: encuentra partidos, gestiona torneos, compite en el ranking y construye tu juego.",
+    metadataBase: new URL("https://manilapadel.com"), // mantenemos el dominio actual
 };
 
 export default function RootLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-    <html lang="es" className="dark">
-      <body className={`${inter.className} min-h-screen bg-neutral-950 text-neutral-50 antialiased`}>
-        {children}
-        <Toaster />
-      </body>
-    </html>
-  );
+    return (
+        <html lang="es" className={`${inter.variable} ${bebas.variable}`}>
+            <body className="min-h-screen bg-paper text-ink antialiased font-sans">
+                {children}
+                <Toaster />
+            </body>
+        </html>
+    );
 }
