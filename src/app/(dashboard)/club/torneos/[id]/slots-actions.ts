@@ -2,7 +2,7 @@
 
 import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { getOrCreateInvitado } from "@/lib/invitados";
-import { TBD_PREFIX, esParejaPlaceholder } from "@/lib/tbd";
+import { TBD_PREFIX, esParejaPlaceholder, type JugadorLite, type ParejaCatalogoEntry } from "@/lib/tbd";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -146,8 +146,12 @@ export async function crearGruposRelampagoConTBD({
  * en torneo_parejas y borra el placeholder de la tabla parejas.
  *
  * `seleccion` puede ser:
- *   - un pareja_id existente (uuid) — uso directo
- *   - "manual:Juan Pérez|María López" — crea/reusa invitados y crea/reusa la pareja
+ *   - "pareja:<uuid>"                          → pareja existente del catálogo
+ *   - "jugadores:<j1Ref>|<j2Ref>"              → construir pareja desde dos jugadores
+ *       cada jugadorRef puede ser:
+ *         - "uuid:<userId>"                    → jugador ya existente (registrado o invitado)
+ *         - "manual:<Nombre Apellido>"         → crear/reusar invitado por nombre
+ *   - Por retrocompatibilidad: un uuid suelto se trata como pareja_id existente.
  */
 export async function asignarParejaASlot({
     torneoId,
@@ -167,17 +171,35 @@ export async function asignarParejaASlot({
 
         const admin = createPureAdminClient();
 
+        // Helper para resolver un jugadorRef ("uuid:<id>" o "manual:<name>") a user_id
+        const resolveJugadorRef = async (ref: string): Promise<string> => {
+            if (ref.startsWith("uuid:")) {
+                const id = ref.slice("uuid:".length).trim();
+                if (!id) throw new Error("ID de jugador vacío");
+                return id;
+            }
+            if (ref.startsWith("manual:")) {
+                return await getOrCreateInvitado(admin, ref);
+            }
+            // Default: tratar como manual con el texto completo
+            return await getOrCreateInvitado(admin, `manual:${ref}`);
+        };
+
         // 1) Resolver la pareja real
         let parejaRealId: string | null = null;
-        if (seleccion.startsWith("manual:")) {
-            // Formato esperado: "manual:Nombre1|Nombre2"
-            const payload = seleccion.replace(/^manual:/, "");
-            const [nombre1, nombre2] = payload.split("|").map(s => s.trim());
-            if (!nombre1 || !nombre2) {
-                return { success: false, error: "Debes ingresar dos nombres separados por |" };
+
+        if (seleccion.startsWith("pareja:")) {
+            // Modo catálogo: pareja directa
+            parejaRealId = seleccion.slice("pareja:".length).trim();
+        } else if (seleccion.startsWith("jugadores:")) {
+            // Modo construir: dos jugadorRefs
+            const payload = seleccion.slice("jugadores:".length);
+            const [ref1, ref2] = payload.split("|").map(s => s.trim());
+            if (!ref1 || !ref2) {
+                return { success: false, error: "Debes definir ambos jugadores" };
             }
-            const j1Id = await getOrCreateInvitado(admin, `manual:${nombre1}`);
-            const j2Id = await getOrCreateInvitado(admin, `manual:${nombre2}`);
+            const j1Id = await resolveJugadorRef(ref1);
+            const j2Id = await resolveJugadorRef(ref2);
             if (j1Id === j2Id) return { success: false, error: "Los dos jugadores deben ser distintos" };
 
             // Buscar pareja existente (no placeholder) con esos dos jugadores
@@ -288,14 +310,10 @@ export async function asignarParejaASlot({
 /**
  * Lista parejas existentes (no placeholders) para mostrar en el dialog de
  * asignación. Excluye las que ya están inscritas en este torneo y los
- * placeholders TBD.
+ * placeholders TBD. Trae info de jugadores (con email) para poder mostrar
+ * el marcador (I) en invitados.
  */
-export async function listarParejasCatalogo(torneoId: string): Promise<Array<{
-    id: string;
-    nombre_pareja: string | null;
-    jugador1_id: string | null;
-    jugador2_id: string | null;
-}>> {
+export async function listarParejasCatalogo(torneoId: string): Promise<ParejaCatalogoEntry[]> {
     const admin = createPureAdminClient();
 
     // Parejas ya inscritas en el torneo (para excluirlas del catálogo)
@@ -312,16 +330,58 @@ export async function listarParejasCatalogo(torneoId: string): Promise<Array<{
         .not("jugador2_id", "is", null)
         .order("nombre_pareja", { ascending: true });
 
-    return (all || [])
-        .filter((p: { id: string; nombre_pareja: string | null }) =>
-            !inscritasSet.has(p.id) && !esParejaPlaceholder(p.nombre_pareja)
-        )
-        .map((p: { id: string; nombre_pareja: string | null; jugador1_id: string | null; jugador2_id: string | null }) => ({
-            id: p.id,
-            nombre_pareja: p.nombre_pareja,
-            jugador1_id: p.jugador1_id,
-            jugador2_id: p.jugador2_id,
-        }));
+    const parejasFiltradas = (all || []).filter((p: { id: string; nombre_pareja: string | null }) =>
+        !inscritasSet.has(p.id) && !esParejaPlaceholder(p.nombre_pareja)
+    );
+
+    // Fetch jugadores para mostrar (I)
+    const jugadorIds = new Set<string>();
+    parejasFiltradas.forEach((p: { jugador1_id: string | null; jugador2_id: string | null }) => {
+        if (p.jugador1_id) jugadorIds.add(p.jugador1_id);
+        if (p.jugador2_id) jugadorIds.add(p.jugador2_id);
+    });
+    let jugadoresMap = new Map<string, JugadorLite>();
+    if (jugadorIds.size > 0) {
+        const { data: jugadores } = await admin
+            .from("users")
+            .select("id, nombre, apellido, email")
+            .in("id", Array.from(jugadorIds));
+        (jugadores || []).forEach((j: JugadorLite) => jugadoresMap.set(j.id, j));
+    }
+
+    return parejasFiltradas.map((p: { id: string; nombre_pareja: string | null; jugador1_id: string | null; jugador2_id: string | null }) => ({
+        id: p.id,
+        nombre_pareja: p.nombre_pareja,
+        jugador1: p.jugador1_id ? (jugadoresMap.get(p.jugador1_id) || null) : null,
+        jugador2: p.jugador2_id ? (jugadoresMap.get(p.jugador2_id) || null) : null,
+    }));
+}
+
+/**
+ * Busca jugadores por nombre o apellido (ILIKE %query%). Devuelve hasta 20
+ * resultados, mezclando registrados e invitados existentes — útil para el
+ * autocomplete del modo "construir pareja" en el dialog.
+ */
+export async function buscarJugadores(query: string): Promise<JugadorLite[]> {
+    const q = (query || "").trim();
+    if (q.length < 1) return [];
+
+    const admin = createPureAdminClient();
+    const pattern = `%${q.replace(/[%_]/g, "")}%`;
+
+    const { data, error } = await admin
+        .from("users")
+        .select("id, nombre, apellido, email")
+        .eq("rol", "jugador")
+        .or(`nombre.ilike.${pattern},apellido.ilike.${pattern}`)
+        .order("nombre", { ascending: true })
+        .limit(20);
+
+    if (error) {
+        console.error("[buscarJugadores] error:", error);
+        return [];
+    }
+    return (data || []) as JugadorLite[];
 }
 
 /**
