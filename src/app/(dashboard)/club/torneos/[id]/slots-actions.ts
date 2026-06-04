@@ -412,16 +412,33 @@ export async function listarParejasCatalogo(torneoId: string): Promise<ParejaCat
 }
 
 /**
- * Busca jugadores por nombre o apellido (ILIKE %query%). Devuelve hasta 20
- * resultados, mezclando registrados e invitados existentes — útil para el
- * autocomplete del modo "construir pareja" en el dialog.
+ * Busca jugadores por nombre y/o apellido. Soporta consultas con múltiples
+ * tokens — cada palabra debe coincidir en `nombre` OR `apellido` (case-insensitive).
+ * Ejemplo: "juan cano" → encuentra al jugador {nombre:"Juan David", apellido:"Cano"}.
+ *
+ * Devuelve hasta 20 resultados, mezclando registrados e invitados existentes.
  */
 export async function buscarJugadores(query: string): Promise<JugadorLite[]> {
     const q = (query || "").trim();
     if (q.length < 1) return [];
 
     const admin = createPureAdminClient();
-    const pattern = `%${q.replace(/[%_]/g, "")}%`;
+
+    // Tokenizar la búsqueda. Cada token debe matchear nombre o apellido.
+    // Limitamos a 4 tokens para evitar abusos.
+    const tokens = q
+        .split(/\s+/)
+        .map(t => t.replace(/[%_]/g, ""))
+        .filter(Boolean)
+        .slice(0, 4);
+
+    if (tokens.length === 0) return [];
+
+    // PostgREST/Supabase `.or` no compone fácilmente con AND a nivel de query
+    // builder. Pero como tenemos pocos tokens, traemos por el PRIMER token
+    // (que ya recorta bastante) y filtramos en memoria por los siguientes.
+    const primary = tokens[0];
+    const pattern = `%${primary}%`;
 
     const { data, error } = await admin
         .from("users")
@@ -429,13 +446,21 @@ export async function buscarJugadores(query: string): Promise<JugadorLite[]> {
         .eq("rol", "jugador")
         .or(`nombre.ilike.${pattern},apellido.ilike.${pattern}`)
         .order("nombre", { ascending: true })
-        .limit(20);
+        .limit(200);
 
     if (error) {
         console.error("[buscarJugadores] error:", error);
         return [];
     }
-    return (data || []) as JugadorLite[];
+
+    const restantes = tokens.slice(1).map(t => t.toLowerCase());
+    const filtrado = (data || []).filter((j: JugadorLite) => {
+        const n = (j.nombre || "").toLowerCase();
+        const a = (j.apellido || "").toLowerCase();
+        return restantes.every(t => n.includes(t) || a.includes(t));
+    });
+
+    return filtrado.slice(0, 20) as JugadorLite[];
 }
 
 /**
