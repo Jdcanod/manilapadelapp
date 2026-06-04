@@ -14,9 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 import { GrupoMatchesList } from "@/components/GrupoMatchesList";
 import { AsignarParejaSlotDialog } from "@/components/AsignarParejaSlotDialog";
-
-const TBD_PREFIX_CLIENT = "TBD ·";
-const esTBD = (nombre?: string | null) => !!nombre && nombre.startsWith(TBD_PREFIX_CLIENT);
+import { esParejaPlaceholder as esTBD } from "@/lib/tbd";
 
 interface Props {
     torneoId: string;

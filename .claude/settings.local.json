@@ -16,7 +16,10 @@
       "Bash(git push *)",
       "Bash(git commit *)",
       "Bash(git fetch *)",
-      "Bash(git merge *)"
+      "Bash(git merge *)",
+      "Bash(npx --no-install tsc --noEmit)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(node node_modules/typescript/bin/tsc --noEmit)"
     ]
   }
 }
