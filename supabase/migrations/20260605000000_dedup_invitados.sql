@@ -123,33 +123,25 @@ SET jugador2_id = m.canon_id
 FROM _invitados_canonical m
 WHERE parejas.jugador2_id = m.dup_id;
 
--- 4c) Después del update pueden quedar varias parejas con el mismo logical
--- (j1, j2) — incluyendo invertidas. Identificarlas y fusionarlas.
+-- 4c) PASADA 1: Dedup por tuple EXACTO (j1, j2). Esto es lo que el constraint
+-- UNIQUE va a chequear cuando lo recreamos en 4h, así que arrancamos por aquí.
 CREATE TEMP TABLE _parejas_canonical AS
-WITH normalizadas AS (
-    SELECT
-        id,
-        LEAST(jugador1_id::text, jugador2_id::text) AS a,
-        GREATEST(jugador1_id::text, jugador2_id::text) AS b,
-        creado_en
+WITH ord AS (
+    SELECT id, jugador1_id, jugador2_id, creado_en,
+           ROW_NUMBER() OVER (
+               PARTITION BY jugador1_id, jugador2_id
+               ORDER BY creado_en ASC NULLS LAST, id ASC
+           ) AS rn,
+           FIRST_VALUE(id) OVER (
+               PARTITION BY jugador1_id, jugador2_id
+               ORDER BY creado_en ASC NULLS LAST, id ASC
+           ) AS canon_id
     FROM parejas
     WHERE jugador1_id IS NOT NULL AND jugador2_id IS NOT NULL
-),
-canon AS (
-    SELECT a, b, id AS canon_id
-    FROM (
-        SELECT a, b, id, creado_en,
-               ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY creado_en ASC NULLS LAST, id ASC) AS rn
-        FROM normalizadas
-    ) t
-    WHERE rn = 1
 )
-SELECT n.id AS dup_pareja_id, c.canon_id AS canon_pareja_id
-FROM normalizadas n
-JOIN canon c ON c.a = n.a AND c.b = n.b
-WHERE n.id <> c.canon_id;
+SELECT id AS dup_pareja_id, canon_id AS canon_pareja_id
+FROM ord WHERE rn > 1;
 
--- 4d) Redirigir refs (torneo_parejas, partidos) hacia la pareja canónica
 UPDATE torneo_parejas tp
 SET pareja_id = m.canon_pareja_id
 FROM _parejas_canonical m
@@ -165,16 +157,82 @@ SET pareja2_id = m.canon_pareja_id
 FROM _parejas_canonical m
 WHERE p.pareja2_id = m.dup_pareja_id;
 
--- 4e) Limpiar duplicados de torneo_parejas (mismo torneo + misma pareja)
 DELETE FROM torneo_parejas tp
 USING torneo_parejas tp2
 WHERE tp.id > tp2.id
   AND tp.torneo_id = tp2.torneo_id
   AND tp.pareja_id = tp2.pareja_id;
 
--- 4f) Borrar parejas duplicadas (ya no las referencia nadie)
 DELETE FROM parejas
 WHERE id IN (SELECT dup_pareja_id FROM _parejas_canonical);
+
+-- 4d) PASADA 2: Dedup por tuple INVERTIDO (X, Y) vs (Y, X). UNIQUE permite ambos
+-- ordered tuples como distintos, pero para limpieza lógica los fusionamos.
+CREATE TEMP TABLE _parejas_reversadas AS
+WITH ord AS (
+    SELECT id, jugador1_id, jugador2_id, creado_en,
+           LEAST(jugador1_id::text, jugador2_id::text) AS a,
+           GREATEST(jugador1_id::text, jugador2_id::text) AS b
+    FROM parejas
+    WHERE jugador1_id IS NOT NULL AND jugador2_id IS NOT NULL
+),
+canon AS (
+    SELECT a, b, id AS canon_id
+    FROM (
+        SELECT a, b, id, creado_en,
+               ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY creado_en ASC NULLS LAST, id ASC) AS rn
+        FROM ord
+    ) t WHERE rn = 1
+)
+SELECT n.id AS dup_pareja_id, c.canon_id AS canon_pareja_id
+FROM ord n
+JOIN canon c ON c.a = n.a AND c.b = n.b
+WHERE n.id <> c.canon_id;
+
+UPDATE torneo_parejas tp
+SET pareja_id = m.canon_pareja_id
+FROM _parejas_reversadas m
+WHERE tp.pareja_id = m.dup_pareja_id;
+
+UPDATE partidos p
+SET pareja1_id = m.canon_pareja_id
+FROM _parejas_reversadas m
+WHERE p.pareja1_id = m.dup_pareja_id;
+
+UPDATE partidos p
+SET pareja2_id = m.canon_pareja_id
+FROM _parejas_reversadas m
+WHERE p.pareja2_id = m.dup_pareja_id;
+
+DELETE FROM torneo_parejas tp
+USING torneo_parejas tp2
+WHERE tp.id > tp2.id
+  AND tp.torneo_id = tp2.torneo_id
+  AND tp.pareja_id = tp2.pareja_id;
+
+DELETE FROM parejas
+WHERE id IN (SELECT dup_pareja_id FROM _parejas_reversadas);
+
+-- 4e) Diagnóstico: si todavía quedan duplicados exactos, abortamos con un mensaje claro.
+DO $$
+DECLARE
+    n_dups int;
+    sample text;
+BEGIN
+    SELECT COUNT(*), MIN(jugador1_id || ' / ' || jugador2_id)
+    INTO n_dups, sample
+    FROM (
+        SELECT jugador1_id, jugador2_id, COUNT(*) c
+        FROM parejas
+        WHERE jugador1_id IS NOT NULL AND jugador2_id IS NOT NULL
+        GROUP BY jugador1_id, jugador2_id
+        HAVING COUNT(*) > 1
+    ) x;
+
+    IF n_dups > 0 THEN
+        RAISE EXCEPTION 'Aún quedan % grupos de parejas con (j1, j2) duplicado. Ejemplo: %', n_dups, sample;
+    END IF;
+END $$;
 
 -- 4g) Asegurar que sólo quede UNA pareja activa por (jugador1_id) y (jugador2_id).
 -- Si hay varias activas para el mismo jugador después de la limpieza, dejamos
