@@ -274,7 +274,7 @@ export function CrearTorneoForm() {
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label className="text-xs text-neutral-400">Tipo de Desempate (Ej: a 1-1 en Sets o 7-7)</Label>
+                            <Label className="text-xs text-neutral-400">Tipo de Desempate (global)</Label>
                             <Select name="tipo_desempate" defaultValue="tercer_set">
                                 <SelectTrigger className="bg-neutral-900 border-neutral-800 text-white">
                                     <SelectValue />
@@ -285,8 +285,42 @@ export function CrearTorneoForm() {
                                     <SelectItem value="super_tiebreak">Super Tie-break (10 pts)</SelectItem>
                                 </SelectContent>
                             </Select>
+                            <p className="text-[10px] text-neutral-500">Aplica a todas las categorías salvo que definas un override abajo.</p>
                         </div>
                     </div>
+
+                    {/* Override de desempate por categoría — solo para formatos NO Copa Davis,
+                        y solo si hay categorías seleccionadas. Sirve para los casos donde
+                        7ma juega 3er Set normal pero 3ra usa Super Tie-break, por ejemplo. */}
+                    {!esCopaDavis && selectedCats.length > 0 && (
+                        <details className="group bg-neutral-950/40 border border-neutral-800 rounded-xl p-3">
+                            <summary className="cursor-pointer text-[11px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
+                                <span className="group-open:rotate-90 transition-transform">▶</span>
+                                Desempate por categoría <span className="text-neutral-500 font-normal normal-case">(opcional)</span>
+                            </summary>
+                            <div className="mt-3 space-y-2">
+                                {selectedCats.map(cat => (
+                                    <div key={cat} className="grid grid-cols-[80px_1fr] gap-3 items-center">
+                                        <span className="text-sm font-bold text-white">{cat}</span>
+                                        <Select name={`tipo_desempate_${cat}`} defaultValue="__global__">
+                                            <SelectTrigger className="bg-neutral-900 border-neutral-800 text-white h-9 text-sm">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+                                                <SelectItem value="__global__">(Usar global)</SelectItem>
+                                                <SelectItem value="tercer_set">3er Set Normal</SelectItem>
+                                                <SelectItem value="tiebreak">Tie-break (7 pts)</SelectItem>
+                                                <SelectItem value="super_tiebreak">Super Tie-break (10 pts)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                ))}
+                                <p className="text-[10px] text-neutral-600 pt-1">
+                                    Si dejas <span className="text-amber-400 font-bold">(Usar global)</span> esa categoría hereda el desempate global de arriba.
+                                </p>
+                            </div>
+                        </details>
+                    )}
                 </div>
 
                 {/* Categorías habilitadas — siempre visible */}

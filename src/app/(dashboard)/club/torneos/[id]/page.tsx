@@ -606,6 +606,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         gruposExistentes={gruposExistentes || []}
                         partidos={partidosReales || []}
                         tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
+                        tipoDesempatePorCategoria={torneo.reglas_puntuacion?.tipo_desempate_por_categoria || {}}
                         allParticipants={allParticipants}
                         formato={torneo.formato || 'relampago'}
                         parejaPlayers={parejaPlayersMap}

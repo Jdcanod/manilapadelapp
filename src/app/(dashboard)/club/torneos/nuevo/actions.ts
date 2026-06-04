@@ -68,15 +68,28 @@ export async function crearTorneoCentral(formData: FormData) {
             config_canchas: parseInt(formData.get("config_canchas") as string) || 2,
             copa_categorias_config: copaConfigPorCategoria,
         }
-        : {
-            sets: parseInt(formData.get("sets") as string) || 3,
-            juegos: parseInt(formData.get("juegos") as string) || 6,
-            ventaja: formData.get("ventaja") as string || "oro",
-            tipo_desempate: formData.get("tipo_desempate") as string || "tercer_set",
-            categorias_habilitadas: formData.getAll("categorias") as string[],
-            config_duracion: parseInt(formData.get("config_duracion") as string) || 60,
-            config_canchas: parseInt(formData.get("config_canchas") as string) || 1,
-        };
+        : (() => {
+            // Override de desempate por categoría. Cada categoría seleccionada puede
+            // tener un valor en `tipo_desempate_<cat>`. Si es "__global__" (o falta),
+            // hereda el tipo_desempate global y no la incluimos en el mapa.
+            const tipoDesempatePorCategoria: Record<string, string> = {};
+            for (const cat of categoriasSeleccionadas) {
+                const v = formData.get(`tipo_desempate_${cat}`) as string | null;
+                if (v && v !== "__global__") {
+                    tipoDesempatePorCategoria[cat] = v;
+                }
+            }
+            return {
+                sets: parseInt(formData.get("sets") as string) || 3,
+                juegos: parseInt(formData.get("juegos") as string) || 6,
+                ventaja: formData.get("ventaja") as string || "oro",
+                tipo_desempate: formData.get("tipo_desempate") as string || "tercer_set",
+                tipo_desempate_por_categoria: tipoDesempatePorCategoria,
+                categorias_habilitadas: formData.getAll("categorias") as string[],
+                config_duracion: parseInt(formData.get("config_duracion") as string) || 60,
+                config_canchas: parseInt(formData.get("config_canchas") as string) || 1,
+            };
+        })();
 
     const { data, error } = await supabase
         .from("torneos")

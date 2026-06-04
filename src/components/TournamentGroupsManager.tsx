@@ -39,6 +39,8 @@ interface Props {
         pareja2?: { nombre_pareja?: string | null } | null;
     }[];
     tipoDesempate?: string;
+    /** Override de tipo_desempate por categoría. Si una categoría está aquí, sobrescribe al global. */
+    tipoDesempatePorCategoria?: Record<string, string>;
     allParticipants?: { id: string | number; pareja_id: string; nombre: string; categoria: string; estado_pago: string; tipo: string; jugador1_id?: string; jugador2_id?: string }[];
     formato?: string; // 'relampago' | 'liguilla'
     parejaPlayers?: ParejaPlayersMap;
@@ -61,11 +63,14 @@ interface Standing {
     pts: number;
 }
 
-export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican, setsCantidad }: Props) {
+export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", tipoDesempatePorCategoria = {}, allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican, setsCantidad }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const [selectedCat, setSelectedCat] = useState(categorias[0] || "General");
     const esLiguilla = formato === 'liguilla';
+
+    // Tipo de desempate efectivo según la categoría actualmente seleccionada.
+    const tipoDesempateActivo = tipoDesempatePorCategoria[selectedCat] || tipoDesempate;
 
     // Opciones específicas de liguilla
     const [numGrupos, setNumGrupos] = useState(2);
@@ -302,6 +307,24 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                     {cat}
                                 </button>
                             ))}
+                        </div>
+                        {/* Desempate activo para la categoría seleccionada */}
+                        <div className="mt-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
+                            <span className="text-neutral-500">Desempate {selectedCat}:</span>
+                            <span className={cn(
+                                "px-2 py-0.5 rounded border",
+                                tipoDesempatePorCategoria[selectedCat]
+                                    ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
+                                    : "bg-neutral-900 border-neutral-800 text-neutral-400"
+                            )}>
+                                {tipoDesempateActivo === 'super_tiebreak' && 'Super Tie-break (10 pts)'}
+                                {tipoDesempateActivo === 'tiebreak' && 'Tie-break (7 pts)'}
+                                {tipoDesempateActivo === 'tercer_set' && '3er Set Normal'}
+                                {!['super_tiebreak', 'tiebreak', 'tercer_set'].includes(tipoDesempateActivo) && tipoDesempateActivo}
+                            </span>
+                            {!tipoDesempatePorCategoria[selectedCat] && (
+                                <span className="text-neutral-600 italic normal-case font-normal">(usa el global)</span>
+                            )}
                         </div>
                     </div>
 
@@ -593,7 +616,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                         pareja1Nombre={match.pareja1?.nombre_pareja || "Pareja 1"}
                                                                         pareja2Nombre={match.pareja2?.nombre_pareja || "Pareja 2"}
                                                                         initialResult={match.resultado}
-                                                                        tipoDesempate={tipoDesempate}
+                                                                        tipoDesempate={tipoDesempateActivo}
                                                                         disabled={!esLiguilla && (!match.fecha || !match.lugar)}
                                                                         disabledReason="Debe programar el partido en el cronograma primero"
                                                                         setsCantidad={setsCantidad}
