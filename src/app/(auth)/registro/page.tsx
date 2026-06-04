@@ -107,8 +107,9 @@ export default function RegistroPage() {
                     nivel: nivelValidado
                 });
 
+                console.log("[registro] resultado del server action:", resultado);
                 const success = resultado?.success ?? false;
-                const dbError = resultado?.error ?? "Respuesta inesperada del servidor";
+                const dbError = resultado?.error ?? `(action retornó: ${JSON.stringify(resultado)})`;
 
                 if (!success) {
                     console.error("Profile saving error:", dbError);
