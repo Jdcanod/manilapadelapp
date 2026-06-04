@@ -101,39 +101,45 @@ BEGIN
     END IF;
 END $$;
 
--- Paso 4: Manejar `parejas` con cuidado por el constraint UNIQUE(jugador1_id, jugador2_id)
--- y por los índices únicos parciales en (jugador*_id) WHERE activa = TRUE.
--- Estrategia:
---   a) Detectar parejas que *después* del redirect colisionarán y fusionarlas
---      ANTES de tocar jugador1_id / jugador2_id (esto evita violar el UNIQUE).
---   b) Desactivar las parejas restantes para liberar los índices parciales.
---   c) Apuntar jugador1_id / jugador2_id al canónico.
+-- Paso 4: Manejar `parejas`.
+-- Estrategia: dropeamos temporalmente el constraint UNIQUE(jugador1_id, jugador2_id)
+-- y los índices únicos parciales en (jugador*_id) WHERE activa=TRUE, hacemos
+-- TODOS los updates sin restricciones, dedupeamos el estado final, y re-creamos.
+-- Esto es mucho más robusto que tratar de predecir colisiones.
 
--- a) Proyectar el (j1, j2) futuro de cada pareja y elegir canónica por grupo.
+-- 4a) Soltar constraint e índices únicos
+ALTER TABLE parejas DROP CONSTRAINT IF EXISTS parejas_jugador1_id_jugador2_id_key;
+DROP INDEX IF EXISTS idx_jugador1_activo;
+DROP INDEX IF EXISTS idx_jugador2_activo;
+
+-- 4b) Apuntar jugador1_id / jugador2_id al canónico libremente
+UPDATE parejas
+SET jugador1_id = m.canon_id
+FROM _invitados_canonical m
+WHERE parejas.jugador1_id = m.dup_id;
+
+UPDATE parejas
+SET jugador2_id = m.canon_id
+FROM _invitados_canonical m
+WHERE parejas.jugador2_id = m.dup_id;
+
+-- 4c) Después del update pueden quedar varias parejas con el mismo logical
+-- (j1, j2) — incluyendo invertidas. Identificarlas y fusionarlas.
 CREATE TEMP TABLE _parejas_canonical AS
-WITH proyectadas AS (
+WITH normalizadas AS (
     SELECT
-        p.id,
-        p.creado_en,
-        COALESCE(im1.canon_id, p.jugador1_id) AS j1_canon,
-        COALESCE(im2.canon_id, p.jugador2_id) AS j2_canon
-    FROM parejas p
-    LEFT JOIN _invitados_canonical im1 ON im1.dup_id = p.jugador1_id
-    LEFT JOIN _invitados_canonical im2 ON im2.dup_id = p.jugador2_id
-    WHERE p.jugador1_id IS NOT NULL AND p.jugador2_id IS NOT NULL
-),
-normalizadas AS (
-    SELECT
-        id, creado_en,
-        LEAST(j1_canon::text, j2_canon::text) AS a,
-        GREATEST(j1_canon::text, j2_canon::text) AS b
-    FROM proyectadas
+        id,
+        LEAST(jugador1_id::text, jugador2_id::text) AS a,
+        GREATEST(jugador1_id::text, jugador2_id::text) AS b,
+        creado_en
+    FROM parejas
+    WHERE jugador1_id IS NOT NULL AND jugador2_id IS NOT NULL
 ),
 canon AS (
     SELECT a, b, id AS canon_id
     FROM (
         SELECT a, b, id, creado_en,
-               ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY creado_en ASC, id ASC) AS rn
+               ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY creado_en ASC NULLS LAST, id ASC) AS rn
         FROM normalizadas
     ) t
     WHERE rn = 1
@@ -143,13 +149,12 @@ FROM normalizadas n
 JOIN canon c ON c.a = n.a AND c.b = n.b
 WHERE n.id <> c.canon_id;
 
--- Redirigir torneo_parejas a la pareja canónica ANTES de borrar duplicados
+-- 4d) Redirigir refs (torneo_parejas, partidos) hacia la pareja canónica
 UPDATE torneo_parejas tp
 SET pareja_id = m.canon_pareja_id
 FROM _parejas_canonical m
 WHERE tp.pareja_id = m.dup_pareja_id;
 
--- Redirigir partidos.pareja1_id / pareja2_id
 UPDATE partidos p
 SET pareja1_id = m.canon_pareja_id
 FROM _parejas_canonical m
@@ -160,36 +165,34 @@ SET pareja2_id = m.canon_pareja_id
 FROM _parejas_canonical m
 WHERE p.pareja2_id = m.dup_pareja_id;
 
--- Eliminar duplicados de torneo_parejas (mismo torneo + misma pareja)
+-- 4e) Limpiar duplicados de torneo_parejas (mismo torneo + misma pareja)
 DELETE FROM torneo_parejas tp
 USING torneo_parejas tp2
 WHERE tp.id > tp2.id
   AND tp.torneo_id = tp2.torneo_id
   AND tp.pareja_id = tp2.pareja_id;
 
--- Borrar parejas duplicadas (ya nadie las referencia)
+-- 4f) Borrar parejas duplicadas (ya no las referencia nadie)
 DELETE FROM parejas
 WHERE id IN (SELECT dup_pareja_id FROM _parejas_canonical);
 
--- b) Desactivar las parejas restantes que apunten a un duplicado, para
--- liberar los índices únicos parciales antes del UPDATE final.
-UPDATE parejas
-SET activa = FALSE
-WHERE jugador1_id IN (SELECT dup_id FROM _invitados_canonical)
-   OR jugador2_id IN (SELECT dup_id FROM _invitados_canonical);
+-- 4g) Asegurar que sólo quede UNA pareja activa por (jugador1_id) y (jugador2_id).
+-- Si hay varias activas para el mismo jugador después de la limpieza, dejamos
+-- activa la más reciente y las otras pasan a activa=FALSE.
+WITH activas AS (
+    SELECT id, jugador1_id, jugador2_id, creado_en,
+           ROW_NUMBER() OVER (PARTITION BY jugador1_id ORDER BY creado_en DESC NULLS LAST, id DESC) AS rn1,
+           ROW_NUMBER() OVER (PARTITION BY jugador2_id ORDER BY creado_en DESC NULLS LAST, id DESC) AS rn2
+    FROM parejas WHERE activa = TRUE
+)
+UPDATE parejas SET activa = FALSE
+WHERE id IN (SELECT id FROM activas WHERE rn1 > 1 OR rn2 > 1);
 
--- c) Ahora sí, redirigir jugador1_id / jugador2_id al canónico.
--- Ya no puede colisionar con UNIQUE(jugador1_id, jugador2_id) porque
--- las parejas que iban a colisionar las eliminamos arriba.
-UPDATE parejas
-SET jugador1_id = m.canon_id
-FROM _invitados_canonical m
-WHERE parejas.jugador1_id = m.dup_id;
-
-UPDATE parejas
-SET jugador2_id = m.canon_id
-FROM _invitados_canonical m
-WHERE parejas.jugador2_id = m.dup_id;
+-- 4h) Recrear constraint y los índices parciales
+ALTER TABLE parejas
+    ADD CONSTRAINT parejas_jugador1_id_jugador2_id_key UNIQUE (jugador1_id, jugador2_id);
+CREATE UNIQUE INDEX idx_jugador1_activo ON parejas (jugador1_id) WHERE activa = TRUE;
+CREATE UNIQUE INDEX idx_jugador2_activo ON parejas (jugador2_id) WHERE activa = TRUE;
 
 -- Paso 5: Borrar las filas users duplicadas
 DELETE FROM users
