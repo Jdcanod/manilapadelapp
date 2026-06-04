@@ -18,6 +18,8 @@ export interface JugadorLite {
     nombre: string | null;
     apellido: string | null;
     email: string | null;
+    /** Categoría del jugador en su perfil (cuando se registró). Puede ser null. */
+    categoria?: string | null;
 }
 
 export interface ParejaCatalogoEntry {
@@ -25,4 +27,11 @@ export interface ParejaCatalogoEntry {
     nombre_pareja: string | null;
     jugador1: JugadorLite | null;
     jugador2: JugadorLite | null;
+    /**
+     * Categoría sugerida para esta pareja, derivada de:
+     *   1) el último torneo en que se inscribió (más reciente), o
+     *   2) la categoría del jugador1 / jugador2 de su perfil,
+     *   3) null si no se puede inferir.
+     */
+    categoria_sugerida: string | null;
 }

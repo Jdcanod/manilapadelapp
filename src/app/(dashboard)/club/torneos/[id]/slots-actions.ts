@@ -334,7 +334,8 @@ export async function listarParejasCatalogo(torneoId: string): Promise<ParejaCat
         !inscritasSet.has(p.id) && !esParejaPlaceholder(p.nombre_pareja)
     );
 
-    // Fetch jugadores para mostrar (I)
+    // Fetch jugadores con categoría para mostrar (I) y para fallback de categoría sugerida.
+    // Intentamos seleccionar `categoria`; si la columna no existe, caemos al subset básico.
     const jugadorIds = new Set<string>();
     parejasFiltradas.forEach((p: { jugador1_id: string | null; jugador2_id: string | null }) => {
         if (p.jugador1_id) jugadorIds.add(p.jugador1_id);
@@ -342,19 +343,72 @@ export async function listarParejasCatalogo(torneoId: string): Promise<ParejaCat
     });
     const jugadoresMap = new Map<string, JugadorLite>();
     if (jugadorIds.size > 0) {
-        const { data: jugadores } = await admin
+        const idArr = Array.from(jugadorIds);
+        let jugadores: JugadorLite[] | null = null;
+        const conCat = await admin
             .from("users")
-            .select("id, nombre, apellido, email")
-            .in("id", Array.from(jugadorIds));
+            .select("id, nombre, apellido, email, categoria")
+            .in("id", idArr);
+        if (!conCat.error) {
+            jugadores = conCat.data as JugadorLite[];
+        } else {
+            const sinCat = await admin
+                .from("users")
+                .select("id, nombre, apellido, email")
+                .in("id", idArr);
+            jugadores = (sinCat.data || []) as JugadorLite[];
+        }
         (jugadores || []).forEach((j: JugadorLite) => jugadoresMap.set(j.id, j));
     }
 
-    return parejasFiltradas.map((p: { id: string; nombre_pareja: string | null; jugador1_id: string | null; jugador2_id: string | null }) => ({
-        id: p.id,
-        nombre_pareja: p.nombre_pareja,
-        jugador1: p.jugador1_id ? (jugadoresMap.get(p.jugador1_id) || null) : null,
-        jugador2: p.jugador2_id ? (jugadoresMap.get(p.jugador2_id) || null) : null,
-    }));
+    // Calcular categoria_sugerida por pareja a partir del torneo MÁS RECIENTE
+    // en el que se inscribió (cualquier torneo). Si no tiene ninguno, caemos a
+    // la categoría del jugador1 / jugador2 de su perfil.
+    const parejaIdsArr = parejasFiltradas.map((p: { id: string }) => p.id);
+    const ultimaCatPorPareja = new Map<string, string>();
+    if (parejaIdsArr.length > 0) {
+        const { data: histo } = await admin
+            .from("torneo_parejas")
+            .select("pareja_id, categoria, torneos(fecha_inicio)")
+            .in("pareja_id", parejaIdsArr);
+        // Ordenar por fecha_inicio DESC en JS y quedarse con la primera entrada por pareja
+        const rows = (histo || []) as Array<{
+            pareja_id: string;
+            categoria: string | null;
+            torneos: { fecha_inicio: string | null } | { fecha_inicio: string | null }[] | null;
+        }>;
+        const enriquecidas = rows.map(r => {
+            const t = Array.isArray(r.torneos) ? r.torneos[0] : r.torneos;
+            return { pareja_id: r.pareja_id, categoria: r.categoria, fecha: t?.fecha_inicio ?? null };
+        });
+        enriquecidas.sort((a, b) => {
+            const aT = a.fecha ? new Date(a.fecha).getTime() : 0;
+            const bT = b.fecha ? new Date(b.fecha).getTime() : 0;
+            return bT - aT;
+        });
+        for (const r of enriquecidas) {
+            if (r.categoria && !ultimaCatPorPareja.has(r.pareja_id)) {
+                ultimaCatPorPareja.set(r.pareja_id, r.categoria);
+            }
+        }
+    }
+
+    return parejasFiltradas.map((p: { id: string; nombre_pareja: string | null; jugador1_id: string | null; jugador2_id: string | null }) => {
+        const j1 = p.jugador1_id ? (jugadoresMap.get(p.jugador1_id) || null) : null;
+        const j2 = p.jugador2_id ? (jugadoresMap.get(p.jugador2_id) || null) : null;
+        const categoria_sugerida =
+            ultimaCatPorPareja.get(p.id)
+            ?? j1?.categoria
+            ?? j2?.categoria
+            ?? null;
+        return {
+            id: p.id,
+            nombre_pareja: p.nombre_pareja,
+            jugador1: j1,
+            jugador2: j2,
+            categoria_sugerida,
+        };
+    });
 }
 
 /**

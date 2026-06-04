@@ -228,14 +228,18 @@ export function AsignarParejaSlotDialog({
     const [catalogoLoading, setCatalogoLoading] = useState(false);
     const [catalogo, setCatalogo] = useState<ParejaCatalogoEntry[]>([]);
     const [search, setSearch] = useState("");
+    // "all" = mostrar todas las categorías; en otro caso filtra por igualdad
+    const [catFiltro, setCatFiltro] = useState<string>(categoria);
 
     useEffect(() => {
         if (!open) return;
         setCatalogoLoading(true);
+        // Al abrir, pre-seleccionar el filtro con la categoría del slot
+        setCatFiltro(categoria);
         listarParejasCatalogo(torneoId)
             .then(setCatalogo)
             .finally(() => setCatalogoLoading(false));
-    }, [open, torneoId]);
+    }, [open, torneoId, categoria]);
 
     const reset = () => {
         setModo("catalogo");
@@ -243,6 +247,7 @@ export function AsignarParejaSlotDialog({
         setJugador1(null);
         setJugador2(null);
         setSearch("");
+        setCatFiltro(categoria);
         setError(null);
     };
 
@@ -253,11 +258,24 @@ export function AsignarParejaSlotDialog({
         return p.nombre_pareja || "(Sin nombre)";
     };
 
+    // Categorías presentes en el catálogo (para construir los chips dinámicamente).
+    // Si la categoría del slot no aparece en ninguna pareja, igual la incluimos
+    // para que el usuario pueda volver a filtrar a "su" categoría.
+    const categoriasChips = useMemo(() => {
+        const set = new Set<string>();
+        catalogo.forEach(p => { if (p.categoria_sugerida) set.add(p.categoria_sugerida); });
+        if (categoria) set.add(categoria);
+        return Array.from(set).sort();
+    }, [catalogo, categoria]);
+
     const catalogoFiltrado = useMemo(() => {
         const s = search.trim().toLowerCase();
-        if (!s) return catalogo;
-        return catalogo.filter(p => parejaLabel(p).toLowerCase().includes(s));
-    }, [catalogo, search]);
+        return catalogo.filter(p => {
+            if (catFiltro !== "all" && (p.categoria_sugerida || "") !== catFiltro) return false;
+            if (s && !parejaLabel(p).toLowerCase().includes(s)) return false;
+            return true;
+        });
+    }, [catalogo, search, catFiltro]);
 
     const handleSubmit = () => {
         setError(null);
@@ -372,6 +390,42 @@ export function AsignarParejaSlotDialog({
 
                     {modo === "catalogo" ? (
                         <div className="space-y-2">
+                            {/* Filtro por categoría */}
+                            <div className="flex flex-wrap gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() => setCatFiltro("all")}
+                                    className={cn(
+                                        "px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border transition-colors",
+                                        catFiltro === "all"
+                                            ? "bg-amber-500/15 border-amber-500/60 text-amber-300"
+                                            : "bg-neutral-950 border-neutral-800 text-neutral-500 hover:text-white"
+                                    )}
+                                >
+                                    Todas
+                                </button>
+                                {categoriasChips.map(c => (
+                                    <button
+                                        key={c}
+                                        type="button"
+                                        onClick={() => setCatFiltro(c)}
+                                        className={cn(
+                                            "px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border transition-colors",
+                                            catFiltro === c
+                                                ? "bg-amber-500/15 border-amber-500/60 text-amber-300"
+                                                : "bg-neutral-950 border-neutral-800 text-neutral-500 hover:text-white"
+                                        )}
+                                    >
+                                        {c}{c === categoria && (
+                                            <span className="ml-1 text-[8px] align-top text-emerald-400">●</span>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-[10px] text-neutral-600">
+                                Filtro inicial: <span className="text-amber-400 font-bold">{categoria}</span>. Puedes asignar parejas de cualquier categoría — solo cambia el filtro.
+                            </p>
+
                             <Input
                                 placeholder="Buscar por nombre…"
                                 value={search}
@@ -386,35 +440,52 @@ export function AsignarParejaSlotDialog({
                                     </div>
                                 ) : catalogoFiltrado.length === 0 ? (
                                     <div className="p-4 text-center text-neutral-500 text-sm">
-                                        {search ? "No hay coincidencias." : "No hay parejas disponibles. Usa Construir pareja."}
+                                        {search
+                                            ? "No hay coincidencias para esa búsqueda."
+                                            : catFiltro === "all"
+                                                ? "No hay parejas disponibles. Usa Construir pareja."
+                                                : `No hay parejas con categoría ${catFiltro}. Cambia el filtro o usa Construir pareja.`}
                                     </div>
                                 ) : (
                                     catalogoFiltrado.map((p) => {
                                         const lbl = parejaLabel(p);
                                         const selected = parejaCatalogoId === p.id;
+                                        const cat = p.categoria_sugerida;
                                         return (
                                             <button
                                                 key={p.id}
                                                 type="button"
                                                 onClick={() => setParejaCatalogoId(p.id)}
                                                 className={cn(
-                                                    "w-full text-left px-3 py-2 text-sm flex items-center justify-between border-b border-neutral-800/50 last:border-0 transition-colors",
+                                                    "w-full text-left px-3 py-2 text-sm flex items-center justify-between gap-2 border-b border-neutral-800/50 last:border-0 transition-colors",
                                                     selected
                                                         ? "bg-emerald-500/10 text-emerald-300"
                                                         : "text-neutral-300 hover:bg-neutral-800/50"
                                                 )}
                                             >
-                                                <span>{lbl}</span>
-                                                {selected && (
-                                                    <ChevronRight className="w-4 h-4 text-emerald-400" />
-                                                )}
+                                                <span className="truncate">{lbl}</span>
+                                                <span className="flex items-center gap-2 flex-shrink-0">
+                                                    {cat && (
+                                                        <span className={cn(
+                                                            "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded",
+                                                            cat === categoria
+                                                                ? "bg-emerald-500/15 text-emerald-400"
+                                                                : "bg-neutral-800 text-neutral-400"
+                                                        )}>
+                                                            {cat}
+                                                        </span>
+                                                    )}
+                                                    {selected && (
+                                                        <ChevronRight className="w-4 h-4 text-emerald-400" />
+                                                    )}
+                                                </span>
                                             </button>
                                         );
                                     })
                                 )}
                             </div>
                             <p className="text-[10px] text-neutral-500">
-                                <span className="text-amber-400 font-bold">(I)</span> = al menos uno de los jugadores es invitado (no registrado).
+                                <span className="text-amber-400 font-bold">(I)</span> = al menos uno es invitado. La categoría es la del último torneo donde jugaron (o del perfil si nunca jugaron).
                             </p>
                         </div>
                     ) : (
