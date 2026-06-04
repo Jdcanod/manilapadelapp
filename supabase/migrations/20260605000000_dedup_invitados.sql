@@ -56,32 +56,50 @@ WHERE a.id <> c.canon_id;
 -- Preview: cuántos duplicados vamos a eliminar
 SELECT COUNT(*) AS duplicados_a_eliminar FROM _invitados_canonical;
 
--- Paso 2: Redirigir referencias en `partidos` (columnas de usuario)
-UPDATE partidos p
-SET resultado_propietario_id = m.canon_id
-FROM _invitados_canonical m
-WHERE p.resultado_propietario_id = m.dup_id;
+-- Paso 2: Redirigir referencias en `partidos` (columnas de usuario).
+-- Algunas columnas pueden no existir en bases que no aplicaron todas las
+-- migraciones, así que las redirigimos sólo si existen.
+DO $$
+DECLARE
+    col text;
+    cols text[] := ARRAY[
+        'resultado_propietario_id',
+        'reportado_por_id',
+        'resultado_confirmado_por',
+        'resultado_registrado_por'
+    ];
+BEGIN
+    FOREACH col IN ARRAY cols LOOP
+        IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'partidos' AND column_name = col
+        ) THEN
+            EXECUTE format(
+                'UPDATE partidos p SET %1$I = m.canon_id
+                 FROM _invitados_canonical m
+                 WHERE p.%1$I = m.dup_id',
+                col
+            );
+        END IF;
+    END LOOP;
+END $$;
 
-UPDATE partidos p
-SET reportado_por_id = m.canon_id
-FROM _invitados_canonical m
-WHERE p.reportado_por_id = m.dup_id;
-
-UPDATE partidos p
-SET resultado_confirmado_por = m.canon_id
-FROM _invitados_canonical m
-WHERE p.resultado_confirmado_por = m.dup_id;
-
-UPDATE partidos p
-SET resultado_registrado_por = m.canon_id
-FROM _invitados_canonical m
-WHERE p.resultado_registrado_por = m.dup_id;
-
--- Paso 3: Redirigir referencias en `inscripciones`
-UPDATE inscripciones i
-SET admin_id = m.canon_id
-FROM _invitados_canonical m
-WHERE i.admin_id = m.dup_id;
+-- Paso 3: Redirigir referencias en `inscripciones` (solo si existe)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_name = 'inscripciones'
+    ) AND EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'inscripciones' AND column_name = 'admin_id'
+    ) THEN
+        EXECUTE 'UPDATE inscripciones i
+                 SET admin_id = m.canon_id
+                 FROM _invitados_canonical m
+                 WHERE i.admin_id = m.dup_id';
+    END IF;
+END $$;
 
 -- Paso 4: Manejar `parejas` con cuidado por el constraint UNIQUE(jugador1_id, jugador2_id)
 -- y por los índices únicos parciales en (jugador*_id) WHERE activa = TRUE.
