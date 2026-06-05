@@ -276,17 +276,17 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
         <div className="space-y-6">
             {/* Club Header */}
             <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-olive/20 h-64 md:h-72">
-                <div className="absolute inset-0 bg-paper-soft">
-                    <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/80 to-transparent z-10" />
-                    <div className="w-full h-full bg-[url('https://images.unsplash.com/photo-1628126284698-b80c10faeeaa?q=80&w=1200&auto=format&fit=crop')] bg-cover bg-center mix-blend-overlay opacity-50" />
+                <div className="absolute inset-0">
+                    <div className="w-full h-full bg-[url('https://images.unsplash.com/photo-1628126284698-b80c10faeeaa?q=80&w=1200&auto=format&fit=crop')] bg-cover bg-center" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-olive-dark/90 via-olive-dark/50 to-olive/20 z-10" />
                 </div>
                 <div className="absolute bottom-6 left-6 z-20 flex flex-col md:flex-row md:items-end gap-4 w-full pr-12">
                     <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2 text-olive font-medium">
+                        <div className="flex items-center gap-2 mb-2 text-ochre font-medium">
                             <CheckCircle className="w-4 h-4" />
                             <span className="text-sm tracking-wide uppercase">Club Verificado (Partner)</span>
                         </div>
-                        <h1 className="text-4xl font-black text-ink mb-2 truncate">{nombreClub}</h1>
+                        <h1 className="text-4xl font-black text-white mb-2 truncate drop-shadow-lg">{nombreClub}</h1>
                         <div className="mb-4">
                             <FollowersModal
                                 userId={userData.id}
@@ -294,27 +294,27 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                                 followersCount={followersCount}
                                 followingCount={followingCount}
                                 customTrigger={
-                                    <button className="flex items-center gap-4 hover:bg-paper-dark/50 px-2 py-1.5 -ml-2 rounded-xl transition-colors">
+                                    <button className="flex items-center gap-4 hover:bg-white/10 px-2 py-1.5 -ml-2 rounded-xl transition-colors">
                                         <div className="text-center">
-                                            <div className="font-bold text-ink text-lg leading-none">{followersCount}</div>
-                                            <div className="text-[10px] text-olive uppercase tracking-wider mt-1">Seguidores</div>
+                                            <div className="font-bold text-white text-lg leading-none">{followersCount}</div>
+                                            <div className="text-[10px] text-white/70 uppercase tracking-wider mt-1">Seguidores</div>
                                         </div>
-                                        <div className="w-px h-6 bg-paper-dark" />
+                                        <div className="w-px h-6 bg-white/30" />
                                         <div className="text-center">
-                                            <div className="font-bold text-ink text-lg leading-none">{followingCount}</div>
-                                            <div className="text-[10px] text-olive uppercase tracking-wider mt-1">Seguidos</div>
+                                            <div className="font-bold text-white text-lg leading-none">{followingCount}</div>
+                                            <div className="text-[10px] text-white/70 uppercase tracking-wider mt-1">Seguidos</div>
                                         </div>
                                     </button>
                                 }
                             />
                         </div>
                         <div className="flex items-center gap-4 flex-wrap">
-                            <span className="text-sm text-olive flex items-center gap-1.5">
-                                <Zap className="w-3.5 h-3.5 text-ochre-dark" />
+                            <span className="text-sm text-white/90 flex items-center gap-1.5">
+                                <Zap className="w-3.5 h-3.5 text-ochre" />
                                 {torneoActivos.length} torneo{torneoActivos.length !== 1 ? 's' : ''} activo{torneoActivos.length !== 1 ? 's' : ''}
                             </span>
-                            <span className="text-sm text-olive flex items-center gap-1.5">
-                                <Users className="w-3.5 h-3.5 text-olive" />
+                            <span className="text-sm text-white/90 flex items-center gap-1.5">
+                                <Users className="w-3.5 h-3.5 text-white/70" />
                                 {playersCount} jugadores inscritos
                             </span>
                             {resultadosPendientes > 0 && (
