@@ -502,7 +502,15 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                             currentClubId={userData.id}
                             partidos={(rawPartidos || [])
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                .filter((p: any) => p.lugar && p.lugar.toLowerCase().includes('cancha') && p.fecha)
+                                .filter((p: any) => {
+                                    if (!p.fecha) return false;
+                                    // Excluir partidos placeholder (TBD) que nunca fueron programados.
+                                    const lugar = (p.lugar || '').toLowerCase();
+                                    if (lugar.startsWith('pendiente')) return false;
+                                    // Excluir placeholders Copa Davis estilo "Pendiente · 4ta #1"
+                                    if (lugar.includes('pendiente ·')) return false;
+                                    return true;
+                                })
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 .map((p: any) => {
                                     const adjustedDate = addHours(new Date(p.fecha), -5);
