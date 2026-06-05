@@ -65,7 +65,7 @@ function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers, setsC
                 </div>
                 <div className="p-4 space-y-4">
                     <div className="flex justify-between items-center transition-transform">
-                        <span className="text-sm font-black text-ink uppercase truncate pr-2">{p1IsTBD ? 'TBD' : p1Display}</span>
+                        <span className="text-sm font-black text-ink uppercase truncate pr-2">{p1Display}</span>
                         <div className="flex gap-1">
                             {(match.resultado || "-").split(',').map((setStr: string, idx: number) => (
                                 <span key={idx} className="w-6 h-6 flex items-center justify-center bg-paper-soft text-ink font-black text-[10px] rounded border border-olive/20">
@@ -75,7 +75,7 @@ function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers, setsC
                         </div>
                     </div>
                     <div className="flex justify-between items-center border-t border-olive/15 pt-4">
-                        <span className="text-sm font-black text-ink uppercase truncate pr-2">{p2IsTBD ? 'TBD' : p2Display}</span>
+                        <span className="text-sm font-black text-ink uppercase truncate pr-2">{p2Display}</span>
                         <div className="flex gap-1">
                             {(match.resultado || "-").split(',').map((setStr: string, idx: number) => (
                                 <span key={idx} className="w-6 h-6 flex items-center justify-center bg-paper-soft text-olive font-black text-[10px] rounded border border-olive/20">
