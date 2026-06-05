@@ -88,19 +88,29 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const partidosPorFecha = uniquePartidos.reduce((acc: any, partido: any) => {
-        // IMPORTANTE: si `fecha_ajustada` viene seteada desde page.tsx (que ya
-        // aplicó addHours(-5) para llevar la UTC a la representación local de
-        // Bogotá), leemos su UTC tal cual — NO volvemos a restar 5h o
-        // hacemos un double shift y partidos de las 20:00+ saltan de día.
-        const dateToUse = partido.fecha_ajustada || partido.fecha;
+        // Estrategia robusta: SIEMPRE bucketeamos desde `partido.fecha` (el
+        // UTC original de la BD) restando 5h para llevarlo al wall-clock
+        // Bogotá. Así no dependemos de si `fecha_ajustada` se computó en
+        // page.tsx o no. Para que coincida con el `hora` que ya vino de
+        // page.tsx, también recalculamos hora aquí si vino vacía.
+        const rawFecha = partido.fecha;
         let fecha = "Pendiente";
-        if (dateToUse) {
-            const dt = new Date(dateToUse);
-            const y = dt.getUTCFullYear();
-            const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
-            const d = String(dt.getUTCDate()).padStart(2, '0');
+        let horaCalculada = partido.hora || "";
+        if (rawFecha) {
+            const dt = new Date(rawFecha);
+            const bogota = new Date(dt.getTime() - 5 * 60 * 60 * 1000);
+            const y = bogota.getUTCFullYear();
+            const m = String(bogota.getUTCMonth() + 1).padStart(2, '0');
+            const d = String(bogota.getUTCDate()).padStart(2, '0');
             fecha = `${y}-${m}-${d}`;
+            if (!horaCalculada) {
+                const hh = String(bogota.getUTCHours()).padStart(2, '0');
+                const mm = String(bogota.getUTCMinutes()).padStart(2, '0');
+                horaCalculada = `${hh}:${mm}`;
+            }
         }
+        // Adjuntar hora calculada (idempotente: si ya tenía hora, queda igual)
+        partido.hora = horaCalculada;
         if (!acc[fecha]) acc[fecha] = [];
         acc[fecha].push(partido);
         return acc;
