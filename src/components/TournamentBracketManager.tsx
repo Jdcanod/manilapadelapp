@@ -30,7 +30,14 @@ interface MatchItem {
     nivel?: string | null;
 }
 
+import { swapMatchPlaceholders } from "@/app/(dashboard)/club/torneos/[id]/actions";
+
 function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers, setsCantidad }: { match: MatchItem, tipoDesempate?: string, allPairs?: { id?: string; nombre_pareja: string | null }[], parejaPlayers?: ParejaPlayersMap, setsCantidad?: number }) {
+    const { toast } = useToast();
+    const params = useParams();
+    const torneoId = Array.isArray(params.id) ? params.id[0] : params.id;
+    const [isDraggingOver, setIsDraggingOver] = useState<number | null>(null);
+
     const p1IsTBD = !match.pareja1?.nombre_pareja || match.pareja1?.nombre_pareja === 'TBD';
     const p2IsTBD = !match.pareja2?.nombre_pareja || match.pareja2?.nombre_pareja === 'TBD';
 
@@ -44,6 +51,48 @@ function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers, setsC
     const p2Display = !p2IsTBD
         ? resolvePairName(match.pareja2?.id || match.pareja2_id, match.pareja2?.nombre_pareja, parejaPlayers)
         : (ph2 || 'TBD');
+
+    const handleDragStart = (e: React.DragEvent, slot: 1 | 2) => {
+        if (match.estado === 'jugado') return;
+        e.dataTransfer.setData("application/json", JSON.stringify({
+            matchId: match.id,
+            slot
+        }));
+    };
+
+    const handleDragOver = (e: React.DragEvent, slot: 1 | 2) => {
+        if (match.estado === 'jugado') return;
+        e.preventDefault();
+        setIsDraggingOver(slot);
+    };
+
+    const handleDragLeave = () => {
+        setIsDraggingOver(null);
+    };
+
+    const handleDrop = async (e: React.DragEvent, targetSlot: 1 | 2) => {
+        if (match.estado === 'jugado') return;
+        e.preventDefault();
+        setIsDraggingOver(null);
+        try {
+            const dataStr = e.dataTransfer.getData("application/json");
+            if (!dataStr) return;
+            const source = JSON.parse(dataStr);
+            
+            if (source.matchId === match.id && source.slot === targetSlot) return;
+
+            const res = await swapMatchPlaceholders(torneoId as string, source.matchId, source.slot, match.id, targetSlot);
+            if (res.success) {
+                toast({ title: "Intercambio exitoso", description: "Las llaves/placeholders se han reorganizado correctamente." });
+                window.location.reload();
+            } else {
+                toast({ title: "Error", description: res.message, variant: "destructive" });
+            }
+        } catch (err: any) {
+            toast({ title: "Error", description: err.message || "Error al intercambiar", variant: "destructive" });
+        }
+    };
+
     return (
         <Card className="bg-paper border-olive/20 border-l-4 border-l-amber-500 shadow-2xl overflow-visible hover:border-olive/30 transition-all group w-full max-w-[280px] relative">
             {allPairs && match.estado !== 'jugado' && (
@@ -64,9 +113,16 @@ function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers, setsC
                     </Badge>
                 </div>
                 <div className="p-4 space-y-4">
-                    <div className="flex justify-between items-center transition-transform">
+                    <div 
+                        draggable={match.estado !== 'jugado'}
+                        onDragStart={(e) => handleDragStart(e, 1)}
+                        onDragOver={(e) => handleDragOver(e, 1)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, 1)}
+                        className={`flex justify-between items-center transition-all p-1.5 rounded-lg border-2 border-transparent ${match.estado !== 'jugado' ? 'cursor-grab active:cursor-grabbing hover:bg-paper-soft/30 hover:border-amber-500/25' : ''} ${isDraggingOver === 1 ? 'bg-amber-500/10 border-amber-500 border-dashed' : ''}`}
+                    >
                         <span className="text-sm font-black text-ink uppercase truncate pr-2">{p1Display}</span>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 shrink-0">
                             {(match.resultado || "-").split(',').map((setStr: string, idx: number) => (
                                 <span key={idx} className="w-6 h-6 flex items-center justify-center bg-paper-soft text-ink font-black text-[10px] rounded border border-olive/20">
                                     {setStr.split('-')[0] || '-'}
@@ -74,9 +130,16 @@ function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers, setsC
                             ))}
                         </div>
                     </div>
-                    <div className="flex justify-between items-center border-t border-olive/15 pt-4">
+                    <div 
+                        draggable={match.estado !== 'jugado'}
+                        onDragStart={(e) => handleDragStart(e, 2)}
+                        onDragOver={(e) => handleDragOver(e, 2)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, 2)}
+                        className={`flex justify-between items-center transition-all p-1.5 rounded-lg border-2 border-transparent border-t border-t-olive/15 ${match.estado !== 'jugado' ? 'cursor-grab active:cursor-grabbing hover:bg-paper-soft/30 hover:border-amber-500/25' : ''} ${isDraggingOver === 2 ? 'bg-amber-500/10 border-amber-500 border-dashed' : ''}`}
+                    >
                         <span className="text-sm font-black text-ink uppercase truncate pr-2">{p2Display}</span>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 shrink-0">
                             {(match.resultado || "-").split(',').map((setStr: string, idx: number) => (
                                 <span key={idx} className="w-6 h-6 flex items-center justify-center bg-paper-soft text-olive font-black text-[10px] rounded border border-olive/20">
                                     {setStr.split('-')[1] || '-'}

@@ -2087,3 +2087,93 @@ export async function updateMatchTeams(matchId: string, pareja1Id: string | null
     }
 }
 
+export async function swapMatchPlaceholders(
+    torneoId: string,
+    matchId1: string,
+    slot1: 1 | 2,
+    matchId2: string,
+    slot2: 1 | 2
+) {
+    try {
+        const supabaseAuth = createClient();
+        const { data: { user } } = await supabaseAuth.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado." };
+
+        const { data: torneoCheck } = await supabaseAuth.from('torneos').select('club_id').eq('id', torneoId).single();
+        if (!torneoCheck) return { success: false, message: "Torneo no encontrado." };
+        
+        const { data: userData } = await supabaseAuth.from('users').select('id, rol').eq('auth_id', user.id).single();
+        const esAdmin = userData?.rol === 'admin_club' || userData?.rol === 'superadmin';
+        const esDelClub = String(torneoCheck?.club_id) === String(userData?.id);
+        
+        if (!esAdmin || !esDelClub) return { success: false, message: "No tienes permisos." };
+
+        const supabaseAdmin = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
+        // Obtener ambos partidos
+        const { data: match1 } = await supabaseAdmin.from('partidos').select('lugar, pareja1_id, pareja2_id').eq('id', matchId1).single();
+        const { data: match2 } = await supabaseAdmin.from('partidos').select('lugar, pareja1_id, pareja2_id').eq('id', matchId2).single();
+
+        if (!match1 || !match2) return { success: false, message: "Partidos no encontrados." };
+
+        // Parsear lugar de match1
+        const parts1 = match1.lugar?.split('||') || [];
+        const baseLugar1 = parts1[0]?.trim() || "";
+        const phContent1 = parts1[1]?.split('vs') || [];
+        const ph1_1 = phContent1[0]?.replace(/^PH:\s*/i, '').trim() || 'TBD';
+        const ph1_2 = phContent1[1]?.replace(/^PH:\s*/i, '').trim() || 'TBD';
+
+        // Parsear lugar de match2
+        const parts2 = match2.lugar?.split('||') || [];
+        const baseLugar2 = parts2[0]?.trim() || "";
+        const phContent2 = parts2[1]?.split('vs') || [];
+        const ph2_1 = phContent2[0]?.replace(/^PH:\s*/i, '').trim() || 'TBD';
+        const ph2_2 = phContent2[1]?.replace(/^PH:\s*/i, '').trim() || 'TBD';
+
+        // Intercambiar placeholder strings
+        const oldVal1 = slot1 === 1 ? ph1_1 : ph1_2;
+        const oldVal2 = slot2 === 1 ? ph2_1 : ph2_2;
+
+        const newVal1_1 = slot1 === 1 ? oldVal2 : ph1_1;
+        const newVal1_2 = slot1 === 2 ? oldVal2 : ph1_2;
+
+        const newVal2_1 = slot2 === 1 ? oldVal1 : ph2_1;
+        const newVal2_2 = slot2 === 2 ? oldVal1 : ph2_2;
+
+        const newLugar1 = `${baseLugar1} || PH: ${newVal1_1} vs ${newVal1_2}`;
+        const newLugar2 = `${baseLugar2} || PH: ${newVal2_1} vs ${newVal2_2}`;
+
+        // Intercambiar IDs de pareja correspondientes
+        const oldId1 = slot1 === 1 ? match1.pareja1_id : match1.pareja2_id;
+        const oldId2 = slot2 === 1 ? match2.pareja1_id : match2.pareja2_id;
+
+        const newId1_1 = slot1 === 1 ? oldId2 : match1.pareja1_id;
+        const newId1_2 = slot1 === 2 ? oldId2 : match1.pareja2_id;
+
+        const newId2_1 = slot2 === 1 ? oldId1 : match2.pareja1_id;
+        const newId2_2 = slot2 === 2 ? oldId1 : match2.pareja2_id;
+
+        // Actualizar partidos
+        await supabaseAdmin.from('partidos').update({
+            lugar: newLugar1,
+            pareja1_id: newId1_1,
+            pareja2_id: newId1_2
+        }).eq('id', matchId1);
+
+        await supabaseAdmin.from('partidos').update({
+            lugar: newLugar2,
+            pareja1_id: newId2_1,
+            pareja2_id: newId2_2
+        }).eq('id', matchId2);
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        return { success: true };
+    } catch (err: unknown) {
+        console.error("Error swapMatchPlaceholders:", err);
+        return { success: false, message: (err as Error).message };
+    }
+}
+
