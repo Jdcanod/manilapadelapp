@@ -119,10 +119,10 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
             <div className="pdf-section pdf-header flex justify-between items-center border-b-2 border-olive pb-6 mb-8">
                 <div className="flex items-center gap-4">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/logo.png" alt="Pádel Manía" className="w-16 h-16 object-contain" />
+                    <img src="/logo.png" alt="Pádel Manía" className="w-16 h-16 object-contain rounded-full bg-paper" />
                     {clubInfo?.foto && (
                         /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={clubInfo.foto} alt="Logo Club" className="w-20 h-20 object-contain ml-2" />
+                        <img src={clubInfo.foto} alt="Logo Club" className="w-20 h-20 object-contain ml-2 rounded-full bg-paper" />
                     )}
                     <div className="ml-2">
                         <h1 className="text-2xl font-bold uppercase">{clubInfo?.nombre || "CLUB DE PADEL"}</h1>
@@ -198,9 +198,9 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                     <h3 className="text-lg font-bold bg-paper-soft p-2 mb-4 uppercase border-l-4 border-olive">Configuración de Grupos</h3>
                     {categoriasOrdenadas.map((cat, catIdx) => (
                     <div key={cat} className={`mb-6 ${catIdx > 0 ? 'pt-4 border-t-2 border-olive/40' : ''}`}>
-                        <div className="pdf-section mb-3 flex items-center gap-2">
+                        <div className="pdf-section mb-3 py-2 flex items-center gap-2">
                             <span className="inline-block w-2 h-2 rounded-full bg-olive" />
-                            <h4 className="text-sm font-black uppercase tracking-widest text-olive">Categoría {cat}</h4>
+                            <h4 className="text-sm font-black uppercase tracking-widest text-olive leading-none">Categoría {cat}</h4>
                             <span className="text-[10px] text-olive/70 ml-2">{porCategoria[cat].length} grupo{porCategoria[cat].length > 1 ? 's' : ''}</span>
                         </div>
                         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}

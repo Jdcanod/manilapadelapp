@@ -75,7 +75,7 @@ export function TournamentExportButton({ torneo, clubInfo, partidos, participant
                     scale: 2,
                     useCORS: true,
                     logging: false,
-                    backgroundColor: "#ffffff",
+                    backgroundColor: "#F4EFE6",
                     width: section.offsetWidth,
                     height: section.offsetHeight
                 });
