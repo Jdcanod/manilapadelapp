@@ -68,7 +68,7 @@ export function BracketMatchCardClient({ match, playerPairIds, currentUserId, ti
                             "text-[10px] uppercase tracking-widest font-black line-clamp-2",
                             isConfirmed ? "text-olive" : (isPending ? "text-ochre-dark" : "text-blue-500")
                         )}>
-                            {match.lugar ? match.lugar.replace(/\[\d+\]\s*/, '') : "Fase Final"}
+                            {match.lugar ? match.lugar.split('||')[0].replace(/\[\d+\]\s*/, '').trim() : "Fase Final"}
                         </span>
                         {isParticipant && (
                              <Badge variant="outline" className="text-[8px] border-ochre/30 text-ochre-dark bg-ochre/5 uppercase h-4 px-1.5 font-black">Tu Partido</Badge>

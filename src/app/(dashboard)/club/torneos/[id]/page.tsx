@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { ChevronLeft, CalendarDays, Users, Swords, Trophy } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminParticipantActions } from "@/components/AdminParticipantActions";
 
 import { TournamentGroupsManager } from "@/components/TournamentGroupsManager";
@@ -15,6 +15,7 @@ import { TournamentChronogram } from "@/components/TournamentChronogram";
 import { TournamentExportButton } from "@/components/TournamentExportButton";
 import { TournamentResultsManager } from "@/components/TournamentResultsManager";
 import { CopaDavisManager } from "@/components/CopaDavisManager";
+import { PersistentTabs } from "@/components/PersistentTabs";
 import { formatPairName } from "@/lib/display-names";
 
 
@@ -595,7 +596,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                     )}
                 </div>
             ) : (
-            <Tabs defaultValue="participantes" className="w-full mt-8">
+            <PersistentTabs defaultValue="participantes" className="w-full mt-8">
                 <TabsList className="bg-paper-soft border border-olive/20 p-1 w-full flex overflow-x-auto justify-start sm:w-auto overflow-y-hidden">
                     <TabsTrigger value="participantes" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Parejas Inscritas <Badge variant="secondary" className="ml-2 bg-paper-dark text-olive border-none">{allParticipants.length}</Badge></TabsTrigger>
                     <TabsTrigger value="grupos" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Fase de Grupos</TabsTrigger>
@@ -741,7 +742,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         </div>
                     </div>
                 </TabsContent>
-            </Tabs>
+            </PersistentTabs>
             )}
         </div>
     );

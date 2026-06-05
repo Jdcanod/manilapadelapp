@@ -2123,15 +2123,15 @@ export async function swapMatchPlaceholders(
         const parts1 = match1.lugar?.split('||') || [];
         const baseLugar1 = parts1[0]?.trim() || "";
         const phContent1 = parts1[1]?.split('vs') || [];
-        const ph1_1 = phContent1[0]?.replace(/^PH:\s*/i, '').trim() || 'TBD';
-        const ph1_2 = phContent1[1]?.replace(/^PH:\s*/i, '').trim() || 'TBD';
+        const ph1_1 = phContent1[0]?.replace(/^\s*PH:\s*/i, '').trim() || 'TBD';
+        const ph1_2 = phContent1[1]?.replace(/^\s*PH:\s*/i, '').trim() || 'TBD';
 
         // Parsear lugar de match2
         const parts2 = match2.lugar?.split('||') || [];
         const baseLugar2 = parts2[0]?.trim() || "";
         const phContent2 = parts2[1]?.split('vs') || [];
-        const ph2_1 = phContent2[0]?.replace(/^PH:\s*/i, '').trim() || 'TBD';
-        const ph2_2 = phContent2[1]?.replace(/^PH:\s*/i, '').trim() || 'TBD';
+        const ph2_1 = phContent2[0]?.replace(/^\s*PH:\s*/i, '').trim() || 'TBD';
+        const ph2_2 = phContent2[1]?.replace(/^\s*PH:\s*/i, '').trim() || 'TBD';
 
         // Intercambiar placeholder strings
         const oldVal1 = slot1 === 1 ? ph1_1 : ph1_2;
