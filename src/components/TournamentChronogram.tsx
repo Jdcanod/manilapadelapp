@@ -318,7 +318,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                     >
                                         <div className="flex justify-between items-start mb-3">
                                             <div className="flex flex-col gap-1">
-                                                <Badge variant="outline" className="bg-paper-soft text-olive border-olive/20 text-[9px] font-black uppercase">
+                                                <Badge variant="outline" className="bg-ochre text-black border-ochre/30 text-[10px] h-5 px-2 font-black uppercase shadow-sm">
                                                     {match.nivel || "General"}
                                                 </Badge>
                                                 <Badge variant="outline" className={`text-[9px] font-black uppercase border ${getFaseLabel(match).color}`}>
@@ -645,7 +645,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                         </div>
                                                         <div className="flex justify-between items-center mt-auto pt-2 border-t border-olive/20">
                                                             <div className="flex gap-1">
-                                                                <Badge className="bg-olive text-black font-black text-[7px] h-3.5 px-1">{matchToShow.nivel}</Badge>
+                                                                <Badge className="bg-ochre text-black font-black text-[8.5px] h-4 px-1.5 shadow-sm">{matchToShow.nivel}</Badge>
                                                                 {getFaseFromLugar(matchToShow.lugar) && (
                                                                     <Badge variant="outline" className="text-[7px] font-black text-ochre-dark border-ochre/30 uppercase">{getFaseFromLugar(matchToShow.lugar)}</Badge>
                                                                 )}

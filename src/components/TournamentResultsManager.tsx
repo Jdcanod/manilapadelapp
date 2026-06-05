@@ -277,7 +277,7 @@ function MatchRowCard({ torneoId, match, tipoDesempate, userMap, parejaPlayers, 
                     {/* Header chip */}
                     <div className="flex items-center gap-2 flex-wrap">
                         {match.nivel && (
-                            <Badge variant="outline" className="text-[9px] border-olive/30 text-olive px-1.5 py-0 h-4">
+                            <Badge variant="outline" className="text-[11px] uppercase font-black px-2 h-5 bg-ochre text-black border-ochre/30 shadow-sm">
                                 {match.nivel}
                             </Badge>
                         )}
