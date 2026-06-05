@@ -57,7 +57,8 @@ export default async function TorneosPage() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                    {torneosFiltrados.map((torneo) => {
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    {torneosFiltrados.map((torneo: any) => {
                         const hasPartidos = torneo.partidos && torneo.partidos.length > 0;
                         
                         interface MatchSubset {
