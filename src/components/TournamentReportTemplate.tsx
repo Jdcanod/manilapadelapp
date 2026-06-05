@@ -74,26 +74,15 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
         return hasB - hasA;
     });
 
+    // Dedup por partido.id (único en DB) — es lo único 100% confiable.
+    // Antes deduplicábamos por (parejaA+parejaB)@contexto y eso descartaba
+    // bracket vs grupo cuando coincidían en categoría, o partidos repetidos
+    // de la misma pareja en distintos slots de horario.
     for (const p of sortedPartidos) {
-        const p1 = String(p.pareja1_id || p.jugador1_id || '');
-        const p2 = String(p.pareja2_id || p.jugador2_id || '');
-        const context = String(p.torneo_grupo_id || p.nivel || 'global');
-        
-        // Llave única para el enfrentamiento (A vs B es lo mismo que B vs A)
-        const matchKey = [p1, p2].sort().join(':') + '@' + context;
-        
-        if (p1 && p2 && p1 !== 'null' && p2 !== 'null') {
-            if (!seenMatches.has(matchKey)) {
-                seenMatches.add(matchKey);
-                uniquePartidos.push(p);
-            }
-        } else {
-            // Si es un partido TBD o incompleto, lo incluimos (siempre que el ID sea único)
-            const idKey = `id:${p.id}`;
-            if (!seenMatches.has(idKey)) {
-                seenMatches.add(idKey);
-                uniquePartidos.push(p);
-            }
+        const idKey = `id:${p.id}`;
+        if (!seenMatches.has(idKey)) {
+            seenMatches.add(idKey);
+            uniquePartidos.push(p);
         }
     }
     
@@ -200,8 +189,8 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                 <div className="mb-10">
                     <h3 className="text-lg font-bold bg-gray-100 p-2 mb-4 uppercase border-l-4 border-blue-900">Configuración de Grupos</h3>
                     {categoriasOrdenadas.map((cat, catIdx) => (
-                    <div key={cat} className={`pdf-section mb-6 ${catIdx > 0 ? 'pt-4 border-t-2 border-blue-900/40' : ''}`}>
-                        <div className="mb-3 flex items-center gap-2">
+                    <div key={cat} className={`mb-6 ${catIdx > 0 ? 'pt-4 border-t-2 border-blue-900/40' : ''}`}>
+                        <div className="pdf-section mb-3 flex items-center gap-2">
                             <span className="inline-block w-2 h-2 rounded-full bg-blue-900" />
                             <h4 className="text-sm font-black uppercase tracking-widest text-blue-900">Categoría {cat}</h4>
                             <span className="text-[10px] text-gray-500 ml-2">{porCategoria[cat].length} grupo{porCategoria[cat].length > 1 ? 's' : ''}</span>
@@ -328,7 +317,11 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                             </thead>
                             <tbody>
                                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                {partidosPorFecha[fechaKey].map((partido: any) => (
+                                {[...partidosPorFecha[fechaKey]].sort((a: any, b: any) => {
+                                    const ha = (a.hora || "99:99");
+                                    const hb = (b.hora || "99:99");
+                                    return ha.localeCompare(hb);
+                                }).map((partido: any) => (
                                     <tr key={partido.id} className="border-b border-gray-100 hover:bg-gray-50">
                                         <td className="py-2 font-bold">{partido.hora || "--:--"}</td>
                                         <td className="py-2">
