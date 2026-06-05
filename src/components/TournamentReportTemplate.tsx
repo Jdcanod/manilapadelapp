@@ -108,6 +108,26 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
 
     const fechasOrdenadas = Object.keys(partidosPorFecha).sort();
 
+    // Diagnóstico: el usuario reporta que partidos 20:00+ no aparecen en el PDF.
+    // Lo imprimimos en consola al construir el reporte para poder verificar
+    // en DevTools cuántos partidos llegan y a qué buckets caen.
+    if (typeof window !== "undefined") {
+        // eslint-disable-next-line no-console
+        console.log("[TournamentReportTemplate] partidos recibidos:", partidos.length,
+            "uniquePartidos:", uniquePartidos.length,
+            "buckets:", fechasOrdenadas.map(k => `${k}:${partidosPorFecha[k].length}`).join(" | "));
+        // eslint-disable-next-line no-console
+        const tarde = uniquePartidos
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .filter((p: any) => {
+                const h = (p.hora || "").split(":")[0];
+                return parseInt(h, 10) >= 19;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            }).map((p: any) => ({ id: p.id, hora: p.hora, fecha: p.fecha, lugar: p.lugar, p1: p.pareja1_id, p2: p.pareja2_id }));
+        // eslint-disable-next-line no-console
+        console.log("[TournamentReportTemplate] partidos hora >= 19:", tarde);
+    }
+
     return (
         <div ref={ref} className="p-10 bg-paper text-ink w-[800px] font-sans">
             {/* ENCABEZADO */}
