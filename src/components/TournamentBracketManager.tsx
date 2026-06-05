@@ -266,7 +266,7 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPla
     );
 }
 
-export function TournamentBracketManager({ categorias, partidos, tipoDesempate, parejaPlayers, setsCantidad }: { categorias: string[], partidos: MatchItem[], tipoDesempate?: string, parejaPlayers?: ParejaPlayersMap, setsCantidad?: number }) {
+export function TournamentBracketManager({ categorias, partidos, tipoDesempate, parejaPlayers, setsCantidad, formato = 'relampago', clasificanPorGrupoDefault }: { categorias: string[], partidos: MatchItem[], tipoDesempate?: string, parejaPlayers?: ParejaPlayersMap, setsCantidad?: number, formato?: string, clasificanPorGrupoDefault?: number }) {
     const [selectedCat, setSelectedCat] = useState(categorias[0] || '');
     const [loading, setLoading] = useState(false);
     const params = useParams();
@@ -332,6 +332,8 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate, 
                         torneoId={torneoId as string}
                         categoria={selectedCat}
                         yaTieneBracket={eliminatoriasPartidos.filter(p => p.nivel === selectedCat).length > 0}
+                        formato={formato}
+                        clasificanPorGrupoDefault={clasificanPorGrupoDefault}
                     />
 
                     {eliminatoriasPartidos.filter(p => p.nivel === selectedCat).length > 0 && (

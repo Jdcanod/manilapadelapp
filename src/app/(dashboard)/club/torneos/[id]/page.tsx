@@ -708,6 +708,8 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                             tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                             parejaPlayers={parejaPlayersMap}
                             setsCantidad={torneo.reglas_puntuacion?.sets}
+                            formato={torneo.formato || 'relampago'}
+                            clasificanPorGrupoDefault={torneo.reglas_puntuacion?.config_clasifican_por_grupo}
                         />
 
                         {/* SECCIÓN HISTORIAL DE GRUPOS */}

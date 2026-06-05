@@ -991,11 +991,23 @@ export async function obtenerStandingsGlobales(torneoId: string, categoria: stri
  * vengan. Usa siembra estándar 1 vs N, 2 vs N-1, etc., con byes si N
  * no es potencia de 2.
  */
+/**
+ * Genera la fase eliminatoria de una categoría.
+ *
+ * Modos:
+ *   - porGrupo > 0  → modo "por grupo" (típico de Relámpago): de CADA grupo
+ *     se toman los `porGrupo` mejores. El total = porGrupo × nº de grupos.
+ *     Se ignora `totalClasificados` y `minMatches`.
+ *   - porGrupo undefined → modo "global" (legacy / liguilla): se toman los
+ *     `totalClasificados` mejores parejas globales que tengan al menos
+ *     `minMatches` partidos jugados.
+ */
 export async function generarFaseEliminatoriaTopN(
     torneoId: string,
     categoria: string,
     totalClasificados: number,
     minMatches: number = 0,
+    porGrupo?: number,
 ) {
     try {
         const supabase = createClient();
@@ -1008,9 +1020,6 @@ export async function generarFaseEliminatoriaTopN(
         );
 
         const userId = user.id;
-        if (!totalClasificados || totalClasificados < 2) {
-            return { success: false, message: "Debes seleccionar al menos 2 clasificados." };
-        }
 
         // 0. Limpiar llaves previas de la categoría
         await supabaseAdmin
@@ -1021,32 +1030,93 @@ export async function generarFaseEliminatoriaTopN(
             .is('torneo_grupo_id', null)
             .not('lugar', 'is', null);
 
-        // 1. Standings globales (mismo flujo que obtenerStandingsGlobales para
-        //    cubrir datos sin torneo_grupo_id)
-        const standingsResult = await obtenerStandingsGlobales(torneoId, categoria);
-        if (!standingsResult.success) {
-            return { success: false, message: standingsResult.message || "No se pudieron calcular los standings" };
-        }
-        const allStandings = standingsResult.standings as Array<{ parejaId: string; nombre: string; pj: number; pg: number; sg: number; sp: number; gg: number; gp: number; pts: number }>;
-
-        // Filtrar parejas que NO cumplen el mínimo de partidos jugados
-        const elegibles = minMatches > 0
-            ? allStandings.filter(s => s.pj >= minMatches)
-            : allStandings;
-
-        if (elegibles.length < 2) {
-            const msg = minMatches > 0
-                ? `Solo ${elegibles.length} pareja(s) tienen al menos ${minMatches} partido${minMatches > 1 ? 's' : ''} jugado${minMatches > 1 ? 's' : ''}. Baja el mínimo o espera a que se jueguen más partidos.`
-                : "No hay suficientes parejas con resultados para generar el cuadro.";
-            return { success: false, message: msg };
-        }
-
-        const { data: torneo } = await supabaseAdmin.from('torneos').select('club_id, fecha_inicio').eq('id', torneoId).single();
+        const { data: torneo } = await supabaseAdmin.from('torneos').select('club_id, fecha_inicio, reglas_puntuacion, formato').eq('id', torneoId).single();
         const clubId = torneo?.club_id;
         const fechaTorneo = torneo?.fecha_inicio;
+        // Resolver tipo de desempate de la categoría (para games del 3er set)
+        const tipoDesempateGlobalEli = torneo?.reglas_puntuacion?.tipo_desempate;
+        const tipoDesempatePorCatEli = torneo?.reglas_puntuacion?.tipo_desempate_por_categoria || {};
+        const tipoDesempateCatEli = tipoDesempatePorCatEli[categoria] || tipoDesempateGlobalEli || null;
+        const standingsOptsEli = torneo?.formato === 'liguilla' ? { pointsForLoss: 1 } : {};
 
-        const N = Math.min(totalClasificados, elegibles.length);
-        const topN = elegibles.slice(0, N);
+        // ===== Modo PER-GROUP (Relámpago típico): tomar top N de CADA grupo =====
+        let topN: Array<{ parejaId: string; nombre: string; pts: number; sg: number; sp: number; gg: number; gp: number; pj: number; pg: number }> = [];
+        if (porGrupo && porGrupo > 0) {
+            const { data: grupos } = await supabaseAdmin
+                .from('torneo_grupos')
+                .select('id, nombre_grupo')
+                .eq('torneo_id', torneoId)
+                .eq('categoria', categoria)
+                .order('nombre_grupo', { ascending: true });
+            if (!grupos || grupos.length === 0) {
+                return { success: false, message: "No hay grupos para clasificar por grupo." };
+            }
+            for (const g of grupos) {
+                const { data: rawGroupMatches } = await supabaseAdmin
+                    .from('partidos')
+                    .select('id, pareja1_id, pareja2_id, estado, resultado, estado_resultado')
+                    .eq('torneo_grupo_id', g.id);
+                // Adjuntar nombres + tipoDesempate
+                const allParejaIds = new Set<string>();
+                (rawGroupMatches || []).forEach(m => {
+                    if (m.pareja1_id) allParejaIds.add(m.pareja1_id);
+                    if (m.pareja2_id) allParejaIds.add(m.pareja2_id);
+                });
+                const nameMap = new Map<string, string>();
+                if (allParejaIds.size > 0) {
+                    const { data: parejas } = await supabaseAdmin
+                        .from('parejas').select('id, nombre_pareja').in('id', Array.from(allParejaIds));
+                    (parejas || []).forEach(p => nameMap.set(p.id, p.nombre_pareja || 'Pareja'));
+                }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const matchesShape = (rawGroupMatches || []).map((m: any) => ({
+                    ...m,
+                    pareja1: m.pareja1_id ? { nombre_pareja: nameMap.get(m.pareja1_id) || null } : null,
+                    pareja2: m.pareja2_id ? { nombre_pareja: nameMap.get(m.pareja2_id) || null } : null,
+                    tipoDesempate: tipoDesempateCatEli,
+                }));
+                const groupStandings = calculateStandings(matchesShape, standingsOptsEli);
+                topN.push(...groupStandings.slice(0, porGrupo));
+            }
+
+            if (topN.length < 2) {
+                return { success: false, message: "Aún no hay suficientes parejas con partidos en los grupos para generar el cuadro." };
+            }
+
+            // Ordenar globalmente por puntos / %sets / %games para seeding del bracket
+            topN.sort((a, b) => {
+                if (b.pts !== a.pts) return b.pts - a.pts;
+                const pctSA = (a.sg + a.sp) ? (a.sg * 100) / (a.sg + a.sp) : 0;
+                const pctSB = (b.sg + b.sp) ? (b.sg * 100) / (b.sg + b.sp) : 0;
+                if (pctSB !== pctSA) return pctSB - pctSA;
+                const pctGA = (a.gg + a.gp) ? (a.gg * 100) / (a.gg + a.gp) : 0;
+                const pctGB = (b.gg + b.gp) ? (b.gg * 100) / (b.gg + b.gp) : 0;
+                return pctGB - pctGA;
+            });
+        } else {
+            // ===== Modo GLOBAL (legacy / liguilla) =====
+            if (!totalClasificados || totalClasificados < 2) {
+                return { success: false, message: "Debes seleccionar al menos 2 clasificados." };
+            }
+            const standingsResult = await obtenerStandingsGlobales(torneoId, categoria);
+            if (!standingsResult.success) {
+                return { success: false, message: standingsResult.message || "No se pudieron calcular los standings" };
+            }
+            const allStandings = standingsResult.standings as Array<{ parejaId: string; nombre: string; pj: number; pg: number; sg: number; sp: number; gg: number; gp: number; pts: number }>;
+            const elegibles = minMatches > 0
+                ? allStandings.filter(s => s.pj >= minMatches)
+                : allStandings;
+            if (elegibles.length < 2) {
+                const msg = minMatches > 0
+                    ? `Solo ${elegibles.length} pareja(s) tienen al menos ${minMatches} partido${minMatches > 1 ? 's' : ''} jugado${minMatches > 1 ? 's' : ''}. Baja el mínimo o espera a que se jueguen más partidos.`
+                    : "No hay suficientes parejas con resultados para generar el cuadro.";
+                return { success: false, message: msg };
+            }
+            const cuantos = Math.min(totalClasificados, elegibles.length);
+            topN = elegibles.slice(0, cuantos);
+        }
+
+        const N = topN.length;
 
         // 2. Calcular potencia de 2 superior y los byes
         let targetTeams = 2;
