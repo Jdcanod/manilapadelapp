@@ -28,7 +28,9 @@
       "Bash(/tmp/vintage-fix.sh 'src/app/\\(dashboard\\)/club/torneos/[id]/page.tsx' 'src/app/\\(dashboard\\)/club/torneos/page.tsx' 'src/app/\\(dashboard\\)/club/torneos/nuevo/CrearTorneoForm.tsx' 'src/app/\\(dashboard\\)/club/page.tsx' 'src/app/\\(dashboard\\)/club/ranking/page.tsx' 'src/app/\\(dashboard\\)/club/ranking/RankingManager.tsx' 'src/app/\\(dashboard\\)/club/configuracion/ConfigClubForm.tsx' 'src/app/\\(dashboard\\)/club/estadisticas/page.tsx' 'src/app/\\(dashboard\\)/club/torneos/[id]/MasterRegistrationForm.tsx' 'src/app/\\(dashboard\\)/club/torneos/[id]/SetCategoriasInline.tsx' 'src/app/\\(dashboard\\)/jugador/page.tsx' 'src/app/\\(dashboard\\)/jugador/perfil/page.tsx' 'src/app/\\(dashboard\\)/partidos/page.tsx' 'src/app/\\(dashboard\\)/torneos/page.tsx' 'src/app/\\(dashboard\\)/torneos/[id]/page.tsx' 'src/app/\\(dashboard\\)/ranking/page.tsx' 'src/app/\\(dashboard\\)/clubes/page.tsx' 'src/app/\\(dashboard\\)/novedades/page.tsx' 'src/app/\\(dashboard\\)/superadmin/page.tsx' 'src/app/\\(dashboard\\)/superadmin/clubes/page.tsx' 'src/app/\\(dashboard\\)/superadmin/jugadores/page.tsx' 'src/app/\\(dashboard\\)/superadmin/torneos/page.tsx')",
       "Bash(chmod +x /tmp/vintage-contrast.sh)",
       "Bash(grep -E '\\\\.\\(tsx|css\\)$')",
-      "Bash(xargs -I{} /tmp/vintage-contrast.sh {})"
+      "Bash(xargs -I{} /tmp/vintage-contrast.sh {})",
+      "Bash(git pull *)",
+      "Bash(git stash *)"
     ]
   }
 }

@@ -4,12 +4,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Swords, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { generarFaseGrupos, swapParejasDeGrupo, crearGrupoManual, moverParejaAGrupo } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { generarFaseGrupos, swapParejasDeGrupo, crearGrupoManual, moverParejaAGrupo, actualizarOrdenGrupo } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { confirmarResultado, reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
-import { Check, Plus, RotateCcw, Settings, ChevronDown } from "lucide-react";
+import { Check, Plus, RotateCcw, Settings, ChevronDown, ChevronUp, ArrowDown, ArrowUp } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 import { GrupoMatchesList } from "@/components/GrupoMatchesList";
@@ -48,6 +48,10 @@ interface Props {
      *  parejas de cada grupo pasan a la fase eliminatoria y se resaltan en la tabla. */
     configClasifican?: number;
     setsCantidad?: number;
+    /** Orden manual de parejas por grupo (persistido en
+     *  torneo.reglas_puntuacion.orden_grupos). Tie-breaker FINAL del sort: si
+     *  pts/sets/games coinciden, este orden decide. */
+    ordenGrupos?: Record<string, string[]>;
 }
 
 interface Standing {
@@ -63,7 +67,7 @@ interface Standing {
     pts: number;
 }
 
-export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", tipoDesempatePorCategoria = {}, allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican, setsCantidad }: Props) {
+export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", tipoDesempatePorCategoria = {}, allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican, setsCantidad, ordenGrupos = {} }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const [selectedCat, setSelectedCat] = useState(categorias[0] || "General");
@@ -261,23 +265,46 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
             }
         });
 
-        // Ordenar por: Puntos -> % Sets -> % Games
+        // Ordenar por: Puntos -> % Sets -> % Games -> orden manual guardado
+        const ordenManual = ordenGrupos[grupoId] || [];
+        const ordenIdx = (parejaId: string) => {
+            const i = ordenManual.indexOf(parejaId);
+            return i === -1 ? 999999 : i;
+        };
         return Array.from(map.values()).sort((a, b) => {
             if (b.pts !== a.pts) return b.pts - a.pts;
-            
-            // % Sets
+
             const totalSetsA = a.sg + a.sp;
             const totalSetsB = b.sg + b.sp;
             const pctSetsA = totalSetsA > 0 ? (a.sg * 100) / totalSetsA : 0;
             const pctSetsB = totalSetsB > 0 ? (b.sg * 100) / totalSetsB : 0;
             if (pctSetsB !== pctSetsA) return pctSetsB - pctSetsA;
 
-            // % Games
             const totalGamesA = a.gg + a.gp;
             const totalGamesB = b.gg + b.gp;
             const pctGamesA = totalGamesA > 0 ? (a.gg * 100) / totalGamesA : 0;
             const pctGamesB = totalGamesB > 0 ? (b.gg * 100) / totalGamesB : 0;
-            return pctGamesB - pctGamesA;
+            if (pctGamesB !== pctGamesA) return pctGamesB - pctGamesA;
+
+            // Tie-breaker FINAL: orden manual guardado por el admin
+            return ordenIdx(a.parejaId) - ordenIdx(b.parejaId);
+        });
+    };
+
+    // Mover una pareja una posición arriba o abajo en su grupo (orden manual).
+    const handleMoverEnGrupo = (grupoId: string, parejaId: string, dir: 'up' | 'down') => {
+        const standings = getStandings(grupoId);
+        const idx = standings.findIndex(s => s.parejaId === parejaId);
+        if (idx === -1) return;
+        const newIdx = dir === 'up' ? idx - 1 : idx + 1;
+        if (newIdx < 0 || newIdx >= standings.length) return;
+        const nuevoOrden = [...standings];
+        [nuevoOrden[idx], nuevoOrden[newIdx]] = [nuevoOrden[newIdx], nuevoOrden[idx]];
+        const parejaIds = nuevoOrden.map(s => s.parejaId);
+        startTransition(async () => {
+            const r = await actualizarOrdenGrupo(torneoId, grupoId, parejaIds);
+            if (r.success) router.refresh();
+            else alert("Error: " + (r.error || ""));
         });
     };
 
@@ -496,11 +523,35 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                         )}
                                                     >
                                                         <td className={cn(
-                                                            "px-4 py-3 text-center font-bold",
+                                                            "px-2 py-3 text-center font-bold",
                                                             clasifica ? "text-olive" : "text-olive/70"
                                                         )}>
-                                                            {idx + 1}
-                                                            {clasifica && <span className="ml-1 text-[8px] align-top">★</span>}
+                                                            <div className="flex items-center justify-center gap-0.5">
+                                                                <div className="flex flex-col -my-1">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => { e.stopPropagation(); handleMoverEnGrupo(grupo.id, team.parejaId, 'up'); }}
+                                                                        disabled={idx === 0 || isPending}
+                                                                        className="text-olive/40 hover:text-olive disabled:opacity-20 disabled:cursor-not-allowed leading-none p-0"
+                                                                        title="Mover arriba (orden manual — solo se nota si empatan en puntos)"
+                                                                    >
+                                                                        <ArrowUp className="w-2.5 h-2.5" />
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => { e.stopPropagation(); handleMoverEnGrupo(grupo.id, team.parejaId, 'down'); }}
+                                                                        disabled={idx === standings.length - 1 || isPending}
+                                                                        className="text-olive/40 hover:text-olive disabled:opacity-20 disabled:cursor-not-allowed leading-none p-0"
+                                                                        title="Mover abajo (orden manual — solo se nota si empatan en puntos)"
+                                                                    >
+                                                                        <ArrowDown className="w-2.5 h-2.5" />
+                                                                    </button>
+                                                                </div>
+                                                                <span>
+                                                                    {idx + 1}
+                                                                    {clasifica && <span className="ml-0.5 text-[8px] align-top">★</span>}
+                                                                </span>
+                                                            </div>
                                                         </td>
                                                         <td className={cn(
                                                             "px-4 py-3 font-bold max-w-[200px]",

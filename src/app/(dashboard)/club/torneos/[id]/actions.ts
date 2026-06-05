@@ -871,6 +871,41 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
  * Standings POR GRUPO de una categoría. Cada grupo trae su tabla ordenada.
  * Útil para mostrar quiénes clasifican cuando el modo es per-group (Relámpago).
  */
+/**
+ * Persiste el orden manual de las parejas DENTRO de un grupo. Se aplica
+ * como tie-breaker FINAL en los standings: cuando todas las parejas tienen
+ * los mismos pts/sets/games (típicamente al inicio del torneo), el orden
+ * guardado decide quién va primero, segundo, etc. Cuando las parejas tienen
+ * puntajes distintos, el orden natural por pts/%sets/%games gana siempre.
+ */
+export async function actualizarOrdenGrupo(torneoId: string, grupoId: string, parejaIds: string[]) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, error: "No autenticado" };
+
+        const admin = createPureAdminClient();
+        const { data: torneo, error: getErr } = await admin
+            .from('torneos').select('reglas_puntuacion').eq('id', torneoId).single();
+        if (getErr || !torneo) return { success: false, error: "Torneo no encontrado" };
+
+        const reglas = { ...(torneo.reglas_puntuacion || {}) };
+        const orden_grupos = { ...(reglas.orden_grupos || {}) };
+        orden_grupos[grupoId] = parejaIds;
+        reglas.orden_grupos = orden_grupos;
+
+        const { error: updErr } = await admin
+            .from('torneos').update({ reglas_puntuacion: reglas }).eq('id', torneoId);
+        if (updErr) return { success: false, error: updErr.message };
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        return { success: true };
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Error";
+        return { success: false, error: msg };
+    }
+}
+
 export async function obtenerStandingsPorGrupo(torneoId: string, categoria: string) {
     try {
         const supabaseAdmin = createSupabaseClient(
