@@ -283,20 +283,20 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col gap-4 bg-neutral-900 p-4 border border-neutral-800 rounded-xl">
+            <div className="flex flex-col gap-4 bg-paper-soft p-4 border border-olive/20 rounded-xl">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                     <div className="flex-1">
-                        <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-1">
-                            <Swords className="w-5 h-5 text-emerald-500" />
+                        <h3 className="text-lg font-bold text-ink flex items-center gap-2 mb-1">
+                            <Swords className="w-5 h-5 text-olive" />
                             Sorteos de Torneo
                             {esLiguilla && (
-                                <span className="ml-2 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase rounded-lg tracking-widest">
+                                <span className="ml-2 px-2 py-0.5 bg-olive/10 border border-olive/30 text-olive text-[10px] font-black uppercase rounded-lg tracking-widest">
                                     Liguilla
                                 </span>
                             )}
                         </h3>
-                        <p className="text-sm text-neutral-400 mb-3">
+                        <p className="text-sm text-olive mb-3">
                             {esLiguilla
                                 ? "Formato liguilla: grupos grandes con round-robin completo, luego fase eliminatoria."
                                 : "Genera grupos o arma el cuadro de eliminatorias para cada categoría."}
@@ -310,8 +310,8 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                     className={cn(
                                         "px-3 py-1.5 text-xs font-black uppercase tracking-widest rounded-lg border transition-colors",
                                         selectedCat === cat
-                                            ? "bg-emerald-500 text-black border-emerald-500"
-                                            : "bg-neutral-950 text-neutral-500 border-neutral-800 hover:bg-neutral-800"
+                                            ? "bg-olive text-black border-olive"
+                                            : "bg-paper text-olive/70 border-olive/20 hover:bg-paper-dark"
                                     )}
                                 >
                                     {cat}
@@ -320,12 +320,12 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                         </div>
                         {/* Desempate activo para la categoría seleccionada */}
                         <div className="mt-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
-                            <span className="text-neutral-500">Desempate {selectedCat}:</span>
+                            <span className="text-olive/70">Desempate {selectedCat}:</span>
                             <span className={cn(
                                 "px-2 py-0.5 rounded border",
                                 tipoDesempatePorCategoria[selectedCat]
-                                    ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
-                                    : "bg-neutral-900 border-neutral-800 text-neutral-400"
+                                    ? "bg-ochre/15 border-ochre/40 text-ochre-soft"
+                                    : "bg-paper-soft border-olive/20 text-olive"
                             )}>
                                 {tipoDesempateActivo === 'super_tiebreak' && 'Super Tie-break (10 pts)'}
                                 {tipoDesempateActivo === 'tiebreak' && 'Tie-break (7 pts)'}
@@ -333,7 +333,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                 {!['super_tiebreak', 'tiebreak', 'tercer_set'].includes(tipoDesempateActivo) && tipoDesempateActivo}
                             </span>
                             {!tipoDesempatePorCategoria[selectedCat] && (
-                                <span className="text-neutral-600 italic normal-case font-normal">(usa el global)</span>
+                                <span className="text-olive/50 italic normal-case font-normal">(usa el global)</span>
                             )}
                         </div>
                     </div>
@@ -347,7 +347,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                 onClick={onGenerate}
                                 disabled={isPending}
                                 variant="outline"
-                                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                                className="bg-olive hover:bg-olive text-paper font-bold"
                             >
                                 {isPending ? "Generando..." : (esLiguilla ? "Generar Grupos (Liguilla)" : "Sorteo Grupos")}
                             </Button>
@@ -364,8 +364,8 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                             variant="outline"
                             size="sm"
                             className={cn(
-                                "border-neutral-700 text-neutral-400 hover:text-white font-bold transition-colors",
-                                showSettings ? "bg-neutral-800 text-white" : "bg-neutral-900"
+                                "border-olive/30 text-olive hover:text-ink font-bold transition-colors",
+                                showSettings ? "bg-paper-dark text-ink" : "bg-paper-soft"
                             )}
                         >
                             <Settings className="w-4 h-4 mr-2" />
@@ -377,17 +377,17 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
 
                 {/* Panel de configuración avanzada (oculto por defecto para evitar clicks accidentales) */}
                 {gruposCategoria.length > 0 && showSettings && (
-                    <div className="border-t border-neutral-800 pt-4 space-y-4 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <div className="border-t border-olive/20 pt-4 space-y-4 animate-in fade-in slide-in-from-top-1 duration-150">
                         {/* Acciones destructivas / secundarias */}
                         <div>
-                            <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-2">Gestión de Grupos</p>
+                            <p className="text-[10px] font-black text-olive/70 uppercase tracking-widest mb-2">Gestión de Grupos</p>
                             <div className="flex flex-wrap gap-2">
                                 <Button
                                     onClick={onGenerate}
                                     disabled={isPending}
                                     variant="outline"
                                     size="sm"
-                                    className="bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white hover:border-red-500/40 hover:bg-red-500/5 font-semibold"
+                                    className="bg-paper-soft border-olive/20 text-olive hover:text-ink hover:border-red-500/40 hover:bg-red-500/5 font-semibold"
                                 >
                                     <RotateCcw className="w-3.5 h-3.5 mr-2" />
                                     {isPending ? "Limpiando..." : "Reiniciar Sorteo"}
@@ -397,13 +397,13 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                     disabled={isPending}
                                     variant="outline"
                                     size="sm"
-                                    className="bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white font-semibold"
+                                    className="bg-paper-soft border-olive/20 text-olive hover:text-ink font-semibold"
                                 >
                                     <Plus className="w-3.5 h-3.5 mr-2" />
                                     {isPending ? "Añadiendo..." : "Añadir Grupo Vacío"}
                                 </Button>
                             </div>
-                            <p className="text-[10px] text-neutral-600 mt-2">
+                            <p className="text-[10px] text-olive/50 mt-2">
                                 Reiniciar borra los grupos y empareja todo de nuevo. Úsalo solo si necesitas rehacer el sorteo.
                             </p>
                         </div>
@@ -411,17 +411,17 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                         {/* Opciones específicas de liguilla */}
                         {esLiguilla && (
                             <div>
-                                <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3">Configuración Liguilla</p>
-                                <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-3 max-w-sm">
-                                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-2">Número de grupos</label>
+                                <p className="text-[10px] font-black text-olive uppercase tracking-widest mb-3">Configuración Liguilla</p>
+                                <div className="bg-paper border border-olive/20 rounded-xl p-3 max-w-sm">
+                                    <label className="text-[10px] font-black text-olive uppercase tracking-widest block mb-2">Número de grupos</label>
                                     <div className="flex items-center gap-2">
                                         {[1, 2, 3, 4].map(n => (
-                                            <button key={n} onClick={() => setNumGrupos(n)} className={cn("w-10 h-10 rounded-lg font-black text-sm border transition-colors", numGrupos === n ? "bg-emerald-500 text-black border-emerald-500" : "bg-neutral-900 text-neutral-400 border-neutral-800 hover:bg-neutral-800")}>{n}</button>
+                                            <button key={n} onClick={() => setNumGrupos(n)} className={cn("w-10 h-10 rounded-lg font-black text-sm border transition-colors", numGrupos === n ? "bg-olive text-black border-olive" : "bg-paper-soft text-olive border-olive/20 hover:bg-paper-dark")}>{n}</button>
                                         ))}
-                                        <span className="text-xs text-neutral-500 ml-1">grupo{numGrupos > 1 ? 's' : ''}</span>
+                                        <span className="text-xs text-olive/70 ml-1">grupo{numGrupos > 1 ? 's' : ''}</span>
                                     </div>
-                                    <p className="text-[10px] text-neutral-600 mt-2">
-                                        Aplica al hacer un nuevo sorteo de grupos. Las eliminatorias se manejan en el tab <span className="text-amber-400 font-semibold">Fases Finales</span>.
+                                    <p className="text-[10px] text-olive/50 mt-2">
+                                        Aplica al hacer un nuevo sorteo de grupos. Las eliminatorias se manejan en el tab <span className="text-ochre font-semibold">Fases Finales</span>.
                                     </p>
                                 </div>
                             </div>
@@ -431,9 +431,9 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
             </div>
 
             {gruposCategoria.length === 0 ? (
-                <div className="text-center py-12 bg-neutral-950/30 border border-neutral-800 border-dashed rounded-xl">
+                <div className="text-center py-12 bg-paper/30 border border-olive/20 border-dashed rounded-xl">
                     <Users className="w-12 h-12 text-neutral-800 mx-auto mb-4" />
-                    <p className="text-neutral-500">No se han generado grupos para esta categoría aún.</p>
+                    <p className="text-olive/70">No se han generado grupos para esta categoría aún.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -442,23 +442,23 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                         return (
                             <Card 
                                 key={grupo.id} 
-                                className="bg-neutral-900 border-neutral-800 border-t-2 border-t-emerald-500 overflow-hidden"
+                                className="bg-paper-soft border-olive/20 border-t-2 border-t-emerald-500 overflow-hidden"
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={(e) => handleDropOnGroup(grupo.id, e)}
                             >
                                 <CardContent className="p-0">
-                                    <div className="flex justify-between items-center p-4 border-b border-neutral-800 bg-neutral-950">
-                                        <h4 className="text-xl font-bold text-white tracking-widest">{grupo.nombre_grupo}</h4>
+                                    <div className="flex justify-between items-center p-4 border-b border-olive/20 bg-paper">
+                                        <h4 className="text-xl font-bold text-ink tracking-widest">{grupo.nombre_grupo}</h4>
                                         <div className="flex items-center gap-2">
-                                            <Badge variant="outline" className="text-emerald-500 border-emerald-500/20">
+                                            <Badge variant="outline" className="text-olive border-olive/20">
                                                 Fase de Grupos
                                             </Badge>
-                                            <span className="text-[10px] text-neutral-500 uppercase">Arrastra aquí</span>
+                                            <span className="text-[10px] text-olive/70 uppercase">Arrastra aquí</span>
                                         </div>
                                     </div>
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-sm text-left">
-                                            <thead className="text-xs text-neutral-500 uppercase bg-neutral-900/50 border-b border-neutral-800">
+                                            <thead className="text-xs text-olive/70 uppercase bg-paper-soft/50 border-b border-olive/20">
                                                 <tr>
                                                     <th className="px-4 py-2 font-bold w-10 text-center">#</th>
                                                     <th className="px-4 py-2 font-bold">Pareja</th>
@@ -467,9 +467,9 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                     <th className="px-2 py-2 font-bold text-center">SP</th>
                                                     <th className="px-2 py-2 font-bold text-center">GG</th>
                                                     <th className="px-2 py-2 font-bold text-center">GP</th>
-                                                    <th className="px-2 py-2 font-black text-center text-emerald-400">%S</th>
-                                                    <th className="px-2 py-2 font-black text-center text-emerald-400">%G</th>
-                                                    <th className="px-4 py-2 font-black text-center text-emerald-400">PTS</th>
+                                                    <th className="px-2 py-2 font-black text-center text-olive">%S</th>
+                                                    <th className="px-2 py-2 font-black text-center text-olive">%G</th>
+                                                    <th className="px-4 py-2 font-black text-center text-olive">PTS</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -489,27 +489,27 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                             }
                                                         }}
                                                         className={cn(
-                                                            "border-b border-neutral-800/50 hover:bg-neutral-800/30 transition-colors cursor-move relative",
+                                                            "border-b border-olive/20 hover:bg-paper-dark/30 transition-colors cursor-move relative",
                                                             clasifica
-                                                                ? "bg-emerald-500/5 border-l-2 border-l-emerald-500"
+                                                                ? "bg-olive/5 border-l-2 border-l-emerald-500"
                                                                 : "opacity-60"
                                                         )}
                                                     >
                                                         <td className={cn(
                                                             "px-4 py-3 text-center font-bold",
-                                                            clasifica ? "text-emerald-400" : "text-neutral-500"
+                                                            clasifica ? "text-olive" : "text-olive/70"
                                                         )}>
                                                             {idx + 1}
                                                             {clasifica && <span className="ml-1 text-[8px] align-top">★</span>}
                                                         </td>
                                                         <td className={cn(
                                                             "px-4 py-3 font-bold max-w-[200px]",
-                                                            clasifica ? "text-white" : "text-neutral-400"
+                                                            clasifica ? "text-ink" : "text-olive"
                                                         )} title={team.nombre}>
                                                             <div className="flex items-center gap-2">
                                                                 <span className={cn(
                                                                     "truncate",
-                                                                    esTBD(team.nombre) && "italic text-neutral-500 font-normal"
+                                                                    esTBD(team.nombre) && "italic text-olive/70 font-normal"
                                                                 )}>
                                                                     {team.nombre}
                                                                 </span>
@@ -522,42 +522,42 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                 />
                                                             </div>
                                                         </td>
-                                                        <td className="px-2 py-3 text-center text-neutral-300">{team.pj}</td>
-                                                        <td className="px-2 py-3 text-center text-neutral-400 text-xs">{team.sg}</td>
-                                                        <td className="px-2 py-3 text-center text-neutral-400 text-xs">{team.sp}</td>
-                                                        <td className="px-2 py-3 text-center text-neutral-400 text-xs">{team.gg}</td>
-                                                        <td className="px-2 py-3 text-center text-neutral-400 text-xs">{team.gp}</td>
-                                                        <td className="px-2 py-3 text-center font-bold text-emerald-500/80">
+                                                        <td className="px-2 py-3 text-center text-ink">{team.pj}</td>
+                                                        <td className="px-2 py-3 text-center text-olive text-xs">{team.sg}</td>
+                                                        <td className="px-2 py-3 text-center text-olive text-xs">{team.sp}</td>
+                                                        <td className="px-2 py-3 text-center text-olive text-xs">{team.gg}</td>
+                                                        <td className="px-2 py-3 text-center text-olive text-xs">{team.gp}</td>
+                                                        <td className="px-2 py-3 text-center font-bold text-olive/80">
                                                             {((team.sg * 100) / (team.sg + team.sp || 1)).toFixed(0)}%
                                                         </td>
-                                                        <td className="px-2 py-3 text-center font-bold text-emerald-500/80">
+                                                        <td className="px-2 py-3 text-center font-bold text-olive/80">
                                                             {((team.gg * 100) / (team.gg + team.gp || 1)).toFixed(0)}%
                                                         </td>
                                                         <td className={cn(
                                                             "px-4 py-3 text-center font-black",
-                                                            clasifica ? "text-emerald-400" : "text-neutral-500"
+                                                            clasifica ? "text-olive" : "text-olive/70"
                                                         )}>{team.pts}</td>
                                                     </tr>
                                                     );
                                                 })}
                                                 {standings.length === 0 && (
                                                     <tr>
-                                                        <td colSpan={7} className="px-4 py-6 text-center text-neutral-500">Sin participantes asignados</td>
+                                                        <td colSpan={7} className="px-4 py-6 text-center text-olive/70">Sin participantes asignados</td>
                                                     </tr>
                                                 )}
                                             </tbody>
                                         </table>
                                     </div>
-                                    <div className="p-4 border-t border-neutral-800 bg-neutral-900/50 flex justify-center">
+                                    <div className="p-4 border-t border-olive/20 bg-paper-soft/50 flex justify-center">
                                         <Dialog>
                                             <DialogTrigger asChild>
-                                                <Button variant="outline" className="w-full border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-300 font-black text-[10px] uppercase tracking-widest gap-2 rounded-xl transition-all shadow-sm h-10">
-                                                    <Swords className="w-3.5 h-3.5 text-emerald-500" /> Ver Partidos del Grupo
+                                                <Button variant="outline" className="w-full border-olive/20 bg-paper hover:bg-paper-dark text-ink font-black text-[10px] uppercase tracking-widest gap-2 rounded-xl transition-all shadow-sm h-10">
+                                                    <Swords className="w-3.5 h-3.5 text-olive" /> Ver Partidos del Grupo
                                                 </Button>
                                             </DialogTrigger>
-                                            <DialogContent className="sm:max-w-md bg-neutral-950 border-neutral-900 text-white max-h-[85vh] overflow-y-auto rounded-3xl p-6">
-                                                <DialogHeader className="mb-4 pb-4 border-b border-neutral-900">
-                                                    <DialogTitle className="text-xl font-black italic uppercase tracking-widest text-emerald-500 flex items-center gap-3">
+                                            <DialogContent className="sm:max-w-md bg-paper border-olive/15 text-ink max-h-[85vh] overflow-y-auto rounded-3xl p-6">
+                                                <DialogHeader className="mb-4 pb-4 border-b border-olive/15">
+                                                    <DialogTitle className="text-xl font-black italic uppercase tracking-widest text-olive flex items-center gap-3">
                                                         <Swords className="w-5 h-5" /> Partidos - {grupo.nombre_grupo}
                                                     </DialogTitle>
                                                 </DialogHeader>
@@ -567,27 +567,27 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                     mode="admin"
                                                     parejaPlayers={parejaPlayers}
                                                     renderMatch={(match) => (
-                                                            <div key={match.id} className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
-                                                                <div className="flex justify-between items-center bg-neutral-950/50 p-3 rounded-xl border border-neutral-900/50">
+                                                            <div key={match.id} className="bg-paper-soft border border-olive/20 rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
+                                                                <div className="flex justify-between items-center bg-paper/50 p-3 rounded-xl border border-olive/15">
                                                                      <div className="flex flex-col gap-1.5 flex-1">
-                                                                         <div className="flex justify-between items-center text-xs font-bold text-white uppercase pr-2">
+                                                                         <div className="flex justify-between items-center text-xs font-bold text-ink uppercase pr-2">
                                                                              <span>{match.pareja1?.nombre_pareja || "TBD"}</span>
                                                                             {match.resultado && (
                                                                                 <div className="flex gap-1">
                                                                                     {match.resultado.split(',').map((setStr: string, idx: number) => (
-                                                                                        <span key={idx} className="bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-md font-black">
+                                                                                        <span key={idx} className="bg-olive/10 text-olive px-2 py-0.5 rounded-md font-black">
                                                                                             {setStr.split('-')[0] || '-'}
                                                                                         </span>
                                                                                     ))}
                                                                                 </div>
                                                                             )}
                                                                         </div>
-                                                                         <div className="flex justify-between items-center text-xs font-bold text-white uppercase pr-2">
+                                                                         <div className="flex justify-between items-center text-xs font-bold text-ink uppercase pr-2">
                                                                              <span>{match.pareja2?.nombre_pareja || "TBD"}</span>
                                                                             {match.resultado && (
                                                                                 <div className="flex gap-1">
                                                                                     {match.resultado.split(',').map((setStr: string, idx: number) => (
-                                                                                        <span key={idx} className="bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-md font-black">
+                                                                                        <span key={idx} className="bg-olive/10 text-olive px-2 py-0.5 rounded-md font-black">
                                                                                             {setStr.split('-')[1] || '-'}
                                                                                         </span>
                                                                                     ))}
@@ -600,20 +600,20 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                  {/* Info de Programación — solo en relámpago (en liguilla las parejas
                                                                      coordinan sus partidos sin pasar por la parrilla). */}
                                                                  {!esLiguilla && (
-                                                                     <div className="px-3 py-2 bg-neutral-900 rounded-xl border border-neutral-800 flex flex-col gap-1">
+                                                                     <div className="px-3 py-2 bg-paper-soft rounded-xl border border-olive/20 flex flex-col gap-1">
                                                                          {match.fecha && match.lugar && match.lugar.toLowerCase() !== 'pendiente' ? (
                                                                              <div className="flex justify-between items-center">
-                                                                                 <span className="text-[9px] font-black text-emerald-500 uppercase tracking-tighter">
+                                                                                 <span className="text-[9px] font-black text-olive uppercase tracking-tighter">
                                                                                      {new Date(match.fecha).toLocaleString('es-CO', {
                                                                                          weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                                                                                      })}
                                                                                  </span>
-                                                                                 <span className="text-[9px] font-black text-neutral-400 uppercase">
+                                                                                 <span className="text-[9px] font-black text-olive uppercase">
                                                                                      {match.lugar}
                                                                                  </span>
                                                                              </div>
                                                                          ) : (
-                                                                             <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest text-center animate-pulse">
+                                                                             <span className="text-[9px] font-black text-ochre-dark uppercase tracking-widest text-center animate-pulse">
                                                                                  ⚠️ Pendiente de Programar
                                                                              </span>
                                                                          )}
@@ -632,9 +632,9 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                         setsCantidad={setsCantidad}
                                                                     />
                                                                      {match.estado === 'jugado' && match.estado_resultado === 'pendiente' && (
-                                                                         <div className="flex flex-col gap-2 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                                                                         <div className="flex flex-col gap-2 p-2 bg-olive/10 border border-olive/20 rounded-xl">
                                                                              <div className="text-center">
-                                                                                 <span className="text-[10px] font-black text-emerald-600 uppercase">Validar Score: </span>
+                                                                                 <span className="text-[10px] font-black text-olive uppercase">Validar Score: </span>
                                                                                  <span className="text-[10px] font-black text-emerald-700 italic">{match.resultado}</span>
                                                                              </div>
                                                                              <Button 
@@ -650,7 +650,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                                      });
                                                                                  }}
                                                                                  disabled={isPending}
-                                                                                 className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase h-8 rounded-xl w-full"
+                                                                                 className="bg-olive hover:bg-olive text-paper font-black text-[10px] uppercase h-8 rounded-xl w-full"
                                                                              >
                                                                                  <Check className="w-3 h-3 mr-1" /> Confirmar
                                                                              </Button>
@@ -669,7 +669,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                                      });
                                                                                  }
                                                                              }}
-                                                                             className="text-neutral-500 hover:text-red-500 hover:bg-red-500/5 font-black text-[9px] uppercase h-7 rounded-lg"
+                                                                             className="text-olive/70 hover:text-red-500 hover:bg-red-500/5 font-black text-[9px] uppercase h-7 rounded-lg"
                                                                          >
                                                                              <RotateCcw className="w-2.5 h-2.5 mr-1" /> Reiniciar Score
                                                                          </Button>
@@ -689,21 +689,21 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
             )}
 
             {gruposCategoria.length > 0 && parejasSinGrupo.length > 0 && (
-                <div className="mt-8 border-t border-neutral-800 pt-8">
-                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                        <Users className="w-5 h-5 text-amber-500" />
+                <div className="mt-8 border-t border-olive/20 pt-8">
+                    <h3 className="text-lg font-bold text-ink mb-4 flex items-center gap-2">
+                        <Users className="w-5 h-5 text-ochre-dark" />
                         Parejas sin Grupo ({parejasSinGrupo.length})
                     </h3>
-                    <p className="text-sm text-neutral-400 mb-4">Arrastra estas parejas hacia un grupo para añadirlas automáticamente.</p>
+                    <p className="text-sm text-olive mb-4">Arrastra estas parejas hacia un grupo para añadirlas automáticamente.</p>
                     <div className="flex flex-wrap gap-4">
                         {parejasSinGrupo.map(p => (
                             <div
                                 key={p.id}
                                 draggable
                                 onDragStart={(e) => e.dataTransfer.setData("text/plain", p.pareja_id)}
-                                className="bg-neutral-900 border border-neutral-800 px-4 py-2 rounded-lg cursor-move hover:border-emerald-500/50 transition-colors shadow-sm"
+                                className="bg-paper-soft border border-olive/20 px-4 py-2 rounded-lg cursor-move hover:border-olive/50 transition-colors shadow-sm"
                             >
-                                <span className="font-bold text-sm text-white">{p.nombre}</span>
+                                <span className="font-bold text-sm text-ink">{p.nombre}</span>
                             </div>
                         ))}
                     </div>
@@ -712,10 +712,10 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
 
             {/* Dialog de configuración del sorteo */}
             <Dialog open={sorteoDialogOpen} onOpenChange={setSorteoDialogOpen}>
-                <DialogContent className="bg-neutral-900 border-neutral-800 text-white max-w-md">
+                <DialogContent className="bg-paper-soft border-olive/20 text-ink max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <Swords className="w-5 h-5 text-emerald-500" />
+                            <Swords className="w-5 h-5 text-olive" />
                             Sortear Grupos — {selectedCat}
                         </DialogTitle>
                     </DialogHeader>
@@ -723,7 +723,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                     <div className="space-y-5 py-2">
                         {esLiguilla && (
                             <div>
-                                <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-2">
+                                <p className="text-[10px] font-black text-olive/70 uppercase tracking-widest mb-2">
                                     Número de grupos
                                 </p>
                                 <div className="flex items-center gap-2">
@@ -734,8 +734,8 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                             className={cn(
                                                 "w-12 h-12 rounded-lg font-black text-sm border transition-colors",
                                                 dialogGrupos === n
-                                                    ? "bg-emerald-500 text-black border-emerald-500"
-                                                    : "bg-neutral-950 text-neutral-300 border-neutral-700 hover:bg-neutral-800"
+                                                    ? "bg-olive text-black border-olive"
+                                                    : "bg-paper text-ink border-olive/30 hover:bg-paper-dark"
                                             )}
                                         >
                                             {n}
@@ -746,7 +746,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                         )}
 
                         <div>
-                            <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-2">
+                            <p className="text-[10px] font-black text-olive/70 uppercase tracking-widest mb-2">
                                 ¿Cuántas parejas clasifican por grupo?
                             </p>
                             <div className="flex flex-wrap items-center gap-2">
@@ -757,25 +757,25 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                         className={cn(
                                             "w-11 h-11 rounded-lg font-black text-sm border transition-colors",
                                             dialogClasifican === n
-                                                ? "bg-amber-500 text-black border-amber-500"
-                                                : "bg-neutral-950 text-neutral-300 border-neutral-700 hover:bg-neutral-800"
+                                                ? "bg-ochre text-black border-ochre"
+                                                : "bg-paper text-ink border-olive/30 hover:bg-paper-dark"
                                         )}
                                     >
                                         {n}
                                     </button>
                                 ))}
                             </div>
-                            <p className="text-[10px] text-neutral-600 mt-2">
-                                Los <span className="text-amber-400 font-bold">{dialogClasifican}</span> mejor{dialogClasifican > 1 ? 'es' : ''} de cada grupo se resaltarán en la tabla.
+                            <p className="text-[10px] text-olive/50 mt-2">
+                                Los <span className="text-ochre font-bold">{dialogClasifican}</span> mejor{dialogClasifican > 1 ? 'es' : ''} de cada grupo se resaltarán en la tabla.
                                 {esLiguilla && (
-                                    <> Total al bracket: <span className="text-amber-400 font-bold">{dialogGrupos * dialogClasifican}</span> parejas.</>
+                                    <> Total al bracket: <span className="text-ochre font-bold">{dialogGrupos * dialogClasifican}</span> parejas.</>
                                 )}
                             </p>
                         </div>
 
-                        <div className="bg-neutral-950 border border-neutral-800 rounded-lg p-3 text-[11px] text-neutral-400">
+                        <div className="bg-paper border border-olive/20 rounded-lg p-3 text-[11px] text-olive">
                             {gruposCategoria.length > 0 ? (
-                                <span className="text-amber-300">
+                                <span className="text-ochre-soft">
                                     ⚠️ Ya existen {gruposCategoria.length} grupo{gruposCategoria.length > 1 ? 's' : ''} sorteado{gruposCategoria.length > 1 ? 's' : ''}.
                                     Confirmar reiniciará el sorteo y borrará los partidos actuales.
                                 </span>
@@ -789,14 +789,14 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                         <Button
                             variant="outline"
                             onClick={() => setSorteoDialogOpen(false)}
-                            className="bg-neutral-900 border-neutral-800 text-neutral-400"
+                            className="bg-paper-soft border-olive/20 text-olive"
                         >
                             Cancelar
                         </Button>
                         <Button
                             onClick={handleConfirmSorteo}
                             disabled={isPending}
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                            className="bg-olive hover:bg-olive text-paper font-bold"
                         >
                             <Swords className="w-4 h-4 mr-2" />
                             {gruposCategoria.length > 0 ? 'Reiniciar sorteo' : 'Generar sorteo'}

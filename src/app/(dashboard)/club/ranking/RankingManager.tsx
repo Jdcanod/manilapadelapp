@@ -90,19 +90,19 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
     };
 
     const configFields = [
-        { key: 'campeon' as const,      label: 'Campeón',     emoji: '🏆', color: 'text-amber-400' },
-        { key: 'subcampeon' as const,   label: 'Subcampeón',  emoji: '🥈', color: 'text-neutral-300' },
+        { key: 'campeon' as const,      label: 'Campeón',     emoji: '🏆', color: 'text-ochre' },
+        { key: 'subcampeon' as const,   label: 'Subcampeón',  emoji: '🥈', color: 'text-ink' },
         { key: 'tercer_puesto' as const, label: '3er Puesto', emoji: '🥉', color: 'text-amber-700' },
-        { key: 'participacion' as const, label: 'Participación', emoji: '⭐', color: 'text-neutral-500' },
+        { key: 'participacion' as const, label: 'Participación', emoji: '⭐', color: 'text-olive/70' },
     ];
 
     return (
         <div className="space-y-8">
 
             {/* ─── Tabla de Ranking ───────────────────────────────────────────── */}
-            <Card className="bg-neutral-900 border-neutral-800">
-                <CardHeader className="border-b border-neutral-800 pb-4">
-                    <CardTitle className="text-white text-lg flex items-center gap-2">
+            <Card className="bg-paper-soft border-olive/20">
+                <CardHeader className="border-b border-olive/20 pb-4">
+                    <CardTitle className="text-ink text-lg flex items-center gap-2">
                         🏆 Ranking Actual
                     </CardTitle>
                     <CardDescription>
@@ -113,12 +113,12 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
                     {ranked.length === 0 ? (
                         <div className="py-16 text-center">
                             <Users className="w-12 h-12 mx-auto mb-3 text-neutral-800" />
-                            <p className="text-neutral-500 text-sm">No hay jugadores inscritos en tus torneos aún</p>
+                            <p className="text-olive/70 text-sm">No hay jugadores inscritos en tus torneos aún</p>
                         </div>
                     ) : (
                         <>
                             {/* Header */}
-                            <div className="grid grid-cols-[2rem_1fr_auto] gap-3 px-5 py-2 text-[10px] font-bold text-neutral-600 uppercase tracking-widest border-b border-neutral-800">
+                            <div className="grid grid-cols-[2rem_1fr_auto] gap-3 px-5 py-2 text-[10px] font-bold text-olive/50 uppercase tracking-widest border-b border-olive/20">
                                 <span>#</span>
                                 <span>Jugador</span>
                                 <span className="text-right">Puntos</span>
@@ -129,32 +129,32 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
                                         key={j.id}
                                         href={`/club/ranking/jugador/${j.id}`}
                                         className={cn(
-                                            "grid grid-cols-[2rem_1fr_auto_1rem] gap-3 px-5 py-3.5 items-center transition-colors hover:bg-neutral-800/50 group",
-                                            i === 0 && "bg-amber-500/5"
+                                            "grid grid-cols-[2rem_1fr_auto_1rem] gap-3 px-5 py-3.5 items-center transition-colors hover:bg-paper-dark/50 group",
+                                            i === 0 && "bg-ochre/5"
                                         )}
                                     >
                                         {/* Puesto */}
                                         <div className={cn(
                                             "text-sm font-black text-center",
-                                            i === 0 ? 'text-amber-400' : i === 1 ? 'text-neutral-300' : i === 2 ? 'text-amber-700/80' : 'text-neutral-600'
+                                            i === 0 ? 'text-ochre' : i === 1 ? 'text-ink' : i === 2 ? 'text-amber-700/80' : 'text-olive/50'
                                         )}>
                                             {MEDAL[i] ?? `${i + 1}`}
                                         </div>
 
                                         {/* Jugador */}
                                         <div className="min-w-0">
-                                            <p className="text-sm font-semibold text-white truncate">{j.nombre}</p>
+                                            <p className="text-sm font-semibold text-ink truncate">{j.nombre}</p>
                                             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                                 {j.campeonatos > 0 && (
-                                                    <span className="text-[10px] text-amber-400 font-bold">🏆 ×{j.campeonatos}</span>
+                                                    <span className="text-[10px] text-ochre font-bold">🏆 ×{j.campeonatos}</span>
                                                 )}
                                                 {j.subcampeonatos > 0 && (
-                                                    <span className="text-[10px] text-neutral-400 font-bold">🥈 ×{j.subcampeonatos}</span>
+                                                    <span className="text-[10px] text-olive font-bold">🥈 ×{j.subcampeonatos}</span>
                                                 )}
                                                 {j.terceros > 0 && (
                                                     <span className="text-[10px] text-amber-700 font-bold">🥉 ×{j.terceros}</span>
                                                 )}
-                                                <span className="text-[10px] text-neutral-600">
+                                                <span className="text-[10px] text-olive/50">
                                                     {j.participaciones} torneo{j.participaciones !== 1 ? 's' : ''}
                                                 </span>
                                             </div>
@@ -162,13 +162,13 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
 
                                         {/* Puntos */}
                                         <div className="text-right">
-                                            <span className="text-xl font-black text-white">{j.total}</span>
-                                            <p className="text-[10px] text-neutral-600 mt-0.5">
+                                            <span className="text-xl font-black text-ink">{j.total}</span>
+                                            <p className="text-[10px] text-olive/50 mt-0.5">
                                                 {basePoints[j.id] ?? j.puntos_base} + {j.puntos_ganados}
                                             </p>
                                         </div>
 
-                                        <ChevronRight className="w-3.5 h-3.5 text-neutral-700 group-hover:text-neutral-400 transition-colors" />
+                                        <ChevronRight className="w-3.5 h-3.5 text-olive/40 group-hover:text-olive transition-colors" />
                                     </Link>
                                 ))}
                             </div>
@@ -181,10 +181,10 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 {/* Configuración de puntos */}
-                <Card className="bg-neutral-900 border-neutral-800">
-                    <CardHeader className="border-b border-neutral-800 pb-4">
-                        <CardTitle className="text-white text-base flex items-center gap-2">
-                            <Settings className="w-4 h-4 text-emerald-500" />
+                <Card className="bg-paper-soft border-olive/20">
+                    <CardHeader className="border-b border-olive/20 pb-4">
+                        <CardTitle className="text-ink text-base flex items-center gap-2">
+                            <Settings className="w-4 h-4 text-olive" />
                             Puntos por Posición
                         </CardTitle>
                         <CardDescription>
@@ -208,9 +208,9 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
                                             ...prev,
                                             [key]: Math.max(0, parseInt(e.target.value) || 0)
                                         }))}
-                                        className="bg-neutral-950 border-neutral-700 text-white w-24 text-center font-bold"
+                                        className="bg-paper border-olive/30 text-ink w-24 text-center font-bold"
                                     />
-                                    <span className="text-xs text-neutral-600">pts</span>
+                                    <span className="text-xs text-olive/50">pts</span>
                                 </div>
                             </div>
                         ))}
@@ -225,8 +225,8 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
                             className={cn(
                                 "w-full mt-2 font-bold transition-all",
                                 configSaved
-                                    ? "bg-emerald-700 hover:bg-emerald-700 text-white"
-                                    : "bg-emerald-600 hover:bg-emerald-500 text-white"
+                                    ? "bg-emerald-700 hover:bg-emerald-700 text-ink"
+                                    : "bg-olive hover:bg-olive text-paper"
                             )}
                         >
                             {configPending
@@ -240,9 +240,9 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
                 </Card>
 
                 {/* Puntos base manuales */}
-                <Card className="bg-neutral-900 border-neutral-800">
-                    <CardHeader className="border-b border-neutral-800 pb-4">
-                        <CardTitle className="text-white text-base flex items-center gap-2">
+                <Card className="bg-paper-soft border-olive/20">
+                    <CardHeader className="border-b border-olive/20 pb-4">
+                        <CardTitle className="text-ink text-base flex items-center gap-2">
                             <Star className="w-4 h-4 text-purple-400" />
                             Puntos Base (Manual)
                         </CardTitle>
@@ -253,19 +253,19 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
                     </CardHeader>
                     <CardContent className="pt-5">
                         {ranked.length === 0 ? (
-                            <p className="text-sm text-neutral-600 text-center py-8">
+                            <p className="text-sm text-olive/50 text-center py-8">
                                 Inscribe jugadores en tus torneos para poder asignarles puntos base.
                             </p>
                         ) : (
                             <div className="space-y-2 max-h-72 overflow-y-auto pr-1 mb-4">
                                 {/* Mini-header */}
-                                <div className="flex items-center justify-between text-[10px] text-neutral-600 uppercase tracking-widest font-bold pb-1 border-b border-neutral-800">
+                                <div className="flex items-center justify-between text-[10px] text-olive/50 uppercase tracking-widest font-bold pb-1 border-b border-olive/20">
                                     <span>Jugador</span>
                                     <span>Pts base</span>
                                 </div>
                                 {ranked.map(j => (
                                     <div key={j.id} className="flex items-center gap-3">
-                                        <span className="text-sm text-white flex-1 truncate">{j.nombre}</span>
+                                        <span className="text-sm text-ink flex-1 truncate">{j.nombre}</span>
                                         <Input
                                             type="number"
                                             min="0"
@@ -275,7 +275,7 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
                                                 ...prev,
                                                 [j.id]: Math.max(0, parseInt(e.target.value) || 0)
                                             }))}
-                                            className="bg-neutral-950 border-neutral-700 text-white w-24 text-center font-bold"
+                                            className="bg-paper border-olive/30 text-ink w-24 text-center font-bold"
                                         />
                                     </div>
                                 ))}
@@ -292,8 +292,8 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
                             className={cn(
                                 "w-full font-bold transition-all",
                                 pointsSaved
-                                    ? "bg-purple-700 hover:bg-purple-700 text-white"
-                                    : "bg-purple-600 hover:bg-purple-500 text-white"
+                                    ? "bg-purple-700 hover:bg-purple-700 text-ink"
+                                    : "bg-purple-600 hover:bg-purple-500 text-ink"
                             )}
                         >
                             {pointsPending

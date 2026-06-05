@@ -442,14 +442,14 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
     const isPast = new Date(torneo.fecha_fin) < new Date();
     const isUpcoming = new Date(torneo.fecha_inicio) > new Date();
 
-    let statusColor = "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
+    let statusColor = "bg-olive/20 text-olive border-olive/30";
     let statusText = "Torneo En Curso";
 
     if (todosFinalizados) {
-        statusColor = "bg-neutral-800 text-neutral-400 border-neutral-700";
+        statusColor = "bg-paper-dark text-olive border-olive/30";
         statusText = "Finalizado";
     } else if (isPast) {
-        statusColor = "bg-amber-500/20 text-amber-400 border-amber-500/30";
+        statusColor = "bg-ochre/20 text-ochre border-ochre/30";
         statusText = "Finalizando (Resultados Pendientes)";
     } else if (isUpcoming) {
         statusColor = "bg-blue-500/20 text-blue-400 border-blue-500/30";
@@ -459,7 +459,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
     return (
         <div className="space-y-6">
             {creationWarning && (
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-amber-300 text-sm">
+                <div className="bg-ochre/10 border border-ochre/30 rounded-xl p-4 text-ochre-soft text-sm">
                     <p className="font-bold mb-1">⚠️ Aviso al crear el torneo</p>
                     <p className="text-xs text-amber-200/80">{creationWarning}</p>
                 </div>
@@ -467,14 +467,14 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
             <div className="flex items-start gap-4 mb-2">
                 <Link
                     href="/club/torneos"
-                    className="p-2 bg-neutral-900 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition-colors text-white mt-1 shrink-0"
+                    className="p-2 bg-paper-soft border border-olive/20 rounded-xl hover:bg-paper-dark transition-colors text-ink mt-1 shrink-0"
                 >
                     <ChevronLeft className="w-5 h-5" />
                 </Link>
                 <div className="flex-1 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                     <div>
                         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center mb-1">
-                            <h1 className="text-3xl font-bold tracking-tight text-white leading-tight">
+                            <h1 className="text-3xl font-bold tracking-tight text-ink leading-tight">
                                 {torneo.nombre}
                             </h1>
                             <div className="flex items-center gap-2">
@@ -482,15 +482,15 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                                     {statusText}
                                 </Badge>
                                 {todosFinalizados && (
-                                    <Badge className="bg-amber-500 text-black font-black uppercase tracking-widest text-[10px] animate-pulse">
+                                    <Badge className="bg-ochre text-black font-black uppercase tracking-widest text-[10px] animate-pulse">
                                         ¡Torneo Finalizado!
                                     </Badge>
                                 )}
                             </div>
                         </div>
-                        <div className="flex flex-wrap items-center text-sm text-neutral-400 font-medium mt-3 gap-4">
-                            <span className="flex items-center"><CalendarDays className="w-4 h-4 mr-1.5 text-neutral-500" />{new Date(torneo.fecha_inicio).toLocaleDateString('es-CO')} - {new Date(torneo.fecha_fin).toLocaleDateString('es-CO')}</span>
-                            <span className="flex items-center"><Swords className="w-4 h-4 mr-1.5 text-neutral-500" />Modalidad: {torneo.formato}</span>
+                        <div className="flex flex-wrap items-center text-sm text-olive font-medium mt-3 gap-4">
+                            <span className="flex items-center"><CalendarDays className="w-4 h-4 mr-1.5 text-olive/70" />{new Date(torneo.fecha_inicio).toLocaleDateString('es-CO')} - {new Date(torneo.fecha_fin).toLocaleDateString('es-CO')}</span>
+                            <span className="flex items-center"><Swords className="w-4 h-4 mr-1.5 text-olive/70" />Modalidad: {torneo.formato}</span>
                         </div>
                     </div>
 
@@ -520,15 +520,15 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                     </div>
 
                     {campeonParaHeader && (
-                        <div className="bg-neutral-900 border border-amber-500/30 p-4 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-right duration-500">
-                            <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/20">
-                                <Trophy className="w-6 h-6 text-amber-500" />
+                        <div className="bg-paper-soft border border-ochre/30 p-4 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-right duration-500">
+                            <div className="w-12 h-12 bg-ochre/10 rounded-full flex items-center justify-center border border-ochre/20">
+                                <Trophy className="w-6 h-6 text-ochre-dark" />
                             </div>
                             <div>
-                                <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest leading-none mb-1">Campeón</p>
-                                <p className="text-lg font-black text-white uppercase italic tracking-tighter leading-none mb-1">{campeonParaHeader}</p>
+                                <p className="text-[10px] font-black text-ochre-dark uppercase tracking-widest leading-none mb-1">Campeón</p>
+                                <p className="text-lg font-black text-ink uppercase italic tracking-tighter leading-none mb-1">{campeonParaHeader}</p>
                                 {subcampeonParaHeader && (
-                                    <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-tighter">Subcampeón: {subcampeonParaHeader}</p>
+                                    <p className="text-[10px] text-olive/70 font-bold uppercase tracking-tighter">Subcampeón: {subcampeonParaHeader}</p>
                                 )}
                             </div>
                         </div>
@@ -540,9 +540,9 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
             {torneo.formato === 'copa_davis' ? (
                 <div className="mt-8">
                     {!rivalClubData ? (
-                        <div className="p-6 border border-dashed border-amber-500/30 rounded-xl bg-amber-500/5 text-center">
-                            <p className="text-amber-400 font-semibold">Este torneo Copa Davis no tiene club rival asignado.</p>
-                            <p className="text-xs text-neutral-500 mt-1">Edítalo desde la configuración para asignar uno.</p>
+                        <div className="p-6 border border-dashed border-ochre/30 rounded-xl bg-ochre/5 text-center">
+                            <p className="text-ochre font-semibold">Este torneo Copa Davis no tiene club rival asignado.</p>
+                            <p className="text-xs text-olive/70 mt-1">Edítalo desde la configuración para asignar uno.</p>
                         </div>
                     ) : (
                         <>
@@ -560,8 +560,8 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         />
 
                         {/* Cronograma — los partidos placeholder caen en la bolsa y se programan aquí */}
-                        <div className="mt-8 pt-8 border-t border-neutral-800">
-                            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <div className="mt-8 pt-8 border-t border-olive/20">
+                            <h3 className="text-lg font-bold text-ink mb-4 flex items-center gap-2">
                                 📅 Parrilla de Programación
                             </h3>
                             <TournamentChronogram
@@ -586,17 +586,17 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                 </div>
             ) : (
             <Tabs defaultValue="participantes" className="w-full mt-8">
-                <TabsList className="bg-neutral-900 border border-neutral-800 p-1 w-full flex overflow-x-auto justify-start sm:w-auto overflow-y-hidden">
-                    <TabsTrigger value="participantes" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-neutral-800">Parejas Inscritas <Badge variant="secondary" className="ml-2 bg-neutral-800 text-neutral-400 border-none">{allParticipants.length}</Badge></TabsTrigger>
-                    <TabsTrigger value="grupos" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-neutral-800">Fase de Grupos</TabsTrigger>
-                    <TabsTrigger value="eliminatorias" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-neutral-800">Fases Finales (Llaves)</TabsTrigger>
-                    <TabsTrigger value="resultados" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-neutral-800">
+                <TabsList className="bg-paper-soft border border-olive/20 p-1 w-full flex overflow-x-auto justify-start sm:w-auto overflow-y-hidden">
+                    <TabsTrigger value="participantes" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Parejas Inscritas <Badge variant="secondary" className="ml-2 bg-paper-dark text-olive border-none">{allParticipants.length}</Badge></TabsTrigger>
+                    <TabsTrigger value="grupos" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Fase de Grupos</TabsTrigger>
+                    <TabsTrigger value="eliminatorias" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Fases Finales (Llaves)</TabsTrigger>
+                    <TabsTrigger value="resultados" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">
                         Resultados
                         {pendientesCount > 0 && (
-                            <Badge variant="secondary" className="ml-2 bg-amber-500/15 text-amber-300 border border-amber-500/30">{pendientesCount}</Badge>
+                            <Badge variant="secondary" className="ml-2 bg-ochre/15 text-ochre-soft border border-ochre/30">{pendientesCount}</Badge>
                         )}
                     </TabsTrigger>
-                    <TabsTrigger value="cronograma" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-neutral-800">Parrilla (Programación)</TabsTrigger>
+                    <TabsTrigger value="cronograma" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Parrilla (Programación)</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="grupos" className="mt-6">
@@ -644,21 +644,21 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                 <TabsContent value="participantes" className="mt-6">
                     {/* ... (existing content) */}
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-bold text-white uppercase tracking-wider">Parejas Inscritas</h3>
+                        <h3 className="text-lg font-bold text-ink uppercase tracking-wider">Parejas Inscritas</h3>
                         {(rawPartidos || []).length === 0 && (
                             <AddTournamentPlayerModal torneoId={params.id} categorias={categoriasHabilitadas} esMaster={torneo.tipo === 'master'} />
                         )}
                     </div>
                     {allParticipants.length === 0 ? (
-                        <div className="text-center py-12 text-neutral-500 border border-neutral-800 border-dashed rounded-xl bg-neutral-900/30">
-                            <Users className="w-12 h-12 text-neutral-700 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-neutral-300 mb-2 font-bold uppercase">Aún no hay inscritos</h3>
+                        <div className="text-center py-12 text-olive/70 border border-olive/20 border-dashed rounded-xl bg-paper-soft/30">
+                            <Users className="w-12 h-12 text-olive/40 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-ink mb-2 font-bold uppercase">Aún no hay inscritos</h3>
                             <p className="max-w-md mx-auto text-xs opacity-70">Comparte este torneo con los jugadores. Pronto verás aquí la lista de parejas confirmadas.</p>
                         </div>
                     ) : (
-                        <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
-                            <table className="w-full text-sm text-left rtl:text-right text-neutral-400">
-                                <thead className="text-xs text-neutral-300 uppercase bg-neutral-800/50">
+                        <div className="bg-paper-soft border border-olive/20 rounded-xl overflow-hidden">
+                            <table className="w-full text-sm text-left rtl:text-right text-olive">
+                                <thead className="text-xs text-ink uppercase bg-paper-dark/50">
                                     <tr>
                                         <th scope="col" className="px-6 py-3">Pareja</th>
                                         <th scope="col" className="px-6 py-3">Categoría</th>
@@ -668,15 +668,15 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                                 </thead>
                                 <tbody>
                                     {allParticipants.map((tp) => (
-                                        <tr key={tp.id} className="bg-neutral-900 border-b border-neutral-800 hover:bg-neutral-800/30">
-                                            <td className="px-6 py-4 font-bold text-white">
+                                        <tr key={tp.id} className="bg-paper-soft border-b border-olive/20 hover:bg-paper-dark/30">
+                                            <td className="px-6 py-4 font-bold text-ink">
                                                 {tp.nombre}
                                             </td>
                                             <td className="px-6 py-4">
                                                 {tp.categoria}
                                             </td>
                                             <td className="px-6 py-4">
-                                                <Badge variant="outline" className={tp.estado_pago === 'pagado' ? 'text-emerald-400 border-emerald-400/30 bg-emerald-400/10' : 'text-amber-400 border-amber-400/30 bg-amber-400/10'}>
+                                                <Badge variant="outline" className={tp.estado_pago === 'pagado' ? 'text-olive border-olive/30 bg-olive-light/10' : 'text-ochre border-ochre-soft/30 bg-amber-400/10'}>
                                                     {tp.estado_pago}
                                                 </Badge>
                                             </td>
@@ -714,15 +714,15 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
 
                         {/* SECCIÓN HISTORIAL DE GRUPOS */}
                         <div className="opacity-60 hover:opacity-100 transition-opacity">
-                            <h3 className="text-lg font-bold text-neutral-500 mb-6 uppercase tracking-widest pl-2 border-l-2 border-neutral-800">Historial de Fase de Grupos</h3>
+                            <h3 className="text-lg font-bold text-olive/70 mb-6 uppercase tracking-widest pl-2 border-l-2 border-olive/20">Historial de Fase de Grupos</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {partidosReales.filter(p => p.torneo_grupo_id).map((match) => (
-                                    <div key={match.id} className="bg-neutral-900/50 border border-neutral-800/50 rounded-xl p-4 flex justify-between items-center">
+                                    <div key={match.id} className="bg-paper-soft/50 border border-olive/20 rounded-xl p-4 flex justify-between items-center">
                                         <div className="flex-1">
-                                            <div className="text-[10px] text-neutral-600 font-bold mb-1 uppercase italic">{match.pareja1?.nombre_pareja} vs {match.pareja2?.nombre_pareja}</div>
-                                            <div className="text-xs font-black text-emerald-500 tracking-tighter">{match.resultado || "Pendiente"}</div>
+                                            <div className="text-[10px] text-olive/50 font-bold mb-1 uppercase italic">{match.pareja1?.nombre_pareja} vs {match.pareja2?.nombre_pareja}</div>
+                                            <div className="text-xs font-black text-olive tracking-tighter">{match.resultado || "Pendiente"}</div>
                                         </div>
-                                        <Badge className="bg-neutral-800 text-neutral-500 text-[8px] uppercase">{match.estado}</Badge>
+                                        <Badge className="bg-paper-dark text-olive/70 text-[8px] uppercase">{match.estado}</Badge>
                                     </div>
                                 ))}
                             </div>

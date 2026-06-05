@@ -108,29 +108,29 @@ export function TournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, u
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold w-full">
+                <Button className="bg-olive hover:bg-olive text-paper font-bold w-full">
                     <Trophy className="w-4 h-4 mr-2" />
                     Registrar Resultado
                 </Button>
             </DialogTrigger>
-            <DialogContent className="bg-neutral-900 border-neutral-800 text-white max-w-sm">
+            <DialogContent className="bg-paper-soft border-olive/20 text-ink max-w-sm">
                 <DialogHeader>
                     <DialogTitle>Resultado del Partido</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                    <div className="grid grid-cols-2 gap-4 text-center text-xs font-bold text-neutral-500 uppercase">
+                    <div className="grid grid-cols-2 gap-4 text-center text-xs font-bold text-olive/70 uppercase">
                         <span className="line-clamp-1">{pareja1Nombre}</span>
                         <span className="line-clamp-1">{pareja2Nombre}</span>
                     </div>
                     {sets.map((set, idx) => (
                         <div key={idx} className="flex items-center gap-3">
-                            <span className="text-[10px] font-black text-neutral-600 w-12 shrink-0">
+                            <span className="text-[10px] font-black text-olive/50 w-12 shrink-0">
                                 {idx === 2 ? (isSuperTiebreak ? 'STB' : 'SET 3') : `SET ${idx + 1}`}
                             </span>
                             <Input 
                                 placeholder="0" 
                                 type="number"
-                                className="bg-neutral-950 border-neutral-800 text-center text-xl font-black h-12"
+                                className="bg-paper border-olive/20 text-center text-xl font-black h-12"
                                 value={set.p1}
                                 onChange={e => {
                                     const newSets = [...sets];
@@ -138,11 +138,11 @@ export function TournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, u
                                     setSets(newSets);
                                 }}
                             />
-                            <span className="text-neutral-600">-</span>
+                            <span className="text-olive/50">-</span>
                             <Input 
                                 placeholder="0" 
                                 type="number"
-                                className="bg-neutral-950 border-neutral-800 text-center text-xl font-black h-12"
+                                className="bg-paper border-olive/20 text-center text-xl font-black h-12"
                                 value={set.p2}
                                 onChange={e => {
                                     const newSets = [...sets];
@@ -159,16 +159,16 @@ export function TournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, u
                                 id={`player-stb-toggle-${matchId}`}
                                 checked={isSuperTiebreak} 
                                 onChange={(e) => setIsSuperTiebreak(e.target.checked)}
-                                className="w-4 h-4 rounded border-neutral-700 bg-neutral-900 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-neutral-950"
+                                className="w-4 h-4 rounded border-olive/30 bg-paper-soft text-olive focus:ring-olive focus:ring-offset-neutral-950"
                             />
-                            <label htmlFor={`player-stb-toggle-${matchId}`} className="text-xs text-neutral-400 font-medium cursor-pointer">
+                            <label htmlFor={`player-stb-toggle-${matchId}`} className="text-xs text-olive font-medium cursor-pointer">
                                 El 3er set es un Super Tie-break
                             </label>
                         </div>
                     )}
-                    <Button variant="ghost" size="sm" onClick={addSet} className="text-emerald-500 w-full">+ Añadir Set</Button>
+                    <Button variant="ghost" size="sm" onClick={addSet} className="text-olive w-full">+ Añadir Set</Button>
                 </div>
-                <Button disabled={isPending} onClick={onSave} className="w-full bg-emerald-600 hover:bg-emerald-500">
+                <Button disabled={isPending} onClick={onSave} className="w-full bg-olive hover:bg-olive">
                     {isPending ? "Guardando..." : "Subir Resultado"}
                 </Button>
             </DialogContent>

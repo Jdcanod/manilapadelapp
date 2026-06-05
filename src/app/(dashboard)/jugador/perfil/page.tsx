@@ -27,59 +27,59 @@ export default async function PerfilJugadorPage() {
 
     return (
         <div className="max-w-2xl mx-auto space-y-6">
-            <div className="flex items-center gap-3 bg-gradient-to-r from-neutral-900 to-neutral-950 border border-neutral-800 p-4 rounded-2xl shadow-xl">
-                <div className="bg-neutral-800 p-3 rounded-xl border border-neutral-700">
-                    <User className="w-6 h-6 text-neutral-300" />
+            <div className="flex items-center gap-3 bg-gradient-to-r from-neutral-900 to-neutral-950 border border-olive/20 p-4 rounded-2xl shadow-xl">
+                <div className="bg-paper-dark p-3 rounded-xl border border-olive/30">
+                    <User className="w-6 h-6 text-ink" />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-black text-white tracking-tight">Mi Perfil</h1>
-                    <p className="text-sm text-neutral-400">Gestiona tu información y configuración.</p>
+                    <h1 className="text-2xl font-black text-ink tracking-tight">Mi Perfil</h1>
+                    <p className="text-sm text-olive">Gestiona tu información y configuración.</p>
                 </div>
             </div>
 
-            <Card className="bg-neutral-900/50 border-neutral-800 shadow-xl backdrop-blur-sm">
+            <Card className="bg-paper-soft/50 border-olive/20 shadow-xl backdrop-blur-sm">
                 <CardHeader className="pb-4 items-center text-center">
-                    <Avatar className="w-24 h-24 border-4 border-neutral-800 shadow-xl mb-4">
-                        <AvatarFallback className="text-3xl bg-gradient-to-tr from-emerald-600 to-green-400 text-white font-bold">{iniciales}</AvatarFallback>
+                    <Avatar className="w-24 h-24 border-4 border-olive/20 shadow-xl mb-4">
+                        <AvatarFallback className="text-3xl bg-gradient-to-tr from-emerald-600 to-green-400 text-ink font-bold">{iniciales}</AvatarFallback>
                     </Avatar>
-                    <CardTitle className="text-2xl font-bold text-white">{nombreReal}</CardTitle>
+                    <CardTitle className="text-2xl font-bold text-ink">{nombreReal}</CardTitle>
                     {!esClub && (
-                        <CardDescription className="text-neutral-400 flex items-center gap-1 justify-center mt-1">
-                            <Shield className="w-3 h-3 text-emerald-500" /> Categoría {userData?.categoria || userData?.nivel || 'Amateur'}
+                        <CardDescription className="text-olive flex items-center gap-1 justify-center mt-1">
+                            <Shield className="w-3 h-3 text-olive" /> Categoría {userData?.categoria || userData?.nivel || 'Amateur'}
                         </CardDescription>
                     )}
                 </CardHeader>
 
                 <CardContent className="space-y-6">
-                    <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-4 divide-y divide-neutral-800">
+                    <div className="bg-paper border border-olive/20 rounded-xl p-4 divide-y divide-neutral-800">
 
                         <div className="flex items-center justify-between py-3">
                             <div className="flex items-center gap-3">
-                                <Mail className="w-4 h-4 text-neutral-500" />
-                                <span className="text-sm font-medium text-neutral-300">Correo Electrónico</span>
+                                <Mail className="w-4 h-4 text-olive/70" />
+                                <span className="text-sm font-medium text-ink">Correo Electrónico</span>
                             </div>
-                            <span className="text-sm text-neutral-500">{user.email}</span>
+                            <span className="text-sm text-olive/70">{user.email}</span>
                         </div>
 
                         <div className="flex items-center justify-between py-3">
                             <div className="flex items-center gap-3">
-                                <MapPin className="w-4 h-4 text-neutral-500" />
-                                <span className="text-sm font-medium text-neutral-300">Ciudad</span>
+                                <MapPin className="w-4 h-4 text-olive/70" />
+                                <span className="text-sm font-medium text-ink">Ciudad</span>
                             </div>
-                            <span className="text-sm text-neutral-500">{userData?.ciudad || 'Manizales'}</span>
+                            <span className="text-sm text-olive/70">{userData?.ciudad || 'Manizales'}</span>
                         </div>
 
                         <div className="flex items-center justify-between py-3">
                             <div className="flex items-center gap-3">
-                                <Building className="w-4 h-4 text-neutral-500" />
-                                <span className="text-sm font-medium text-neutral-300">Club de Preferencia</span>
+                                <Building className="w-4 h-4 text-olive/70" />
+                                <span className="text-sm font-medium text-ink">Club de Preferencia</span>
                             </div>
-                            <span className="text-sm text-neutral-500 capitalize">{userData?.club_preferencia || 'Ninguno'}</span>
+                            <span className="text-sm text-olive/70 capitalize">{userData?.club_preferencia || 'Ninguno'}</span>
                         </div>
                     </div>
                 </CardContent>
 
-                <CardFooter className="bg-neutral-950/30 border-t border-neutral-800/50 p-6 flex flex-col sm:flex-row justify-between gap-4 rounded-b-xl">
+                <CardFooter className="bg-paper/30 border-t border-olive/20 p-6 flex flex-col sm:flex-row justify-between gap-4 rounded-b-xl">
                     <EditarPerfilDialog usuario={userData || {}} />
 
                     <form action={cerrarSesionAction} className="w-full sm:w-auto">

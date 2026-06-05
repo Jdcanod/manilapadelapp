@@ -189,15 +189,15 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 bg-gradient-to-r from-neutral-900 to-neutral-900/60 p-6 rounded-3xl border border-neutral-800 shadow-xl overflow-hidden relative">
-                <div className="absolute right-0 top-0 w-64 h-64 bg-amber-500/10 blur-3xl rounded-full pointer-events-none" />
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 bg-gradient-to-r from-neutral-900 to-neutral-900/60 p-6 rounded-3xl border border-olive/20 shadow-xl overflow-hidden relative">
+                <div className="absolute right-0 top-0 w-64 h-64 bg-ochre/10 blur-3xl rounded-full pointer-events-none" />
 
                 <div className="z-10">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 mb-3 text-amber-500 text-xs font-bold uppercase tracking-wider">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ochre/10 border border-ochre/20 mb-3 text-ochre-dark text-xs font-bold uppercase tracking-wider">
                         <Trophy className="w-4 h-4" /> Ranking ELO Individual
                     </div>
-                    <h1 className="text-4xl font-black tracking-tight text-white mb-2">{titulo}</h1>
-                    <p className="text-neutral-400">Compite en torneos oficiales y escala posiciones a nivel ciudad o en tu club.</p>
+                    <h1 className="text-4xl font-black tracking-tight text-ink mb-2">{titulo}</h1>
+                    <p className="text-olive">Compite en torneos oficiales y escala posiciones a nivel ciudad o en tu club.</p>
                 </div>
 
                 <div className="z-10 w-full lg:w-auto">
@@ -205,10 +205,10 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
                 </div>
             </div>
 
-            <Card className="bg-neutral-900/50 border-neutral-800 shadow-2xl backdrop-blur-xl">
+            <Card className="bg-paper-soft/50 border-olive/20 shadow-2xl backdrop-blur-xl">
                 <CardContent className="p-0">
                     <ScrollArea className="h-[600px] w-full rounded-md border-0">
-                        <div className="p-4 bg-neutral-950/40 text-xs font-bold text-neutral-500 uppercase tracking-widest flex items-center gap-4 sticky top-0 z-20 backdrop-blur-md border-b border-neutral-800/80">
+                        <div className="p-4 bg-paper/40 text-xs font-bold text-olive/70 uppercase tracking-widest flex items-center gap-4 sticky top-0 z-20 backdrop-blur-md border-b border-olive/20">
                             <div className="w-12 text-center">Pos</div>
                             <div className="flex-1">Jugador</div>
                             <div className="w-32 hidden md:block">Localidad / Club</div>
@@ -217,7 +217,7 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
                         </div>
 
                         {jugadores.length === 0 ? (
-                            <div className="text-center py-12 text-neutral-500 border border-neutral-800 border-dashed rounded-xl m-4 bg-neutral-900/30">
+                            <div className="text-center py-12 text-olive/70 border border-olive/20 border-dashed rounded-xl m-4 bg-paper-soft/30">
                                 No se encontraron jugadores con estos filtros.
                             </div>
                         ) : (
@@ -241,15 +241,15 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
                                     <Link
                                         href={`/jugador/${jugador.id}`}
                                         key={jugador.id}
-                                        className={`group flex items-center gap-4 p-4 border-b border-neutral-800/50 hover:bg-neutral-800/60 transition-colors cursor-pointer ${isCurrentUser ? 'bg-emerald-950/20 bg-gradient-to-r from-emerald-500/10 to-transparent border-l-2 border-l-emerald-500' : ''
+                                        className={`group flex items-center gap-4 p-4 border-b border-olive/20 hover:bg-paper-dark/60 transition-colors cursor-pointer ${isCurrentUser ? 'bg-olive-dark/20 bg-gradient-to-r from-olive/10 to-transparent border-l-2 border-l-emerald-500' : ''
                                             }`}
                                     >
                                         {/* Posición */}
                                         <div className="w-12 flex flex-col items-center justify-center relative">
-                                            {rank === 1 && <Medal className="w-8 h-8 text-amber-400 absolute opacity-20 -z-10" />}
-                                            <span className={`text-2xl font-black ${rank === 1 ? 'text-amber-400' :
-                                                rank === 2 ? 'text-neutral-300' :
-                                                    rank === 3 ? 'text-amber-700' : 'text-neutral-500'
+                                            {rank === 1 && <Medal className="w-8 h-8 text-ochre absolute opacity-20 -z-10" />}
+                                            <span className={`text-2xl font-black ${rank === 1 ? 'text-ochre' :
+                                                rank === 2 ? 'text-ink' :
+                                                    rank === 3 ? 'text-amber-700' : 'text-olive/70'
                                                 }`}>
                                                 {rank}
                                             </span>
@@ -257,16 +257,16 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
 
                                         {/* Info Jugador */}
                                         <div className="flex-1 flex items-center gap-4">
-                                            <Avatar className="w-11 h-11 border-2 border-neutral-900 shadow-md">
-                                                <AvatarFallback className={isCurrentUser ? "bg-emerald-900 text-white" : "bg-neutral-800 text-neutral-400"}>
+                                            <Avatar className="w-11 h-11 border-2 border-olive/15 shadow-md">
+                                                <AvatarFallback className={isCurrentUser ? "bg-emerald-900 text-ink" : "bg-paper-dark text-olive"}>
                                                     {(jugador.nombre || 'JU').substring(0, 2).toUpperCase()}
                                                 </AvatarFallback>
                                             </Avatar>
                                             <div className="flex flex-col">
-                                                <span className={`text-lg font-bold tracking-tight flex items-center gap-2 ${isCurrentUser ? 'text-emerald-400' : 'text-white'}`}>
+                                                <span className={`text-lg font-bold tracking-tight flex items-center gap-2 ${isCurrentUser ? 'text-olive' : 'text-ink'}`}>
                                                     {formatPlayerName({ nombre: jugador.nombre, apellido: jugador.apellido, email: jugador.email })}
                                                     {isCurrentUser && (
-                                                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 text-emerald-500 border-0 h-4">
+                                                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-olive/10 text-olive border-0 h-4">
                                                             TÚ
                                                         </Badge>
                                                     )}
@@ -276,27 +276,27 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
 
                                         {/* Localidad md+ */}
                                         <div className="w-32 hidden md:flex flex-col justify-center gap-1">
-                                            <span className="text-xs text-neutral-300 flex items-center capitalize">
+                                            <span className="text-xs text-ink flex items-center capitalize">
                                                 <MapPin className="w-3 h-3 mr-1 opacity-70" /> {jugador.ciudad || 'No definida'}
                                             </span>
-                                            <span className="text-[10px] text-neutral-500 flex items-center">
+                                            <span className="text-[10px] text-olive/70 flex items-center">
                                                 <Building className="w-3 h-3 mr-1 opacity-70" /> {clubName}
                                             </span>
                                         </div>
 
                                         {/* WinRate md+ */}
                                         <div className="w-24 text-center hidden md:flex flex-col">
-                                            <span className={`text-sm font-semibold ${winRate === null ? 'text-neutral-600' : 'text-neutral-300'}`}>
+                                            <span className={`text-sm font-semibold ${winRate === null ? 'text-olive/50' : 'text-ink'}`}>
                                                 {winRate !== null ? `${winRate}%` : '—'}
                                             </span>
-                                            <span className="text-[10px] text-neutral-500">
+                                            <span className="text-[10px] text-olive/70">
                                                 {partidosJugados} {partidosJugados === 1 ? 'PJ' : 'PJ'}
                                             </span>
                                         </div>
 
                                         {/* Puntos ELO */}
                                         <div className="w-32 text-right pr-4 flex flex-col justify-center">
-                                            <span className={`text-2xl font-black font-mono ${jugador.elo ? 'text-white' : 'text-neutral-600'}`}>
+                                            <span className={`text-2xl font-black font-mono ${jugador.elo ? 'text-ink' : 'text-olive/50'}`}>
                                                 {jugador.elo ?? '—'}
                                             </span>
                                         </div>

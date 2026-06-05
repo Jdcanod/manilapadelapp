@@ -169,8 +169,8 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
                 <Button 
                     disabled={disabled}
                     className={cn(
-                        `w-full text-white font-black text-[10px] uppercase tracking-widest h-9 py-0 shadow-lg transition-all`,
-                        disabled ? "bg-neutral-800 text-neutral-500 cursor-not-allowed" : (buttonText === 'Corregir' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-emerald-600 hover:bg-emerald-500')
+                        `w-full text-ink font-black text-[10px] uppercase tracking-widest h-9 py-0 shadow-lg transition-all`,
+                        disabled ? "bg-paper-dark text-olive/70 cursor-not-allowed" : (buttonText === 'Corregir' ? 'bg-ochre-dark hover:bg-ochre' : 'bg-olive hover:bg-olive')
                     )}
                     title={disabledReason}
                 >
@@ -178,23 +178,23 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
                     {disabled ? (disabledReason || "Esperando programación") : (buttonText || "Subir Resultado")}
                 </Button>
             </DialogTrigger>
-            <DialogContent className="bg-neutral-950 border-neutral-800 text-white max-w-sm rounded-3xl p-6">
+            <DialogContent className="bg-paper border-olive/20 text-ink max-w-sm rounded-3xl p-6">
                 <DialogHeader className="mb-6">
-                    <DialogTitle className="text-xl font-black italic uppercase tracking-tighter text-emerald-500">Registrar Score</DialogTitle>
-                    <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest mt-1">Sube el resultado final de tu partido</p>
+                    <DialogTitle className="text-xl font-black italic uppercase tracking-tighter text-olive">Registrar Score</DialogTitle>
+                    <p className="text-[10px] text-olive/70 font-bold uppercase tracking-widest mt-1">Sube el resultado final de tu partido</p>
                 </DialogHeader>
 
                 <div className="space-y-6">
                     <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-4 text-center">
-                        <span className="text-xs font-black text-white uppercase truncate">{pareja1Nombre}</span>
-                        <span className="text-[10px] font-black text-neutral-700 italic">VS</span>
-                        <span className="text-xs font-black text-white uppercase truncate">{pareja2Nombre}</span>
+                        <span className="text-xs font-black text-ink uppercase truncate">{pareja1Nombre}</span>
+                        <span className="text-[10px] font-black text-olive/40 italic">VS</span>
+                        <span className="text-xs font-black text-ink uppercase truncate">{pareja2Nombre}</span>
                     </div>
 
                     <div className="space-y-3">
                         {sets.map((set, idx) => (
-                            <div key={idx} className="flex items-center gap-3 bg-neutral-900/50 p-3 rounded-2xl border border-neutral-800/50">
-                                <span className="text-[10px] font-black text-neutral-600 w-8">
+                            <div key={idx} className="flex items-center gap-3 bg-paper-soft/50 p-3 rounded-2xl border border-olive/20">
+                                <span className="text-[10px] font-black text-olive/50 w-8">
                                     {idx === 2 && tipoDesempate === 'super_tiebreak' ? 'STB' : `SET ${idx + 1}`}
                                 </span>
                                 <Input 
@@ -206,9 +206,9 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
                                         newSets[idx].p1 = e.target.value;
                                         setSets(newSets);
                                     }}
-                                    className="bg-neutral-950 border-neutral-800 text-center font-black text-xl h-12 rounded-xl focus:ring-emerald-500 focus:border-emerald-500"
+                                    className="bg-paper border-olive/20 text-center font-black text-xl h-12 rounded-xl focus:ring-olive focus:border-olive"
                                 />
-                                <div className="h-[2px] w-4 bg-neutral-800" />
+                                <div className="h-[2px] w-4 bg-paper-dark" />
                                 <Input 
                                     placeholder="0" 
                                     type="number" 
@@ -218,7 +218,7 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
                                         newSets[idx].p2 = e.target.value;
                                         setSets(newSets);
                                     }}
-                                    className="bg-neutral-950 border-neutral-800 text-center font-black text-xl h-12 rounded-xl focus:ring-emerald-500 focus:border-emerald-500"
+                                    className="bg-paper border-olive/20 text-center font-black text-xl h-12 rounded-xl focus:ring-olive focus:border-olive"
                                 />
                             </div>
                         ))}
@@ -226,17 +226,17 @@ export function PlayerTournamentResultModal({ matchId, pareja1Nombre, pareja2Nom
 
                     <div className="flex gap-3">
                         {setsCantidad !== 1 && (
-                            <Button variant="outline" onClick={addSet} disabled={sets.length >= 3} className="flex-1 border-neutral-800 bg-transparent hover:bg-neutral-900 text-neutral-400 font-bold text-[10px] uppercase tracking-widest h-10 rounded-xl">
+                            <Button variant="outline" onClick={addSet} disabled={sets.length >= 3} className="flex-1 border-olive/20 bg-transparent hover:bg-paper-soft text-olive font-bold text-[10px] uppercase tracking-widest h-10 rounded-xl">
                                 + Añadir Set
                             </Button>
                         )}
-                        <Button onClick={onSave} disabled={isPending} className="flex-[2] bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase tracking-widest h-10 rounded-xl">
+                        <Button onClick={onSave} disabled={isPending} className="flex-[2] bg-olive hover:bg-olive text-paper font-black text-[10px] uppercase tracking-widest h-10 rounded-xl">
                             {isPending ? "Enviando..." : "Guardar Resultado"}
                         </Button>
                     </div>
 
                     {statusMsg && (
-                        <div className={`mt-4 text-center text-xs font-bold p-3 rounded-xl animate-in slide-in-from-bottom-2 ${statusMsg.startsWith('✅') ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-red-400 bg-red-500/10 border border-red-500/20'}`}>
+                        <div className={`mt-4 text-center text-xs font-bold p-3 rounded-xl animate-in slide-in-from-bottom-2 ${statusMsg.startsWith('✅') ? 'text-olive bg-olive/10 border border-olive/20' : 'text-red-400 bg-red-500/10 border border-red-500/20'}`}>
                             {statusMsg}
                         </div>
                     )}

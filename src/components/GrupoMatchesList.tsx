@@ -108,14 +108,14 @@ export function GrupoMatchesList<M extends MatchRow>({ matches, grupoId, mode, p
         <div className="space-y-3">
             {/* Pestañas (solo player) */}
             {mode === 'player' && playerPairIds.length > 0 && (
-                <div className="flex gap-2 border-b border-neutral-800 pb-2">
+                <div className="flex gap-2 border-b border-olive/20 pb-2">
                     <button
                         onClick={() => setPlayerView('mis')}
                         className={cn(
                             "flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-colors",
                             playerView === 'mis'
-                                ? "bg-emerald-500 text-black"
-                                : "bg-neutral-900 text-neutral-400 hover:bg-neutral-800"
+                                ? "bg-olive text-black"
+                                : "bg-paper-soft text-olive hover:bg-paper-dark"
                         )}
                     >
                         Mis Partidos
@@ -125,8 +125,8 @@ export function GrupoMatchesList<M extends MatchRow>({ matches, grupoId, mode, p
                         className={cn(
                             "flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-colors",
                             playerView === 'todos'
-                                ? "bg-emerald-500 text-black"
-                                : "bg-neutral-900 text-neutral-400 hover:bg-neutral-800"
+                                ? "bg-olive text-black"
+                                : "bg-paper-soft text-olive hover:bg-paper-dark"
                         )}
                     >
                         Todos del Grupo
@@ -136,18 +136,18 @@ export function GrupoMatchesList<M extends MatchRow>({ matches, grupoId, mode, p
 
             {/* Búsqueda */}
             <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-olive/70" />
                 <input
                     type="text"
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     placeholder="Buscar por pareja o lugar…"
-                    className="w-full bg-neutral-900 border border-neutral-800 rounded-lg pl-9 pr-9 py-2 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-emerald-500/40 transition-colors"
+                    className="w-full bg-paper-soft border border-olive/20 rounded-lg pl-9 pr-9 py-2 text-xs text-ink placeholder:text-olive/50 focus:outline-none focus:border-olive/40 transition-colors"
                 />
                 {search && (
                     <button
                         onClick={() => setSearch('')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-olive/70 hover:text-ink transition-colors"
                     >
                         <X className="w-3.5 h-3.5" />
                     </button>
@@ -168,14 +168,14 @@ export function GrupoMatchesList<M extends MatchRow>({ matches, grupoId, mode, p
                         className={cn(
                             "px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5 transition-colors border",
                             statusFilter === opt.key
-                                ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
-                                : "bg-neutral-950 border-neutral-800 text-neutral-500 hover:text-neutral-300"
+                                ? "bg-olive/15 border-olive/40 text-olive/80"
+                                : "bg-paper border-olive/20 text-olive/70 hover:text-ink"
                         )}
                     >
                         {opt.label}
                         <span className={cn(
                             "text-[9px] px-1 rounded font-mono",
-                            statusFilter === opt.key ? "bg-black/30" : "bg-neutral-900"
+                            statusFilter === opt.key ? "bg-black/30" : "bg-paper-soft"
                         )}>{opt.count}</span>
                     </button>
                 ))}
@@ -183,9 +183,9 @@ export function GrupoMatchesList<M extends MatchRow>({ matches, grupoId, mode, p
 
             {/* Lista */}
             {filtered.length === 0 ? (
-                <div className="py-10 text-center border border-dashed border-neutral-800 rounded-xl">
-                    <Filter className="w-8 h-8 text-neutral-700 mx-auto mb-2" />
-                    <p className="text-xs text-neutral-500">
+                <div className="py-10 text-center border border-dashed border-olive/20 rounded-xl">
+                    <Filter className="w-8 h-8 text-olive/40 mx-auto mb-2" />
+                    <p className="text-xs text-olive/70">
                         {grupoMatches.length === 0 ? 'No hay partidos en este grupo aún.' : 'Ningún partido coincide con el filtro.'}
                     </p>
                 </div>

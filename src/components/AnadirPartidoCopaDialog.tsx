@@ -144,24 +144,24 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                         <button
                             type="button"
                             title="Gestionar Partido"
-                            className="p-1.5 bg-purple-500/10 text-purple-300 rounded-lg hover:bg-purple-500 hover:text-white transition-colors"
+                            className="p-1.5 bg-purple-500/10 text-purple-300 rounded-lg hover:bg-purple-500 hover:text-ink transition-colors"
                         >
                             <Settings className="w-3 h-3" />
                         </button>
                     ) : (
-                        <Button size="sm" variant="outline" className="bg-purple-500/10 border-purple-500/40 text-purple-300 hover:bg-purple-500/20 hover:text-white font-bold h-8 px-3">
+                        <Button size="sm" variant="outline" className="bg-purple-500/10 border-purple-500/40 text-purple-300 hover:bg-purple-500/20 hover:text-ink font-bold h-8 px-3">
                             <Settings className="w-3.5 h-3.5 mr-1" />
                             {triggerLabel || 'Gestionar Partido'}
                         </Button>
                     )
                 ) : (
-                    <Button className="bg-purple-600 hover:bg-purple-500 text-white font-bold">
+                    <Button className="bg-purple-600 hover:bg-purple-500 text-ink font-bold">
                         <Plus className="w-4 h-4 mr-2" />
                         {triggerLabel || 'Añadir Partido'}
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="bg-neutral-900 border-neutral-800 text-white max-w-lg">
+            <DialogContent className="bg-paper-soft border-olive/20 text-ink max-w-lg">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Trophy className="w-5 h-5 text-purple-400" />
@@ -175,13 +175,13 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                     {/* Categoría — oculta cuando viene fija desde el placeholder */}
                     {!categoriaFija && (
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Categoría</label>
+                        <label className="text-[10px] font-black text-olive/70 uppercase tracking-widest">Categoría</label>
                         {categoriasSugeridas.length > 0 ? (
                             <Select value={categoria} onValueChange={setCategoria}>
-                                <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
+                                <SelectTrigger className="bg-paper border-olive/20 text-ink">
                                     <SelectValue placeholder="Selecciona categoría…" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[260px]">
+                                <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[260px]">
                                     {categoriasSugeridas.map(c => (
                                         <SelectItem key={c} value={c}>{c}</SelectItem>
                                     ))}
@@ -192,7 +192,7 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                                 value={categoria}
                                 onChange={e => setCategoria(e.target.value)}
                                 placeholder="Sin categorías habilitadas — escribe una"
-                                className="bg-neutral-950 border-neutral-800 text-white"
+                                className="bg-paper border-olive/20 text-ink"
                             />
                         )}
                     </div>
@@ -202,24 +202,24 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                         Cada admin solo asigna SU pareja. La del rival es invisible
                         hasta 30 min antes para mantener la intriga. */}
                     {esModoAsignar && (loading ? (
-                        <div className="py-8 text-center text-sm text-neutral-500 flex items-center justify-center gap-2">
+                        <div className="py-8 text-center text-sm text-olive/70 flex items-center justify-center gap-2">
                             <Loader2 className="w-4 h-4 animate-spin" /> Cargando tus parejas…
                         </div>
                     ) : (
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                            <label className="text-[10px] font-black text-olive uppercase tracking-widest">
                                 Tu pareja ({miClubId === clubLocal.id ? clubLocal.nombre : clubRival.nombre})
                             </label>
                             {localParejas.length === 0 ? (
-                                <div className="text-[11px] text-amber-400 bg-amber-500/5 border border-amber-500/20 rounded-lg p-2">
+                                <div className="text-[11px] text-ochre bg-ochre/5 border border-ochre/20 rounded-lg p-2">
                                     Aún no tienes parejas inscritas. Usa <strong>+ Inscribir Pareja</strong> primero.
                                 </div>
                             ) : (
                                 <Select value={miParejaId} onValueChange={setMiParejaId}>
-                                    <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
+                                    <SelectTrigger className="bg-paper border-olive/20 text-ink">
                                         <SelectValue placeholder="Selecciona tu pareja…" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[260px]">
+                                    <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[260px]">
                                         {localParejas.map(p => (
                                             <SelectItem key={p.id} value={p.id}>{labelPareja(p)}</SelectItem>
                                         ))}
@@ -227,7 +227,7 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                                     </SelectContent>
                                 </Select>
                             )}
-                            <p className="text-[10px] text-neutral-600 mt-1">
+                            <p className="text-[10px] text-olive/50 mt-1">
                                 El club rival asignará su pareja por separado para mantener la intriga.
                             </p>
                         </div>
@@ -242,7 +242,7 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
 
                     {/* Puntos del partido — solo editable por el club host */}
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">¿Cuánto vale este partido?</label>
+                        <label className="text-[10px] font-black text-olive/70 uppercase tracking-widest">¿Cuánto vale este partido?</label>
                         <div className="grid grid-cols-3 gap-2">
                             {([1, 2, 3] as const).map(n => (
                                 <button
@@ -255,7 +255,7 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                                         !puedeEditarPuntos && "cursor-not-allowed opacity-50",
                                         puntos === n
                                             ? "bg-purple-500/15 border-purple-500 text-purple-300"
-                                            : "bg-neutral-950 border-neutral-800 text-neutral-500 hover:text-neutral-300"
+                                            : "bg-paper border-olive/20 text-olive/70 hover:text-ink"
                                     )}
                                 >
                                     <span className="text-2xl">{n}</span>
@@ -266,7 +266,7 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                             ))}
                         </div>
                         {!puedeEditarPuntos && (
-                            <p className="text-[10px] text-neutral-500 mt-1">
+                            <p className="text-[10px] text-olive/70 mt-1">
                                 🔒 Solo el club organizador del torneo ({clubLocal.nombre}) puede asignar los puntos.
                             </p>
                         )}
@@ -284,11 +284,11 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
 
                 <DialogFooter className="gap-2">
                     <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}
-                        className="bg-neutral-900 border-neutral-800 text-neutral-400">
+                        className="bg-paper-soft border-olive/20 text-olive">
                         Cancelar
                     </Button>
                     <Button onClick={handleSubmit} disabled={pending || loading}
-                        className="bg-purple-600 hover:bg-purple-500 text-white font-bold">
+                        className="bg-purple-600 hover:bg-purple-500 text-ink font-bold">
                         {pending
                             ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Guardando…</>
                             : esModoAsignar

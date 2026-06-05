@@ -129,7 +129,7 @@ function JugadorAutocomplete({
 
     return (
         <div ref={containerRef} className="space-y-1.5 relative">
-            <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">{label}</label>
+            <label className="text-[10px] font-black text-olive/70 uppercase tracking-widest">{label}</label>
             <div className="relative">
                 <Input
                     placeholder={placeholder}
@@ -137,15 +137,15 @@ function JugadorAutocomplete({
                     onChange={(e) => handleTextChange(e.target.value)}
                     onFocus={() => { if (results.length > 0) setOpen(true); }}
                     className={cn(
-                        "bg-neutral-950 border-neutral-800 text-white pr-8",
-                        value?.type === "user" && "border-emerald-500/50"
+                        "bg-paper border-olive/20 text-ink pr-8",
+                        value?.type === "user" && "border-olive/50"
                     )}
                 />
                 {text && (
                     <button
                         type="button"
                         onClick={handleClear}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-olive/70 hover:text-ink"
                         title="Limpiar"
                     >
                         <X className="w-3.5 h-3.5" />
@@ -155,12 +155,12 @@ function JugadorAutocomplete({
 
             {/* Estado seleccionado */}
             {value?.type === "user" && (
-                <p className="text-[10px] text-emerald-400">
+                <p className="text-[10px] text-olive">
                     ✓ {isGuestEmail(value.jugador.email) ? "Invitado existente" : "Usuario registrado"}: <span className="font-bold">{formatPlayerName(value.jugador)}</span>
                 </p>
             )}
             {value?.type === "manual" && value.nombre.trim() && (
-                <p className="text-[10px] text-amber-400 flex items-center gap-1">
+                <p className="text-[10px] text-ochre flex items-center gap-1">
                     <Sparkles className="w-3 h-3" />
                     Se creará/reusará como invitado: <span className="font-bold">{value.nombre.trim()} (I)</span>
                 </p>
@@ -168,9 +168,9 @@ function JugadorAutocomplete({
 
             {/* Dropdown de resultados */}
             {open && (results.length > 0 || loading) && (
-                <div className="absolute z-50 left-0 right-0 top-full mt-1 max-h-56 overflow-y-auto bg-neutral-950 border border-neutral-800 rounded-lg shadow-xl">
+                <div className="absolute z-50 left-0 right-0 top-full mt-1 max-h-56 overflow-y-auto bg-paper border border-olive/20 rounded-lg shadow-xl">
                     {loading && (
-                        <div className="p-3 text-center text-neutral-500 text-xs">
+                        <div className="p-3 text-center text-olive/70 text-xs">
                             <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1.5" />
                             Buscando…
                         </div>
@@ -182,12 +182,12 @@ function JugadorAutocomplete({
                                 key={j.id}
                                 type="button"
                                 onClick={() => handleSelectUser(j)}
-                                className="w-full text-left px-3 py-2 text-sm flex items-center justify-between border-b border-neutral-800/50 last:border-0 hover:bg-neutral-800/50 transition-colors"
+                                className="w-full text-left px-3 py-2 text-sm flex items-center justify-between border-b border-olive/20 last:border-0 hover:bg-paper-dark/50 transition-colors"
                             >
-                                <span className="text-neutral-200">{formatPlayerNameFull(j)}</span>
+                                <span className="text-ink">{formatPlayerNameFull(j)}</span>
                                 <span className={cn(
                                     "text-[9px] uppercase tracking-widest font-black px-1.5 py-0.5 rounded",
-                                    esInv ? "bg-amber-500/15 text-amber-400" : "bg-emerald-500/15 text-emerald-400"
+                                    esInv ? "bg-ochre/15 text-ochre" : "bg-olive/15 text-olive"
                                 )}>
                                     {esInv ? "Invitado" : "Registrado"}
                                 </span>
@@ -195,7 +195,7 @@ function JugadorAutocomplete({
                         );
                     })}
                     {!loading && results.length === 0 && text.trim() && (
-                        <div className="px-3 py-2 text-xs text-neutral-500">
+                        <div className="px-3 py-2 text-xs text-olive/70">
                             Sin coincidencias. Se creará como invitado nuevo.
                         </div>
                     )}
@@ -338,8 +338,8 @@ export function AsignarParejaSlotDialog({
                     className={cn(
                         "h-7 px-2 text-[11px] font-bold uppercase tracking-wider border",
                         yaAsignada
-                            ? "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white"
-                            : "bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 hover:text-white"
+                            ? "bg-paper-soft border-olive/20 text-olive hover:text-ink"
+                            : "bg-olive/10 border-olive/30 text-olive/80 hover:bg-olive/20 hover:text-ink"
                     )}
                 >
                     <UserPlus className="w-3 h-3 mr-1" />
@@ -347,17 +347,17 @@ export function AsignarParejaSlotDialog({
                 </Button>
             </DialogTrigger>
 
-            <DialogContent className="bg-neutral-900 border-neutral-800 text-white max-w-lg">
+            <DialogContent className="bg-paper-soft border-olive/20 text-ink max-w-lg">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <UserPlus className="w-5 h-5 text-emerald-400" />
+                        <UserPlus className="w-5 h-5 text-olive" />
                         {yaAsignada ? "Cambiar pareja del slot" : "Asignar pareja al slot"}
                     </DialogTitle>
-                    <p className="text-xs text-neutral-400 mt-1">
-                        Categoría <span className="text-amber-400 font-bold">{categoria}</span>
+                    <p className="text-xs text-olive mt-1">
+                        Categoría <span className="text-ochre font-bold">{categoria}</span>
                         {nombreActual && (
                             <>
-                                {" · "}Actual: <span className="text-neutral-300 italic">{nombreActual}</span>
+                                {" · "}Actual: <span className="text-ink italic">{nombreActual}</span>
                             </>
                         )}
                     </p>
@@ -365,13 +365,13 @@ export function AsignarParejaSlotDialog({
 
                 <div className="space-y-4 py-2">
                     {/* Toggle catálogo vs construir */}
-                    <div className="flex gap-1 bg-neutral-950 p-1 rounded-lg border border-neutral-800">
+                    <div className="flex gap-1 bg-paper p-1 rounded-lg border border-olive/20">
                         <button
                             type="button"
                             onClick={() => setModo("catalogo")}
                             className={cn(
                                 "flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-colors",
-                                modo === "catalogo" ? "bg-emerald-500 text-black" : "text-neutral-500 hover:text-white"
+                                modo === "catalogo" ? "bg-olive text-black" : "text-olive/70 hover:text-ink"
                             )}
                         >
                             Catálogo
@@ -381,7 +381,7 @@ export function AsignarParejaSlotDialog({
                             onClick={() => setModo("construir")}
                             className={cn(
                                 "flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-colors",
-                                modo === "construir" ? "bg-emerald-500 text-black" : "text-neutral-500 hover:text-white"
+                                modo === "construir" ? "bg-olive text-black" : "text-olive/70 hover:text-ink"
                             )}
                         >
                             Construir pareja
@@ -398,8 +398,8 @@ export function AsignarParejaSlotDialog({
                                     className={cn(
                                         "px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border transition-colors",
                                         catFiltro === "all"
-                                            ? "bg-amber-500/15 border-amber-500/60 text-amber-300"
-                                            : "bg-neutral-950 border-neutral-800 text-neutral-500 hover:text-white"
+                                            ? "bg-ochre/15 border-ochre/60 text-ochre-soft"
+                                            : "bg-paper border-olive/20 text-olive/70 hover:text-ink"
                                     )}
                                 >
                                     Todas
@@ -412,34 +412,34 @@ export function AsignarParejaSlotDialog({
                                         className={cn(
                                             "px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border transition-colors",
                                             catFiltro === c
-                                                ? "bg-amber-500/15 border-amber-500/60 text-amber-300"
-                                                : "bg-neutral-950 border-neutral-800 text-neutral-500 hover:text-white"
+                                                ? "bg-ochre/15 border-ochre/60 text-ochre-soft"
+                                                : "bg-paper border-olive/20 text-olive/70 hover:text-ink"
                                         )}
                                     >
                                         {c}{c === categoria && (
-                                            <span className="ml-1 text-[8px] align-top text-emerald-400">●</span>
+                                            <span className="ml-1 text-[8px] align-top text-olive">●</span>
                                         )}
                                     </button>
                                 ))}
                             </div>
-                            <p className="text-[10px] text-neutral-600">
-                                Filtro inicial: <span className="text-amber-400 font-bold">{categoria}</span>. Puedes asignar parejas de cualquier categoría — solo cambia el filtro.
+                            <p className="text-[10px] text-olive/50">
+                                Filtro inicial: <span className="text-ochre font-bold">{categoria}</span>. Puedes asignar parejas de cualquier categoría — solo cambia el filtro.
                             </p>
 
                             <Input
                                 placeholder="Buscar por nombre…"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="bg-neutral-950 border-neutral-800 text-white"
+                                className="bg-paper border-olive/20 text-ink"
                             />
-                            <div className="max-h-64 overflow-y-auto rounded-lg border border-neutral-800 bg-neutral-950">
+                            <div className="max-h-64 overflow-y-auto rounded-lg border border-olive/20 bg-paper">
                                 {catalogoLoading ? (
-                                    <div className="p-4 text-center text-neutral-500 text-sm">
+                                    <div className="p-4 text-center text-olive/70 text-sm">
                                         <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
                                         Cargando catálogo…
                                     </div>
                                 ) : catalogoFiltrado.length === 0 ? (
-                                    <div className="p-4 text-center text-neutral-500 text-sm">
+                                    <div className="p-4 text-center text-olive/70 text-sm">
                                         {search
                                             ? "No hay coincidencias para esa búsqueda."
                                             : catFiltro === "all"
@@ -457,10 +457,10 @@ export function AsignarParejaSlotDialog({
                                                 type="button"
                                                 onClick={() => setParejaCatalogoId(p.id)}
                                                 className={cn(
-                                                    "w-full text-left px-3 py-2 text-sm flex items-center justify-between gap-2 border-b border-neutral-800/50 last:border-0 transition-colors",
+                                                    "w-full text-left px-3 py-2 text-sm flex items-center justify-between gap-2 border-b border-olive/20 last:border-0 transition-colors",
                                                     selected
-                                                        ? "bg-emerald-500/10 text-emerald-300"
-                                                        : "text-neutral-300 hover:bg-neutral-800/50"
+                                                        ? "bg-olive/10 text-olive/80"
+                                                        : "text-ink hover:bg-paper-dark/50"
                                                 )}
                                             >
                                                 <span className="truncate">{lbl}</span>
@@ -469,14 +469,14 @@ export function AsignarParejaSlotDialog({
                                                         <span className={cn(
                                                             "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded",
                                                             cat === categoria
-                                                                ? "bg-emerald-500/15 text-emerald-400"
-                                                                : "bg-neutral-800 text-neutral-400"
+                                                                ? "bg-olive/15 text-olive"
+                                                                : "bg-paper-dark text-olive"
                                                         )}>
                                                             {cat}
                                                         </span>
                                                     )}
                                                     {selected && (
-                                                        <ChevronRight className="w-4 h-4 text-emerald-400" />
+                                                        <ChevronRight className="w-4 h-4 text-olive" />
                                                     )}
                                                 </span>
                                             </button>
@@ -484,8 +484,8 @@ export function AsignarParejaSlotDialog({
                                     })
                                 )}
                             </div>
-                            <p className="text-[10px] text-neutral-500">
-                                <span className="text-amber-400 font-bold">(I)</span> = al menos uno es invitado. La categoría es la del último torneo donde jugaron (o del perfil si nunca jugaron).
+                            <p className="text-[10px] text-olive/70">
+                                <span className="text-ochre font-bold">(I)</span> = al menos uno es invitado. La categoría es la del último torneo donde jugaron (o del perfil si nunca jugaron).
                             </p>
                         </div>
                     ) : (
@@ -502,10 +502,10 @@ export function AsignarParejaSlotDialog({
                                 value={jugador2}
                                 onChange={setJugador2}
                             />
-                            <p className="text-[10px] text-neutral-500 leading-snug">
-                                Puedes mezclar usuarios <span className="text-emerald-400 font-bold">registrados</span> con
-                                <span className="text-amber-400 font-bold"> invitados</span>. Si el nombre no aparece, se crea
-                                como invitado nuevo. Los invitados se identifican con <span className="text-amber-400 font-bold">(I)</span>.
+                            <p className="text-[10px] text-olive/70 leading-snug">
+                                Puedes mezclar usuarios <span className="text-olive font-bold">registrados</span> con
+                                <span className="text-ochre font-bold"> invitados</span>. Si el nombre no aparece, se crea
+                                como invitado nuevo. Los invitados se identifican con <span className="text-ochre font-bold">(I)</span>.
                             </p>
                         </div>
                     )}
@@ -524,7 +524,7 @@ export function AsignarParejaSlotDialog({
                             variant="outline"
                             onClick={handleQuitar}
                             disabled={pending}
-                            className="bg-neutral-900 border-red-500/40 text-red-300 hover:bg-red-500/10 hover:text-white mr-auto"
+                            className="bg-paper-soft border-red-500/40 text-red-300 hover:bg-red-500/10 hover:text-ink mr-auto"
                         >
                             <X className="w-3.5 h-3.5 mr-1" />
                             Quitar (volver a TBD)
@@ -535,7 +535,7 @@ export function AsignarParejaSlotDialog({
                         variant="outline"
                         onClick={() => setOpen(false)}
                         disabled={pending}
-                        className="bg-neutral-900 border-neutral-800 text-neutral-300 hover:text-white"
+                        className="bg-paper-soft border-olive/20 text-ink hover:text-ink"
                     >
                         Cancelar
                     </Button>
@@ -543,7 +543,7 @@ export function AsignarParejaSlotDialog({
                         type="button"
                         onClick={handleSubmit}
                         disabled={pending}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                        className="bg-olive hover:bg-olive text-paper font-bold"
                     >
                         {pending && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
                         {yaAsignada ? "Cambiar" : "Asignar"}

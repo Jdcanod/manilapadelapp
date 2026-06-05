@@ -69,11 +69,11 @@ export default async function ClubRankingPage() {
         return (
             <div className="space-y-6 pb-20">
                 <PageHeader />
-                <div className="py-20 text-center border border-dashed border-neutral-800 rounded-2xl">
+                <div className="py-20 text-center border border-dashed border-olive/20 rounded-2xl">
                     <Trophy className="w-14 h-14 mx-auto mb-4 text-neutral-800" />
-                    <p className="text-neutral-400 font-semibold">No hay torneos creados aún</p>
-                    <p className="text-neutral-600 text-sm mt-1">Crea tu primer torneo para empezar a gestionar el ranking.</p>
-                    <Link href="/club/torneos/nuevo" className="mt-4 inline-block text-sm text-amber-400 hover:text-amber-300 font-bold">
+                    <p className="text-olive font-semibold">No hay torneos creados aún</p>
+                    <p className="text-olive/50 text-sm mt-1">Crea tu primer torneo para empezar a gestionar el ranking.</p>
+                    <Link href="/club/torneos/nuevo" className="mt-4 inline-block text-sm text-ochre hover:text-ochre-soft font-bold">
                         + Crear torneo
                     </Link>
                 </div>
@@ -262,16 +262,16 @@ function PageHeader() {
         <div className="flex items-center gap-4">
             <Link
                 href="/club"
-                className="p-2 bg-neutral-900 border border-neutral-800 rounded-xl text-white hover:bg-neutral-800 transition-colors"
+                className="p-2 bg-paper-soft border border-olive/20 rounded-xl text-ink hover:bg-paper-dark transition-colors"
             >
                 <ChevronLeft className="w-5 h-5" />
             </Link>
             <div>
-                <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                    <Trophy className="w-6 h-6 text-amber-500" />
+                <h1 className="text-2xl font-bold text-ink flex items-center gap-2">
+                    <Trophy className="w-6 h-6 text-ochre-dark" />
                     Ranking del Club
                 </h1>
-                <p className="text-neutral-500 text-sm mt-0.5">
+                <p className="text-olive/70 text-sm mt-0.5">
                     Configura los puntos, ajusta la base manual y visualiza el ranking en tiempo real.
                 </p>
             </div>

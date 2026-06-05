@@ -104,12 +104,12 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
         const lugar = match.lugar || '';
         const l = lugar.toLowerCase();
         if (match.torneo_grupo_id) return { label: 'Fase de Grupos', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
-        if (l.includes('final') && !l.includes('semi') && !l.includes('cuartos') && !l.includes('octavos')) return { label: 'Gran Final', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' };
+        if (l.includes('final') && !l.includes('semi') && !l.includes('cuartos') && !l.includes('octavos')) return { label: 'Gran Final', color: 'bg-ochre/20 text-ochre border-ochre/30' };
         if (l.includes('semifinal')) return { label: 'Semifinal', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
         if (l.includes('cuartos')) return { label: 'Cuartos de Final', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' };
         if (l.includes('octavos')) return { label: 'Octavos de Final', color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' };
-        if (l.includes('tercer puesto')) return { label: 'Tercer Puesto', color: 'bg-neutral-500/20 text-neutral-300 border-neutral-500/30' };
-        return { label: 'Eliminatoria', color: 'bg-neutral-500/20 text-neutral-400 border-neutral-500/30' };
+        if (l.includes('tercer puesto')) return { label: 'Tercer Puesto', color: 'bg-neutral-500/20 text-ink border-neutral-500/30' };
+        return { label: 'Eliminatoria', color: 'bg-neutral-500/20 text-olive border-neutral-500/30' };
     };
 
     const isScheduled = (m: Match) => {
@@ -242,16 +242,16 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
             {/* BOLSA DE PENDIENTES */}
             {isAdmin && (
                 <div className="w-full xl:w-80 shrink-0 xl:sticky xl:top-6 self-start">
-                    <Card className="bg-neutral-900 border-neutral-800 h-full overflow-hidden flex flex-col shadow-2xl">
-                        <div className="p-4 border-b border-neutral-800 bg-neutral-950/50 space-y-3">
+                    <Card className="bg-paper-soft border-olive/20 h-full overflow-hidden flex flex-col shadow-2xl">
+                        <div className="p-4 border-b border-olive/20 bg-paper/50 space-y-3">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <h3 className="font-black text-amber-500 uppercase tracking-widest text-xs flex items-center gap-2">
+                                    <h3 className="font-black text-ochre-dark uppercase tracking-widest text-xs flex items-center gap-2">
                                         <AlertCircle className="w-4 h-4" /> Bolsa de Pendientes
                                     </h3>
-                                    <p className="text-[10px] text-neutral-500 mt-1 uppercase font-bold">Arrastra o selecciona un partido</p>
+                                    <p className="text-[10px] text-olive/70 mt-1 uppercase font-bold">Arrastra o selecciona un partido</p>
                                 </div>
-                                <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-300">
+                                <Badge variant="outline" className="text-[10px] border-ochre/30 text-ochre-soft">
                                     {pendingMatchesFiltrados.length}/{pendingMatches.length}
                                 </Badge>
                             </div>
@@ -260,7 +260,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                 <select
                                     value={bolsaCatFilter}
                                     onChange={e => setBolsaCatFilter(e.target.value)}
-                                    className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500/40"
+                                    className="w-full bg-paper-soft border border-olive/20 rounded-lg px-3 py-2 text-xs text-ink focus:outline-none focus:border-ochre/40"
                                 >
                                     <option value="all">Todas las categorías ({pendingMatches.length})</option>
                                     {bolsaCategorias.sort().map(cat => {
@@ -291,13 +291,13 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                             relative overflow-hidden p-4 rounded-2xl border-2 transition-all group
                                             ${isAdmin && !isUpdating ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed opacity-50'}
                                             ${selectedMatchId === match.id 
-                                                ? 'bg-amber-500/20 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]' 
-                                                : 'bg-neutral-950 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900'}
+                                                ? 'bg-ochre/20 border-ochre shadow-[0_0_20px_rgba(245,158,11,0.2)]' 
+                                                : 'bg-paper border-olive/20 hover:border-olive/30 hover:bg-paper-soft'}
                                         `}
                                     >
                                         <div className="flex justify-between items-start mb-3">
                                             <div className="flex flex-col gap-1">
-                                                <Badge variant="outline" className="bg-neutral-900 text-neutral-400 border-neutral-800 text-[9px] font-black uppercase">
+                                                <Badge variant="outline" className="bg-paper-soft text-olive border-olive/20 text-[9px] font-black uppercase">
                                                     {match.nivel || "General"}
                                                 </Badge>
                                                 <Badge variant="outline" className={`text-[9px] font-black uppercase border ${getFaseLabel(match).color}`}>
@@ -310,15 +310,15 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                     </Badge>
                                                 )}
                                             </div>
-                                            <GripVertical className="w-3 h-3 text-neutral-700 group-hover:text-neutral-500 transition-colors" />
+                                            <GripVertical className="w-3 h-3 text-olive/40 group-hover:text-olive/70 transition-colors" />
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-xs font-black text-white uppercase truncate">{resolvePairName(match.pareja1?.id || match.pareja1_id, match.pareja1?.nombre_pareja, parejaPlayers) || "TBD"}</p>
-                                            <p className="text-xs font-black text-white uppercase truncate">{resolvePairName(match.pareja2?.id || match.pareja2_id, match.pareja2?.nombre_pareja, parejaPlayers) || "TBD"}</p>
+                                            <p className="text-xs font-black text-ink uppercase truncate">{resolvePairName(match.pareja1?.id || match.pareja1_id, match.pareja1?.nombre_pareja, parejaPlayers) || "TBD"}</p>
+                                            <p className="text-xs font-black text-ink uppercase truncate">{resolvePairName(match.pareja2?.id || match.pareja2_id, match.pareja2?.nombre_pareja, parejaPlayers) || "TBD"}</p>
                                         </div>
                                         {/* Botón Gestionar Partido (solo Copa Davis) */}
                                         {copaDavisContext && (
-                                            <div className="mt-3 pt-2 border-t border-neutral-800/50" onClick={e => e.stopPropagation()}>
+                                            <div className="mt-3 pt-2 border-t border-olive/20" onClick={e => e.stopPropagation()}>
                                                 <AnadirPartidoCopaDialog
                                                     torneoId={torneoId}
                                                     clubLocal={copaDavisContext.clubLocal}
@@ -341,49 +341,49 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
 
             {/* CRONOGRAMA MAESTRO */}
             <div className="flex-1 space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-neutral-900/50 p-4 rounded-3xl border border-neutral-800 backdrop-blur-xl">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-paper-soft/50 p-4 rounded-3xl border border-olive/20 backdrop-blur-xl">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
-                            <CalendarDays className="w-6 h-6 text-emerald-500" />
+                        <div className="p-3 bg-olive/10 rounded-2xl border border-olive/20">
+                            <CalendarDays className="w-6 h-6 text-olive" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-black text-white uppercase tracking-tight leading-none mb-1">Parrilla de Torneo</h2>
-                            <p className="text-[10px] text-neutral-500 uppercase font-bold tracking-widest">
+                            <h2 className="text-xl font-black text-ink uppercase tracking-tight leading-none mb-1">Parrilla de Torneo</h2>
+                            <p className="text-[10px] text-olive/70 uppercase font-bold tracking-widest">
                                 {isAdmin ? 'Arrastra o haz clic para programar' : 'Horarios de Juego'}
                             </p>
                         </div>
                     </div>
                     
                     <div className="flex items-center gap-3">
-                        <Button variant="outline" size="icon" className="bg-neutral-950 border-neutral-800 rounded-xl" onClick={() => setSelectedDate(addDays(selectedDate, -1))}>
+                        <Button variant="outline" size="icon" className="bg-paper border-olive/20 rounded-xl" onClick={() => setSelectedDate(addDays(selectedDate, -1))}>
                             <ChevronLeft className="w-4 h-4" />
                         </Button>
                         <Input 
                             type="date" 
-                            className="bg-neutral-950 border-neutral-800 text-white w-auto h-10 rounded-xl font-bold [color-scheme:dark]" 
+                            className="bg-paper border-olive/20 text-ink w-auto h-10 rounded-xl font-bold" 
                             value={format(selectedDate, "yyyy-MM-dd")}
                             onChange={(e) => setSelectedDate(parseISO(e.target.value))}
                         />
-                        <Button variant="outline" size="icon" className="bg-neutral-950 border-neutral-800 rounded-xl" onClick={() => setSelectedDate(addDays(selectedDate, 1))}>
+                        <Button variant="outline" size="icon" className="bg-paper border-olive/20 rounded-xl" onClick={() => setSelectedDate(addDays(selectedDate, 1))}>
                             <ChevronRight className="w-4 h-4" />
                         </Button>
                     </div>
                 </div>
 
-                <div className="overflow-x-auto rounded-3xl border border-neutral-800 bg-neutral-950 shadow-2xl">
+                <div className="overflow-x-auto rounded-3xl border border-olive/20 bg-paper shadow-2xl">
                     <div className="min-w-[900px]">
                         {/* Encabezado Canchas */}
                         <div 
-                            className="grid grid-cols-[100px_repeat(var(--canchas),1fr)] sticky top-0 z-20 bg-neutral-900 border-b border-neutral-800" 
+                            className="grid grid-cols-[100px_repeat(var(--canchas),1fr)] sticky top-0 z-20 bg-paper-soft border-b border-olive/20" 
                             style={{ "--canchas": config.canchas } as React.CSSProperties}
                         >
-                            <div className="p-5 border-r border-neutral-800 flex items-center justify-center">
-                                <Clock className="w-4 h-4 text-neutral-600" />
+                            <div className="p-5 border-r border-olive/20 flex items-center justify-center">
+                                <Clock className="w-4 h-4 text-olive/50" />
                             </div>
                             {Array.from({ length: config.canchas }).map((_, i) => (
-                                <div key={i} className="p-5 text-center border-r border-neutral-800 last:border-r-0">
-                                    <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">Cancha</span>
-                                    <div className="text-lg font-black text-emerald-500">0{i + 1}</div>
+                                <div key={i} className="p-5 text-center border-r border-olive/20 last:border-r-0">
+                                    <span className="text-[10px] font-black text-olive/70 uppercase tracking-[0.2em]">Cancha</span>
+                                    <div className="text-lg font-black text-olive">0{i + 1}</div>
                                 </div>
                             ))}
                         </div>
@@ -393,11 +393,11 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                             {timeSlots.map(time => (
                                 <div 
                                     key={time} 
-                                    className="grid grid-cols-[100px_repeat(var(--canchas),1fr)] border-b border-neutral-800/30" 
+                                    className="grid grid-cols-[100px_repeat(var(--canchas),1fr)] border-b border-olive/20" 
                                     style={{ "--canchas": config.canchas } as React.CSSProperties}
                                 >
-                                    <div className="p-2 text-center border-r border-neutral-800 bg-neutral-900/30 flex items-center justify-center">
-                                        <span className="text-[11px] font-black text-neutral-400 tracking-tighter">{time}</span>
+                                    <div className="p-2 text-center border-r border-olive/20 bg-paper-soft/30 flex items-center justify-center">
+                                        <span className="text-[11px] font-black text-olive tracking-tighter">{time}</span>
                                     </div>
                                     {Array.from({ length: config.canchas }).map((_, i) => {
                                         const canchaNum = i + 1;
@@ -441,14 +441,14 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                 onDragLeave={(e) => onDragLeave(e, time, canchaNum)}
                                                 onDrop={(e) => onDrop(e, time, canchaNum)}
                                                 className={`
-                                                    p-1 min-h-[60px] border-r border-neutral-800/30 last:border-r-0 relative transition-all
+                                                    p-1 min-h-[60px] border-r border-olive/20 last:border-r-0 relative transition-all
                                                     ${isHoverDrop && slotLibre
-                                                        ? 'bg-amber-500/20 ring-2 ring-amber-500 ring-inset shadow-[inset_0_0_30px_rgba(245,158,11,0.25)]'
+                                                        ? 'bg-ochre/20 ring-2 ring-amber-500 ring-inset shadow-[inset_0_0_30px_rgba(245,158,11,0.25)]'
                                                         : isHoverDrop && !slotLibre
                                                             ? 'bg-red-500/15 ring-2 ring-red-500/60 ring-inset'
                                                             : slotLibre && selectedMatchId && isAdmin
-                                                                ? 'bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer'
-                                                                : 'hover:bg-neutral-900/20'}
+                                                                ? 'bg-ochre/5 hover:bg-ochre/10 cursor-pointer'
+                                                                : 'hover:bg-paper-soft/20'}
                                                 `}
                                                 onClick={() => {
                                                     if (slotLibre && selectedMatchId && isAdmin) handleAssign(selectedMatchId, time, canchaNum);
@@ -466,16 +466,16 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                         }}
                                                         style={{ height: `calc(${rowSpan} * 100% + (${rowSpan - 1} * 1px))` }}
                                                         className={`
-                                                            absolute inset-x-1 top-1 z-10 bg-neutral-900 border rounded-xl p-3 flex flex-col justify-between group/match shadow-2xl transition-all
-                                                            ${isSelected ? 'border-amber-500 ring-2 ring-amber-500/20 scale-[1.01] z-30' : 'border-emerald-500/30 hover:border-emerald-500'}
-                                                            ${isMine ? 'border-amber-500' : ''}
+                                                            absolute inset-x-1 top-1 z-10 bg-paper-soft border rounded-xl p-3 flex flex-col justify-between group/match shadow-2xl transition-all
+                                                            ${isSelected ? 'border-ochre ring-2 ring-amber-500/20 scale-[1.01] z-30' : 'border-olive/30 hover:border-olive'}
+                                                            ${isMine ? 'border-ochre' : ''}
                                                             ${matchToShow.estado_resultado === 'confirmado' ? 'opacity-60 saturate-[0.6] border-emerald-700/40' : ''}
                                                             ${isBeingDragged ? 'opacity-40 grayscale' : ''}
                                                             ${isAdmin && !isUpdating ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed'}
                                                         `}
                                                     >
                                                         {isMine && (
-                                                            <div className="absolute top-1 right-1 bg-amber-500 p-1 rounded-full">
+                                                            <div className="absolute top-1 right-1 bg-ochre p-1 rounded-full">
                                                                   <Star className="w-2 h-2 text-black fill-black" />
                                                             </div>
                                                         )}
@@ -511,7 +511,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                             <button
                                                                 disabled={isUpdating}
                                                                 onClick={(e) => { e.stopPropagation(); handleUnschedule(matchToShow.id); }}
-                                                                className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors disabled:opacity-30"
+                                                                className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-ink transition-colors disabled:opacity-30"
                                                             >
                                                                 <Trash2 className="w-3 h-3" />
                                                             </button>
@@ -519,13 +519,13 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                         <div className="space-y-1">
                                                             <div className="flex items-center justify-between gap-1.5">
                                                                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                                                    <div className={`w-1 h-3 rounded-full flex-shrink-0 ${isMine ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                                                                    <p className="text-[10px] font-black text-white uppercase truncate">{resolvePairName(matchToShow.pareja1?.id || matchToShow.pareja1_id, matchToShow.pareja1?.nombre_pareja, parejaPlayers) || "TBD"}</p>
+                                                                    <div className={`w-1 h-3 rounded-full flex-shrink-0 ${isMine ? 'bg-ochre' : 'bg-olive'}`} />
+                                                                    <p className="text-[10px] font-black text-ink uppercase truncate">{resolvePairName(matchToShow.pareja1?.id || matchToShow.pareja1_id, matchToShow.pareja1?.nombre_pareja, parejaPlayers) || "TBD"}</p>
                                                                 </div>
                                                                 {matchToShow.resultado && (
                                                                     <div className="flex gap-0.5">
                                                                         {matchToShow.resultado.split(',').map((set: string, i: number) => (
-                                                                            <span key={i} className="bg-emerald-500/20 text-emerald-400 px-1 rounded-[2px] text-[8px] font-black min-w-[12px] text-center">
+                                                                            <span key={i} className="bg-olive/20 text-olive px-1 rounded-[2px] text-[8px] font-black min-w-[12px] text-center">
                                                                                 {set.split('-')[0]}
                                                                             </span>
                                                                         ))}
@@ -534,13 +534,13 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                             </div>
                                                             <div className="flex items-center justify-between gap-1.5">
                                                                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                                                    <div className={`w-1 h-3 rounded-full flex-shrink-0 ${isMine ? 'bg-amber-500' : 'bg-blue-500'}`} />
-                                                                    <p className="text-[10px] font-black text-white uppercase truncate">{resolvePairName(matchToShow.pareja2?.id || matchToShow.pareja2_id, matchToShow.pareja2?.nombre_pareja, parejaPlayers) || "TBD"}</p>
+                                                                    <div className={`w-1 h-3 rounded-full flex-shrink-0 ${isMine ? 'bg-ochre' : 'bg-blue-500'}`} />
+                                                                    <p className="text-[10px] font-black text-ink uppercase truncate">{resolvePairName(matchToShow.pareja2?.id || matchToShow.pareja2_id, matchToShow.pareja2?.nombre_pareja, parejaPlayers) || "TBD"}</p>
                                                                 </div>
                                                                 {matchToShow.resultado && (
                                                                     <div className="flex gap-0.5">
                                                                         {matchToShow.resultado.split(',').map((set: string, i: number) => (
-                                                                            <span key={i} className="bg-emerald-500/20 text-emerald-400 px-1 rounded-[2px] text-[8px] font-black min-w-[12px] text-center">
+                                                                            <span key={i} className="bg-olive/20 text-olive px-1 rounded-[2px] text-[8px] font-black min-w-[12px] text-center">
                                                                                 {set.split('-')[1]}
                                                                             </span>
                                                                         ))}
@@ -548,11 +548,11 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                                 )}
                                                             </div>
                                                         </div>
-                                                        <div className="flex justify-between items-center mt-auto pt-2 border-t border-neutral-800/50">
+                                                        <div className="flex justify-between items-center mt-auto pt-2 border-t border-olive/20">
                                                             <div className="flex gap-1">
-                                                                <Badge className="bg-emerald-500 text-black font-black text-[7px] h-3.5 px-1">{matchToShow.nivel}</Badge>
+                                                                <Badge className="bg-olive text-black font-black text-[7px] h-3.5 px-1">{matchToShow.nivel}</Badge>
                                                                 {getFaseFromLugar(matchToShow.lugar) && (
-                                                                    <Badge variant="outline" className="text-[7px] font-black text-amber-500 border-amber-500/30 uppercase">{getFaseFromLugar(matchToShow.lugar)}</Badge>
+                                                                    <Badge variant="outline" className="text-[7px] font-black text-ochre-dark border-ochre/30 uppercase">{getFaseFromLugar(matchToShow.lugar)}</Badge>
                                                                 )}
                                                                 {(() => {
                                                                     const now = new Date();
@@ -561,7 +561,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                                     // Si el partido empezó hace menos de 90 min y no ha terminado
                                                                     if (matchToShow.estado === 'programado' && diffMinutes >= 0 && diffMinutes < 90) {
                                                                         return (
-                                                                            <Badge className="bg-blue-600 text-white font-black text-[7px] h-3.5 px-1 animate-pulse border-none">
+                                                                            <Badge className="bg-blue-600 text-ink font-black text-[7px] h-3.5 px-1 animate-pulse border-none">
                                                                                 EN CANCHA
                                                                             </Badge>
                                                                         );
@@ -569,12 +569,12 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                                     return null;
                                                                 })()}
                                                             </div>
-                                                            <span className="text-[8px] text-neutral-500 font-bold uppercase">{format(new Date(matchToShow.fecha!), "HH:mm")}</span>
+                                                            <span className="text-[8px] text-olive/70 font-bold uppercase">{format(new Date(matchToShow.fecha!), "HH:mm")}</span>
                                                         </div>
                                                         
                                                         {/* Indicador de resultado confirmado */}
                                                         {matchToShow.estado === 'jugado' && matchToShow.estado_resultado === 'confirmado' && (
-                                                            <div className="absolute -bottom-1 -right-1 bg-emerald-500 p-0.5 rounded-full border-2 border-neutral-900">
+                                                            <div className="absolute -bottom-1 -right-1 bg-olive p-0.5 rounded-full border-2 border-olive/15">
                                                                 <CheckCircle2 className="w-2.5 h-2.5 text-black" />
                                                             </div>
                                                         )}
@@ -582,9 +582,9 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                 ) : !matchOccupying ? (
                                                     <div className={`h-full w-full flex items-center justify-center transition-opacity ${isHoverDrop ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                                                         <span className={`text-xs font-black uppercase tracking-widest ${
-                                                            isHoverDrop ? 'text-amber-300 animate-pulse' :
-                                                            selectedMatchId ? 'text-amber-500 animate-pulse' :
-                                                            'text-neutral-700'
+                                                            isHoverDrop ? 'text-ochre-soft animate-pulse' :
+                                                            selectedMatchId ? 'text-ochre-dark animate-pulse' :
+                                                            'text-olive/40'
                                                         }`}>
                                                             {isHoverDrop ? '⬇ Soltar aquí' : selectedMatchId ? 'Mover aquí' : 'Libre'}
                                                         </span>

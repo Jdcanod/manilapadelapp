@@ -126,23 +126,23 @@ export function TournamentResultsManager({ torneoId, partidos, categorias, tipoD
     return (
         <div className="space-y-4">
             {/* ─── Filtros ─────────────────────────────────────────────────── */}
-            <Card className="bg-neutral-900 border-neutral-800">
+            <Card className="bg-paper-soft border-olive/20">
                 <CardContent className="p-4 space-y-3">
                     <div className="flex flex-col lg:flex-row gap-3">
                         {/* Búsqueda libre */}
                         <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-olive/70" />
                             <input
                                 type="text"
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                                 placeholder="Buscar por pareja, categoría o lugar…"
-                                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-10 py-2 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-amber-500/40 transition-colors"
+                                className="w-full bg-paper border border-olive/20 rounded-lg px-10 py-2 text-sm text-ink placeholder:text-olive/50 focus:outline-none focus:border-ochre/40 transition-colors"
                             />
                             {search && (
                                 <button
                                     onClick={() => setSearch('')}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-olive/70 hover:text-ink transition-colors"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
@@ -153,7 +153,7 @@ export function TournamentResultsManager({ torneoId, partidos, categorias, tipoD
                         <select
                             value={categoria}
                             onChange={e => setCategoria(e.target.value)}
-                            className="bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/40 transition-colors min-w-[160px]"
+                            className="bg-paper border border-olive/20 rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-ochre/40 transition-colors min-w-[160px]"
                         >
                             <option value="todas">Todas las categorías</option>
                             {categorias.map(c => (
@@ -178,17 +178,17 @@ export function TournamentResultsManager({ torneoId, partidos, categorias, tipoD
                                     className={cn(
                                         "px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors border",
                                         active
-                                            ? opt.color === 'amber' ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+                                            ? opt.color === 'amber' ? 'bg-ochre/15 border-ochre/40 text-ochre-soft'
                                                 : opt.color === 'blue' ? 'bg-blue-500/15 border-blue-500/40 text-blue-300'
-                                                : opt.color === 'emerald' ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
-                                                : 'bg-neutral-800 border-neutral-700 text-white'
-                                            : 'bg-neutral-950 border-neutral-800 text-neutral-500 hover:text-neutral-300'
+                                                : opt.color === 'emerald' ? 'bg-olive/15 border-olive/40 text-olive/80'
+                                                : 'bg-paper-dark border-olive/30 text-ink'
+                                            : 'bg-paper border-olive/20 text-olive/70 hover:text-ink'
                                     )}
                                 >
                                     {opt.label}
                                     <span className={cn(
                                         "text-[10px] px-1.5 py-0.5 rounded font-mono",
-                                        active ? 'bg-black/30' : 'bg-neutral-900'
+                                        active ? 'bg-black/30' : 'bg-paper-soft'
                                     )}>{opt.count}</span>
                                 </button>
                             );
@@ -199,11 +199,11 @@ export function TournamentResultsManager({ torneoId, partidos, categorias, tipoD
 
             {/* ─── Lista de partidos ──────────────────────────────────────── */}
             {filtered.length === 0 ? (
-                <Card className="bg-neutral-900 border-neutral-800 border-dashed">
+                <Card className="bg-paper-soft border-olive/20 border-dashed">
                     <CardContent className="py-12 text-center">
-                        <Filter className="w-10 h-10 text-neutral-700 mx-auto mb-3" />
-                        <p className="text-sm text-neutral-400 font-semibold">Sin partidos en este filtro</p>
-                        <p className="text-xs text-neutral-600 mt-1">Cambia el filtro o la categoría para ver más resultados.</p>
+                        <Filter className="w-10 h-10 text-olive/40 mx-auto mb-3" />
+                        <p className="text-sm text-olive font-semibold">Sin partidos en este filtro</p>
+                        <p className="text-xs text-olive/50 mt-1">Cambia el filtro o la categoría para ver más resultados.</p>
                     </CardContent>
                 </Card>
             ) : (
@@ -267,30 +267,30 @@ function MatchRowCard({ torneoId, match, tipoDesempate, userMap, parejaPlayers, 
 
     return (
         <Card className={cn(
-            "border-neutral-800 transition-colors",
-            isPending ? "bg-amber-500/[0.03] border-amber-500/20"
-                : isConfirmed ? "bg-neutral-900/60"
-                : "bg-neutral-900"
+            "border-olive/20 transition-colors",
+            isPending ? "bg-ochre/[0.03] border-ochre/20"
+                : isConfirmed ? "bg-paper-soft/60"
+                : "bg-paper-soft"
         )}>
             <CardContent className="p-4 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-center">
                 <div className="space-y-1.5 min-w-0">
                     {/* Header chip */}
                     <div className="flex items-center gap-2 flex-wrap">
                         {match.nivel && (
-                            <Badge variant="outline" className="text-[9px] border-neutral-700 text-neutral-400 px-1.5 py-0 h-4">
+                            <Badge variant="outline" className="text-[9px] border-olive/30 text-olive px-1.5 py-0 h-4">
                                 {match.nivel}
                             </Badge>
                         )}
                         {match.lugar && (
-                            <span className="text-[10px] text-neutral-500 uppercase tracking-wider">{match.lugar}</span>
+                            <span className="text-[10px] text-olive/70 uppercase tracking-wider">{match.lugar}</span>
                         )}
                         {isPending && (
-                            <Badge variant="outline" className="text-[9px] border-amber-500/40 text-amber-300 bg-amber-500/10 px-1.5 py-0 h-4 flex items-center gap-1">
+                            <Badge variant="outline" className="text-[9px] border-ochre/40 text-ochre-soft bg-ochre/10 px-1.5 py-0 h-4 flex items-center gap-1">
                                 <AlertTriangle className="w-2.5 h-2.5" /> Por confirmar
                             </Badge>
                         )}
                         {isConfirmed && (
-                            <Badge variant="outline" className="text-[9px] border-emerald-500/40 text-emerald-300 bg-emerald-500/10 px-1.5 py-0 h-4 flex items-center gap-1">
+                            <Badge variant="outline" className="text-[9px] border-olive/40 text-olive/80 bg-olive/10 px-1.5 py-0 h-4 flex items-center gap-1">
                                 <Check className="w-2.5 h-2.5" /> Confirmado
                             </Badge>
                         )}
@@ -303,9 +303,9 @@ function MatchRowCard({ torneoId, match, tipoDesempate, userMap, parejaPlayers, 
 
                     {/* Parejas */}
                     <div className="flex items-baseline gap-2 flex-wrap">
-                        <span className="text-sm font-bold text-white truncate">{p1}</span>
-                        <span className="text-[10px] text-neutral-600">vs</span>
-                        <span className="text-sm font-bold text-white truncate">{p2}</span>
+                        <span className="text-sm font-bold text-ink truncate">{p1}</span>
+                        <span className="text-[10px] text-olive/50">vs</span>
+                        <span className="text-sm font-bold text-ink truncate">{p2}</span>
                     </div>
 
                     {/* Resultado + meta */}
@@ -314,17 +314,17 @@ function MatchRowCard({ torneoId, match, tipoDesempate, userMap, parejaPlayers, 
                             <span className={cn(
                                 "font-mono font-bold text-sm border px-2 py-0.5 rounded",
                                 isConfirmed
-                                    ? "text-emerald-400 bg-emerald-500/5 border-emerald-500/20"
-                                    : "text-amber-300 bg-amber-500/5 border-amber-500/20"
+                                    ? "text-olive bg-olive/5 border-olive/20"
+                                    : "text-ochre-soft bg-ochre/5 border-ochre/20"
                             )}>
                                 {match.resultado}
                             </span>
                         )}
                         {match.resultado_registrado_at && (
-                            <span className="text-[10px] text-neutral-500 flex items-center gap-1">
+                            <span className="text-[10px] text-olive/70 flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
                                 Reportado {timeAgo(match.resultado_registrado_at)}
-                                {reportadoPor && <span className="text-neutral-400">• {reportadoPor}</span>}
+                                {reportadoPor && <span className="text-olive">• {reportadoPor}</span>}
                             </span>
                         )}
                     </div>
@@ -365,7 +365,7 @@ function MatchRowCard({ torneoId, match, tipoDesempate, userMap, parejaPlayers, 
                                     "h-8 px-3",
                                     confirmingReset
                                         ? "border-red-500/40 text-red-300 hover:bg-red-500/10"
-                                        : "border-neutral-700 text-neutral-400 hover:bg-neutral-800"
+                                        : "border-olive/30 text-olive hover:bg-paper-dark"
                                 )}
                             >
                                 {pendingReset ? <Loader2 className="w-3 h-3 animate-spin" /> : confirmingReset ? '¿Seguro?' : <><RotateCcw className="w-3 h-3 mr-1" /> Reiniciar</>}
@@ -374,7 +374,7 @@ function MatchRowCard({ torneoId, match, tipoDesempate, userMap, parejaPlayers, 
                                 onClick={handleConfirm}
                                 disabled={pendingConfirm}
                                 size="sm"
-                                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-8 px-3"
+                                className="bg-olive hover:bg-olive text-paper font-bold h-8 px-3"
                             >
                                 {pendingConfirm ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3 mr-1" /> Confirmar</>}
                             </Button>

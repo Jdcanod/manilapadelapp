@@ -265,16 +265,16 @@ export default async function JugadorDashboard() {
     return (
         <div className="space-y-6">
             {/* Header Profile Summary */}
-            <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8 bg-neutral-900/50 p-6 md:p-10 rounded-[2.5rem] border border-neutral-800 backdrop-blur-md">
-                <Avatar className="w-28 h-28 md:w-32 md:h-32 border-4 border-neutral-800 shadow-2xl">
-                    <AvatarFallback className="text-3xl md:text-4xl bg-gradient-to-tr from-emerald-600 to-green-400 text-white font-black">{iniciales}</AvatarFallback>
+            <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8 bg-paper-soft/50 p-6 md:p-10 rounded-[2.5rem] border border-olive/20 backdrop-blur-md">
+                <Avatar className="w-28 h-28 md:w-32 md:h-32 border-4 border-olive/20 shadow-2xl">
+                    <AvatarFallback className="text-3xl md:text-4xl bg-gradient-to-tr from-emerald-600 to-green-400 text-ink font-black">{iniciales}</AvatarFallback>
                 </Avatar>
                 <div className="text-center lg:text-left flex-1 w-full">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                         <div>
-                            <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white mb-2">{nombreReal}</h1>
-                            <p className="text-neutral-400 text-lg font-medium capitalize flex items-center justify-center lg:justify-start gap-2">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-ink mb-2">{nombreReal}</h1>
+                            <p className="text-olive text-lg font-medium capitalize flex items-center justify-center lg:justify-start gap-2">
+                                <span className="w-2 h-2 rounded-full bg-olive animate-pulse" />
                                 {displayCategory}
                             </p>
                         </div>
@@ -285,32 +285,32 @@ export default async function JugadorDashboard() {
                                 followersCount={followersCount || 0}
                                 followingCount={followingCount || 0}
                             />
-                            <Badge variant="outline" className="hidden sm:inline-flex border-emerald-500/30 text-emerald-400 bg-emerald-500/10 px-4 py-1.5 text-sm font-bold">
+                            <Badge variant="outline" className="hidden sm:inline-flex border-olive/30 text-olive bg-olive/10 px-4 py-1.5 text-sm font-bold">
                                 {displayCategory}
                             </Badge>
-                            <div className="flex items-center gap-2 bg-neutral-950 px-4 py-2 rounded-2xl border border-neutral-800 shadow-inner">
-                                <Trophy className="w-5 h-5 text-amber-400" />
-                                <span className="font-black text-xl text-white">#{myRank || '-'}</span>
+                            <div className="flex items-center gap-2 bg-paper px-4 py-2 rounded-2xl border border-olive/20 shadow-inner">
+                                <Trophy className="w-5 h-5 text-ochre" />
+                                <span className="font-black text-xl text-ink">#{myRank || '-'}</span>
                             </div>
                         </div>
                     </div>
 
                     <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                        <div className="bg-neutral-950/50 p-5 rounded-3xl border border-neutral-800/60 hover:bg-neutral-900 transition-colors">
-                            <div className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-blue-400" /> Puntos ELO</div>
-                            <div className="text-3xl font-black text-white">{userData?.elo?.toLocaleString() || '1,000'}</div>
+                        <div className="bg-paper/50 p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
+                            <div className="text-xs font-bold text-olive/70 uppercase tracking-widest mb-2 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-blue-400" /> Puntos ELO</div>
+                            <div className="text-3xl font-black text-ink">{userData?.elo?.toLocaleString() || '1,000'}</div>
                         </div>
-                        <div className="bg-neutral-950/50 p-5 rounded-3xl border border-neutral-800/60 hover:bg-neutral-900 transition-colors">
-                            <div className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2 flex items-center gap-2"><Activity className="w-4 h-4 text-emerald-400" /> Win Rate</div>
-                            <div className="text-3xl font-black text-white">{winRate}%</div>
+                        <div className="bg-paper/50 p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
+                            <div className="text-xs font-bold text-olive/70 uppercase tracking-widest mb-2 flex items-center gap-2"><Activity className="w-4 h-4 text-olive" /> Win Rate</div>
+                            <div className="text-3xl font-black text-ink">{winRate}%</div>
                         </div>
-                        <div className="bg-neutral-950/50 p-5 rounded-3xl border border-neutral-800/60 hover:bg-neutral-900 transition-colors">
-                            <div className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2 flex items-center gap-2"><Star className="w-4 h-4 text-amber-400" /> Pareja</div>
-                            <div className="text-lg font-black text-emerald-400 mt-1 line-clamp-1 truncate">{parejaActual}</div>
+                        <div className="bg-paper/50 p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
+                            <div className="text-xs font-bold text-olive/70 uppercase tracking-widest mb-2 flex items-center gap-2"><Star className="w-4 h-4 text-ochre" /> Pareja</div>
+                            <div className="text-lg font-black text-olive mt-1 line-clamp-1 truncate">{parejaActual}</div>
                         </div>
-                        <div className="bg-neutral-950/50 p-5 rounded-3xl border border-neutral-800/60 hover:bg-neutral-900 transition-colors">
-                            <div className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2 flex items-center gap-2"><Trophy className="w-4 h-4 text-purple-400" /> Torneos</div>
-                            <div className="text-3xl font-black text-white">{numTorneos} <span className="text-sm text-neutral-500 font-normal uppercase">PJ</span></div>
+                        <div className="bg-paper/50 p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
+                            <div className="text-xs font-bold text-olive/70 uppercase tracking-widest mb-2 flex items-center gap-2"><Trophy className="w-4 h-4 text-purple-400" /> Torneos</div>
+                            <div className="text-3xl font-black text-ink">{numTorneos} <span className="text-sm text-olive/70 font-normal uppercase">PJ</span></div>
                         </div>
                     </div>
                 </div>
@@ -321,37 +321,37 @@ export default async function JugadorDashboard() {
                 {/* Next Matches */}
                 <div className="lg:col-span-2 space-y-6">
                     {proximoPartido ? (
-                        <Card className="bg-neutral-900 border-neutral-800 shadow-lg">
+                        <Card className="bg-paper-soft border-olive/20 shadow-lg">
                             <CardHeader className="pb-3 flex flex-row items-center justify-between">
                                 <div>
-                                    <CardTitle className="text-xl text-white">Próximo Partido</CardTitle>
-                                    <CardDescription className="text-neutral-400 mt-1 text-xs uppercase tracking-wider">{proximoPartido.tipo_partido}</CardDescription>
+                                    <CardTitle className="text-xl text-ink">Próximo Partido</CardTitle>
+                                    <CardDescription className="text-olive mt-1 text-xs uppercase tracking-wider">{proximoPartido.tipo_partido}</CardDescription>
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="bg-gradient-to-r from-neutral-950 to-neutral-900 p-5 rounded-2xl border border-neutral-800 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
-                                    <div className="absolute -right-4 -top-8 w-24 h-24 bg-emerald-500/5 blur-2xl rounded-full pointer-events-none" />
+                                <div className="bg-gradient-to-r from-neutral-950 to-neutral-900 p-5 rounded-2xl border border-olive/20 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+                                    <div className="absolute -right-4 -top-8 w-24 h-24 bg-olive/5 blur-2xl rounded-full pointer-events-none" />
 
                                     <div className="flex items-center gap-4 flex-1">
-                                        <div className="text-center w-24 shrink-0 border-r border-neutral-800 pr-4">
-                                            <div className="text-sm font-medium text-emerald-500">
+                                        <div className="text-center w-24 shrink-0 border-r border-olive/20 pr-4">
+                                            <div className="text-sm font-medium text-olive">
                                                 {new Date(proximoPartido.fecha).toLocaleDateString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', month: 'short', day: 'numeric' })}
                                             </div>
-                                            <div className="text-2xl font-black text-white tracking-tighter">
+                                            <div className="text-2xl font-black text-ink tracking-tighter">
                                                 {new Date(proximoPartido.fecha).toLocaleTimeString('es-CO', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit' })}
                                             </div>
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-lg text-white mb-1">{proximoPartido.lugar}</h3>
-                                            <div className="flex items-center text-sm text-neutral-400">
+                                            <h3 className="font-bold text-lg text-ink mb-1">{proximoPartido.lugar}</h3>
+                                            <div className="flex items-center text-sm text-olive">
                                                 <MapPin className="w-3 h-3 mr-1" /> Nivel {proximoPartido.nivel} • Faltan {proximoPartido.cupos_disponibles}
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="flex -space-x-2 shrink-0">
-                                        <Avatar className="border-2 border-neutral-900 w-10 h-10">
-                                            <AvatarFallback className="bg-emerald-900 text-white font-bold text-xs">Tú</AvatarFallback>
+                                        <Avatar className="border-2 border-olive/15 w-10 h-10">
+                                            <AvatarFallback className="bg-emerald-900 text-ink font-bold text-xs">Tú</AvatarFallback>
                                         </Avatar>
                                     </div>
                                 </div>
@@ -375,30 +375,30 @@ export default async function JugadorDashboard() {
                                                     const { confirmarResultadoTorneo } = await import("@/app/(dashboard)/torneos/match-actions");
                                                     await confirmarResultadoTorneo(proximoPartido.id, userData?.id || user.id);
                                                 }}>
-                                                    <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold">
+                                                    <Button className="w-full bg-blue-600 hover:bg-blue-500 text-ink font-bold">
                                                         Confirmar Marcador: {proximoPartido.resultado}
                                                     </Button>
                                                 </form>
                                             ) : (
-                                                <p className="text-[10px] text-neutral-500 text-center italic">Esperando confirmación del rival...</p>
+                                                <p className="text-[10px] text-olive/70 text-center italic">Esperando confirmación del rival...</p>
                                             )}
                                         </div>
                                     )}
 
-                                    <Button size="sm" variant="secondary" className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-0 w-full sm:w-auto self-end">
+                                    <Button size="sm" variant="secondary" className="bg-olive/20 text-olive hover:bg-olive/30 border-0 w-full sm:w-auto self-end">
                                         Ver Detalles
                                     </Button>
                                 </div>
                             </CardContent>
                         </Card>
                     ) : (
-                        <Card className="bg-neutral-900 border-neutral-800 shadow-lg border-dashed">
+                        <Card className="bg-paper-soft border-olive/20 shadow-lg border-dashed">
                             <CardContent className="flex flex-col items-center justify-center p-8 text-center h-48">
-                                <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center mb-4 text-emerald-500">
+                                <div className="w-12 h-12 rounded-full bg-paper-dark flex items-center justify-center mb-4 text-olive">
                                     <Calendar className="w-6 h-6" />
                                 </div>
-                                <h3 className="text-lg font-semibold text-white mb-2">No tienes partidos programados</h3>
-                                <p className="text-sm text-neutral-400 max-w-[250px] mb-4">
+                                <h3 className="text-lg font-semibold text-ink mb-2">No tienes partidos programados</h3>
+                                <p className="text-sm text-olive max-w-[250px] mb-4">
                                     ¿Listo para tu próximo desafío? Organiza o únete a un nuevo partido.
                                 </p>
                                 <OrganizarPartidoDialog userId={user.id} />
@@ -408,44 +408,44 @@ export default async function JugadorDashboard() {
 
                     {/* Partidos Abiertos Cerca */}
                     <div className="mt-8 flex items-center justify-between mb-4">
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                            <HistoryIcon className="w-5 h-5 text-emerald-500" />
+                        <h2 className="text-xl font-bold text-ink flex items-center gap-2">
+                            <HistoryIcon className="w-5 h-5 text-olive" />
                             Mi Historial
                         </h2>
-                        <Link href="/jugador/historial" className="text-sm font-medium text-emerald-500 hover:text-emerald-400 transition-colors flex items-center">
+                        <Link href="/jugador/historial" className="text-sm font-medium text-olive hover:text-olive transition-colors flex items-center">
                             Ver partidos jugados &rarr;
                         </Link>
                     </div>
 
                     <div className="mt-8 flex items-center justify-between mb-4">
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                            <Activity className="w-5 h-5 text-emerald-500" />
+                        <h2 className="text-xl font-bold text-ink flex items-center gap-2">
+                            <Activity className="w-5 h-5 text-olive" />
                             Partidos Abiertos de la Comunidad
                         </h2>
-                        <Link href="/partidos" className="text-sm font-medium text-emerald-500 hover:text-emerald-400 transition-colors flex items-center">
+                        <Link href="/partidos" className="text-sm font-medium text-olive hover:text-olive transition-colors flex items-center">
                             Explorar todo &rarr;
                         </Link>
                     </div>
                     {partidosAbiertos && partidosAbiertos.length > 0 ? (
                         <div className="space-y-4">
                             {partidosAbiertos.map((partido) => (
-                                <Card key={partido.id} className="bg-neutral-900 border-neutral-800 shadow-sm hover:border-neutral-700 transition-colors">
+                                <Card key={partido.id} className="bg-paper-soft border-olive/20 shadow-sm hover:border-olive/30 transition-colors">
                                     <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                         <div className="flex items-center gap-4 flex-1">
-                                            <div className="text-center w-20 shrink-0 border-r border-neutral-800 pr-4">
-                                                <div className="text-xs font-medium text-emerald-500">
+                                            <div className="text-center w-20 shrink-0 border-r border-olive/20 pr-4">
+                                                <div className="text-xs font-medium text-olive">
                                                     {new Date(partido.fecha).toLocaleDateString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', month: 'short', day: 'numeric' })}
                                                 </div>
-                                                <div className="text-xl font-black text-white tracking-tighter">
+                                                <div className="text-xl font-black text-ink tracking-tighter">
                                                     {new Date(partido.fecha).toLocaleTimeString('es-CO', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             </div>
                                             <div>
-                                                <h3 className="font-bold text-base text-white line-clamp-1">{partido.lugar}</h3>
-                                                <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-neutral-400">
+                                                <h3 className="font-bold text-base text-ink line-clamp-1">{partido.lugar}</h3>
+                                                <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-olive">
                                                     <span className="flex items-center"><MapPin className="w-3 h-3 mr-1" /> {partido.nivel}</span>
                                                     <span>•</span>
-                                                    <span className="text-amber-400 font-medium">Faltan {partido.cupos_disponibles} p.</span>
+                                                    <span className="text-ochre font-medium">Faltan {partido.cupos_disponibles} p.</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -457,9 +457,9 @@ export default async function JugadorDashboard() {
                             ))}
                         </div>
                     ) : (
-                        <Card className="bg-neutral-900 border-neutral-800/50 shadow-sm border-dashed">
+                        <Card className="bg-paper-soft border-olive/20 shadow-sm border-dashed">
                             <CardContent className="flex flex-col items-center justify-center p-6 text-center h-32">
-                                <p className="text-sm text-neutral-400">No hay partidos abiertos disponibles por ahora.</p>
+                                <p className="text-sm text-olive">No hay partidos abiertos disponibles por ahora.</p>
                             </CardContent>
                         </Card>
                     )}
@@ -467,11 +467,11 @@ export default async function JugadorDashboard() {
 
                 {/* Activity Feed */}
                 <div className="space-y-6">
-                    <Card className="bg-neutral-900 border-neutral-800 shadow-lg h-full">
+                    <Card className="bg-paper-soft border-olive/20 shadow-lg h-full">
                         <CardHeader className="pb-4 flex flex-row items-center justify-between">
                             <div>
-                                <CardTitle className="text-xl text-white">Novedades</CardTitle>
-                                <CardDescription className="text-neutral-400">
+                                <CardTitle className="text-xl text-ink">Novedades</CardTitle>
+                                <CardDescription className="text-olive">
                                     {followedClubIds.length > 0 ? "Noticias de tus clubes" : "Lo último en la comunidad"}
                                 </CardDescription>
                             </div>
@@ -481,26 +481,26 @@ export default async function JugadorDashboard() {
                             <ScrollArea className="h-[400px] px-5">
                                 <div className="space-y-5">
                                     {clubNews.length === 0 ? (
-                                        <p className="text-sm text-neutral-500 text-center mt-10">No hay noticias locales.</p>
+                                        <p className="text-sm text-olive/70 text-center mt-10">No hay noticias locales.</p>
                                     ) : (
                                         clubNews.map((news: { id: string, created_at: string, tipo: string, titulo: string, contenido: string, club_nombre: string }, idx: number) => {
                                             const isLast = idx === clubNews.length - 1;
                                             return (
                                                 <div key={news.id} className={`relative pl-6 ${!isLast ? 'pb-2' : ''}`}>
-                                                    {!isLast && <div className="absolute left-[3px] top-6 bottom-0 w-[2px] bg-neutral-800 rounded-full" />}
+                                                    {!isLast && <div className="absolute left-[3px] top-6 bottom-0 w-[2px] bg-paper-dark rounded-full" />}
                                                     <div className="absolute left-[-1px] top-1.5 w-2.5 h-2.5 rounded-full bg-blue-500 ring-4 ring-neutral-900" />
                                                     <div className="flex flex-col">
-                                                        <span className="text-xs text-neutral-500 mb-1">
+                                                        <span className="text-xs text-olive/70 mb-1">
                                                             {new Date(news.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
                                                         </span>
-                                                        <h4 className="text-sm text-white font-bold leading-tight line-clamp-2 mb-1">
+                                                        <h4 className="text-sm text-ink font-bold leading-tight line-clamp-2 mb-1">
                                                             <span className="text-blue-400 capitalize mr-1">[{news.tipo}]</span>
                                                             {news.titulo}
                                                         </h4>
-                                                        <p className="text-xs text-neutral-400 line-clamp-2">
+                                                        <p className="text-xs text-olive line-clamp-2">
                                                             {news.contenido}
                                                         </p>
-                                                        <span className="text-[10px] font-bold text-neutral-600 uppercase mt-2">{news.club_nombre}</span>
+                                                        <span className="text-[10px] font-bold text-olive/50 uppercase mt-2">{news.club_nombre}</span>
                                                     </div>
                                                 </div>
                                             );

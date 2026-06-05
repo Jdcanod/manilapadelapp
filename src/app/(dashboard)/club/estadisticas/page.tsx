@@ -122,18 +122,18 @@ export default async function EstadisticasClubPage({ searchParams }: { searchPar
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <Link href="/club" className="p-2 bg-neutral-900 border border-neutral-800 rounded-xl text-white hover:bg-neutral-800 transition-colors">
+                    <Link href="/club" className="p-2 bg-paper-soft border border-olive/20 rounded-xl text-ink hover:bg-paper-dark transition-colors">
                         <ChevronLeft className="w-5 h-5" />
                     </Link>
                     <div>
-                        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                            <BarChart3 className="w-6 h-6 text-emerald-500" />
+                        <h1 className="text-2xl font-bold text-ink flex items-center gap-2">
+                            <BarChart3 className="w-6 h-6 text-olive" />
                             Estadísticas del Club
                         </h1>
-                        <p className="text-neutral-500 text-sm">Análisis de rendimiento y actividad — {nombreClub}</p>
+                        <p className="text-olive/70 text-sm">Análisis de rendimiento y actividad — {nombreClub}</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 bg-neutral-900 p-1 rounded-xl border border-neutral-800 overflow-x-auto no-scrollbar">
+                <div className="flex items-center gap-2 bg-paper-soft p-1 rounded-xl border border-olive/20 overflow-x-auto no-scrollbar">
                     {[
                         { id: 'hoy', label: 'Hoy' },
                         { id: 'semana', label: 'Semana' },
@@ -145,8 +145,8 @@ export default async function EstadisticasClubPage({ searchParams }: { searchPar
                             href={`/club/estadisticas?range=${f.id}`}
                             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                                 range === f.id
-                                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                                    ? 'bg-olive text-paper shadow-lg shadow-emerald-500/20'
+                                    : 'text-olive hover:text-ink hover:bg-paper-dark'
                             }`}
                         >
                             {f.label}
@@ -157,29 +157,29 @@ export default async function EstadisticasClubPage({ searchParams }: { searchPar
 
             {/* KPIs principales */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="bg-neutral-900 border-neutral-800 overflow-hidden relative group">
+                <Card className="bg-paper-soft border-olive/20 overflow-hidden relative group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <TrendingUp className="w-14 h-14 text-emerald-500" />
+                        <TrendingUp className="w-14 h-14 text-olive" />
                     </div>
                     <CardHeader className="pb-1 pt-4 px-4">
-                        <CardDescription className="text-neutral-500 font-medium text-xs">Partidos Jugados</CardDescription>
-                        <CardTitle className="text-4xl font-black text-white">{totalPartidos}</CardTitle>
+                        <CardDescription className="text-olive/70 font-medium text-xs">Partidos Jugados</CardDescription>
+                        <CardTitle className="text-4xl font-black text-ink">{totalPartidos}</CardTitle>
                     </CardHeader>
                     <CardContent className="pb-4 px-4">
-                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px]">
+                        <Badge variant="outline" className="bg-olive/10 text-olive border-olive/20 text-[10px]">
                             Total finalizados
                         </Badge>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-neutral-900 border-neutral-800 overflow-hidden relative group">
+                <Card className="bg-paper-soft border-olive/20 overflow-hidden relative group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <Clock className="w-14 h-14 text-blue-500" />
                     </div>
                     <CardHeader className="pb-1 pt-4 px-4">
-                        <CardDescription className="text-neutral-500 font-medium text-xs">Tiempo en Cancha</CardDescription>
-                        <CardTitle className="text-4xl font-black text-white">
-                            {horasTotales}h <span className="text-lg text-neutral-500">{minutosRestantes}m</span>
+                        <CardDescription className="text-olive/70 font-medium text-xs">Tiempo en Cancha</CardDescription>
+                        <CardTitle className="text-4xl font-black text-ink">
+                            {horasTotales}h <span className="text-lg text-olive/70">{minutosRestantes}m</span>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="pb-4 px-4">
@@ -189,30 +189,30 @@ export default async function EstadisticasClubPage({ searchParams }: { searchPar
                     </CardContent>
                 </Card>
 
-                <Card className="bg-neutral-900 border-neutral-800 overflow-hidden relative group">
+                <Card className="bg-paper-soft border-olive/20 overflow-hidden relative group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <CalendarIcon className="w-14 h-14 text-amber-500" />
+                        <CalendarIcon className="w-14 h-14 text-ochre-dark" />
                     </div>
                     <CardHeader className="pb-1 pt-4 px-4">
-                        <CardDescription className="text-neutral-500 font-medium text-xs">Promedio Diario</CardDescription>
-                        <CardTitle className="text-4xl font-black text-white">
+                        <CardDescription className="text-olive/70 font-medium text-xs">Promedio Diario</CardDescription>
+                        <CardTitle className="text-4xl font-black text-ink">
                             {(totalPartidos / rangeDivisor).toFixed(1)}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="pb-4 px-4">
-                        <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[10px]">
+                        <Badge variant="outline" className="bg-ochre/10 text-ochre-dark border-ochre/20 text-[10px]">
                             Partidos por día
                         </Badge>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-neutral-900 border-neutral-800 overflow-hidden relative group">
+                <Card className="bg-paper-soft border-olive/20 overflow-hidden relative group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <Trophy className="w-14 h-14 text-purple-500" />
                     </div>
                     <CardHeader className="pb-1 pt-4 px-4">
-                        <CardDescription className="text-neutral-500 font-medium text-xs">Torneos Creados</CardDescription>
-                        <CardTitle className="text-4xl font-black text-white">{(torneos || []).length}</CardTitle>
+                        <CardDescription className="text-olive/70 font-medium text-xs">Torneos Creados</CardDescription>
+                        <CardTitle className="text-4xl font-black text-ink">{(torneos || []).length}</CardTitle>
                     </CardHeader>
                     <CardContent className="pb-4 px-4">
                         <Badge variant="outline" className="bg-purple-500/10 text-purple-500 border-purple-500/20 text-[10px]">
@@ -225,14 +225,14 @@ export default async function EstadisticasClubPage({ searchParams }: { searchPar
             {/* Hora pico + Día pico callout */}
             {totalPartidos > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Card className="bg-emerald-500/5 border-emerald-500/20 p-4 flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
-                            <Clock className="w-5 h-5 text-emerald-400" />
+                    <Card className="bg-olive/5 border-olive/20 p-4 flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-olive/15 flex items-center justify-center flex-shrink-0">
+                            <Clock className="w-5 h-5 text-olive" />
                         </div>
                         <div>
-                            <p className="text-xs text-neutral-400 font-medium">Hora pico de juego</p>
-                            <p className="text-2xl font-black text-white">{horaPico[0]}:00h</p>
-                            <p className="text-xs text-emerald-400">{horaPico[1]} partidos en este slot</p>
+                            <p className="text-xs text-olive font-medium">Hora pico de juego</p>
+                            <p className="text-2xl font-black text-ink">{horaPico[0]}:00h</p>
+                            <p className="text-xs text-olive">{horaPico[1]} partidos en este slot</p>
                         </div>
                     </Card>
                     <Card className="bg-blue-500/5 border-blue-500/20 p-4 flex items-center gap-4">
@@ -240,8 +240,8 @@ export default async function EstadisticasClubPage({ searchParams }: { searchPar
                             <CalendarIcon className="w-5 h-5 text-blue-400" />
                         </div>
                         <div>
-                            <p className="text-xs text-neutral-400 font-medium">Día más activo</p>
-                            <p className="text-2xl font-black text-white">{diasSemana[parseInt(diaPico[0])]}</p>
+                            <p className="text-xs text-olive font-medium">Día más activo</p>
+                            <p className="text-2xl font-black text-ink">{diasSemana[parseInt(diaPico[0])]}</p>
                             <p className="text-xs text-blue-400">{diaPico[1]} partidos jugados</p>
                         </div>
                     </Card>
@@ -251,17 +251,17 @@ export default async function EstadisticasClubPage({ searchParams }: { searchPar
             {/* Gráficos */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Horas pico */}
-                <Card className="bg-neutral-900 border-neutral-800">
+                <Card className="bg-paper-soft border-olive/20">
                     <CardHeader>
-                        <CardTitle className="text-lg text-white font-bold flex items-center gap-2">
-                            <Clock className="w-5 h-5 text-emerald-500" />
+                        <CardTitle className="text-lg text-ink font-bold flex items-center gap-2">
+                            <Clock className="w-5 h-5 text-olive" />
                             Horas de Mayor Actividad
                         </CardTitle>
                         <CardDescription>Frecuencia de partidos por hora del día.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {totalPartidos === 0 ? (
-                            <div className="h-64 flex items-center justify-center text-neutral-600 flex-col gap-2">
+                            <div className="h-64 flex items-center justify-center text-olive/50 flex-col gap-2">
                                 <Target className="w-10 h-10 opacity-30" />
                                 <p className="text-sm">Sin datos para el período seleccionado</p>
                             </div>
@@ -271,17 +271,17 @@ export default async function EstadisticasClubPage({ searchParams }: { searchPar
                                     <div key={hora} className="flex-1 flex flex-col items-center gap-2 group">
                                         <div className="relative w-full flex flex-col items-center" style={{ height: '200px' }}>
                                             <div
-                                                className="absolute bottom-0 w-full bg-gradient-to-t from-emerald-500/20 to-emerald-500 rounded-t-sm sm:rounded-t-md transition-all duration-500 group-hover:to-emerald-400 group-hover:shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                                                className="absolute bottom-0 w-full bg-gradient-to-t from-olive/20 to-olive rounded-t-sm sm:rounded-t-md transition-all duration-500 group-hover:to-emerald-400 group-hover:shadow-[0_0_15px_rgba(16,185,129,0.3)]"
                                                 style={{ height: `${(count / maxHora) * 100}%`, minHeight: count > 0 ? '4px' : '0' }}
                                             >
                                                 {count > 0 && (
-                                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-neutral-950 px-1 rounded">
+                                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-olive opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-paper px-1 rounded">
                                                         {count}
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
-                                        <span className="text-[9px] text-neutral-500 font-medium">
+                                        <span className="text-[9px] text-olive/70 font-medium">
                                             {hora}h
                                         </span>
                                     </div>
@@ -292,9 +292,9 @@ export default async function EstadisticasClubPage({ searchParams }: { searchPar
                 </Card>
 
                 {/* Días pico */}
-                <Card className="bg-neutral-900 border-neutral-800">
+                <Card className="bg-paper-soft border-olive/20">
                     <CardHeader>
-                        <CardTitle className="text-lg text-white font-bold flex items-center gap-2">
+                        <CardTitle className="text-lg text-ink font-bold flex items-center gap-2">
                             <CalendarIcon className="w-5 h-5 text-blue-500" />
                             Días de Mayor Actividad
                         </CardTitle>
@@ -302,7 +302,7 @@ export default async function EstadisticasClubPage({ searchParams }: { searchPar
                     </CardHeader>
                     <CardContent>
                         {totalPartidos === 0 ? (
-                            <div className="h-64 flex items-center justify-center text-neutral-600 flex-col gap-2">
+                            <div className="h-64 flex items-center justify-center text-olive/50 flex-col gap-2">
                                 <Target className="w-10 h-10 opacity-30" />
                                 <p className="text-sm">Sin datos para el período seleccionado</p>
                             </div>
@@ -316,13 +316,13 @@ export default async function EstadisticasClubPage({ searchParams }: { searchPar
                                                 style={{ height: `${(count / maxDia) * 100}%`, minHeight: count > 0 ? '4px' : '0' }}
                                             >
                                                 {count > 0 && (
-                                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity bg-neutral-950 px-1 rounded">
+                                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity bg-paper px-1 rounded">
                                                         {count}
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
-                                        <span className="text-xs text-neutral-500 font-bold uppercase tracking-tighter">
+                                        <span className="text-xs text-olive/70 font-bold uppercase tracking-tighter">
                                             {diasSemana[parseInt(dia)]}
                                         </span>
                                     </div>
@@ -335,10 +335,10 @@ export default async function EstadisticasClubPage({ searchParams }: { searchPar
 
             {/* Torneos más populares */}
             {inscripcionesPorTorneo.length > 0 && (
-                <Card className="bg-neutral-900 border-neutral-800">
+                <Card className="bg-paper-soft border-olive/20">
                     <CardHeader>
-                        <CardTitle className="text-lg text-white font-bold flex items-center gap-2">
-                            <Trophy className="w-5 h-5 text-amber-500" />
+                        <CardTitle className="text-lg text-ink font-bold flex items-center gap-2">
+                            <Trophy className="w-5 h-5 text-ochre-dark" />
                             Torneos por Inscripciones
                         </CardTitle>
                         <CardDescription>Ranking de participación en tus torneos.</CardDescription>
@@ -348,18 +348,18 @@ export default async function EstadisticasClubPage({ searchParams }: { searchPar
                             <div key={i} className="space-y-1.5">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                                        <span className="text-xs font-black text-neutral-600 w-4">{i + 1}</span>
-                                        <span className="text-sm text-white font-medium truncate">{t.nombre}</span>
-                                        <Badge variant="outline" className="text-[9px] border-neutral-700 text-neutral-500 capitalize flex-shrink-0">
+                                        <span className="text-xs font-black text-olive/50 w-4">{i + 1}</span>
+                                        <span className="text-sm text-ink font-medium truncate">{t.nombre}</span>
+                                        <Badge variant="outline" className="text-[9px] border-olive/30 text-olive/70 capitalize flex-shrink-0">
                                             {t.formato}
                                         </Badge>
                                     </div>
                                     <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                                        <span className="text-sm font-black text-white">{t.count}</span>
-                                        <Users className="w-3.5 h-3.5 text-neutral-500" />
+                                        <span className="text-sm font-black text-ink">{t.count}</span>
+                                        <Users className="w-3.5 h-3.5 text-olive/70" />
                                     </div>
                                 </div>
-                                <div className="h-2 bg-neutral-800 rounded-full overflow-hidden">
+                                <div className="h-2 bg-paper-dark rounded-full overflow-hidden">
                                     <div
                                         className="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full transition-all duration-700"
                                         style={{ width: `${(t.count / maxInscripciones) * 100}%` }}

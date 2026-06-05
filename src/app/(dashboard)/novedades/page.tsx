@@ -129,15 +129,15 @@ export default async function NovedadesPage() {
         <div className="space-y-6 max-w-5xl mx-auto h-full flex flex-col pt-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
                 <div>
-                    <h1 className="text-4xl font-black tracking-tight text-white flex items-center gap-3">
-                        <Activity className="w-8 h-8 text-emerald-500" />
+                    <h1 className="text-4xl font-black tracking-tight text-ink flex items-center gap-3">
+                        <Activity className="w-8 h-8 text-olive" />
                         Feed Social
                     </h1>
-                    <p className="text-neutral-400 mt-2 text-lg">Actividad de la comunidad, torneos, avisos y partidos recientes.</p>
+                    <p className="text-olive mt-2 text-lg">Actividad de la comunidad, torneos, avisos y partidos recientes.</p>
                 </div>
             </div>
 
-            <div className="flex-1 w-full bg-neutral-950 rounded-2xl p-4 md:p-6 border border-neutral-800">
+            <div className="flex-1 w-full bg-paper rounded-2xl p-4 md:p-6 border border-olive/20">
                 {/* We pass the interleaved feed to a generic list component */}
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <NovedadesList feed={feed as any} currentUserId={myUserId} />

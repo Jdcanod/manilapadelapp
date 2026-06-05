@@ -163,13 +163,13 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                     <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center">
                         {/* Club Local */}
                         <div className="text-right">
-                            <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Local</p>
-                            <h3 className="text-lg sm:text-2xl font-black text-white uppercase tracking-tight leading-tight">
+                            <p className="text-[10px] font-black text-olive uppercase tracking-widest mb-1">Local</p>
+                            <h3 className="text-lg sm:text-2xl font-black text-ink uppercase tracking-tight leading-tight">
                                 {clubLocal.nombre}
                             </h3>
                             <p className={cn(
                                 "text-5xl sm:text-6xl font-black mt-2 leading-none",
-                                scoreboard.local > scoreboard.rival ? "text-emerald-400" : "text-neutral-400"
+                                scoreboard.local > scoreboard.rival ? "text-olive" : "text-olive"
                             )}>
                                 {scoreboard.local}
                             </p>
@@ -184,12 +184,12 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                         {/* Club Rival */}
                         <div>
                             <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-1">Visitante</p>
-                            <h3 className="text-lg sm:text-2xl font-black text-white uppercase tracking-tight leading-tight">
+                            <h3 className="text-lg sm:text-2xl font-black text-ink uppercase tracking-tight leading-tight">
                                 {clubRival.nombre}
                             </h3>
                             <p className={cn(
                                 "text-5xl sm:text-6xl font-black mt-2 leading-none",
-                                scoreboard.rival > scoreboard.local ? "text-purple-400" : "text-neutral-400"
+                                scoreboard.rival > scoreboard.local ? "text-purple-400" : "text-olive"
                             )}>
                                 {scoreboard.rival}
                             </p>
@@ -197,15 +197,15 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                     </div>
 
                     {/* Resumen */}
-                    <div className="mt-5 pt-4 border-t border-neutral-800 flex items-center justify-between flex-wrap gap-3 text-[10px] uppercase tracking-widest font-bold">
+                    <div className="mt-5 pt-4 border-t border-olive/20 flex items-center justify-between flex-wrap gap-3 text-[10px] uppercase tracking-widest font-bold">
                         <div className="flex items-center gap-4">
-                            <span className="text-neutral-500">Total: <span className="text-white">{scoreboard.total}</span></span>
-                            <span className="text-emerald-400">Confirmados: {scoreboard.jugados}</span>
-                            {scoreboard.pendientes > 0 && <span className="text-amber-400">Por confirmar: {scoreboard.pendientes}</span>}
+                            <span className="text-olive/70">Total: <span className="text-ink">{scoreboard.total}</span></span>
+                            <span className="text-olive">Confirmados: {scoreboard.jugados}</span>
+                            {scoreboard.pendientes > 0 && <span className="text-ochre">Por confirmar: {scoreboard.pendientes}</span>}
                             {scoreboard.sinResultado > 0 && <span className="text-blue-400">Sin score: {scoreboard.sinResultado}</span>}
                         </div>
                         {ganadorActual && (
-                            <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                            <Badge className="bg-ochre/20 text-ochre-soft border border-ochre/40">
                                 <Trophy className="w-3 h-3 mr-1" /> Va ganando {ganadorActual}
                             </Badge>
                         )}
@@ -227,11 +227,11 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
             {/* Header con botón añadir */}
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-ink flex items-center gap-2">
                         <Swords className="w-5 h-5 text-purple-400" />
                         Partidos
                     </h3>
-                    <p className="text-xs text-neutral-500 mt-0.5">
+                    <p className="text-xs text-olive/70 mt-0.5">
                         Crea partidos a la bolsa (sin parejas, sin fecha). Después arrástralos al cronograma y cada club asigna su pareja (1, 2 o 3 puntos).
                     </p>
                 </div>
@@ -246,11 +246,11 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
 
             {/* Partidos agrupados por categoría */}
             {grupos.length === 0 ? (
-                <Card className="bg-neutral-900 border-neutral-800 border-dashed">
+                <Card className="bg-paper-soft border-olive/20 border-dashed">
                     <CardContent className="py-16 text-center">
                         <Swords className="w-14 h-14 mx-auto mb-4 text-neutral-800" />
-                        <p className="text-neutral-300 font-semibold">Aún no hay partidos creados</p>
-                        <p className="text-neutral-600 text-sm mt-1">Usa <span className="text-purple-400 font-bold">+ Añadir Partido</span> para empezar.</p>
+                        <p className="text-ink font-semibold">Aún no hay partidos creados</p>
+                        <p className="text-olive/50 text-sm mt-1">Usa <span className="text-purple-400 font-bold">+ Añadir Partido</span> para empezar.</p>
                     </CardContent>
                 </Card>
             ) : (
@@ -260,23 +260,23 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                         const rivalPtsCat = ps.reduce((acc, p) => acc + (getWinner(p.resultado) === 2 ? (p.puntos_partido || 0) : 0), 0);
                         const confirmados = ps.filter(p => p.estado_resultado === 'confirmado').length;
                         return (
-                            <details key={cat} className="group bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden">
-                                <summary className="px-5 py-3 border-b border-neutral-800 flex items-center justify-between cursor-pointer hover:bg-neutral-800/40 transition-colors list-none [&::-webkit-details-marker]:hidden">
+                            <details key={cat} className="group bg-paper-soft border border-olive/20 rounded-lg overflow-hidden">
+                                <summary className="px-5 py-3 border-b border-olive/20 flex items-center justify-between cursor-pointer hover:bg-paper-dark/40 transition-colors list-none [&::-webkit-details-marker]:hidden">
                                     <div className="flex items-center gap-3">
-                                        <ChevronDown className="w-4 h-4 text-neutral-500 group-open:rotate-180 transition-transform" />
-                                        <h4 className="text-sm font-black text-white uppercase tracking-widest">{cat}</h4>
-                                        <Badge variant="outline" className="text-[10px] border-neutral-700 text-neutral-400">
+                                        <ChevronDown className="w-4 h-4 text-olive/70 group-open:rotate-180 transition-transform" />
+                                        <h4 className="text-sm font-black text-ink uppercase tracking-widest">{cat}</h4>
+                                        <Badge variant="outline" className="text-[10px] border-olive/30 text-olive">
                                             {ps.length} partido{ps.length !== 1 ? 's' : ''}
                                         </Badge>
                                         {confirmados > 0 && (
-                                            <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-400 bg-emerald-500/5">
+                                            <Badge variant="outline" className="text-[10px] border-olive/30 text-olive bg-olive/5">
                                                 {confirmados}/{ps.length} jugados
                                             </Badge>
                                         )}
                                     </div>
                                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
-                                        <span className="text-emerald-400">{localPtsCat}</span>
-                                        <span className="text-neutral-700">·</span>
+                                        <span className="text-olive">{localPtsCat}</span>
+                                        <span className="text-olive/40">·</span>
                                         <span className="text-purple-400">{rivalPtsCat}</span>
                                     </div>
                                 </summary>
@@ -294,26 +294,26 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                                             return (
                                                 <div key={p.id} className={cn(
                                                     "px-5 py-4 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-center",
-                                                    isConfirmed && "bg-neutral-950/40"
+                                                    isConfirmed && "bg-paper/40"
                                                 )}>
                                                     <div className="space-y-1.5 min-w-0">
                                                         {/* Header chip */}
                                                         <div className="flex items-center gap-2 flex-wrap">
-                                                            <Badge variant="outline" className="text-[9px] font-black border-neutral-700 text-neutral-300 bg-neutral-950 h-4 px-1.5">
+                                                            <Badge variant="outline" className="text-[9px] font-black border-olive/30 text-ink bg-paper h-4 px-1.5">
                                                                 {cat} · Partido {numeroPartido}/{ps.length}
                                                             </Badge>
                                                             <Badge className={cn(
                                                                 "text-[9px] font-black border h-4 px-1.5",
                                                                 p.puntos_partido === 3
-                                                                    ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
+                                                                    ? "bg-ochre/15 border-ochre/40 text-ochre-soft"
                                                                     : p.puntos_partido === 2
                                                                         ? "bg-purple-500/15 border-purple-500/40 text-purple-300"
-                                                                        : "bg-neutral-800 border-neutral-700 text-neutral-300"
+                                                                        : "bg-paper-dark border-olive/30 text-ink"
                                                             )}>
                                                                 {p.puntos_partido || 0} pt{(p.puntos_partido || 0) !== 1 ? 's' : ''}
                                                             </Badge>
                                                             {isConfirmed && (
-                                                                <Badge variant="outline" className="text-[9px] border-emerald-500/40 text-emerald-300 bg-emerald-500/10 px-1.5 py-0 h-4 flex items-center gap-1">
+                                                                <Badge variant="outline" className="text-[9px] border-olive/40 text-olive/80 bg-olive/10 px-1.5 py-0 h-4 flex items-center gap-1">
                                                                     <Check className="w-2.5 h-2.5" /> Confirmado
                                                                 </Badge>
                                                             )}
@@ -321,14 +321,14 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
 
                                                         {/* Parejas */}
                                                         <div className="flex items-baseline gap-2 flex-wrap text-sm font-bold">
-                                                            <span className={cn(winner === 1 ? "text-emerald-400" : "text-white")}>{p1Display}</span>
-                                                            <span className="text-[10px] text-neutral-600">vs</span>
-                                                            <span className={cn(winner === 2 ? "text-purple-400" : "text-white")}>{p2Display}</span>
+                                                            <span className={cn(winner === 1 ? "text-olive" : "text-ink")}>{p1Display}</span>
+                                                            <span className="text-[10px] text-olive/50">vs</span>
+                                                            <span className={cn(winner === 2 ? "text-purple-400" : "text-ink")}>{p2Display}</span>
                                                         </div>
 
                                                         {/* Resultado */}
                                                         {p.resultado && (
-                                                            <span className="font-mono font-bold text-sm border px-2 py-0.5 rounded inline-block text-emerald-400 bg-emerald-500/5 border-emerald-500/20">
+                                                            <span className="font-mono font-bold text-sm border px-2 py-0.5 rounded inline-block text-olive bg-olive/5 border-olive/20">
                                                                 {p.resultado}
                                                             </span>
                                                         )}
@@ -372,7 +372,7 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                                                                     });
                                                                 }}
                                                                 disabled={pending}
-                                                                className="h-8 px-2 border-neutral-700 text-neutral-400 hover:text-white"
+                                                                className="h-8 px-2 border-olive/30 text-olive hover:text-ink"
                                                             >
                                                                 Reiniciar
                                                             </Button>
@@ -388,7 +388,7 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                                                                     });
                                                                 }}
                                                                 disabled={pending}
-                                                                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-8 px-3"
+                                                                className="bg-olive hover:bg-olive text-paper font-bold h-8 px-3"
                                                             >
                                                                 <Check className="w-3 h-3 mr-1" /> Confirmar
                                                             </Button>
@@ -398,7 +398,7 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                                                             variant="ghost"
                                                             onClick={() => handleDelete(p.id)}
                                                             disabled={pending && deletingId === p.id}
-                                                            className="text-neutral-500 hover:text-red-400 hover:bg-red-500/10 h-8 w-8 p-0"
+                                                            className="text-olive/70 hover:text-red-400 hover:bg-red-500/10 h-8 w-8 p-0"
                                                         >
                                                             {pending && deletingId === p.id
                                                                 ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -469,25 +469,25 @@ function ParejasInscritasSection({
         color: 'emerald' | 'purple',
         list: InscripcionCopa[],
     ) => (
-        <Card className="bg-neutral-900 border-neutral-800">
+        <Card className="bg-paper-soft border-olive/20">
             <CardContent className="p-0">
                 <div className={cn(
-                    "px-4 py-3 border-b border-neutral-800 flex items-center justify-between",
-                    color === 'emerald' ? "bg-emerald-500/5" : "bg-purple-500/5"
+                    "px-4 py-3 border-b border-olive/20 flex items-center justify-between",
+                    color === 'emerald' ? "bg-olive/5" : "bg-purple-500/5"
                 )}>
                     <div className="flex items-center gap-2">
-                        <Users className={cn("w-4 h-4", color === 'emerald' ? "text-emerald-400" : "text-purple-400")} />
-                        <span className="text-xs font-black uppercase tracking-widest text-white">{titulo}</span>
+                        <Users className={cn("w-4 h-4", color === 'emerald' ? "text-olive" : "text-purple-400")} />
+                        <span className="text-xs font-black uppercase tracking-widest text-ink">{titulo}</span>
                     </div>
                     <Badge variant="outline" className={cn(
                         "text-[10px] font-black",
-                        color === 'emerald' ? "border-emerald-500/40 text-emerald-300" : "border-purple-500/40 text-purple-300"
+                        color === 'emerald' ? "border-olive/40 text-olive/80" : "border-purple-500/40 text-purple-300"
                     )}>
                         {list.length}
                     </Badge>
                 </div>
                 {list.length === 0 ? (
-                    <div className="px-4 py-6 text-center text-xs text-neutral-600">
+                    <div className="px-4 py-6 text-center text-xs text-olive/50">
                         Aún no hay parejas inscritas para este club.
                     </div>
                 ) : (
@@ -501,9 +501,9 @@ function ParejasInscritasSection({
                             return (
                                 <div key={ins.id} className="px-4 py-2.5 flex items-center justify-between gap-3">
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-bold text-white truncate">{display}</p>
+                                        <p className="text-sm font-bold text-ink truncate">{display}</p>
                                         {ins.categoria && (
-                                            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">
+                                            <span className="text-[10px] font-bold text-olive/70 uppercase tracking-widest">
                                                 {ins.categoria}
                                             </span>
                                         )}
@@ -513,7 +513,7 @@ function ParejasInscritasSection({
                                         variant="ghost"
                                         onClick={() => handleDelete(ins.id)}
                                         disabled={pending && deletingId === ins.id}
-                                        className="text-neutral-600 hover:text-red-400 hover:bg-red-500/10 h-7 w-7 p-0 flex-shrink-0"
+                                        className="text-olive/50 hover:text-red-400 hover:bg-red-500/10 h-7 w-7 p-0 flex-shrink-0"
                                     >
                                         {pending && deletingId === ins.id
                                             ? <Loader2 className="w-3 h-3 animate-spin" />
@@ -532,11 +532,11 @@ function ParejasInscritasSection({
         <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        <Users className="w-5 h-5 text-emerald-400" />
+                    <h3 className="text-lg font-bold text-ink flex items-center gap-2">
+                        <Users className="w-5 h-5 text-olive" />
                         Parejas Inscritas
                     </h3>
-                    <p className="text-xs text-neutral-500 mt-0.5">
+                    <p className="text-xs text-olive/70 mt-0.5">
                         Inscribe las parejas asignándoles club y categoría. Luego en <strong className="text-purple-400">Añadir Partido</strong> aparecerán para emparejarlas.
                     </p>
                 </div>
@@ -551,24 +551,24 @@ function ParejasInscritasSection({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {renderColumn(miClub.nombre, miColor, misInscripciones)}
                 {/* Columna del rival oculta — preserva la intriga */}
-                <Card className="bg-neutral-900 border-neutral-800 border-dashed">
+                <Card className="bg-paper-soft border-olive/20 border-dashed">
                     <CardContent className="p-0">
                         <div className={cn(
-                            "px-4 py-3 border-b border-neutral-800 flex items-center justify-between",
-                            otroColor === 'emerald' ? "bg-emerald-500/5" : "bg-purple-500/5"
+                            "px-4 py-3 border-b border-olive/20 flex items-center justify-between",
+                            otroColor === 'emerald' ? "bg-olive/5" : "bg-purple-500/5"
                         )}>
                             <div className="flex items-center gap-2">
-                                <Users className={cn("w-4 h-4", otroColor === 'emerald' ? "text-emerald-400" : "text-purple-400")} />
-                                <span className="text-xs font-black uppercase tracking-widest text-white">{otroClub.nombre}</span>
+                                <Users className={cn("w-4 h-4", otroColor === 'emerald' ? "text-olive" : "text-purple-400")} />
+                                <span className="text-xs font-black uppercase tracking-widest text-ink">{otroClub.nombre}</span>
                             </div>
-                            <Badge variant="outline" className="text-[10px] font-black border-neutral-700 text-neutral-500">
+                            <Badge variant="outline" className="text-[10px] font-black border-olive/30 text-olive/70">
                                 🤫
                             </Badge>
                         </div>
-                        <div className="px-4 py-8 text-center text-xs text-neutral-500 space-y-1.5">
+                        <div className="px-4 py-8 text-center text-xs text-olive/70 space-y-1.5">
                             <p className="text-2xl">🎭</p>
-                            <p className="font-semibold text-neutral-400">Parejas ocultas</p>
-                            <p className="text-[10px] text-neutral-600">
+                            <p className="font-semibold text-olive">Parejas ocultas</p>
+                            <p className="text-[10px] text-olive/50">
                                 Las parejas del club rival se revelan 30 min antes de cada partido para mantener la intriga.
                             </p>
                         </div>

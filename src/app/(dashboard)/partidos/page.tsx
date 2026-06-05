@@ -257,8 +257,8 @@ export default async function PartidosPage() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white mb-1">Partidos</h1>
-                    <p className="text-neutral-400">Encuentra y organiza tus encuentros en Manizales.</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-ink mb-1">Partidos</h1>
+                    <p className="text-olive">Encuentra y organiza tus encuentros en Manizales.</p>
                 </div>
                 <div className="w-full sm:w-auto">
                     <OrganizarPartidoDialog userId={user.id} />
@@ -266,14 +266,14 @@ export default async function PartidosPage() {
             </div>
 
             <Tabs defaultValue="buscar" className="w-full">
-                <TabsList className="bg-neutral-900 border border-neutral-800 p-1 w-full sm:w-auto mb-6">
-                    <TabsTrigger value="buscar" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
+                <TabsList className="bg-paper-soft border border-olive/20 p-1 w-full sm:w-auto mb-6">
+                    <TabsTrigger value="buscar" className="data-[state=active]:bg-paper-dark flex-1 sm:flex-none">
                         Buscar Partidos
                     </TabsTrigger>
-                    <TabsTrigger value="mis-partidos" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
+                    <TabsTrigger value="mis-partidos" className="data-[state=active]:bg-paper-dark flex-1 sm:flex-none">
                         Mis Partidos
                         {allMyEntries.length > 0 && (
-                            <Badge variant="secondary" className="ml-2 bg-emerald-500 text-white hover:bg-emerald-600">
+                            <Badge variant="secondary" className="ml-2 bg-olive text-paper hover:bg-olive">
                                 {allMyEntries.length}
                             </Badge>
                         )}
@@ -282,64 +282,64 @@ export default async function PartidosPage() {
 
                 <TabsContent value="buscar" className="space-y-4">
                     {!partidosReales || partidosReales.length === 0 ? (
-                        <div className="text-center py-12 text-neutral-500 border border-neutral-800 border-dashed rounded-xl bg-neutral-900/30">
+                        <div className="text-center py-12 text-olive/70 border border-olive/20 border-dashed rounded-xl bg-paper-soft/30">
                             No hay partidos abiertos en este momento. ¡Sé el primero en organizar uno!
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                             {partidosReales.map((match) => (
-                                <Card key={match.id} className="bg-neutral-900 border-neutral-800 hover:border-neutral-700 transition-colors">
+                                <Card key={match.id} className="bg-paper-soft border-olive/20 hover:border-olive/30 transition-colors">
                                     <CardContent className="p-5">
                                         <div className="flex justify-between items-start mb-4 gap-4">
                                             <div className="flex-1">
                                                 <Badge variant="outline" className="text-blue-400 border-blue-400/30 bg-blue-400/10 mb-2">
                                                     {match.tipo_partido} - {match.sexo}
                                                 </Badge>
-                                                <Badge variant="outline" className="ml-2 text-emerald-400 border-emerald-400/30 bg-emerald-400/10 mb-2">
+                                                <Badge variant="outline" className="ml-2 text-olive border-olive/30 bg-olive-light/10 mb-2">
                                                     Nivel: {match.nivel}
                                                 </Badge>
-                                                <h3 className="text-lg font-bold text-white mb-1 leading-tight">{match.lugar}</h3>
-                                                <div className="flex items-center text-sm text-neutral-400 font-medium mt-2">
-                                                    <Calendar className="w-4 h-4 mr-2 text-emerald-500" />
+                                                <h3 className="text-lg font-bold text-ink mb-1 leading-tight">{match.lugar}</h3>
+                                                <div className="flex items-center text-sm text-olive font-medium mt-2">
+                                                    <Calendar className="w-4 h-4 mr-2 text-olive" />
                                                     {new Date(match.fecha).toLocaleString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             </div>
-                                            <div className="text-right shrink-0 bg-neutral-950 px-4 py-2 rounded-xl border border-neutral-800">
-                                                <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-0.5">Faltan</div>
-                                                <div className="text-3xl font-black text-amber-500 leading-none">{match.cupos_disponibles}</div>
-                                                <div className="text-[10px] text-neutral-600 mt-1 uppercase">Jugadores</div>
+                                            <div className="text-right shrink-0 bg-paper px-4 py-2 rounded-xl border border-olive/20">
+                                                <div className="text-[10px] text-olive/70 uppercase tracking-wider mb-0.5">Faltan</div>
+                                                <div className="text-3xl font-black text-ochre-dark leading-none">{match.cupos_disponibles}</div>
+                                                <div className="text-[10px] text-olive/50 mt-1 uppercase">Jugadores</div>
                                             </div>
                                         </div>
 
-                                        <div className="flex flex-col xl:flex-row xl:items-center justify-between mt-6 pt-4 border-t border-neutral-800 gap-4">
+                                        <div className="flex flex-col xl:flex-row xl:items-center justify-between mt-6 pt-4 border-t border-olive/20 gap-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="flex -space-x-2 shrink-0">
-                                                    <Avatar className="border-2 border-neutral-900 w-8 h-8">
-                                                        <AvatarFallback className="bg-neutral-800 text-xs text-white">
+                                                    <Avatar className="border-2 border-olive/15 w-8 h-8">
+                                                        <AvatarFallback className="bg-paper-dark text-xs text-ink">
                                                             {match.creador?.nombre ? match.creador.nombre.substring(0, 2).toUpperCase() : "CR"}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                 </div>
-                                                <span className="text-xs text-neutral-400 line-clamp-2">
+                                                <span className="text-xs text-olive line-clamp-2">
                                                     Creado por {match.creador?.nombre || 'Jugador'}
                                                 </span>
                                             </div>
 
                                             <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full xl:w-auto xl:justify-end">
-                                                <span className="text-sm font-bold text-neutral-300">
+                                                <span className="text-sm font-bold text-ink">
                                                     {match.precio_por_persona > 0 ? `$${match.precio_por_persona}` : 'Gratis'}
                                                 </span>
                                                 <DetallePartidoDialog
                                                     partido={match}
                                                     trigger={
-                                                        <Button variant="outline" className="border-neutral-700 hover:bg-neutral-800 text-neutral-300 shrink-0">
+                                                        <Button variant="outline" className="border-olive/30 hover:bg-paper-dark text-ink shrink-0">
                                                             Ver Detalles
                                                         </Button>
                                                     }
                                                 />
                                                 {match.creador_id === user.id ? (
-                                                    <div className="flex items-center bg-neutral-900 border border-neutral-800 rounded-md p-1 pl-2 shrink-0">
-                                                        <span className="text-xs text-emerald-500 font-semibold hidden md:inline-flex items-center mr-1">
+                                                    <div className="flex items-center bg-paper-soft border border-olive/20 rounded-md p-1 pl-2 shrink-0">
+                                                        <span className="text-xs text-olive font-semibold hidden md:inline-flex items-center mr-1">
                                                             <UserPlus className="w-4 h-4 mr-1" />
                                                             Organizador
                                                         </span>
@@ -368,9 +368,9 @@ export default async function PartidosPage() {
 
                 <TabsContent value="mis-partidos" className="space-y-4">
                     {allMyEntries.length === 0 ? (
-                        <div className="text-center py-12 text-neutral-500 border border-neutral-800 border-dashed rounded-xl bg-neutral-900/30">
-                            <Trophy className="w-12 h-12 text-neutral-700 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-neutral-300 mb-2">Aún no tienes partidos</h3>
+                        <div className="text-center py-12 text-olive/70 border border-olive/20 border-dashed rounded-xl bg-paper-soft/30">
+                            <Trophy className="w-12 h-12 text-olive/40 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-ink mb-2">Aún no tienes partidos</h3>
                             <p className="mb-4">No estás inscrito ni has organizado partidos recientemente.</p>
                         </div>
                     ) : (
@@ -378,28 +378,28 @@ export default async function PartidosPage() {
                             // REnder alternativo para Torneos
                             if (match.isTournament) {
                                 return (
-                                    <Card key={match.id} className="bg-neutral-900/80 border-amber-900/50 relative overflow-hidden group hover:bg-neutral-900 transition-colors">
-                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
+                                    <Card key={match.id} className="bg-paper-soft/80 border-amber-900/50 relative overflow-hidden group hover:bg-paper-soft transition-colors">
+                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-ochre" />
                                         <CardContent className="p-6 flex flex-col md:flex-row justify-between items-center gap-6">
                                             <div className="flex-1 w-full text-center md:text-left">
                                                 <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-                                                    <Badge className="bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 border-0">{match.status}</Badge>
-                                                    <Badge variant="outline" className="border-neutral-700 text-neutral-400">{match.type}</Badge>
+                                                    <Badge className="bg-ochre/20 text-ochre-dark hover:bg-ochre/30 border-0">{match.status}</Badge>
+                                                    <Badge variant="outline" className="border-olive/30 text-olive">{match.type}</Badge>
                                                 </div>
-                                                <h3 className="text-xl font-bold text-white mb-1">
-                                                    <Trophy className="inline w-5 h-5 mr-1.5 text-amber-500 mb-0.5" />
+                                                <h3 className="text-xl font-bold text-ink mb-1">
+                                                    <Trophy className="inline w-5 h-5 mr-1.5 text-ochre-dark mb-0.5" />
                                                     {match.torneo_nombre}
                                                 </h3>
-                                                <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 sm:gap-6 text-sm text-neutral-400">
-                                                    <span className="flex items-center"><Calendar className="w-4 h-4 mr-1.5 text-neutral-500" /> {match.time}</span>
-                                                    <span className="flex items-center"><MapPin className="w-4 h-4 mr-1.5 text-neutral-500" /> {match.club}</span>
+                                                <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 sm:gap-6 text-sm text-olive">
+                                                    <span className="flex items-center"><Calendar className="w-4 h-4 mr-1.5 text-olive/70" /> {match.time}</span>
+                                                    <span className="flex items-center"><MapPin className="w-4 h-4 mr-1.5 text-olive/70" /> {match.club}</span>
                                                 </div>
                                             </div>
                                             <div className="flex flex-col gap-3 w-full md:w-auto text-center shrink-0">
-                                                <div className="bg-neutral-950 px-4 py-2 rounded-lg border border-neutral-800">
-                                                    <div className="text-[10px] text-neutral-500 uppercase">Pareja Inscrita</div>
-                                                    <div className="text-sm font-bold text-white leading-tight mt-0.5 mb-1">{match.opponents}</div>
-                                                    <div className={`text-[10px] uppercase font-bold mt-1 ${match.estado_pago === 'pagado' ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                                <div className="bg-paper px-4 py-2 rounded-lg border border-olive/20">
+                                                    <div className="text-[10px] text-olive/70 uppercase">Pareja Inscrita</div>
+                                                    <div className="text-sm font-bold text-ink leading-tight mt-0.5 mb-1">{match.opponents}</div>
+                                                    <div className={`text-[10px] uppercase font-bold mt-1 ${match.estado_pago === 'pagado' ? 'text-olive' : 'text-ochre-dark'}`}>
                                                         Pago: {match.estado_pago}
                                                     </div>
                                                 </div>
@@ -412,27 +412,27 @@ export default async function PartidosPage() {
                             // Render normal para Partidos Estándar
                             const isJugado = match.estado_original === 'jugado';
                             const isCerrado = match.status === 'Cerrado';
-                            const bgAccent = isJugado ? 'bg-emerald-500' : isCerrado ? 'bg-neutral-600' : 'bg-blue-500';
-                            const badgeBg = isJugado ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' : isCerrado ? 'bg-neutral-500/20 text-neutral-400' : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30';
+                            const bgAccent = isJugado ? 'bg-olive' : isCerrado ? 'bg-neutral-600' : 'bg-blue-500';
+                            const badgeBg = isJugado ? 'bg-olive/20 text-olive hover:bg-olive/30' : isCerrado ? 'bg-neutral-500/20 text-olive' : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30';
                             
                             return (
-                                <Card key={match.id} className={`bg-neutral-900/80 border-neutral-800 relative overflow-hidden group hover:bg-neutral-900 transition-colors ${isJugado ? 'border-emerald-900/50' : ''}`}>
+                                <Card key={match.id} className={`bg-paper-soft/80 border-olive/20 relative overflow-hidden group hover:bg-paper-soft transition-colors ${isJugado ? 'border-emerald-900/50' : ''}`}>
                                     <div className={`absolute left-0 top-0 bottom-0 w-1 ${bgAccent}`} />
                                     <CardContent className="p-6 flex flex-col md:flex-row justify-between items-center gap-6">
                                         <div className="flex-1 w-full text-center md:text-left">
                                             <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
                                                 <Badge className={`${badgeBg} border-0`}>{match.status}</Badge>
-                                                <Badge variant="outline" className={`border-neutral-700 ${isJugado ? 'text-emerald-500/70' : 'text-neutral-400'}`}>{match.type}</Badge>
+                                                <Badge variant="outline" className={`border-olive/30 ${isJugado ? 'text-olive/70' : 'text-olive'}`}>{match.type}</Badge>
                                             </div>
                                             {match.isTournamentMatch && match.torneo_nombre ? (
                                                 <>
-                                                    <h3 className="text-xl font-bold text-white mb-1">{match.torneo_nombre}</h3>
-                                                    <div className="text-sm font-bold text-emerald-400 mb-1">vs {match.opponents}</div>
+                                                    <h3 className="text-xl font-bold text-ink mb-1">{match.torneo_nombre}</h3>
+                                                    <div className="text-sm font-bold text-olive mb-1">vs {match.opponents}</div>
                                                 </>
                                             ) : (
-                                                <h3 className="text-xl font-bold text-white mb-1">vs {match.opponents}</h3>
+                                                <h3 className="text-xl font-bold text-ink mb-1">vs {match.opponents}</h3>
                                             )}
-                                            <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 sm:gap-6 text-sm text-neutral-400">
+                                            <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 sm:gap-6 text-sm text-olive">
                                                 <span className="flex items-center"><Calendar className="w-4 h-4 mr-1.5" /> {match.time}</span>
                                                 <span className="flex items-center"><MapPin className="w-4 h-4 mr-1.5" /> {match.club}</span>
                                             </div>
@@ -454,11 +454,11 @@ export default async function PartidosPage() {
                                                 }}
                                                 userId={user.id}
                                                 trigger={
-                                                    <Button variant="secondary" className="w-full bg-neutral-800 hover:bg-neutral-700 text-white">Detalles</Button>
+                                                    <Button variant="secondary" className="w-full bg-paper-dark hover:bg-neutral-700 text-ink">Detalles</Button>
                                                 }
                                             />
                                             {match.isPast && match.creador_id === user.id && !match.isTournamentMatch && (
-                                                <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20 hidden group-hover:flex">
+                                                <Button className="w-full bg-olive hover:bg-olive text-paper shadow-lg shadow-emerald-900/20 hidden group-hover:flex">
                                                     <Swords className="w-4 h-4 mr-2" />
                                                     Confirmar Resultado
                                                 </Button>

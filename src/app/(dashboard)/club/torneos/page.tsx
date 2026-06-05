@@ -45,15 +45,15 @@ export default async function ClubTorneosPage() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white mb-1 flex items-center gap-2">
-                        <Trophy className="w-8 h-8 text-amber-500" />
+                    <h1 className="text-3xl font-bold tracking-tight text-ink mb-1 flex items-center gap-2">
+                        <Trophy className="w-8 h-8 text-ochre-dark" />
                         Gestión de Torneos
                     </h1>
-                    <p className="text-neutral-400">Publica torneos, maneja las inscripciones y organiza las llaves.</p>
+                    <p className="text-olive">Publica torneos, maneja las inscripciones y organiza las llaves.</p>
                 </div>
                 <div className="w-full sm:w-auto">
                     {/* Placeholder for Crear Torneo, implement next */}
-                    <Button className="w-full sm:w-auto bg-amber-600 hover:bg-amber-500 text-white font-bold" asChild>
+                    <Button className="w-full sm:w-auto bg-ochre-dark hover:bg-ochre text-paper font-bold" asChild>
                         <Link href="/club/torneos/nuevo">
                             <Plus className="w-4 h-4 mr-2" />
                             Nuevo Torneo
@@ -63,9 +63,9 @@ export default async function ClubTorneosPage() {
             </div>
 
             {!torneos || torneos.length === 0 ? (
-                <div className="text-center py-12 text-neutral-500 border border-neutral-800 border-dashed rounded-xl bg-neutral-900/30">
-                    <Trophy className="w-12 h-12 text-neutral-700 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-neutral-300 mb-2">No tienes torneos activos</h3>
+                <div className="text-center py-12 text-olive/70 border border-olive/20 border-dashed rounded-xl bg-paper-soft/30">
+                    <Trophy className="w-12 h-12 text-olive/40 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-ink mb-2">No tienes torneos activos</h3>
                     <p className="mb-4">Empieza organizando tu primer torneo relámpago o liguilla.</p>
                 </div>
             ) : (
@@ -74,11 +74,11 @@ export default async function ClubTorneosPage() {
                         const isPast = new Date(torneo.fecha_fin) < new Date();
                         const isUpcoming = new Date(torneo.fecha_inicio) > new Date();
 
-                        let statusColor = "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
+                        let statusColor = "bg-olive/20 text-olive border-olive/30";
                         let statusText = "En Curso";
 
                         if (isPast) {
-                            statusColor = "bg-neutral-800 text-neutral-400 border-neutral-700";
+                            statusColor = "bg-paper-dark text-olive border-olive/30";
                             statusText = "Finalizado";
                         } else if (isUpcoming) {
                             statusColor = "bg-blue-500/20 text-blue-400 border-blue-500/30";
@@ -92,7 +92,7 @@ export default async function ClubTorneosPage() {
                         const countParejas = regularCount + masterCount;
 
                         return (
-                            <Card key={torneo.id} className="bg-neutral-900 border-neutral-800 hover:border-neutral-700 transition-colors">
+                            <Card key={torneo.id} className="bg-paper-soft border-olive/20 hover:border-olive/30 transition-colors">
                                 <CardContent className="p-5 flex flex-col h-full">
                                     <div className="flex justify-between items-start mb-4 gap-4">
                                         <div className="flex-1">
@@ -102,25 +102,25 @@ export default async function ClubTorneosPage() {
                                                 </Badge>
                                                 <DeleteTournamentButton torneoId={torneo.id} torneoNombre={torneo.nombre} />
                                             </div>
-                                            <h3 className="text-xl font-bold text-white mb-2 leading-tight">{torneo.nombre}</h3>
+                                            <h3 className="text-xl font-bold text-ink mb-2 leading-tight">{torneo.nombre}</h3>
 
-                                            <div className="flex items-center text-sm text-neutral-400 font-medium mt-3">
-                                                <CalendarDays className="w-4 h-4 mr-2 text-neutral-500" />
+                                            <div className="flex items-center text-sm text-olive font-medium mt-3">
+                                                <CalendarDays className="w-4 h-4 mr-2 text-olive/70" />
                                                 {new Date(torneo.fecha_inicio).toLocaleDateString('es-CO')} - {new Date(torneo.fecha_fin).toLocaleDateString('es-CO')}
                                             </div>
-                                            <div className="flex items-center text-sm text-neutral-400 font-medium mt-1">
-                                                <Settings className="w-4 h-4 mr-2 text-neutral-500" />
-                                                Modalidad: <span className="text-white ml-1 capitalize">{torneo.formato}</span>
+                                            <div className="flex items-center text-sm text-olive font-medium mt-1">
+                                                <Settings className="w-4 h-4 mr-2 text-olive/70" />
+                                                Modalidad: <span className="text-ink ml-1 capitalize">{torneo.formato}</span>
                                             </div>
                                         </div>
-                                        <div className="text-center shrink-0 bg-neutral-950 px-4 py-2 rounded-xl border border-neutral-800">
-                                            <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-0.5"><Users className="w-3 h-3 inline mr-1" />Parejas</div>
-                                            <div className="text-2xl font-black text-white leading-none">{countParejas}</div>
+                                        <div className="text-center shrink-0 bg-paper px-4 py-2 rounded-xl border border-olive/20">
+                                            <div className="text-[10px] text-olive/70 uppercase tracking-wider mb-0.5"><Users className="w-3 h-3 inline mr-1" />Parejas</div>
+                                            <div className="text-2xl font-black text-ink leading-none">{countParejas}</div>
                                         </div>
                                     </div>
 
-                                    <div className="mt-auto pt-4 border-t border-neutral-800">
-                                        <Button variant="secondary" className="w-full bg-neutral-800 hover:bg-neutral-700 text-white" asChild>
+                                    <div className="mt-auto pt-4 border-t border-olive/20">
+                                        <Button variant="secondary" className="w-full bg-paper-dark hover:bg-neutral-700 text-ink" asChild>
                                             <Link href={`/club/torneos/${torneo.id}`}>
                                                 Gestionar Torneo
                                             </Link>

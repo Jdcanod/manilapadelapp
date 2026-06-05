@@ -38,29 +38,29 @@ export default async function AdminJugadoresPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-neutral-800 pb-6 mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-olive/20 pb-6 mb-6">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white mb-1">Gestión de Rankings (ELO)</h1>
-                    <p className="text-neutral-400 text-sm">Panel de asignación manual de ELO y Club para los jugadores de la plataforma.</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-ink mb-1">Gestión de Rankings (ELO)</h1>
+                    <p className="text-olive text-sm">Panel de asignación manual de ELO y Club para los jugadores de la plataforma.</p>
                 </div>
             </div>
 
-            <Card className="bg-neutral-900 border-neutral-800 shadow-xl overflow-hidden">
+            <Card className="bg-paper-soft border-olive/20 shadow-xl overflow-hidden">
                 <CardHeader>
-                    <CardTitle className="text-white text-lg flex items-center gap-2">
-                        <Users className="w-5 h-5 text-emerald-500" /> Lista de Jugadores
+                    <CardTitle className="text-ink text-lg flex items-center gap-2">
+                        <Users className="w-5 h-5 text-olive" /> Lista de Jugadores
                     </CardTitle>
-                    <CardDescription className="text-neutral-400">Edita el ELO directamente para calibrar el ranking inicial.</CardDescription>
+                    <CardDescription className="text-olive">Edita el ELO directamente para calibrar el ranking inicial.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
                     <Table>
-                        <TableHeader className="bg-neutral-950/50">
-                            <TableRow className="border-neutral-800 hover:bg-neutral-900/50">
-                                <TableHead className="text-neutral-300 w-[250px]">Jugador</TableHead>
-                                <TableHead className="text-neutral-300">Ciudad</TableHead>
-                                <TableHead className="text-neutral-300 w-[200px]">Club Base</TableHead>
-                                <TableHead className="text-neutral-300 w-[150px]">Puntos ELO</TableHead>
-                                <TableHead className="text-right text-neutral-300 w-[100px]">Acción</TableHead>
+                        <TableHeader className="bg-paper/50">
+                            <TableRow className="border-olive/20 hover:bg-paper-soft/50">
+                                <TableHead className="text-ink w-[250px]">Jugador</TableHead>
+                                <TableHead className="text-ink">Ciudad</TableHead>
+                                <TableHead className="text-ink w-[200px]">Club Base</TableHead>
+                                <TableHead className="text-ink w-[150px]">Puntos ELO</TableHead>
+                                <TableHead className="text-right text-ink w-[100px]">Acción</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -79,21 +79,21 @@ export default async function AdminJugadoresPage() {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function PlayerRow({ jugador, clubes }: { jugador: any, clubes: any[] }) {
     return (
-        <TableRow className="border-neutral-800 hover:bg-neutral-800/50 group">
+        <TableRow className="border-olive/20 hover:bg-paper-dark/50 group">
             <TableCell>
                 <div className="flex items-center gap-3">
-                    <Avatar className="h-9 w-9 border border-neutral-700">
-                        <AvatarFallback className="bg-neutral-800 text-xs text-neutral-400">
+                    <Avatar className="h-9 w-9 border border-olive/30">
+                        <AvatarFallback className="bg-paper-dark text-xs text-olive">
                             {jugador.nombre.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col">
-                        <span className="font-medium text-white text-sm">{jugador.nombre}</span>
-                        <span className="text-xs text-neutral-500">{jugador.email}</span>
+                        <span className="font-medium text-ink text-sm">{jugador.nombre}</span>
+                        <span className="text-xs text-olive/70">{jugador.email}</span>
                     </div>
                 </div>
             </TableCell>
-            <TableCell className="text-neutral-400 capitalize">{jugador.ciudad || "No definida"}</TableCell>
+            <TableCell className="text-olive capitalize">{jugador.ciudad || "No definida"}</TableCell>
             {/* The form has to be a client component or use native form actions per row */}
             <TableCell>
                 <form action={async (formData) => {
@@ -105,7 +105,7 @@ function PlayerRow({ jugador, clubes }: { jugador: any, clubes: any[] }) {
                     <select
                         name="club_id"
                         defaultValue={jugador.club_id || "none"}
-                        className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-sm rounded-md px-2 py-1 flex-1 min-w-[120px]"
+                        className="bg-paper border border-olive/20 text-ink text-sm rounded-md px-2 py-1 flex-1 min-w-[120px]"
                     >
                         <option value="none">Ninguno</option>
                         {clubes.map(c => (
@@ -120,7 +120,7 @@ function PlayerRow({ jugador, clubes }: { jugador: any, clubes: any[] }) {
                     name="elo"
                     form={`form-${jugador.auth_id}`}
                     defaultValue={jugador.elo || 1450}
-                    className="w-[100px] h-8 bg-neutral-950/50 border-neutral-800 text-amber-500 font-mono font-bold"
+                    className="w-[100px] h-8 bg-paper/50 border-olive/20 text-ochre-dark font-mono font-bold"
                 />
             </TableCell>
             <TableCell className="text-right">
@@ -129,7 +129,7 @@ function PlayerRow({ jugador, clubes }: { jugador: any, clubes: any[] }) {
                     form={`form-${jugador.auth_id}`}
                     size="sm"
                     variant="outline"
-                    className="h-8 w-8 p-0 bg-neutral-950 border-neutral-800 hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/50 transition-colors"
+                    className="h-8 w-8 p-0 bg-paper border-olive/20 hover:bg-olive/20 hover:text-olive hover:border-olive/50 transition-colors"
                 >
                     <Save className="w-4 h-4" />
                 </Button>

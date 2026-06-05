@@ -350,10 +350,10 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px] bg-neutral-900 border-neutral-800 text-neutral-100 max-h-[90vh] overflow-hidden flex flex-col p-0 shadow-2xl">
-                <DialogHeader className="p-6 pb-2 border-b border-neutral-800/50">
+            <DialogContent className="sm:max-w-[500px] bg-paper-soft border-olive/20 text-ink max-h-[90vh] overflow-hidden flex flex-col p-0 shadow-2xl">
+                <DialogHeader className="p-6 pb-2 border-b border-olive/20">
                     <DialogTitle className="text-xl">Gestión de Reserva</DialogTitle>
-                    <DialogDescription className="text-neutral-400">
+                    <DialogDescription className="text-olive">
                         Edita los detalles de la reserva, asigna canchas o gestiona jugadores inscritos.
                     </DialogDescription>
                 </DialogHeader>
@@ -361,26 +361,26 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
                 <ScrollArea className="flex-1 overflow-y-auto px-6 py-4">
                     {loading ? (
                         <div className="flex justify-center p-8">
-                            <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+                            <Loader2 className="w-8 h-8 text-olive animate-spin" />
                         </div>
                     ) : !partido ? (
                         <div className="text-red-500 p-4">No se pudo cargar la reserva. Es posible que haya sido eliminada.</div>
                     ) : (
                         <div className="space-y-6 pt-2 pb-6">
                             {partido?.tipo_partido === 'torneo' ? (
-                                <div className="bg-amber-500/10 border border-amber-500/30 p-6 rounded-2xl text-center space-y-4">
-                                    <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto">
-                                        <Trophy className="w-8 h-8 text-amber-500" />
+                                <div className="bg-ochre/10 border border-ochre/30 p-6 rounded-2xl text-center space-y-4">
+                                    <div className="w-16 h-16 bg-ochre/20 rounded-full flex items-center justify-center mx-auto">
+                                        <Trophy className="w-8 h-8 text-ochre-dark" />
                                     </div>
                                     <div>
-                                        <h3 className="text-xl font-bold text-amber-500">Partido de Torneo</h3>
-                                        <p className="text-sm text-neutral-400 mt-2 leading-relaxed">
+                                        <h3 className="text-xl font-bold text-ochre-dark">Partido de Torneo</h3>
+                                        <p className="text-sm text-olive mt-2 leading-relaxed">
                                             Este bloque corresponde a un partido oficial. Los horarios y canchas de torneos se gestionan directamente desde su panel específico.
                                         </p>
                                     </div>
                                     <Button 
                                         onClick={() => router.push(`/club/torneos`)}
-                                        className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold"
+                                        className="w-full bg-ochre-dark hover:bg-ochre text-paper font-bold"
                                     >
                                         Ir al Panel de Torneos
                                     </Button>
@@ -388,48 +388,48 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
                             ) : (
                                 <>
                                     {/* Info Básica: Fecha y Horario */}
-                                    <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800 space-y-3 text-sm shadow-inner">
+                                    <div className="bg-paper p-4 rounded-xl border border-olive/20 space-y-3 text-sm shadow-inner">
                                 <div className="flex flex-col gap-2">
-                                    <span className="text-neutral-500 text-xs font-semibold uppercase tracking-wider">Fecha y Horario</span>
+                                    <span className="text-olive/70 text-xs font-semibold uppercase tracking-wider">Fecha y Horario</span>
                                     <div className="flex gap-2">
                                         <Input 
                                             type="date" 
                                             value={selectedDate} 
                                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedDate(e.target.value)}
-                                            className="bg-neutral-900 border-neutral-800 text-white h-9 [color-scheme:dark] flex-1"
+                                            className="bg-paper-soft border-olive/20 text-ink h-9 flex-1"
                                         />
                                         <Select value={selectedTime} onValueChange={setSelectedTime}>
-                                            <SelectTrigger className="bg-neutral-900 border-neutral-800 text-white h-9 w-[120px]">
+                                            <SelectTrigger className="bg-paper-soft border-olive/20 text-ink h-9 w-[120px]">
                                                 <SelectValue />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[200px]">
+                                            <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[200px]">
                                                 {timeSlots.map(t => (
                                                     <SelectItem key={t} value={t}>{t}</SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        <Button onClick={handleSaveDateTime} disabled={saving} size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white">
+                                        <Button onClick={handleSaveDateTime} disabled={saving} size="sm" className="bg-olive hover:bg-olive text-paper">
                                             <Save className="w-4 h-4" />
                                         </Button>
                                     </div>
                                 </div>
-                                <div className="flex justify-between items-center pt-2 border-t border-neutral-800/50">
-                                    <span className="text-neutral-500">Tipo:</span>
-                                    <span className="font-bold uppercase text-amber-500">{partido?.tipo_partido?.replace('_', ' ')}</span>
+                                <div className="flex justify-between items-center pt-2 border-t border-olive/20">
+                                    <span className="text-olive/70">Tipo:</span>
+                                    <span className="font-bold uppercase text-ochre-dark">{partido?.tipo_partido?.replace('_', ' ')}</span>
                                 </div>
                             </div>
 
                             {/* Cambio de Cancha */}
                             <div className="space-y-3">
-                                <h4 className="font-bold text-sm text-emerald-400">Modificar Cancha Asignada</h4>
+                                <h4 className="font-bold text-sm text-olive">Modificar Cancha Asignada</h4>
                                 {!editCourtMode ? (
-                                    <div className="flex items-center justify-between bg-neutral-950 px-4 py-2 rounded-lg border border-neutral-800">
+                                    <div className="flex items-center justify-between bg-paper px-4 py-2 rounded-lg border border-olive/20">
                                         <span className="font-bold">
                                             {selectedCourt ? 
                                                 (courts[parseInt(selectedCourt.split('_')[1]) - 1] || selectedCourt) 
                                                 : "No detectada"}
                                         </span>
-                                        <Button variant="ghost" size="sm" onClick={() => setEditCourtMode(true)} className="text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 h-8">
+                                        <Button variant="ghost" size="sm" onClick={() => setEditCourtMode(true)} className="text-olive hover:text-olive hover:bg-olive/10 h-8">
                                             <Edit className="w-4 h-4 mr-2" /> Cambiar
                                         </Button>
                                     </div>
@@ -437,20 +437,20 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
                                     <div className="flex gap-2 items-end">
                                         <div className="flex-1 space-y-1">
                                             <Select value={selectedCourt} onValueChange={setSelectedCourt}>
-                                                <SelectTrigger className="bg-neutral-950 border-neutral-800">
+                                                <SelectTrigger className="bg-paper border-olive/20">
                                                     <SelectValue placeholder="Selecciona cancha" />
                                                 </SelectTrigger>
-                                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+                                                <SelectContent className="bg-paper-soft border-olive/20 text-ink">
                                                     {courts.map((c, i) => (
                                                         <SelectItem key={i} value={`cancha_${i + 1}`}>{c}</SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
                                         </div>
-                                        <Button onClick={handleSaveCourt} disabled={saving} className="bg-emerald-600 hover:bg-emerald-500 text-white h-9">
+                                        <Button onClick={handleSaveCourt} disabled={saving} className="bg-olive hover:bg-olive text-paper h-9">
                                             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                         </Button>
-                                        <Button variant="ghost" onClick={() => setEditCourtMode(false)} className="h-9 hover:bg-neutral-800">
+                                        <Button variant="ghost" onClick={() => setEditCourtMode(false)} className="h-9 hover:bg-paper-dark">
                                             Cancelar
                                         </Button>
                                     </div>
@@ -459,44 +459,44 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
 
                             {/* Jugadores Add */}
                             <div className="space-y-3 pt-2">
-                                <h4 className="font-bold text-sm text-emerald-400 flex items-center gap-2">
+                                <h4 className="font-bold text-sm text-olive flex items-center gap-2">
                                     <Users className="w-4 h-4" /> Jugadores Inscritos
                                 </h4>
                                 <div className="flex gap-2">
                                     <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                                        <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white w-full h-10">
+                                        <SelectTrigger className="bg-paper border-olive/20 text-ink w-full h-10">
                                             <SelectValue placeholder="Buscar jugador..." />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[150px]">
+                                        <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[150px]">
                                             {allUsers.map((u) => (
                                                 <SelectItem key={u.auth_id} value={u.auth_id}>{u.nombre} (Lvl {u.nivel})</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <Button onClick={handleAddPlayerFormal} disabled={saving || !selectedUserId} className="bg-blue-600 hover:bg-blue-500 text-white px-3 h-10">
+                                    <Button onClick={handleAddPlayerFormal} disabled={saving || !selectedUserId} className="bg-blue-600 hover:bg-blue-500 text-ink px-3 h-10">
                                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                                     </Button>
                                 </div>
                                 
                                 <div className="mt-4 space-y-2">
                                     {jugadores.map((j) => (
-                                        <div key={j.id} className="text-sm bg-neutral-900/50 px-3 py-2 rounded flex justify-between items-center border border-neutral-800 group hover:border-neutral-700 transition-colors">
+                                        <div key={j.id} className="text-sm bg-paper-soft/50 px-3 py-2 rounded flex justify-between items-center border border-olive/20 group hover:border-olive/30 transition-colors">
                                             <div className="flex flex-col">
-                                                <span className="font-medium text-white">{j.jugador?.[0]?.nombre || "Jugador"}</span>
-                                                <span className="text-[10px] text-neutral-500 uppercase">Nivel {j.jugador?.[0]?.nivel || "-"}</span>
+                                                <span className="font-medium text-ink">{j.jugador?.[0]?.nombre || "Jugador"}</span>
+                                                <span className="text-[10px] text-olive/70 uppercase">Nivel {j.jugador?.[0]?.nivel || "-"}</span>
                                             </div>
                                             <Button 
                                                 variant="ghost" 
                                                 size="sm" 
                                                 onClick={() => handleRemovePlayer(j.id)}
-                                                className="h-8 w-8 p-0 text-neutral-500 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="h-8 w-8 p-0 text-olive/70 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-opacity"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </Button>
                                         </div>
                                     ))}
                                     {jugadores.length === 0 && (
-                                        <div className="text-center py-4 text-xs text-neutral-600 border border-dashed border-neutral-800 rounded-lg">
+                                        <div className="text-center py-4 text-xs text-olive/50 border border-dashed border-olive/20 rounded-lg">
                                             Sin jugadores inscritos formalmente
                                         </div>
                                     )}
@@ -504,21 +504,21 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
                             </div>
 
                             {/* Descripción Manual (Texto) */}
-                            <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800 space-y-3">
-                                <span className="text-neutral-500 text-xs font-semibold uppercase tracking-wider">Etiqueta de Texto (Lugar)</span>
+                            <div className="bg-paper p-4 rounded-xl border border-olive/20 space-y-3">
+                                <span className="text-olive/70 text-xs font-semibold uppercase tracking-wider">Etiqueta de Texto (Lugar)</span>
                                 <div className="flex gap-2">
                                     <Input 
                                         placeholder="Nombre o nota rápida..." 
                                         value={addedName} 
                                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAddedName(e.target.value)}
-                                        className="bg-neutral-900 border-neutral-800 text-white h-9 flex-1"
+                                        className="bg-paper-soft border-olive/20 text-ink h-9 flex-1"
                                     />
                                     <Button onClick={handleAddPlayerText} disabled={saving || !addedName.trim()} variant="secondary" className="h-9 px-3">
                                         <Plus className="w-4 h-4" />
                                     </Button>
                                 </div>
-                                <p className="text-[10px] text-neutral-400 bg-neutral-900/50 p-2 rounded border border-neutral-800/50 leading-relaxed">
-                                    <span className="font-bold text-emerald-500 mr-1">Preview:</span> {partido?.lugar}
+                                <p className="text-[10px] text-olive bg-paper-soft/50 p-2 rounded border border-olive/20 leading-relaxed">
+                                    <span className="font-bold text-olive mr-1">Preview:</span> {partido?.lugar}
                                 </p>
                             </div>
 

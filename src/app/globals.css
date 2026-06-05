@@ -3,94 +3,69 @@
 @tailwind utilities;
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+    .text-balance {
+        text-wrap: balance;
+    }
 }
-
-
 
 @layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-  }
-  .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-  }
+    /* === Pádel Manía vintage palette (default theme) ===
+       paper        #F5EFE0  →  hsl(45, 53%, 92%)
+       paper-soft   #EDE5D3  →  hsl(43, 41%, 88%)
+       paper-dark   #DDD2B7  →  hsl(41, 35%, 79%)
+       olive        #5E6118  →  hsl(63, 60%, 24%)
+       olive-dark   #3F3F10  →  hsl(60, 60%, 16%)
+       ochre        #A88A4B  →  hsl(38, 38%, 47%)
+       ink          #2A2A0A  →  hsl(60, 62%, 11%)
+       ink-soft     #4A4A20  →  hsl(60, 41%, 21%) */
+    :root {
+        --background: 45 53% 92%;
+        --foreground: 60 62% 11%;
+        --card: 43 41% 88%;
+        --card-foreground: 60 62% 11%;
+        --popover: 45 53% 92%;
+        --popover-foreground: 60 62% 11%;
+        --primary: 63 60% 24%;
+        --primary-foreground: 45 53% 92%;
+        --secondary: 41 35% 79%;
+        --secondary-foreground: 63 60% 24%;
+        --muted: 43 41% 88%;
+        --muted-foreground: 60 41% 25%;
+        --accent: 38 38% 47%;
+        --accent-foreground: 45 53% 92%;
+        --destructive: 0 65% 42%;
+        --destructive-foreground: 45 53% 92%;
+        --border: 60 25% 70%;
+        --input: 60 25% 70%;
+        --ring: 63 60% 24%;
+        --chart-1: 63 60% 24%;
+        --chart-2: 38 38% 47%;
+        --chart-3: 0 65% 42%;
+        --chart-4: 200 50% 35%;
+        --chart-5: 25 75% 45%;
+        --radius: 0.5rem;
+    }
 }
+
 @layer components {
-  .bracket-column {
-    @apply flex flex-col justify-around gap-16 relative py-12;
-  }
+    .bracket-column {
+        @apply flex flex-col justify-around gap-16 relative py-12;
+    }
 
-  /* Contenedor de una pareja de partidos */
-  .bracket-pair-container {
-    @apply relative flex flex-col gap-12;
-  }
+    .bracket-pair-container {
+        @apply relative flex flex-col gap-12;
+    }
 
-  /* Línea vertical que une la pareja */
-  .bracket-pair-container::after {
-    content: '';
-    @apply absolute -right-8 top-[25%] bottom-[25%] w-[2px] bg-neutral-700;
-  }
+    .bracket-pair-container::after {
+        content: '';
+        @apply absolute -right-8 top-[25%] bottom-[25%] w-[2px] bg-olive/40;
+    }
 
-  /* Línea horizontal que sale de la pareja hacia la derecha */
-  .bracket-pair-connector-out {
-    @apply absolute -right-16 top-1/2 w-8 h-[2px] bg-neutral-700;
-  }
+    .bracket-pair-connector-out {
+        @apply absolute -right-16 top-1/2 w-8 h-[2px] bg-olive/40;
+    }
 
-  /* Línea horizontal que entra a un partido desde la izquierda */
-  .bracket-match-connector-in {
-    @apply absolute -left-8 top-1/2 w-8 h-[2px] bg-neutral-700;
-  }
+    .bracket-match-connector-in {
+        @apply absolute -left-8 top-1/2 w-8 h-[2px] bg-olive/40;
+    }
 }
-
-
-

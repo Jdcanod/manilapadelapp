@@ -108,13 +108,13 @@ export function ConfigClubForm({ initialData }: { initialData: ConfigData }) {
         <div className="space-y-6 max-w-4xl mx-auto">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div className="flex items-center gap-4">
-                    <Avatar className="w-16 h-16 border-2 border-neutral-800 shadow-lg">
+                    <Avatar className="w-16 h-16 border-2 border-olive/20 shadow-lg">
                         <AvatarImage src={logoUrl} />
-                        <AvatarFallback className="bg-neutral-800 text-white font-bold">{initialData.nombre.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        <AvatarFallback className="bg-paper-dark text-ink font-bold">{initialData.nombre.substring(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-white mb-1">{initialData.nombre || "Mi Club"}</h1>
-                        <p className="text-sm text-neutral-400">Panel de Administración Profesional</p>
+                        <h1 className="text-3xl font-bold tracking-tight text-ink mb-1">{initialData.nombre || "Mi Club"}</h1>
+                        <p className="text-sm text-olive">Panel de Administración Profesional</p>
                     </div>
                 </div>
                 <form action={cerrarSesionAction}>
@@ -125,16 +125,16 @@ export function ConfigClubForm({ initialData }: { initialData: ConfigData }) {
             </div>
 
             <Tabs defaultValue="perfil" className="w-full">
-                <TabsList className="bg-neutral-900 border border-neutral-800 p-1 mb-6">
-                    <TabsTrigger value="perfil" className="data-[state=active]:bg-neutral-800">
+                <TabsList className="bg-paper-soft border border-olive/20 p-1 mb-6">
+                    <TabsTrigger value="perfil" className="data-[state=active]:bg-paper-dark">
                         <User className="w-4 h-4 mr-2" />
                         Perfil del Club
                     </TabsTrigger>
-                    <TabsTrigger value="ajustes" className="data-[state=active]:bg-neutral-800">
+                    <TabsTrigger value="ajustes" className="data-[state=active]:bg-paper-dark">
                         <Settings2 className="w-4 h-4 mr-2" />
                         Ajustes de Canchas
                     </TabsTrigger>
-                    <TabsTrigger value="anuncios" className="data-[state=active]:bg-neutral-800">
+                    <TabsTrigger value="anuncios" className="data-[state=active]:bg-paper-dark">
                         <Megaphone className="w-4 h-4 mr-2" />
                         Publicar Anuncios
                     </TabsTrigger>
@@ -142,53 +142,53 @@ export function ConfigClubForm({ initialData }: { initialData: ConfigData }) {
 
                 <TabsContent value="perfil">
                     <form onSubmit={handleUpdateProfile}>
-                        <Card className="bg-neutral-900 border-neutral-800 shadow-xl overflow-hidden">
+                        <Card className="bg-paper-soft border-olive/20 shadow-xl overflow-hidden">
                             <div className="h-32 bg-gradient-to-r from-emerald-600 to-green-400 opacity-20" />
                             <CardHeader className="-mt-16 relative px-6">
                                 <div className="flex flex-col sm:flex-row items-end gap-6">
                                     <div className="relative group">
-                                        <Avatar className="w-32 h-32 border-4 border-neutral-900 shadow-2xl bg-neutral-800">
+                                        <Avatar className="w-32 h-32 border-4 border-olive/15 shadow-2xl bg-paper-dark">
                                             <AvatarImage src={logoUrl} />
-                                            <AvatarFallback className="text-4xl font-black text-neutral-600">LOGO</AvatarFallback>
+                                            <AvatarFallback className="text-4xl font-black text-olive/50">LOGO</AvatarFallback>
                                         </Avatar>
-                                        <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full border-2 border-dashed border-emerald-500">
+                                        <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full border-2 border-dashed border-olive">
                                             {isUploading ? (
-                                                <Loader2 className="w-8 h-8 text-white animate-spin" />
+                                                <Loader2 className="w-8 h-8 text-ink animate-spin" />
                                             ) : (
-                                                <ImageIcon className="w-8 h-8 text-white" />
+                                                <ImageIcon className="w-8 h-8 text-ink" />
                                             )}
                                             <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} disabled={isUploading} />
                                         </label>
                                     </div>
                                     <div className="pb-4">
-                                        <CardTitle className="text-2xl text-white">Información Pública</CardTitle>
-                                        <CardDescription className="text-neutral-400">Esta información aparecerá en tus torneos y reportes PDF.</CardDescription>
+                                        <CardTitle className="text-2xl text-ink">Información Pública</CardTitle>
+                                        <CardDescription className="text-olive">Esta información aparecerá en tus torneos y reportes PDF.</CardDescription>
                                     </div>
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-6 pt-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <Label className="text-neutral-300">Nombre Comercial del Club</Label>
+                                        <Label className="text-ink">Nombre Comercial del Club</Label>
                                         <Input 
                                             name="nombre" 
                                             defaultValue={initialData.nombre} 
                                             placeholder="Ej. Pádel Manía Club"
-                                            className="bg-neutral-950 border-neutral-800 text-white h-12" 
+                                            className="bg-paper border-olive/20 text-ink h-12" 
                                         />
                                     </div>
                                     <div className="space-y-2 opacity-50 cursor-not-allowed">
-                                        <Label className="text-neutral-300">Correo de Contacto (Único)</Label>
+                                        <Label className="text-ink">Correo de Contacto (Único)</Label>
                                         <Input 
                                             disabled 
                                             value="info@club.com" 
-                                            className="bg-neutral-950 border-neutral-800 text-neutral-500 h-12" 
+                                            className="bg-paper border-olive/20 text-olive/70 h-12" 
                                         />
                                     </div>
                                 </div>
                             </CardContent>
-                            <CardFooter className="bg-neutral-950/50 border-t border-neutral-800 p-6 flex justify-end">
-                                <Button type="submit" disabled={isSaving} className="bg-emerald-600 hover:bg-emerald-500 text-white px-8">
+                            <CardFooter className="bg-paper/50 border-t border-olive/20 p-6 flex justify-end">
+                                <Button type="submit" disabled={isSaving} className="bg-olive hover:bg-olive text-paper px-8">
                                     {isSaving ? "Guardando..." : <><Save className="w-4 h-4 mr-2" /> Actualizar Perfil</>}
                                 </Button>
                             </CardFooter>
@@ -198,25 +198,25 @@ export function ConfigClubForm({ initialData }: { initialData: ConfigData }) {
 
                 <TabsContent value="ajustes">
                     <form onSubmit={handleSaveSettings}>
-                        <Card className="bg-neutral-900 border-neutral-800 shadow-xl">
+                        <Card className="bg-paper-soft border-olive/20 shadow-xl">
                             <CardHeader>
-                                <CardTitle className="text-white">Ajustes Operativos</CardTitle>
-                                <CardDescription className="text-neutral-400">Configura la disponibilidad y precios para tus jugadores.</CardDescription>
+                                <CardTitle className="text-ink">Ajustes Operativos</CardTitle>
+                                <CardDescription className="text-olive">Configura la disponibilidad y precios para tus jugadores.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-8">
 
                                 {/* Canchas */}
                                 <div className="space-y-4">
-                                    <h3 className="text-sm font-medium text-emerald-400 uppercase tracking-widest text-[10px]">Canchas Activas (Check para habilitar)</h3>
+                                    <h3 className="text-sm font-medium text-olive uppercase tracking-widest text-[10px]">Canchas Activas (Check para habilitar)</h3>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {[1, 2, 3, 4].map((num) => (
-                                            <div key={num} className="flex items-center justify-between bg-neutral-950 p-4 rounded-xl border border-neutral-800 hover:border-emerald-500/30 transition-colors">
-                                                <Label htmlFor={`cancha-${num}`} className="text-white font-medium cursor-pointer">Cancha {num}</Label>
+                                            <div key={num} className="flex items-center justify-between bg-paper p-4 rounded-xl border border-olive/20 hover:border-olive/30 transition-colors">
+                                                <Label htmlFor={`cancha-${num}`} className="text-ink font-medium cursor-pointer">Cancha {num}</Label>
                                                 <Switch
                                                     id={`cancha-${num}`}
                                                     name={`cancha-${num}`}
                                                     defaultChecked={initialData.canchas_activas_json?.[String(num)] ?? true}
-                                                    className="data-[state=checked]:bg-emerald-500"
+                                                    className="data-[state=checked]:bg-olive"
                                                 />
                                             </div>
                                         ))}
@@ -224,38 +224,38 @@ export function ConfigClubForm({ initialData }: { initialData: ConfigData }) {
                                 </div>
 
                                 {/* Precios */}
-                                <div className="space-y-4 pt-4 border-t border-neutral-800/50">
-                                    <h3 className="text-sm font-medium text-emerald-400 uppercase tracking-widest text-[10px]">Tarifas (COP)</h3>
+                                <div className="space-y-4 pt-4 border-t border-olive/20">
+                                    <h3 className="text-sm font-medium text-olive uppercase tracking-widest text-[10px]">Tarifas (COP)</h3>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                         <div className="space-y-2">
-                                            <Label className="text-neutral-300">Precio Lunes - Viernes</Label>
+                                            <Label className="text-ink">Precio Lunes - Viernes</Label>
                                             <div className="relative">
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">$</span>
-                                                <Input name="precio_base" type="number" defaultValue={initialData.precio_hora_base} className="pl-8 bg-neutral-950 border-neutral-800 text-white h-11" />
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-olive/70">$</span>
+                                                <Input name="precio_base" type="number" defaultValue={initialData.precio_hora_base} className="pl-8 bg-paper border-olive/20 text-ink h-11" />
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-neutral-300">Precio Fin de Semana y Feriados</Label>
+                                            <Label className="text-ink">Precio Fin de Semana y Feriados</Label>
                                             <div className="relative">
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">$</span>
-                                                <Input name="precio_fin" type="number" defaultValue={initialData.precio_fin_semana} className="pl-8 bg-neutral-950 border-neutral-800 text-white h-11" />
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-olive/70">$</span>
+                                                <Input name="precio_fin" type="number" defaultValue={initialData.precio_fin_semana} className="pl-8 bg-paper border-olive/20 text-ink h-11" />
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Políticas y Cancelaciones */}
-                                <div className="space-y-4 pt-4 border-t border-neutral-800/50">
-                                    <h3 className="text-sm font-medium text-emerald-400 uppercase tracking-widest text-[10px]">Cancelaciones Automáticas</h3>
+                                <div className="space-y-4 pt-4 border-t border-olive/20">
+                                    <h3 className="text-sm font-medium text-olive uppercase tracking-widest text-[10px]">Cancelaciones Automáticas</h3>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                         <div className="space-y-2">
-                                            <Label className="text-neutral-300">Tiempo de Cancelación Mínimo</Label>
-                                            <p className="text-[10px] text-neutral-500 mb-2">Partidos sin los 4 jugadores se cancelarán automáticamente a falta de este tiempo.</p>
+                                            <Label className="text-ink">Tiempo de Cancelación Mínimo</Label>
+                                            <p className="text-[10px] text-olive/70 mb-2">Partidos sin los 4 jugadores se cancelarán automáticamente a falta de este tiempo.</p>
                                             <Select name="tiempo_cancelacion" defaultValue={String(initialData.tiempo_cancelacion_minutos || 120)}>
-                                                <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white w-full h-11">
+                                                <SelectTrigger className="bg-paper border-olive/20 text-ink w-full h-11">
                                                     <SelectValue placeholder="Seleccionar..." />
                                                 </SelectTrigger>
-                                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+                                                <SelectContent className="bg-paper-soft border-olive/20 text-ink">
                                                     <SelectItem value="30">30 minutos antes</SelectItem>
                                                     <SelectItem value="45">45 minutos antes</SelectItem>
                                                     <SelectItem value="60">1 hora antes</SelectItem>
@@ -270,8 +270,8 @@ export function ConfigClubForm({ initialData }: { initialData: ConfigData }) {
                                 <PrimeTimeConfig initialRanges={initialData.horarios_solo_90_min_json} />
 
                             </CardContent>
-                            <CardFooter className="bg-neutral-950/50 border-t border-neutral-800 p-6 flex justify-end">
-                                <Button type="submit" disabled={isSaving} className="bg-emerald-600 hover:bg-emerald-500 text-white">
+                            <CardFooter className="bg-paper/50 border-t border-olive/20 p-6 flex justify-end">
+                                <Button type="submit" disabled={isSaving} className="bg-olive hover:bg-olive text-paper">
                                     {isSaving ? "Guardando..." : <><Save className="w-4 h-4 mr-2" /> Guardar Configuraciones</>}
                                 </Button>
                             </CardFooter>
@@ -281,19 +281,19 @@ export function ConfigClubForm({ initialData }: { initialData: ConfigData }) {
 
                 <TabsContent value="anuncios">
                     <form onSubmit={handlePostNews}>
-                        <Card className="bg-neutral-900 border-neutral-800 shadow-xl">
+                        <Card className="bg-paper-soft border-olive/20 shadow-xl">
                             <CardHeader>
-                                <CardTitle className="text-white">Publicar Novedad Oficial</CardTitle>
-                                <CardDescription className="text-neutral-400">Informa a los jugadores locales sobre torneos, clases o promociones (Aparecerá en el panel de los jugadores).</CardDescription>
+                                <CardTitle className="text-ink">Publicar Novedad Oficial</CardTitle>
+                                <CardDescription className="text-olive">Informa a los jugadores locales sobre torneos, clases o promociones (Aparecerá en el panel de los jugadores).</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="space-y-2">
-                                    <Label className="text-neutral-300">Tipo de Anuncio</Label>
+                                    <Label className="text-ink">Tipo de Anuncio</Label>
                                     <Select name="tipo" defaultValue="torneo">
-                                        <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white w-full sm:w-[250px] h-11">
+                                        <SelectTrigger className="bg-paper border-olive/20 text-ink w-full sm:w-[250px] h-11">
                                             <SelectValue placeholder="Tipo" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+                                        <SelectContent className="bg-paper-soft border-olive/20 text-ink">
                                             <SelectItem value="torneo">🏆 Torneo o Americano</SelectItem>
                                             <SelectItem value="promocion">🔥 Promoción / Descuento</SelectItem>
                                             <SelectItem value="clase">🎾 Clases y Entrenamientos</SelectItem>
@@ -302,16 +302,16 @@ export function ConfigClubForm({ initialData }: { initialData: ConfigData }) {
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-neutral-300">Título Corto</Label>
-                                    <Input name="titulo" required placeholder="Ej. Gran Torneo Express 4ta. Premios de raqueta." className="bg-neutral-950 border-neutral-800 text-white h-11" />
+                                    <Label className="text-ink">Título Corto</Label>
+                                    <Input name="titulo" required placeholder="Ej. Gran Torneo Express 4ta. Premios de raqueta." className="bg-paper border-olive/20 text-ink h-11" />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-neutral-300">Descripción Larga del Evento</Label>
-                                    <Textarea name="contenido" required placeholder="Escribe la hora, fecha, premios de tu evento o el motivo de tu promoción..." className="bg-neutral-950 border-neutral-800 text-white min-h-[140px]" />
+                                    <Label className="text-ink">Descripción Larga del Evento</Label>
+                                    <Textarea name="contenido" required placeholder="Escribe la hora, fecha, premios de tu evento o el motivo de tu promoción..." className="bg-paper border-olive/20 text-ink min-h-[140px]" />
                                 </div>
                             </CardContent>
-                            <CardFooter className="bg-neutral-950/50 border-t border-neutral-800 p-6 flex justify-end">
-                                <Button type="submit" disabled={isSaving} className="bg-blue-600 hover:bg-blue-500 text-white">
+                            <CardFooter className="bg-paper/50 border-t border-olive/20 p-6 flex justify-end">
+                                <Button type="submit" disabled={isSaving} className="bg-blue-600 hover:bg-blue-500 text-ink">
                                     {isSaving ? "Subiendo a Supabase..." : <><Megaphone className="w-4 h-4 mr-2" /> Anunciar a la Comunidad</>}
                                 </Button>
                             </CardFooter>

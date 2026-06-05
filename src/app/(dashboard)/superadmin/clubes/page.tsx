@@ -67,70 +67,70 @@ export default function SuperAdminClubesPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-neutral-800 pb-6 mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-olive/20 pb-6 mb-6">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white mb-1">Gestión de Clubes</h1>
-                    <p className="text-neutral-400 text-sm">Administra y registra nuevos clubes oficiales de la plataforma.</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-ink mb-1">Gestión de Clubes</h1>
+                    <p className="text-olive text-sm">Administra y registra nuevos clubes oficiales de la plataforma.</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="bg-neutral-900 border-neutral-800 shadow-xl col-span-1 border-t-4 border-t-amber-500 h-fit">
+                <Card className="bg-paper-soft border-olive/20 shadow-xl col-span-1 border-t-4 border-t-amber-500 h-fit">
                     <CardHeader>
-                        <CardTitle className="text-white text-lg flex items-center gap-2">
-                            <Building2 className="w-5 h-5 text-amber-500" /> Nuevo Club
+                        <CardTitle className="text-ink text-lg flex items-center gap-2">
+                            <Building2 className="w-5 h-5 text-ochre-dark" /> Nuevo Club
                         </CardTitle>
-                        <CardDescription className="text-neutral-400">
+                        <CardDescription className="text-olive">
                             Crea un acceso administrativo para el nuevo club.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="nombre" className="text-neutral-300">Nombre del Club</Label>
-                                <Input required name="nombre" id="nombre" placeholder="Ej. Club Padel Center" className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600" />
+                                <Label htmlFor="nombre" className="text-ink">Nombre del Club</Label>
+                                <Input required name="nombre" id="nombre" placeholder="Ej. Club Padel Center" className="bg-paper border-olive/20 text-ink placeholder:text-olive/50" />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="email" className="text-neutral-300">Correo Electrónico</Label>
-                                <Input required type="email" name="email" id="email" placeholder="admin@clubpadel.com" className="bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600" />
+                                <Label htmlFor="email" className="text-ink">Correo Electrónico</Label>
+                                <Input required type="email" name="email" id="email" placeholder="admin@clubpadel.com" className="bg-paper border-olive/20 text-ink placeholder:text-olive/50" />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="password" className="text-neutral-300">Contraseña (Temporal)</Label>
-                                <Input required minLength={6} type="password" name="password" id="password" placeholder="Mínimo 6 caracteres" className="bg-neutral-950 border-neutral-800 text-neutral-100" />
+                                <Label htmlFor="password" className="text-ink">Contraseña (Temporal)</Label>
+                                <Input required minLength={6} type="password" name="password" id="password" placeholder="Mínimo 6 caracteres" className="bg-paper border-olive/20 text-ink" />
                             </div>
-                            <Button disabled={loading} type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg mt-2">
+                            <Button disabled={loading} type="submit" className="w-full bg-olive hover:bg-olive text-paper shadow-lg mt-2">
                                 {loading ? "Creando..." : <><Save className="w-4 h-4 mr-2" /> Guardar Club</>}
                             </Button>
                         </form>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-neutral-900 border-neutral-800 shadow-xl col-span-1 lg:col-span-2 overflow-hidden border-t-4 border-t-blue-500">
+                <Card className="bg-paper-soft border-olive/20 shadow-xl col-span-1 lg:col-span-2 overflow-hidden border-t-4 border-t-blue-500">
                     <CardHeader>
-                        <CardTitle className="text-white text-lg flex items-center gap-2">
+                        <CardTitle className="text-ink text-lg flex items-center gap-2">
                             Directorio de Clubes Activos
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         <Table>
-                            <TableHeader className="bg-neutral-950/50">
-                                <TableRow className="border-neutral-800 hover:bg-neutral-900/50">
-                                    <TableHead className="text-neutral-300">Nombre</TableHead>
-                                    <TableHead className="text-neutral-300 text-right">Correo de Acceso</TableHead>
+                            <TableHeader className="bg-paper/50">
+                                <TableRow className="border-olive/20 hover:bg-paper-soft/50">
+                                    <TableHead className="text-ink">Nombre</TableHead>
+                                    <TableHead className="text-ink text-right">Correo de Acceso</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {clubes.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={2} className="text-center py-6 text-neutral-500">
+                                        <TableCell colSpan={2} className="text-center py-6 text-olive/70">
                                             No hay clubes registrados aún.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
                                     clubes.map((c) => (
-                                        <TableRow key={c.id} className="border-neutral-800 hover:bg-neutral-800/50">
-                                            <TableCell className="font-medium text-white">{c.nombre}</TableCell>
-                                            <TableCell className="text-neutral-400 text-right text-sm">{c.email}</TableCell>
+                                        <TableRow key={c.id} className="border-olive/20 hover:bg-paper-dark/50">
+                                            <TableCell className="font-medium text-ink">{c.nombre}</TableCell>
+                                            <TableCell className="text-olive text-right text-sm">{c.email}</TableCell>
                                         </TableRow>
                                     ))
                                 )}

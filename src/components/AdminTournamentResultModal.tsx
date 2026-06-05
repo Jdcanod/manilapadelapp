@@ -161,7 +161,7 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                     <button 
                         disabled={disabled}
                         title={initialResult ? "Corregir resultado" : "Ingresar resultado"}
-                        className="p-1.5 bg-amber-600/10 text-amber-500 rounded-lg hover:bg-amber-600 hover:text-white transition-colors disabled:opacity-30"
+                        className="p-1.5 bg-ochre-dark/10 text-ochre-dark rounded-lg hover:bg-ochre-dark hover:text-ink transition-colors disabled:opacity-30"
                     >
                         {initialResult ? <Pencil className="w-3.5 h-3.5" /> : <Trophy className="w-3.5 h-3.5" />}
                     </button>
@@ -170,7 +170,7 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                         disabled={disabled}
                         className={cn(
                             "font-bold w-full text-xs h-8",
-                            disabled ? "bg-neutral-800 text-neutral-500 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-500 text-white"
+                            disabled ? "bg-paper-dark text-olive/70 cursor-not-allowed" : "bg-ochre-dark hover:bg-ochre text-paper"
                         )}
                         title={disabledReason}
                     >
@@ -179,25 +179,25 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="bg-neutral-900 border-neutral-800 text-white max-w-sm">
+            <DialogContent className="bg-paper-soft border-olive/20 text-ink max-w-sm">
                 <DialogHeader>
                     <DialogTitle>{initialResult ? "Corregir Resultado" : "Ingresar Resultado"}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                    <p className="text-xs text-neutral-400 text-center mb-4">{initialResult ? `Corrigiendo: ${initialResult}` : "El resultado ingresado será definitivo y marcará el partido como jugado."}</p>
-                    <div className="grid grid-cols-2 gap-4 text-center text-xs font-bold text-neutral-500 uppercase">
+                    <p className="text-xs text-olive text-center mb-4">{initialResult ? `Corrigiendo: ${initialResult}` : "El resultado ingresado será definitivo y marcará el partido como jugado."}</p>
+                    <div className="grid grid-cols-2 gap-4 text-center text-xs font-bold text-olive/70 uppercase">
                         <span className="line-clamp-1">{pareja1Nombre}</span>
                         <span className="line-clamp-1">{pareja2Nombre}</span>
                     </div>
                     {sets.map((set, idx) => (
                         <div key={idx} className="flex items-center gap-3">
-                            <span className="text-[10px] font-black text-neutral-600 w-12 shrink-0">
+                            <span className="text-[10px] font-black text-olive/50 w-12 shrink-0">
                                 {idx === 2 ? (isSuperTiebreak ? 'STB' : 'SET 3') : `SET ${idx + 1}`}
                             </span>
                             <Input 
                                 placeholder="0" 
                                 type="number"
-                                className="bg-neutral-950 border-neutral-800 text-center text-xl font-black h-12"
+                                className="bg-paper border-olive/20 text-center text-xl font-black h-12"
                                 value={set.p1}
                                 onChange={e => {
                                     const newSets = [...sets];
@@ -205,11 +205,11 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                                     setSets(newSets);
                                 }}
                             />
-                            <span className="text-neutral-600">-</span>
+                            <span className="text-olive/50">-</span>
                             <Input 
                                 placeholder="0" 
                                 type="number"
-                                className="bg-neutral-950 border-neutral-800 text-center text-xl font-black h-12"
+                                className="bg-paper border-olive/20 text-center text-xl font-black h-12"
                                 value={set.p2}
                                 onChange={e => {
                                     const newSets = [...sets];
@@ -226,18 +226,18 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                                 id={`admin-stb-toggle-${matchId}`}
                                 checked={isSuperTiebreak} 
                                 onChange={(e) => setIsSuperTiebreak(e.target.checked)}
-                                className="w-4 h-4 rounded border-neutral-700 bg-neutral-900 text-amber-500 focus:ring-amber-500 focus:ring-offset-neutral-950"
+                                className="w-4 h-4 rounded border-olive/30 bg-paper-soft text-ochre-dark focus:ring-amber-500 focus:ring-offset-neutral-950"
                             />
-                            <label htmlFor={`admin-stb-toggle-${matchId}`} className="text-xs text-neutral-400 font-medium cursor-pointer">
+                            <label htmlFor={`admin-stb-toggle-${matchId}`} className="text-xs text-olive font-medium cursor-pointer">
                                 El 3er set es un Super Tie-break
                             </label>
                         </div>
                     )}
                     {setsCantidad !== 1 && (
-                        <Button variant="ghost" size="sm" onClick={addSet} className="text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 w-full">+ Añadir Set</Button>
+                        <Button variant="ghost" size="sm" onClick={addSet} className="text-ochre-dark hover:text-ochre hover:bg-ochre/10 w-full">+ Añadir Set</Button>
                     )}
                 </div>
-                <Button disabled={isPending} onClick={onSave} className="w-full bg-amber-600 hover:bg-amber-500">
+                <Button disabled={isPending} onClick={onSave} className="w-full bg-ochre-dark hover:bg-ochre">
                     {isPending ? "Guardando..." : initialResult ? "Guardar Corrección" : "Subir Score Definitivo"}
                 </Button>
             </DialogContent>

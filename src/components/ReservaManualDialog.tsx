@@ -202,45 +202,45 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 {trigger || (
-                    <Button className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg">
+                    <Button className="flex-1 sm:flex-none bg-olive hover:bg-olive text-paper shadow-lg">
                         <Plus className="w-4 h-4 mr-2" /> Reserva Manual
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] bg-neutral-900 border-neutral-800 text-neutral-100">
+            <DialogContent className="sm:max-w-[425px] bg-paper-soft border-olive/20 text-ink">
                 <DialogHeader>
                     <DialogTitle className="text-xl">Añadir Reserva Manual</DialogTitle>
-                    <DialogDescription className="text-neutral-400">
+                    <DialogDescription className="text-olive">
                         Reserva telefónica o presencial. Bloquea el turno en el sistema.
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 pt-4">
 
-                    <div className="flex items-start space-x-3 bg-neutral-950 p-3 rounded-lg border border-neutral-800">
+                    <div className="flex items-start space-x-3 bg-paper p-3 rounded-lg border border-olive/20">
                         <input
                             type="checkbox"
                             name="abrir_partido"
                             id="abrir_partido_chk"
                             checked={abrirPartido}
                             onChange={(e) => setAbrirPartido(e.target.checked)}
-                            className="w-5 h-5 mt-0.5 rounded border border-neutral-700 bg-neutral-900 checked:bg-emerald-500 appearance-none shrink-0 relative
+                            className="w-5 h-5 mt-0.5 rounded border border-olive/30 bg-paper-soft checked:bg-olive appearance-none shrink-0 relative
                             after:content-[''] after:absolute after:top-[3px] after:left-[7px] after:w-1.5 after:h-2.5 after:border-r-2 after:border-b-2 after:border-white after:rotate-45 after:opacity-0 checked:after:opacity-100 cursor-pointer"
                         />
-                        <label htmlFor="abrir_partido_chk" className="text-sm font-medium text-neutral-300 cursor-pointer leading-tight">
-                            <span className="block text-white mb-0.5 mt-0.5">Abrir partido a la comunidad</span>
-                            <span className="text-xs text-neutral-500 font-normal">Otros jugadores podrán anotarse por la app en lugar de ingresar un nombre manual.</span>
+                        <label htmlFor="abrir_partido_chk" className="text-sm font-medium text-ink cursor-pointer leading-tight">
+                            <span className="block text-ink mb-0.5 mt-0.5">Abrir partido a la comunidad</span>
+                            <span className="text-xs text-olive/70 font-normal">Otros jugadores podrán anotarse por la app en lugar de ingresar un nombre manual.</span>
                         </label>
                     </div>
 
                     {!abrirPartido ? (
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <Label className="text-neutral-300">Seleccionar Jugador Registrado</Label>
+                                <Label className="text-ink">Seleccionar Jugador Registrado</Label>
                                 <Select name="nombre_select" required>
-                                    <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white w-full">
+                                    <SelectTrigger className="bg-paper border-olive/20 text-ink w-full">
                                         <SelectValue placeholder="O elige un jugador..." />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[150px]">
+                                    <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[150px]">
                                         {users.map((u) => (
                                             <SelectItem key={u.id} value={u.id}>{u.nombre}</SelectItem>
                                         ))}
@@ -251,12 +251,12 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                     ) : (
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label className="text-neutral-300">Nivel</Label>
+                                <Label className="text-ink">Nivel</Label>
                                 <Select name="nivel" defaultValue="intermedio">
-                                    <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
+                                    <SelectTrigger className="bg-paper border-olive/20 text-ink">
                                         <SelectValue placeholder="Nivel" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+                                    <SelectContent className="bg-paper-soft border-olive/20 text-ink">
                                         <SelectItem value="principiante">Principiante</SelectItem>
                                         <SelectItem value="intermedio">Intermedio (5ta - 6ta)</SelectItem>
                                         <SelectItem value="avanzado">Avanzado (3ra - 4ta)</SelectItem>
@@ -265,12 +265,12 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-neutral-300">Categoría</Label>
+                                <Label className="text-ink">Categoría</Label>
                                 <Select name="categoria" defaultValue="mixto">
-                                    <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
+                                    <SelectTrigger className="bg-paper border-olive/20 text-ink">
                                         <SelectValue placeholder="Categoría" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+                                    <SelectContent className="bg-paper-soft border-olive/20 text-ink">
                                         <SelectItem value="masculino">Masculino</SelectItem>
                                         <SelectItem value="femenino">Femenino</SelectItem>
                                         <SelectItem value="mixto">Mixto</SelectItem>
@@ -281,12 +281,12 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                     )}
 
                     <div className="space-y-2">
-                        <Label className="text-neutral-300">Cancha</Label>
+                        <Label className="text-ink">Cancha</Label>
                         <Select name="cancha_id" value={selectedIdCancha} onValueChange={setSelectedIdCancha} required disabled={!!defaultCourt}>
-                            <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white disabled:opacity-50">
+                            <SelectTrigger className="bg-paper border-olive/20 text-ink disabled:opacity-50">
                                 <SelectValue placeholder="Elige la cancha" />
                             </SelectTrigger>
-                            <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+                            <SelectContent className="bg-paper-soft border-olive/20 text-ink">
                                 {courts.map((court, i) => (
                                     <SelectItem key={i} value={`cancha_${i + 1}`}>
                                         {court}
@@ -298,25 +298,25 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label className="text-neutral-300">Día</Label>
+                            <Label className="text-ink">Día</Label>
                             <Input
                                 name="dia"
                                 type="date"
                                 required
                                 value={selectedDia}
                                 onChange={(e) => setSelectedDia(e.target.value)}
-                                className="bg-neutral-950 border-neutral-800 text-neutral-100 disabled:opacity-50"
+                                className="bg-paper border-olive/20 text-ink disabled:opacity-50"
                                 style={{ colorScheme: 'dark' }}
                                 disabled={!!defaultDate && !!defaultCourt}
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label className="text-neutral-300">Horario</Label>
+                            <Label className="text-ink">Horario</Label>
                             <Select name="hora" defaultValue={selectedHora} onValueChange={setSelectedHora} required key={defaultTime || "time"} disabled={!!defaultTime}>
-                                <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white disabled:opacity-50">
+                                <SelectTrigger className="bg-paper border-olive/20 text-ink disabled:opacity-50">
                                     <SelectValue placeholder="Horario" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+                                <SelectContent className="bg-paper-soft border-olive/20 text-ink">
                                     {timeSlots.map((time, i) => (
                                         <SelectItem key={i} value={time}>
                                             {time}
@@ -328,9 +328,9 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-neutral-300 flex items-center justify-between">
+                        <Label className="text-ink flex items-center justify-between">
                             Duración
-                            {checkIsPrime(selectedHora, selectedDia, selectedIdCancha) && <span className="text-[10px] text-amber-500 font-bold ml-2">Horario Prime (Solo 90min)</span>}
+                            {checkIsPrime(selectedHora, selectedDia, selectedIdCancha) && <span className="text-[10px] text-ochre-dark font-bold ml-2">Horario Prime (Solo 90min)</span>}
                         </Label>
                         <Select
                             name="duracion"
@@ -338,10 +338,10 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                             onValueChange={setSelectedDuracion}
                             disabled={checkIsPrime(selectedHora, selectedDia, selectedIdCancha)}
                         >
-                            <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white disabled:opacity-50">
+                            <SelectTrigger className="bg-paper border-olive/20 text-ink disabled:opacity-50">
                                 <SelectValue placeholder="Duración" />
                             </SelectTrigger>
-                            <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+                            <SelectContent className="bg-paper-soft border-olive/20 text-ink">
                                 <SelectItem value="60">1 Hora (60 min)</SelectItem>
                                 <SelectItem value="90">1 Hora y Media (90 min)</SelectItem>
                             </SelectContent>
@@ -351,7 +351,7 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                         )}
                     </div>
 
-                    <Button type="submit" disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-lg shadow-emerald-900/20 active:scale-95 transition-all mt-4">
+                    <Button type="submit" disabled={loading} className="w-full bg-olive hover:bg-olive text-paper font-semibold shadow-lg shadow-emerald-900/20 active:scale-95 transition-all mt-4">
                         {loading ? "Confirmando..." : "Confirmar Reserva"}
                     </Button>
                 </form>

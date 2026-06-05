@@ -50,21 +50,21 @@ export function AdminEditBracketModal({ matchId, currentPareja1Id, currentPareja
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <button className="absolute -top-2 -right-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white p-1.5 rounded-full shadow-lg border border-neutral-700 z-50 transition-colors">
+                <button className="absolute -top-2 -right-2 bg-paper-dark hover:bg-neutral-700 text-olive hover:text-ink p-1.5 rounded-full shadow-lg border border-olive/30 z-50 transition-colors">
                     <Settings className="w-3.5 h-3.5" />
                 </button>
             </DialogTrigger>
-            <DialogContent className="bg-neutral-900 border-neutral-800 text-white max-w-sm">
+            <DialogContent className="bg-paper-soft border-olive/20 text-ink max-w-sm">
                 <DialogHeader>
-                    <DialogTitle className="text-xl font-black italic text-emerald-500 uppercase tracking-widest">Modificar Llave</DialogTitle>
+                    <DialogTitle className="text-xl font-black italic text-olive uppercase tracking-widest">Modificar Llave</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-6 py-4">
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Pareja 1</label>
+                        <label className="text-xs font-bold text-olive uppercase tracking-widest">Pareja 1</label>
                         <select 
                             value={p1Id} 
                             onChange={e => setP1Id(e.target.value)}
-                            className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                            className="w-full bg-paper border border-olive/20 rounded-xl px-4 py-3 text-sm font-bold text-ink focus:outline-none focus:border-olive transition-colors"
                         >
                             <option value="">-- TBD (Vacio) --</option>
                             {allPairs.map((p, idx) => (
@@ -74,11 +74,11 @@ export function AdminEditBracketModal({ matchId, currentPareja1Id, currentPareja
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Pareja 2</label>
+                        <label className="text-xs font-bold text-olive uppercase tracking-widest">Pareja 2</label>
                         <select 
                             value={p2Id} 
                             onChange={e => setP2Id(e.target.value)}
-                            className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                            className="w-full bg-paper border border-olive/20 rounded-xl px-4 py-3 text-sm font-bold text-ink focus:outline-none focus:border-olive transition-colors"
                         >
                             <option value="">-- TBD (Vacio) --</option>
                             {allPairs.map((p, idx) => (
@@ -88,7 +88,7 @@ export function AdminEditBracketModal({ matchId, currentPareja1Id, currentPareja
                     </div>
 
                 </div>
-                <Button disabled={isPending} onClick={onSave} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-widest">
+                <Button disabled={isPending} onClick={onSave} className="w-full bg-olive hover:bg-olive text-paper font-black uppercase tracking-widest">
                     {isPending ? "Guardando..." : <><Save className="w-4 h-4 mr-2" /> Guardar Cambios</>}
                 </Button>
             </DialogContent>

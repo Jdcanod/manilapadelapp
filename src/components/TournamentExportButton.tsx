@@ -109,7 +109,7 @@ export function TournamentExportButton({ torneo, clubInfo, partidos, participant
                 onClick={handleExport} 
                 disabled={isExporting}
                 variant="outline" 
-                className="bg-neutral-900 border-neutral-800 text-neutral-300 hover:bg-neutral-800 hover:text-white gap-2"
+                className="bg-paper-soft border-olive/20 text-ink hover:bg-paper-dark hover:text-ink gap-2"
             >
                 {isExporting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

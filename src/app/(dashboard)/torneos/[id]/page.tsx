@@ -195,27 +195,27 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
     return (
         <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
             {/* HEADER */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-neutral-900/50 p-8 rounded-3xl border border-neutral-800">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-paper-soft/50 p-8 rounded-3xl border border-olive/20">
                 <div className="flex gap-6 items-start">
-                    <div className="p-4 bg-amber-500/10 rounded-2xl border border-amber-500/20">
-                        <Trophy className="w-10 h-10 text-amber-500" />
+                    <div className="p-4 bg-ochre/10 rounded-2xl border border-ochre/20">
+                        <Trophy className="w-10 h-10 text-ochre-dark" />
                     </div>
                     <div>
                         <div className="flex items-center gap-3 mb-2">
-                             <Link href="/torneos" className="text-xs font-bold text-neutral-500 hover:text-white uppercase tracking-widest flex items-center gap-1 transition-colors">
+                             <Link href="/torneos" className="text-xs font-bold text-olive/70 hover:text-ink uppercase tracking-widest flex items-center gap-1 transition-colors">
                                 <ChevronLeft className="w-3 h-3" /> Volver
                              </Link>
                              <Badge variant="outline" className={cn(
                                  "text-[10px] uppercase font-black px-3",
-                                 todosFinalizados ? "border-neutral-700 text-neutral-400 bg-neutral-800/10" : "border-emerald-500/30 text-emerald-400 bg-emerald-500/5"
+                                 todosFinalizados ? "border-olive/30 text-olive bg-paper-dark/10" : "border-olive/30 text-olive bg-olive/5"
                              )}>
                                  {todosFinalizados ? "Finalizado" : (isPast ? "Finalizando" : "En Curso")}
                              </Badge>
                         </div>
-                        <h1 className="text-4xl lg:text-5xl font-black text-white uppercase italic tracking-tighter leading-tight mb-2">
+                        <h1 className="text-4xl lg:text-5xl font-black text-ink uppercase italic tracking-tighter leading-tight mb-2">
                             {torneo.nombre}
                         </h1>
-                        <div className="flex flex-wrap gap-4 text-xs font-bold text-neutral-500 uppercase tracking-widest">
+                        <div className="flex flex-wrap gap-4 text-xs font-bold text-olive/70 uppercase tracking-widest">
                             <span className="flex items-center gap-2"><MapPin className="w-3 h-3" /> {torneo.club?.nombre || "Sede por definir"}</span>
                             <span className="flex items-center gap-2"><CalendarDays className="w-3 h-3" /> {new Date(torneo.fecha_inicio).toLocaleDateString('es-CO')}</span>
                         </div>
@@ -223,13 +223,13 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                 </div>
 
                 {campeonParaHeader && (
-                    <div className="bg-gradient-to-br from-amber-500 to-amber-600 p-6 rounded-2xl shadow-2xl border border-amber-400/50 flex items-center gap-4 animate-in zoom-in duration-500">
-                         <div className="w-14 h-14 bg-neutral-900 rounded-full flex items-center justify-center border-4 border-white/10 shadow-xl">
-                            <Trophy className="w-8 h-8 text-amber-500" />
+                    <div className="bg-gradient-to-br from-amber-500 to-amber-600 p-6 rounded-2xl shadow-2xl border border-ochre-soft/50 flex items-center gap-4 animate-in zoom-in duration-500">
+                         <div className="w-14 h-14 bg-paper-soft rounded-full flex items-center justify-center border-4 border-white/10 shadow-xl">
+                            <Trophy className="w-8 h-8 text-ochre-dark" />
                          </div>
                          <div>
                             <p className="text-[10px] font-black text-neutral-900 uppercase tracking-widest opacity-80 mb-1">¡Campeón!</p>
-                            <p className="text-xl font-black text-white uppercase italic leading-none">{campeonParaHeader}</p>
+                            <p className="text-xl font-black text-ink uppercase italic leading-none">{campeonParaHeader}</p>
                          </div>
                     </div>
                 )}
@@ -240,7 +240,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                     {/* SCOREBOARD COPA DAVIS */}
                     {scoreboard && (
                         <div className="flex justify-center animate-in fade-in zoom-in duration-500">
-                            <div className="bg-blue-950 border border-blue-900/50 text-white px-10 py-6 rounded-3xl shadow-2xl flex items-center gap-10">
+                            <div className="bg-blue-950 border border-blue-900/50 text-ink px-10 py-6 rounded-3xl shadow-2xl flex items-center gap-10">
                                 <div className="text-center w-32">
                                     <p className="text-[10px] text-blue-300 font-black uppercase tracking-widest mb-2 line-clamp-2 leading-tight">{torneo.club?.nombre || 'Local'}</p>
                                     <p className="text-5xl font-black">{scoreboard.local}</p>
@@ -253,7 +253,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                             </div>
                         </div>
                     )}
-                    <div className="bg-neutral-900/50 rounded-3xl border border-neutral-800 p-6">
+                    <div className="bg-paper-soft/50 rounded-3xl border border-olive/20 p-6">
                         <TournamentChronogram 
                             torneoId={torneo.id}
                             matches={partidosReales}
@@ -269,10 +269,10 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                 </div>
             ) : (
                 <Tabs defaultValue="grupos" className="w-full">
-                    <TabsList className="bg-neutral-950 border border-neutral-800 p-1 h-auto w-full max-w-2xl mx-auto flex flex-wrap sm:grid sm:grid-cols-3 rounded-2xl">
-                        <TabsTrigger value="grupos" className="data-[state=active]:bg-neutral-800 flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Fase de Grupos</TabsTrigger>
-                        <TabsTrigger value="cuadros" className="data-[state=active]:bg-neutral-800 flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Cuadros de Juego</TabsTrigger>
-                        <TabsTrigger value="cronograma" className="data-[state=active]:bg-neutral-800 flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Cronograma</TabsTrigger>
+                    <TabsList className="bg-paper border border-olive/20 p-1 h-auto w-full max-w-2xl mx-auto flex flex-wrap sm:grid sm:grid-cols-3 rounded-2xl">
+                        <TabsTrigger value="grupos" className="data-[state=active]:bg-paper-dark flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Fase de Grupos</TabsTrigger>
+                        <TabsTrigger value="cuadros" className="data-[state=active]:bg-paper-dark flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Cuadros de Juego</TabsTrigger>
+                        <TabsTrigger value="cronograma" className="data-[state=active]:bg-paper-dark flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Cronograma</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="grupos" className="mt-8">

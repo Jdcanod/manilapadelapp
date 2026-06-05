@@ -117,8 +117,8 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                 className={cn(
                     "h-8 px-2 text-[10px] font-black uppercase tracking-widest gap-1.5 rounded-lg border transition-all",
                     estadoPago === 'pagado' 
-                        ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10" 
-                        : "text-amber-500 border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10"
+                        ? "text-olive border-olive/20 bg-olive/5 hover:bg-olive/10" 
+                        : "text-ochre-dark border-ochre/20 bg-ochre/5 hover:bg-ochre/10"
                 )}
             >
                 <CreditCard className="w-3 h-3" />
@@ -131,20 +131,20 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                     <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 w-8 p-0 border-neutral-800 bg-neutral-900 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg"
+                        className="h-8 w-8 p-0 border-olive/20 bg-paper-soft text-olive hover:text-ink hover:bg-paper-dark rounded-lg"
                     >
                         <Edit2 className="w-3 h-3" />
                     </Button>
                 </DialogTrigger>
-                <DialogContent className="bg-neutral-950 border-neutral-900 text-white max-w-md rounded-3xl">
+                <DialogContent className="bg-paper border-olive/15 text-ink max-w-md rounded-3xl">
                     <DialogHeader>
-                        <DialogTitle className="text-xl font-black italic uppercase tracking-widest text-amber-500 flex items-center gap-2">
+                        <DialogTitle className="text-xl font-black italic uppercase tracking-widest text-ochre-dark flex items-center gap-2">
                             <UserPlus className="w-5 h-5" /> Editar Integrantes
                         </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-6 pt-4">
-                        <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
-                            <p className="text-[10px] text-amber-500 font-bold uppercase tracking-widest leading-relaxed">
+                        <div className="p-4 bg-ochre/5 border border-ochre/10 rounded-2xl">
+                            <p className="text-[10px] text-ochre-dark font-bold uppercase tracking-widest leading-relaxed">
                                 Nota: Esto actualizará los nombres en todos los partidos (grupos y eliminatorias) donde participa esta pareja sin alterar el cronograma.
                             </p>
                         </div>
@@ -153,9 +153,9 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                             {/* Jugador 1 */}
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Jugador 1</label>
-                                    <label className="flex items-center gap-2 text-[10px] text-neutral-500 cursor-pointer hover:text-amber-500 transition-colors">
-                                        <input type="checkbox" checked={j1Manual} onChange={(e) => setJ1Manual(e.target.checked)} className="rounded border-neutral-800 bg-neutral-900 text-amber-500 focus:ring-amber-500" />
+                                    <label className="text-[10px] font-black text-olive/70 uppercase tracking-widest ml-1">Jugador 1</label>
+                                    <label className="flex items-center gap-2 text-[10px] text-olive/70 cursor-pointer hover:text-ochre-dark transition-colors">
+                                        <input type="checkbox" checked={j1Manual} onChange={(e) => setJ1Manual(e.target.checked)} className="rounded border-olive/20 bg-paper-soft text-ochre-dark focus:ring-amber-500" />
                                         Invitado
                                     </label>
                                 </div>
@@ -164,24 +164,24 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                                         placeholder="Nombre completo" 
                                         value={j1Name} 
                                         onChange={(e) => setJ1Name(e.target.value)} 
-                                        className="bg-neutral-900 border-neutral-800 h-12 rounded-xl"
+                                        className="bg-paper-soft border-olive/20 h-12 rounded-xl"
                                     />
                                 ) : (
                                     <Select value={selectedJ1} onValueChange={setSelectedJ1}>
-                                        <SelectTrigger className="bg-neutral-900 border-neutral-800 h-12 rounded-xl">
+                                        <SelectTrigger className="bg-paper-soft border-olive/20 h-12 rounded-xl">
                                             <SelectValue placeholder="Seleccionar jugador" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
+                                        <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[300px]">
                                             {allUsers.map(u => {
                                                 const inv = isGuestEmail(u.email);
                                                 return (
-                                                    <SelectItem key={u.id} value={u.id} className="focus:bg-amber-500/10 focus:text-amber-500">
+                                                    <SelectItem key={u.id} value={u.id} className="focus:bg-ochre/10 focus:text-ochre-dark">
                                                         <span className="inline-flex items-center gap-2">
-                                                            <span className={inv ? "text-amber-300" : ""}>
+                                                            <span className={inv ? "text-ochre-soft" : ""}>
                                                                 {formatPlayerNameFull({ nombre: u.nombre, apellido: u.apellido, email: u.email })}
                                                             </span>
                                                             {!inv && (
-                                                                <span className="text-[10px] text-neutral-500 italic">{u.email}</span>
+                                                                <span className="text-[10px] text-olive/70 italic">{u.email}</span>
                                                             )}
                                                         </span>
                                                     </SelectItem>
@@ -195,9 +195,9 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                             {/* Jugador 2 */}
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Jugador 2</label>
-                                    <label className="flex items-center gap-2 text-[10px] text-neutral-500 cursor-pointer hover:text-amber-500 transition-colors">
-                                        <input type="checkbox" checked={j2Manual} onChange={(e) => setJ2Manual(e.target.checked)} className="rounded border-neutral-800 bg-neutral-900 text-amber-500 focus:ring-amber-500" />
+                                    <label className="text-[10px] font-black text-olive/70 uppercase tracking-widest ml-1">Jugador 2</label>
+                                    <label className="flex items-center gap-2 text-[10px] text-olive/70 cursor-pointer hover:text-ochre-dark transition-colors">
+                                        <input type="checkbox" checked={j2Manual} onChange={(e) => setJ2Manual(e.target.checked)} className="rounded border-olive/20 bg-paper-soft text-ochre-dark focus:ring-amber-500" />
                                         Invitado
                                     </label>
                                 </div>
@@ -206,24 +206,24 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                                         placeholder="Nombre completo" 
                                         value={j2Name} 
                                         onChange={(e) => setJ2Name(e.target.value)} 
-                                        className="bg-neutral-900 border-neutral-800 h-12 rounded-xl"
+                                        className="bg-paper-soft border-olive/20 h-12 rounded-xl"
                                     />
                                 ) : (
                                     <Select value={selectedJ2} onValueChange={setSelectedJ2}>
-                                        <SelectTrigger className="bg-neutral-900 border-neutral-800 h-12 rounded-xl">
+                                        <SelectTrigger className="bg-paper-soft border-olive/20 h-12 rounded-xl">
                                             <SelectValue placeholder="Seleccionar jugador" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
+                                        <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[300px]">
                                             {allUsers.map(u => {
                                                 const inv = isGuestEmail(u.email);
                                                 return (
-                                                    <SelectItem key={u.id} value={u.id} className="focus:bg-amber-500/10 focus:text-amber-500">
+                                                    <SelectItem key={u.id} value={u.id} className="focus:bg-ochre/10 focus:text-ochre-dark">
                                                         <span className="inline-flex items-center gap-2">
-                                                            <span className={inv ? "text-amber-300" : ""}>
+                                                            <span className={inv ? "text-ochre-soft" : ""}>
                                                                 {formatPlayerNameFull({ nombre: u.nombre, apellido: u.apellido, email: u.email })}
                                                             </span>
                                                             {!inv && (
-                                                                <span className="text-[10px] text-neutral-500 italic">{u.email}</span>
+                                                                <span className="text-[10px] text-olive/70 italic">{u.email}</span>
                                                             )}
                                                         </span>
                                                     </SelectItem>
@@ -243,7 +243,7 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                         )}
 
                         <Button 
-                            className="w-full bg-amber-600 hover:bg-amber-500 h-12 rounded-xl font-black uppercase tracking-widest text-xs" 
+                            className="w-full bg-ochre-dark hover:bg-ochre h-12 rounded-xl font-black uppercase tracking-widest text-xs" 
                             onClick={handleEditParticipants}
                             disabled={isPending}
                         >
@@ -259,7 +259,7 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                 size="sm"
                 onClick={handleEliminar}
                 disabled={isPending}
-                className="h-8 w-8 p-0 text-neutral-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                className="h-8 w-8 p-0 text-olive/50 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
             >
                 <Trash2 className="w-3 h-3" />
             </Button>

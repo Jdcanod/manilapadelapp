@@ -108,15 +108,15 @@ export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, cate
     return (
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="bg-neutral-900 border-neutral-800 hover:bg-neutral-800 text-white font-bold">
+                <Button variant="outline" className="bg-paper-soft border-olive/20 hover:bg-paper-dark text-ink font-bold">
                     <UserPlus className="w-4 h-4 mr-2" />
                     Inscribir Pareja
                 </Button>
             </DialogTrigger>
-            <DialogContent className="bg-neutral-900 border-neutral-800 text-white max-w-lg">
+            <DialogContent className="bg-paper-soft border-olive/20 text-ink max-w-lg">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <UserPlus className="w-5 h-5 text-emerald-400" />
+                        <UserPlus className="w-5 h-5 text-olive" />
                         Inscribir Pareja a Copa Davis
                     </DialogTitle>
                 </DialogHeader>
@@ -124,15 +124,15 @@ export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, cate
                 <div className="space-y-4 py-2">
                     {/* Club fijo (solo se inscriben parejas del club del admin actual) */}
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Esta pareja juega para</label>
+                        <label className="text-[10px] font-black text-olive/70 uppercase tracking-widest">Esta pareja juega para</label>
                         <div className={cn(
                             "py-3 px-4 rounded-lg border-2 font-bold text-sm uppercase tracking-tight",
                             currentClubId === clubLocal.id
-                                ? "bg-emerald-500/15 border-emerald-500 text-emerald-300"
+                                ? "bg-olive/15 border-olive text-olive/80"
                                 : "bg-purple-500/15 border-purple-500 text-purple-300"
                         )}>
                             {miClubNombre}
-                            <span className="block text-[10px] font-normal text-neutral-500 mt-1 normal-case tracking-normal">
+                            <span className="block text-[10px] font-normal text-olive/70 mt-1 normal-case tracking-normal">
                                 Cada club solo inscribe sus propias parejas. El club rival no las verá hasta 30 min antes del partido.
                             </span>
                         </div>
@@ -140,13 +140,13 @@ export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, cate
 
                     {/* Categoría */}
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Categoría</label>
+                        <label className="text-[10px] font-black text-olive/70 uppercase tracking-widest">Categoría</label>
                         {categoriasSugeridas.length > 0 ? (
                             <Select value={categoria} onValueChange={setCategoria}>
-                                <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
+                                <SelectTrigger className="bg-paper border-olive/20 text-ink">
                                     <SelectValue placeholder="Selecciona categoría…" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[260px]">
+                                <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[260px]">
                                     {categoriasSugeridas.map(c => (
                                         <SelectItem key={c} value={c}>{c}</SelectItem>
                                     ))}
@@ -157,7 +157,7 @@ export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, cate
                                 value={categoria}
                                 onChange={e => setCategoria(e.target.value)}
                                 placeholder="Sin categorías habilitadas — escribe una"
-                                className="bg-neutral-950 border-neutral-800 text-white"
+                                className="bg-paper border-olive/20 text-ink"
                             />
                         )}
                     </div>
@@ -192,11 +192,11 @@ export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, cate
 
                 <DialogFooter className="gap-2">
                     <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}
-                        className="bg-neutral-900 border-neutral-800 text-neutral-400">
+                        className="bg-paper-soft border-olive/20 text-olive">
                         Cancelar
                     </Button>
                     <Button onClick={handleSubmit} disabled={pending || loading}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold">
+                        className="bg-olive hover:bg-olive text-paper font-bold">
                         {pending
                             ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Inscribiendo…</>
                             : <><UserPlus className="w-4 h-4 mr-2" /> Inscribir Pareja</>}
@@ -223,13 +223,13 @@ function JugadorSelector({ label, manual, setManual, sel, setSel, name, setName,
     return (
         <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">{label}</label>
-                <label className="flex items-center gap-1.5 text-[10px] text-neutral-400 cursor-pointer">
+                <label className="text-[10px] font-black text-olive/70 uppercase tracking-widest">{label}</label>
+                <label className="flex items-center gap-1.5 text-[10px] text-olive cursor-pointer">
                     <input
                         type="checkbox"
                         checked={manual}
                         onChange={e => setManual(e.target.checked)}
-                        className="rounded border-neutral-700 bg-neutral-900 text-emerald-500 focus:ring-emerald-500"
+                        className="rounded border-olive/30 bg-paper-soft text-olive focus:ring-olive"
                     />
                     Invitado (no registrado)
                 </label>
@@ -239,19 +239,19 @@ function JugadorSelector({ label, manual, setManual, sel, setSel, name, setName,
                     placeholder="Nombre completo (ej. Pedro Pérez)"
                     value={name}
                     onChange={e => setName(e.target.value)}
-                    className="bg-neutral-950 border-neutral-800 text-white"
+                    className="bg-paper border-olive/20 text-ink"
                 />
             ) : (
                 <Select value={sel} onValueChange={setSel}>
-                    <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
+                    <SelectTrigger className="bg-paper border-olive/20 text-ink">
                         <SelectValue placeholder={loading ? "Cargando…" : "Selecciona jugador…"} />
                     </SelectTrigger>
-                    <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
+                    <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[300px]">
                         {jugadores.map(u => (
                             <SelectItem key={u.id} value={u.id}>
                                 {formatPlayerName(u)}
                                 {!isGuestEmail(u.email) && (
-                                    <span className="text-neutral-500 text-xs ml-2">({u.email})</span>
+                                    <span className="text-olive/70 text-xs ml-2">({u.email})</span>
                                 )}
                             </SelectItem>
                         ))}

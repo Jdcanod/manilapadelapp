@@ -99,12 +99,12 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button className="bg-amber-600 hover:bg-amber-500 text-white font-bold h-10 px-4">
+                <Button className="bg-ochre-dark hover:bg-ochre text-paper font-bold h-10 px-4">
                     <UserPlus className="w-4 h-4 mr-2" />
                     Inscripción Manual
                 </Button>
             </DialogTrigger>
-            <DialogContent className="bg-neutral-900 border-neutral-800 text-white max-w-lg">
+            <DialogContent className="bg-paper-soft border-olive/20 text-ink max-w-lg">
                 <DialogHeader>
                     <DialogTitle className="text-xl">Inscribir Pareja Manualmente</DialogTitle>
                 </DialogHeader>
@@ -112,9 +112,9 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
                     {/* Jugador 1 */}
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium text-neutral-400">Jugador 1</label>
-                            <label className="flex items-center gap-2 text-xs text-neutral-400 cursor-pointer">
-                                <input type="checkbox" checked={j1Manual} onChange={(e) => setJ1Manual(e.target.checked)} className="rounded border-neutral-700 bg-neutral-900 text-emerald-500 focus:ring-emerald-500" />
+                            <label className="text-sm font-medium text-olive">Jugador 1</label>
+                            <label className="flex items-center gap-2 text-xs text-olive cursor-pointer">
+                                <input type="checkbox" checked={j1Manual} onChange={(e) => setJ1Manual(e.target.checked)} className="rounded border-olive/30 bg-paper-soft text-olive focus:ring-olive" />
                                 Añadir invitado (No Registrado)
                             </label>
                         </div>
@@ -123,19 +123,19 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
                                 placeholder="Nombre completo del Jugador 1" 
                                 value={j1Name} 
                                 onChange={(e) => setJ1Name(e.target.value)} 
-                                className="bg-neutral-950 border-neutral-800" 
+                                className="bg-paper border-olive/20" 
                             />
                         ) : (
                             <Select value={selectedJ1Id} onValueChange={setSelectedJ1Id}>
-                                <SelectTrigger className="bg-neutral-950 border-neutral-800">
+                                <SelectTrigger className="bg-paper border-olive/20">
                                     <SelectValue placeholder="Seleccione al primer jugador" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
+                                <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[300px]">
                                     {sortedUsers.map((u) => (
                                         <SelectItem key={u.id} value={u.id}>
                                             {formatPlayerName({ nombre: u.nombre, apellido: u.apellido, email: u.email })}
                                             {!isGuestEmail(u.email) && (
-                                                <span className="text-neutral-500 text-xs ml-2">({u.email})</span>
+                                                <span className="text-olive/70 text-xs ml-2">({u.email})</span>
                                             )}
                                         </SelectItem>
                                     ))}
@@ -148,9 +148,9 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
                     {/* Jugador 2 */}
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium text-neutral-400">Jugador 2</label>
-                            <label className="flex items-center gap-2 text-xs text-neutral-400 cursor-pointer">
-                                <input type="checkbox" checked={j2Manual} onChange={(e) => setJ2Manual(e.target.checked)} className="rounded border-neutral-700 bg-neutral-900 text-emerald-500 focus:ring-emerald-500" />
+                            <label className="text-sm font-medium text-olive">Jugador 2</label>
+                            <label className="flex items-center gap-2 text-xs text-olive cursor-pointer">
+                                <input type="checkbox" checked={j2Manual} onChange={(e) => setJ2Manual(e.target.checked)} className="rounded border-olive/30 bg-paper-soft text-olive focus:ring-olive" />
                                 Añadir invitado (No Registrado)
                             </label>
                         </div>
@@ -159,19 +159,19 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
                                 placeholder="Nombre completo del Jugador 2" 
                                 value={j2Name} 
                                 onChange={(e) => setJ2Name(e.target.value)} 
-                                className="bg-neutral-950 border-neutral-800" 
+                                className="bg-paper border-olive/20" 
                             />
                         ) : (
                             <Select value={selectedJ2Id} onValueChange={setSelectedJ2Id}>
-                                <SelectTrigger className="bg-neutral-950 border-neutral-800">
+                                <SelectTrigger className="bg-paper border-olive/20">
                                     <SelectValue placeholder="Seleccione al segundo jugador" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[300px]">
+                                <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[300px]">
                                     {sortedUsers.map((u) => (
                                         <SelectItem key={u.id} value={u.id}>
                                             {formatPlayerName({ nombre: u.nombre, apellido: u.apellido, email: u.email })}
                                             {!isGuestEmail(u.email) && (
-                                                <span className="text-neutral-500 text-xs ml-2">({u.email})</span>
+                                                <span className="text-olive/70 text-xs ml-2">({u.email})</span>
                                             )}
                                         </SelectItem>
                                     ))}
@@ -183,12 +183,12 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
 
                     {/* Categoría */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-neutral-400">Categoría</label>
+                        <label className="text-sm font-medium text-olive">Categoría</label>
                         <Select value={categoria} onValueChange={setCategoria}>
-                            <SelectTrigger className="bg-neutral-950 border-neutral-800">
+                            <SelectTrigger className="bg-paper border-olive/20">
                                 <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+                            <SelectContent className="bg-paper-soft border-olive/20 text-ink">
                                 {categorias.map((c) => (
                                     <SelectItem key={c} value={c}>{c}</SelectItem>
                                 ))}
@@ -211,7 +211,7 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
                     )}
 
                     <Button 
-                        className="w-full bg-amber-600 hover:bg-amber-500" 
+                        className="w-full bg-ochre-dark hover:bg-ochre" 
                         disabled={checkDisabled()}
                         onClick={handleInscribir}
                     >
