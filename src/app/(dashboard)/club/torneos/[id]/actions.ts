@@ -1672,7 +1672,7 @@ export async function updateMatchSchedule(matchId: string, fecha: string, cancha
 
         if (error) return { success: false, message: error.message };
         
-        revalidatePath(`/club/torneos/${torneoId}`, 'page');
+        revalidatePath(`/club/torneos/${torneoId}`);
         return { success: true };
     } catch (err) {
         return { success: false, message: err instanceof Error ? err.message : 'Error desconocido' };
@@ -1741,7 +1741,7 @@ export async function unscheduleMatch(matchId: string, torneoId: string) {
 
         if (error) return { success: false, message: error.message };
         
-        revalidatePath(`/club/torneos/${torneoId}`, 'page');
+        revalidatePath(`/club/torneos/${torneoId}`);
         return { success: true };
     } catch (err) {
         return { success: false, message: err instanceof Error ? err.message : 'Error desconocido' };

@@ -690,7 +690,13 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                              <div className="flex justify-between items-center">
                                                                                  <span className="text-[9px] font-black text-olive uppercase tracking-tighter">
                                                                                      {new Date(match.fecha).toLocaleString('es-CO', {
-                                                                                         weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                                                                                         timeZone: 'America/Bogota',
+                                                                                         weekday: 'short',
+                                                                                         day: 'numeric',
+                                                                                         month: 'short',
+                                                                                         hour: '2-digit',
+                                                                                         minute: '2-digit',
+                                                                                         hour12: false
                                                                                      })}
                                                                                  </span>
                                                                                  <span className="text-[9px] font-black text-olive uppercase">
