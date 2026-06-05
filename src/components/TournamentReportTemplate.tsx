@@ -317,10 +317,11 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                             </thead>
                             <tbody>
                                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                {[...partidosPorFecha[fechaKey]].sort((a: any, b: any) => {
+                                {([...partidosPorFecha[fechaKey]] as any[]).sort((a, b) => {
                                     const ha = (a.hora || "99:99");
                                     const hb = (b.hora || "99:99");
                                     return ha.localeCompare(hb);
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 }).map((partido: any) => (
                                     <tr key={partido.id} className="border-b border-gray-100 hover:bg-gray-50">
                                         <td className="py-2 font-bold">{partido.hora || "--:--"}</td>
