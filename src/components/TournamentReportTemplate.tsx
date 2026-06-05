@@ -122,7 +122,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
             <div className="pdf-section pdf-header flex justify-between items-center border-b-2 border-black pb-6 mb-8">
                 <div className="flex items-center gap-4">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/images/logo.png" alt="Logo Manila" className="w-16 h-16 object-contain" />
+                    <img src="/logo.png" alt="Pádel Manía" className="w-16 h-16 object-contain" />
                     {clubInfo?.foto && (
                         /* eslint-disable-next-line @next/next/no-img-element */
                         <img src={clubInfo.foto} alt="Logo Club" className="w-20 h-20 object-contain ml-2" />
@@ -186,12 +186,28 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                 </div>
             )}
 
-            {/* SECCIÓN DE GRUPOS */}
-            {grupos.length > 0 && (
+            {/* SECCIÓN DE GRUPOS — agrupados por categoría con separador visual */}
+            {grupos.length > 0 && (() => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const porCategoria = grupos.reduce((acc: Record<string, any[]>, g: { categoria: string }) => {
+                    const k = g.categoria || 'General';
+                    if (!acc[k]) acc[k] = [];
+                    acc[k].push(g);
+                    return acc;
+                }, {} as Record<string, typeof grupos>);
+                const categoriasOrdenadas = Object.keys(porCategoria).sort();
+                return (
                 <div className="mb-10">
                     <h3 className="text-lg font-bold bg-gray-100 p-2 mb-4 uppercase border-l-4 border-blue-900">Configuración de Grupos</h3>
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {Array.from({ length: Math.ceil(grupos.length / 2) }, (_, i) => grupos.slice(i * 2, i * 2 + 2)).map((fila: any[], filaIdx) => (
+                    {categoriasOrdenadas.map((cat, catIdx) => (
+                    <div key={cat} className={`pdf-section mb-6 ${catIdx > 0 ? 'pt-4 border-t-2 border-blue-900/40' : ''}`}>
+                        <div className="mb-3 flex items-center gap-2">
+                            <span className="inline-block w-2 h-2 rounded-full bg-blue-900" />
+                            <h4 className="text-sm font-black uppercase tracking-widest text-blue-900">Categoría {cat}</h4>
+                            <span className="text-[10px] text-gray-500 ml-2">{porCategoria[cat].length} grupo{porCategoria[cat].length > 1 ? 's' : ''}</span>
+                        </div>
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        {Array.from({ length: Math.ceil(porCategoria[cat].length / 2) }, (_, i) => porCategoria[cat].slice(i * 2, i * 2 + 2)).map((fila: any[], filaIdx) => (
                     <div key={filaIdx} className="pdf-section mb-4">
                         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 0' }}>
                             <tbody>
@@ -281,8 +297,11 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                             </table>
                         </div>
                     ))}
+                    </div>
+                    ))}
                 </div>
-            )}
+                );
+            })()}
 
             {/* SECCIÓN DE CRONOGRAMA */}
             <div className="mb-10">
