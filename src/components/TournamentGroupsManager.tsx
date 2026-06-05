@@ -291,13 +291,30 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
         });
     };
 
+    // Dos standings están empatados si pts, %sets y %games son iguales.
+    const areTiedStandings = (a: Standing, b: Standing): boolean => {
+        if (a.pts !== b.pts) return false;
+        const pctSA = (a.sg + a.sp) > 0 ? (a.sg * 100) / (a.sg + a.sp) : 0;
+        const pctSB = (b.sg + b.sp) > 0 ? (b.sg * 100) / (b.sg + b.sp) : 0;
+        if (Math.abs(pctSA - pctSB) > 0.01) return false;
+        const pctGA = (a.gg + a.gp) > 0 ? (a.gg * 100) / (a.gg + a.gp) : 0;
+        const pctGB = (b.gg + b.gp) > 0 ? (b.gg * 100) / (b.gg + b.gp) : 0;
+        return Math.abs(pctGA - pctGB) <= 0.01;
+    };
+
     // Mover una pareja una posición arriba o abajo en su grupo (orden manual).
+    // Solo permitido si la pareja adyacente está empatada en pts/%sets/%games,
+    // porque cuando hay diferencia de puntos el sort natural siempre gana.
     const handleMoverEnGrupo = (grupoId: string, parejaId: string, dir: 'up' | 'down') => {
         const standings = getStandings(grupoId);
         const idx = standings.findIndex(s => s.parejaId === parejaId);
         if (idx === -1) return;
         const newIdx = dir === 'up' ? idx - 1 : idx + 1;
         if (newIdx < 0 || newIdx >= standings.length) return;
+        if (!areTiedStandings(standings[idx], standings[newIdx])) {
+            alert("Solo puedes reordenar parejas que están empatadas en puntos. Cuando hay diferencia, el sort natural manda.");
+            return;
+        }
         const nuevoOrden = [...standings];
         [nuevoOrden[idx], nuevoOrden[newIdx]] = [nuevoOrden[newIdx], nuevoOrden[idx]];
         const parejaIds = nuevoOrden.map(s => s.parejaId);
@@ -526,32 +543,49 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                             "px-2 py-3 text-center font-bold",
                                                             clasifica ? "text-olive" : "text-olive/70"
                                                         )}>
-                                                            <div className="flex items-center justify-center gap-0.5">
-                                                                <div className="flex flex-col -my-1">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={(e) => { e.stopPropagation(); handleMoverEnGrupo(grupo.id, team.parejaId, 'up'); }}
-                                                                        disabled={idx === 0 || isPending}
-                                                                        className="text-olive/40 hover:text-olive disabled:opacity-20 disabled:cursor-not-allowed leading-none p-0"
-                                                                        title="Mover arriba (orden manual — solo se nota si empatan en puntos)"
-                                                                    >
-                                                                        <ArrowUp className="w-2.5 h-2.5" />
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={(e) => { e.stopPropagation(); handleMoverEnGrupo(grupo.id, team.parejaId, 'down'); }}
-                                                                        disabled={idx === standings.length - 1 || isPending}
-                                                                        className="text-olive/40 hover:text-olive disabled:opacity-20 disabled:cursor-not-allowed leading-none p-0"
-                                                                        title="Mover abajo (orden manual — solo se nota si empatan en puntos)"
-                                                                    >
-                                                                        <ArrowDown className="w-2.5 h-2.5" />
-                                                                    </button>
-                                                                </div>
-                                                                <span>
-                                                                    {idx + 1}
-                                                                    {clasifica && <span className="ml-0.5 text-[8px] align-top">★</span>}
-                                                                </span>
-                                                            </div>
+                                                            {(() => {
+                                                                // Solo se puede mover si la fila adyacente está empatada en pts/%sets/%games.
+                                                                const tiedUp = idx > 0 && areTiedStandings(standings[idx], standings[idx - 1]);
+                                                                const tiedDown = idx < standings.length - 1 && areTiedStandings(standings[idx], standings[idx + 1]);
+                                                                return (
+                                                                    <div className="flex items-center justify-center gap-0.5">
+                                                                        <div className="flex flex-col -my-1">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={(e) => { e.stopPropagation(); handleMoverEnGrupo(grupo.id, team.parejaId, 'up'); }}
+                                                                                disabled={!tiedUp || isPending}
+                                                                                className={cn(
+                                                                                    "leading-none p-0 transition-colors",
+                                                                                    tiedUp
+                                                                                        ? "text-olive/60 hover:text-olive"
+                                                                                        : "text-olive/10 cursor-not-allowed"
+                                                                                )}
+                                                                                title={tiedUp ? "Mover arriba (parejas empatadas)" : "No se puede mover: la pareja de arriba tiene distintos puntos"}
+                                                                            >
+                                                                                <ArrowUp className="w-2.5 h-2.5" />
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={(e) => { e.stopPropagation(); handleMoverEnGrupo(grupo.id, team.parejaId, 'down'); }}
+                                                                                disabled={!tiedDown || isPending}
+                                                                                className={cn(
+                                                                                    "leading-none p-0 transition-colors",
+                                                                                    tiedDown
+                                                                                        ? "text-olive/60 hover:text-olive"
+                                                                                        : "text-olive/10 cursor-not-allowed"
+                                                                                )}
+                                                                                title={tiedDown ? "Mover abajo (parejas empatadas)" : "No se puede mover: la pareja de abajo tiene distintos puntos"}
+                                                                            >
+                                                                                <ArrowDown className="w-2.5 h-2.5" />
+                                                                            </button>
+                                                                        </div>
+                                                                        <span>
+                                                                            {idx + 1}
+                                                                            {clasifica && <span className="ml-0.5 text-[8px] align-top">★</span>}
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </td>
                                                         <td className={cn(
                                                             "px-4 py-3 font-bold max-w-[200px]",
