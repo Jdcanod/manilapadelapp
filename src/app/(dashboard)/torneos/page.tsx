@@ -34,7 +34,8 @@ export default async function TorneosPage() {
 
     // Filter out tournaments completely finished more than 7 days ago if we want, but for now just show all or those not finished long ago.
     // Let's just show tournaments that are active, upcoming, or recently finished.
-    const torneosFiltrados = (torneos || []).filter(t => new Date(t.fecha_fin).getTime() + 7 * 24 * 60 * 60 * 1000 > new Date().getTime());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const torneosFiltrados = (torneos || []).filter((t: any) => new Date(t.fecha_fin).getTime() + 7 * 24 * 60 * 60 * 1000 > new Date().getTime());
 
     return (
         <div className="space-y-6">
