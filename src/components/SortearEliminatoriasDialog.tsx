@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Swords, Trophy, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { generarFaseEliminatoriaTopN, obtenerStandingsGlobales } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { generarFaseEliminatoriaTopN, obtenerStandingsGlobales, obtenerStandingsPorGrupo } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { formatLegacyPairName } from "@/lib/display-names";
 
 interface Standing {
@@ -57,23 +57,26 @@ export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket
     const [porGrupo, setPorGrupo] = useState<number>(clasificanPorGrupoDefault && clasificanPorGrupoDefault >= 1 ? clasificanPorGrupoDefault : 2);
     const [minMatches, setMinMatches] = useState<number>(0);
     const [standings, setStandings] = useState<Standing[]>([]);
+    const [grupoStandings, setGrupoStandings] = useState<Array<{ grupoId: string; nombreGrupo: string; standings: Standing[] }>>([]);
     const [diag, setDiag] = useState<Diag | null>(null);
     const [loadingStandings, setLoadingStandings] = useState(false);
     const [pending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
 
-    // Cargar standings cuando se abre el dialog
+    // Cargar standings cuando se abre el dialog (globales + per-grupo)
     useEffect(() => {
         if (!open) return;
         setLoadingStandings(true);
         setError(null);
-        obtenerStandingsGlobales(torneoId, categoria)
-            .then(res => {
+        Promise.all([
+            obtenerStandingsGlobales(torneoId, categoria),
+            obtenerStandingsPorGrupo(torneoId, categoria),
+        ])
+            .then(([res, resGrupo]) => {
                 if (res.success) {
                     setStandings(res.standings as Standing[]);
                     setDiag((res as { diag?: Diag }).diag || null);
-                    // Sugerir un default razonable según las parejas disponibles
                     const len = res.standings.length;
                     const sugerido = OPCIONES_CLASIFICADOS.findLast?.(o => o <= len) ?? 8;
                     setSelectedN(sugerido);
@@ -81,6 +84,11 @@ export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket
                     setError(res.message || 'No se pudieron cargar los standings');
                     setStandings([]);
                     setDiag((res as { diag?: Diag }).diag || null);
+                }
+                if (resGrupo.success) {
+                    setGrupoStandings(resGrupo.grupos as Array<{ grupoId: string; nombreGrupo: string; standings: Standing[] }>);
+                } else {
+                    setGrupoStandings([]);
                 }
             })
             .catch(e => setError(e?.message || 'Error'))
@@ -270,10 +278,75 @@ export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket
                     <div>
                         <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-2">
                             {esRelampago
-                                ? `Top global por puntos (referencia · ${effectiveN} clasificarán por grupo)`
+                                ? `Clasificados por grupo (${effectiveN} al bracket)`
                                 : `Top ${selectedN} por puntos (preview)`}
                         </p>
-                        {loadingStandings ? (
+                        {esRelampago && !loadingStandings && grupoStandings.length > 0 ? (
+                            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                                {grupoStandings.map(g => {
+                                    const clasifican = g.standings.slice(0, porGrupo);
+                                    const noClasifican = g.standings.slice(porGrupo);
+                                    return (
+                                        <div key={g.grupoId} className="bg-neutral-950 border border-neutral-800 rounded-lg overflow-hidden">
+                                            <div className="px-3 py-1.5 bg-emerald-500/10 border-b border-emerald-500/20 flex items-center justify-between">
+                                                <span className="text-xs font-black text-emerald-400 uppercase tracking-widest">{g.nombreGrupo}</span>
+                                                <span className="text-[9px] text-neutral-500 uppercase tracking-widest">
+                                                    {clasifican.length} clasifica{clasifican.length === 1 ? '' : 'n'}
+                                                </span>
+                                            </div>
+                                            <table className="w-full text-xs">
+                                                <thead className="bg-neutral-900/60 text-neutral-500 uppercase tracking-widest text-[9px]">
+                                                    <tr>
+                                                        <th className="px-2 py-1.5 text-left w-8">#</th>
+                                                        <th className="px-2 py-1.5 text-left">Pareja</th>
+                                                        <th className="px-2 py-1.5 text-center">PJ</th>
+                                                        <th className="px-2 py-1.5 text-center">SG/SP</th>
+                                                        <th className="px-2 py-1.5 text-center text-amber-400">PTS</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {clasifican.map((s, idx) => (
+                                                        <tr key={s.parejaId} className="border-t border-neutral-800/40 bg-emerald-500/5">
+                                                            <td className="px-2 py-1.5 text-emerald-400 font-black">
+                                                                {idx + 1}
+                                                                <span className="ml-0.5 text-[8px] align-top">★</span>
+                                                            </td>
+                                                            <td className="px-2 py-1.5 text-white font-bold truncate max-w-[220px]">
+                                                                {formatLegacyPairName(s.nombre)}
+                                                            </td>
+                                                            <td className="px-2 py-1.5 text-center text-neutral-300">{s.pj}</td>
+                                                            <td className="px-2 py-1.5 text-center text-neutral-500 text-[10px]">{s.sg}/{s.sp}</td>
+                                                            <td className="px-2 py-1.5 text-center text-amber-400 font-black">{s.pts}</td>
+                                                        </tr>
+                                                    ))}
+                                                    {noClasifican.map((s, idx) => (
+                                                        <tr key={s.parejaId} className="border-t border-neutral-800/40 opacity-40">
+                                                            <td className="px-2 py-1.5 text-neutral-600 font-black">{porGrupo + idx + 1}</td>
+                                                            <td className="px-2 py-1.5 text-neutral-500 truncate max-w-[220px] line-through">
+                                                                {formatLegacyPairName(s.nombre)}
+                                                            </td>
+                                                            <td className="px-2 py-1.5 text-center text-neutral-600">{s.pj}</td>
+                                                            <td className="px-2 py-1.5 text-center text-neutral-700 text-[10px]">{s.sg}/{s.sp}</td>
+                                                            <td className="px-2 py-1.5 text-center text-neutral-600 font-black">{s.pts}</td>
+                                                        </tr>
+                                                    ))}
+                                                    {g.standings.length === 0 && (
+                                                        <tr>
+                                                            <td colSpan={5} className="px-2 py-3 text-center text-neutral-600 text-[10px] italic">
+                                                                Aún no hay resultados en este grupo
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    );
+                                })}
+                                <p className="text-[10px] text-neutral-600 pt-1">
+                                    Las filas en verde con ★ son los que clasifican al cuadro. Las grises (tachadas) quedan fuera.
+                                </p>
+                            </div>
+                        ) : loadingStandings ? (
                             <div className="py-8 text-center text-neutral-500 text-sm flex items-center justify-center gap-2">
                                 <Loader2 className="w-4 h-4 animate-spin" /> Cargando standings…
                             </div>

@@ -868,6 +868,72 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
 }
 
 /**
+ * Standings POR GRUPO de una categoría. Cada grupo trae su tabla ordenada.
+ * Útil para mostrar quiénes clasifican cuando el modo es per-group (Relámpago).
+ */
+export async function obtenerStandingsPorGrupo(torneoId: string, categoria: string) {
+    try {
+        const supabaseAdmin = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
+        const { data: torneo } = await supabaseAdmin.from('torneos').select('formato, reglas_puntuacion').eq('id', torneoId).single();
+        const standingsOpts = torneo?.formato === 'liguilla' ? { pointsForLoss: 1 } : {};
+        const tipoDesempateGlobal = torneo?.reglas_puntuacion?.tipo_desempate;
+        const tipoDesempatePorCat = torneo?.reglas_puntuacion?.tipo_desempate_por_categoria || {};
+        const tipoDesempateCat = tipoDesempatePorCat[categoria] || tipoDesempateGlobal || null;
+
+        const { data: grupos } = await supabaseAdmin
+            .from('torneo_grupos')
+            .select('id, nombre_grupo')
+            .eq('torneo_id', torneoId)
+            .eq('categoria', categoria)
+            .order('nombre_grupo', { ascending: true });
+
+        if (!grupos || grupos.length === 0) {
+            return { success: true, grupos: [] as Array<{ grupoId: string; nombreGrupo: string; standings: Array<{ parejaId: string; nombre: string; pj: number; pg: number; sg: number; sp: number; gg: number; gp: number; pts: number }> }> };
+        }
+
+        const resultado: Array<{ grupoId: string; nombreGrupo: string; standings: Array<{ parejaId: string; nombre: string; pj: number; pg: number; sg: number; sp: number; gg: number; gp: number; pts: number }> }> = [];
+
+        for (const g of grupos) {
+            const { data: rawGroupMatches } = await supabaseAdmin
+                .from('partidos')
+                .select('id, pareja1_id, pareja2_id, estado, resultado, estado_resultado')
+                .eq('torneo_grupo_id', g.id);
+
+            const allParejaIds = new Set<string>();
+            (rawGroupMatches || []).forEach(m => {
+                if (m.pareja1_id) allParejaIds.add(m.pareja1_id);
+                if (m.pareja2_id) allParejaIds.add(m.pareja2_id);
+            });
+            const nameMap = new Map<string, string>();
+            if (allParejaIds.size > 0) {
+                const { data: parejas } = await supabaseAdmin
+                    .from('parejas').select('id, nombre_pareja').in('id', Array.from(allParejaIds));
+                (parejas || []).forEach(p => nameMap.set(p.id, p.nombre_pareja || 'Pareja'));
+            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const matchesShape = (rawGroupMatches || []).map((m: any) => ({
+                ...m,
+                pareja1: m.pareja1_id ? { nombre_pareja: nameMap.get(m.pareja1_id) || null } : null,
+                pareja2: m.pareja2_id ? { nombre_pareja: nameMap.get(m.pareja2_id) || null } : null,
+                tipoDesempate: tipoDesempateCat,
+            }));
+            const groupStandings = calculateStandings(matchesShape, standingsOpts);
+            resultado.push({ grupoId: g.id, nombreGrupo: g.nombre_grupo, standings: groupStandings });
+        }
+
+        return { success: true, grupos: resultado };
+    } catch (err: unknown) {
+        const error = err as Error;
+        console.error("Error en obtenerStandingsPorGrupo:", error);
+        return { success: false, message: error.message || "Error al obtener standings por grupo", grupos: [] };
+    }
+}
+
+/**
  * Calcula los standings globales de una categoría (uniendo todos los grupos)
  * y los devuelve ordenados. NO genera bracket, solo retorna la tabla.
  * Útil para el preview en el dialog de "Sortear eliminatorias".
