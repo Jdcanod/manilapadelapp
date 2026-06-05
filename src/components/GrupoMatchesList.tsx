@@ -50,7 +50,7 @@ interface Props<M extends MatchRow> {
 export function GrupoMatchesList<M extends MatchRow>({ matches, grupoId, mode, playerPairIds = [], parejaPlayers = {}, renderMatch }: Props<M>) {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<'todos' | 'pendientes' | 'sin_resultado' | 'confirmados'>('todos');
-    const [playerView, setPlayerView] = useState<PlayerView>('mis');
+    const [playerView, setPlayerView] = useState<PlayerView>('todos');
 
     const grupoMatches = useMemo(
         () => matches.filter(m => m.torneo_grupo_id === grupoId),
@@ -106,20 +106,9 @@ export function GrupoMatchesList<M extends MatchRow>({ matches, grupoId, mode, p
 
     return (
         <div className="space-y-3">
-            {/* Pestañas (solo player) */}
+            {/* Pestañas (solo player, y solo si está en el grupo) */}
             {mode === 'player' && playerPairIds.length > 0 && (
                 <div className="flex gap-2 border-b border-olive/20 pb-2">
-                    <button
-                        onClick={() => setPlayerView('mis')}
-                        className={cn(
-                            "flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-colors",
-                            playerView === 'mis'
-                                ? "bg-olive text-black"
-                                : "bg-paper-soft text-olive hover:bg-paper-dark"
-                        )}
-                    >
-                        Mis Partidos
-                    </button>
                     <button
                         onClick={() => setPlayerView('todos')}
                         className={cn(
@@ -130,6 +119,17 @@ export function GrupoMatchesList<M extends MatchRow>({ matches, grupoId, mode, p
                         )}
                     >
                         Todos del Grupo
+                    </button>
+                    <button
+                        onClick={() => setPlayerView('mis')}
+                        className={cn(
+                            "flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-colors",
+                            playerView === 'mis'
+                                ? "bg-olive text-black"
+                                : "bg-paper-soft text-olive hover:bg-paper-dark"
+                        )}
+                    >
+                        Mis Partidos
                     </button>
                 </div>
             )}
