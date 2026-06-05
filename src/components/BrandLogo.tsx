@@ -16,9 +16,9 @@ interface Props {
 }
 
 const sizes = {
-    sm: { logo: 32, text: "text-base" },
-    md: { logo: 44, text: "text-xl" },
-    lg: { logo: 72, text: "text-3xl" },
+    sm: { logo: 48, text: "text-base" },
+    md: { logo: 56, text: "text-xl" },
+    lg: { logo: 80, text: "text-3xl" },
 };
 
 /**
@@ -36,9 +36,9 @@ export function BrandLogo({ size = "md", showText = true, tone = "auto", href = 
                 : "text-olive";
 
     const content = (
-        <span className={cn("inline-flex items-center gap-3", className)}>
+        <span className={cn("inline-flex items-center gap-2", className)}>
             <span
-                className="inline-flex items-center justify-center"
+                className="inline-flex items-center justify-center flex-shrink-0"
                 style={{ width: s.logo, height: s.logo }}
             >
                 <Image
@@ -46,7 +46,7 @@ export function BrandLogo({ size = "md", showText = true, tone = "auto", href = 
                     alt="Pádel Manía"
                     width={s.logo}
                     height={s.logo}
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain drop-shadow-sm"
                     priority={size === "lg"}
                 />
             </span>
