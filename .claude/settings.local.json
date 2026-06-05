@@ -30,7 +30,12 @@
       "Bash(grep -E '\\\\.\\(tsx|css\\)$')",
       "Bash(xargs -I{} /tmp/vintage-contrast.sh {})",
       "Bash(git pull *)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(sed -i 's/bg-white\\\\b/bg-paper/g' src/components/TournamentReportTemplate.tsx)",
+      "Bash(sed -i 's/bg-gray-50\\\\b/bg-paper-soft/g' src/components/TournamentReportTemplate.tsx)",
+      "Bash(sed -i 's/bg-gray-100\\\\b/bg-paper-soft/g' src/components/TournamentReportTemplate.tsx)",
+      "Bash(sed -i 's/bg-gray-800\\\\b/bg-olive/g' src/components/TournamentReportTemplate.tsx)",
+      "Bash(sed -i 's/bg-blue-900\\\\b/bg-olive/g' src/components/TournamentReportTemplate.tsx)"
     ]
   }
 }

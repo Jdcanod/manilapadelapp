@@ -88,14 +88,17 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const partidosPorFecha = uniquePartidos.reduce((acc: any, partido: any) => {
+        // IMPORTANTE: si `fecha_ajustada` viene seteada desde page.tsx (que ya
+        // aplicó addHours(-5) para llevar la UTC a la representación local de
+        // Bogotá), leemos su UTC tal cual — NO volvemos a restar 5h o
+        // hacemos un double shift y partidos de las 20:00+ saltan de día.
         const dateToUse = partido.fecha_ajustada || partido.fecha;
         let fecha = "Pendiente";
         if (dateToUse) {
             const dt = new Date(dateToUse);
-            const bogotaDate = new Date(dt.getTime() - (5 * 60 * 60 * 1000));
-            const y = bogotaDate.getUTCFullYear();
-            const m = String(bogotaDate.getUTCMonth() + 1).padStart(2, '0');
-            const d = String(bogotaDate.getUTCDate()).padStart(2, '0');
+            const y = dt.getUTCFullYear();
+            const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
+            const d = String(dt.getUTCDate()).padStart(2, '0');
             fecha = `${y}-${m}-${d}`;
         }
         if (!acc[fecha]) acc[fecha] = [];
@@ -106,9 +109,9 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
     const fechasOrdenadas = Object.keys(partidosPorFecha).sort();
 
     return (
-        <div ref={ref} className="p-10 bg-white text-black w-[800px] font-sans">
+        <div ref={ref} className="p-10 bg-paper text-ink w-[800px] font-sans">
             {/* ENCABEZADO */}
-            <div className="pdf-section pdf-header flex justify-between items-center border-b-2 border-black pb-6 mb-8">
+            <div className="pdf-section pdf-header flex justify-between items-center border-b-2 border-olive pb-6 mb-8">
                 <div className="flex items-center gap-4">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/logo.png" alt="Pádel Manía" className="w-16 h-16 object-contain" />
@@ -118,26 +121,26 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                     )}
                     <div className="ml-2">
                         <h1 className="text-2xl font-bold uppercase">{clubInfo?.nombre || "CLUB DE PADEL"}</h1>
-                        <p className="text-gray-600 text-sm">{torneo.nombre || "Reporte Oficial de Torneo"}</p>
+                        <p className="text-olive/80 text-sm">{torneo.nombre || "Reporte Oficial de Torneo"}</p>
                     </div>
                 </div>
                 <div className="text-right">
-                    <h2 className="text-xl font-black text-blue-900 uppercase italic">{torneo.nombre}</h2>
-                    <p className="text-xs text-gray-400 mt-1">{format(new Date(), "PPpp", { locale: es })}</p>
+                    <h2 className="text-xl font-black text-olive uppercase italic">{torneo.nombre}</h2>
+                    <p className="text-xs text-olive/60 mt-1">{format(new Date(), "PPpp", { locale: es })}</p>
                 </div>
             </div>
 
             {/* SCOREBOARD COPA DAVIS */}
             {isCopaDavis && scoreboard && (
                 <div className="mb-8 flex justify-center">
-                    <div className="bg-blue-900 text-white px-8 py-4 rounded-xl shadow-lg flex items-center gap-8">
+                    <div className="bg-olive text-white px-8 py-4 rounded-xl shadow-lg flex items-center gap-8">
                         <div className="text-center">
-                            <p className="text-xs text-blue-200 font-bold uppercase tracking-widest mb-1">{torneo.club?.nombre || 'Local'}</p>
+                            <p className="text-xs text-paper font-bold uppercase tracking-widest mb-1">{torneo.club?.nombre || 'Local'}</p>
                             <p className="text-4xl font-black">{scoreboard.local}</p>
                         </div>
-                        <div className="text-2xl font-black text-blue-300">-</div>
+                        <div className="text-2xl font-black text-paper/70">-</div>
                         <div className="text-center">
-                            <p className="text-xs text-blue-200 font-bold uppercase tracking-widest mb-1">{torneo.club_rival?.nombre || 'Rival'}</p>
+                            <p className="text-xs text-paper font-bold uppercase tracking-widest mb-1">{torneo.club_rival?.nombre || 'Rival'}</p>
                             <p className="text-4xl font-black">{scoreboard.rival}</p>
                         </div>
                     </div>
@@ -147,10 +150,10 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
             {/* SECCIÓN DE PAREJAS DEL CLUB (COPA DAVIS) */}
             {isCopaDavis && (
                 <div className="mb-10">
-                    <h3 className="text-lg font-bold bg-gray-100 p-2 mb-4 uppercase border-l-4 border-blue-900">Parejas Representantes ({clubInfo?.nombre})</h3>
-                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <h3 className="text-lg font-bold bg-paper-soft p-2 mb-4 uppercase border-l-4 border-olive">Parejas Representantes ({clubInfo?.nombre})</h3>
+                    <div className="border border-olive/20 rounded-lg overflow-hidden">
                         <table className="w-full text-xs text-left">
-                            <thead className="bg-gray-800 text-white font-bold uppercase tracking-widest text-[10px]">
+                            <thead className="bg-olive text-white font-bold uppercase tracking-widest text-[10px]">
                                 <tr>
                                     <th className="p-3">Pareja</th>
                                     <th className="p-3">Categoría</th>
@@ -160,10 +163,10 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                 {participantes
                                     .filter(p => String(p.representando_club_id) === String(currentClubId))
                                     .map((p, idx) => (
-                                        <tr key={p.id || idx} className="border-b border-gray-100 hover:bg-gray-50">
-                                            <td className="p-3 font-medium text-black">{p.nombre}</td>
+                                        <tr key={p.id || idx} className="border-b border-olive/10 hover:bg-paper-soft">
+                                            <td className="p-3 font-medium text-ink">{p.nombre}</td>
                                             <td className="p-3">
-                                                <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-bold text-[10px]">
+                                                <span className="bg-ochre/20 text-olive-dark px-2 py-0.5 rounded-full font-bold text-[10px]">
                                                     {p.categoria}
                                                 </span>
                                             </td>
@@ -187,13 +190,13 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                 const categoriasOrdenadas = Object.keys(porCategoria).sort();
                 return (
                 <div className="mb-10">
-                    <h3 className="text-lg font-bold bg-gray-100 p-2 mb-4 uppercase border-l-4 border-blue-900">Configuración de Grupos</h3>
+                    <h3 className="text-lg font-bold bg-paper-soft p-2 mb-4 uppercase border-l-4 border-olive">Configuración de Grupos</h3>
                     {categoriasOrdenadas.map((cat, catIdx) => (
-                    <div key={cat} className={`mb-6 ${catIdx > 0 ? 'pt-4 border-t-2 border-blue-900/40' : ''}`}>
+                    <div key={cat} className={`mb-6 ${catIdx > 0 ? 'pt-4 border-t-2 border-olive/40' : ''}`}>
                         <div className="pdf-section mb-3 flex items-center gap-2">
-                            <span className="inline-block w-2 h-2 rounded-full bg-blue-900" />
-                            <h4 className="text-sm font-black uppercase tracking-widest text-blue-900">Categoría {cat}</h4>
-                            <span className="text-[10px] text-gray-500 ml-2">{porCategoria[cat].length} grupo{porCategoria[cat].length > 1 ? 's' : ''}</span>
+                            <span className="inline-block w-2 h-2 rounded-full bg-olive" />
+                            <h4 className="text-sm font-black uppercase tracking-widest text-olive">Categoría {cat}</h4>
+                            <span className="text-[10px] text-olive/70 ml-2">{porCategoria[cat].length} grupo{porCategoria[cat].length > 1 ? 's' : ''}</span>
                         </div>
                         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                         {Array.from({ length: Math.ceil(porCategoria[cat].length / 2) }, (_, i) => porCategoria[cat].slice(i * 2, i * 2 + 2)).map((fila: any[], filaIdx) => (
@@ -203,19 +206,19 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                 <tr>
                                     {fila.map((grupo: { id: string; nombre_grupo: string; categoria: string }, gIdx: number) => (
                                         <td key={grupo.id} style={{ width: '50%', verticalAlign: 'top', paddingRight: gIdx === 0 ? '8px' : '0' }}>
-                                            <div className="border border-gray-200 rounded-lg overflow-hidden">
-                                                <div className="bg-gray-800 text-white p-2 text-center font-bold text-xs">
+                                            <div className="border border-olive/20 rounded-lg overflow-hidden">
+                                                <div className="bg-olive text-white p-2 text-center font-bold text-xs">
                                                     {grupo.nombre_grupo} - {grupo.categoria}
                                                 </div>
                                                 <table className="w-full text-xs">
-                                                    <thead className="bg-gray-50 border-b border-gray-200 text-gray-500">
+                                                    <thead className="bg-paper-soft border-b border-olive/20 text-olive/70">
                                                         <tr>
                                                             <th className="p-2 text-left">Pareja</th>
                                                             <th className="p-2 text-center">PJ</th>
                                                             <th className="p-2 text-center">PG</th>
                                                             <th className="p-2 text-center">Sets</th>
                                                             <th className="p-2 text-center">Games</th>
-                                                            <th className="p-2 text-center text-blue-900">PTS</th>
+                                                            <th className="p-2 text-center text-olive">PTS</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -257,20 +260,20 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                             });
                                                             const sorted = Array.from(map.values()).sort((a, b) => b.pts - a.pts || (b.sg - b.sp) - (a.sg - a.sp));
                                                             if (sorted.length === 0) {
-                                                                return <tr><td colSpan={6} className="p-4 text-center text-gray-400 italic">Sin parejas asignadas</td></tr>;
+                                                                return <tr><td colSpan={6} className="p-4 text-center text-olive/60 italic">Sin parejas asignadas</td></tr>;
                                                             }
                                                             return sorted.map((p, idx) => {
                                                                 const isRival = isCopaDavis && p.representando_club_id && p.representando_club_id !== currentClubId;
                                                                 return (
-                                                                    <tr key={idx} className="border-b border-gray-100">
+                                                                    <tr key={idx} className="border-b border-olive/10">
                                                                         <td className="p-2 font-medium">
-                                                                            {isRival ? <span className="italic text-neutral-400 font-normal">Pareja Oculta</span> : p.nombre}
+                                                                            {isRival ? <span className="italic text-olive/60 font-normal">Pareja Oculta</span> : p.nombre}
                                                                         </td>
                                                                         <td className="p-2 text-center">{p.pj}</td>
-                                                                        <td className="p-2 text-center text-gray-500">{p.pg}</td>
-                                                                        <td className="p-2 text-center text-gray-400">{p.sg}-{p.sp}</td>
-                                                                        <td className="p-2 text-center text-gray-400">{p.gg}-{p.gp}</td>
-                                                                        <td className="p-2 text-center font-black text-blue-900">{p.pts}</td>
+                                                                        <td className="p-2 text-center text-olive/70">{p.pg}</td>
+                                                                        <td className="p-2 text-center text-olive/60">{p.sg}-{p.sp}</td>
+                                                                        <td className="p-2 text-center text-olive/60">{p.gg}-{p.gp}</td>
+                                                                        <td className="p-2 text-center font-black text-olive">{p.pts}</td>
                                                                     </tr>
                                                                 );
                                                             });
@@ -294,10 +297,10 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
 
             {/* SECCIÓN DE CRONOGRAMA */}
             <div className="mb-10">
-                <h3 className="text-lg font-bold bg-gray-100 p-2 mb-4 uppercase border-l-4 border-blue-900">Parrilla (Programación)</h3>
+                <h3 className="text-lg font-bold bg-paper-soft p-2 mb-4 uppercase border-l-4 border-olive">Parrilla (Programación)</h3>
                 {fechasOrdenadas.map(fechaKey => (
                     <div key={fechaKey} className="pdf-section mb-6">
-                        <div className="bg-blue-900 text-white px-4 py-1 text-sm font-bold uppercase mb-2">
+                        <div className="bg-olive text-white px-4 py-1 text-sm font-bold uppercase mb-2">
                             {(() => {
                                 if (fechaKey === "Pendiente") return "Fechas por Programar";
                                 const [fy, fm, fd] = fechaKey.split('-').map(Number);
@@ -307,7 +310,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                         </div>
                         <table className="w-full text-xs border-collapse">
                             <thead>
-                                <tr className="border-b border-gray-300 text-gray-500">
+                                <tr className="border-b border-olive/30 text-olive/70">
                                     <th className="py-2 text-left w-16">Hora</th>
                                     <th className="py-2 text-left">{isCopaDavis ? `Pareja ${torneo.club?.nombre || 'Local'}` : 'Pareja 1'}</th>
                                     <th className="py-2 text-center w-8">vs</th>
@@ -323,14 +326,14 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                     return ha.localeCompare(hb);
                                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 }).map((partido: any) => (
-                                    <tr key={partido.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                    <tr key={partido.id} className="border-b border-olive/10 hover:bg-paper-soft">
                                         <td className="py-2 font-bold">{partido.hora || "--:--"}</td>
                                         <td className="py-2">
                                             {(() => {
                                                 const pId = partido.pareja1_id || partido.pareja1?.id;
                                                 const clubId = getParejaClubId(pId);
                                                 const isRival = isCopaDavis && clubId && clubId !== currentClubId;
-                                                return isRival ? <span className="italic text-neutral-400">Oculta (Misterio)</span> : (partido.pareja1?.nombre_pareja || "TBD");
+                                                return isRival ? <span className="italic text-olive/60">Oculta (Misterio)</span> : (partido.pareja1?.nombre_pareja || "TBD");
                                             })()}
                                         </td>
                                         <td className="py-2 text-center">
@@ -345,7 +348,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                 const pId = partido.pareja2_id || partido.pareja2?.id;
                                                 const clubId = getParejaClubId(pId);
                                                 const isRival = isCopaDavis && clubId && clubId !== currentClubId;
-                                                return isRival ? <span className="italic text-neutral-400">Oculta (Misterio)</span> : (partido.pareja2?.nombre_pareja || "TBD");
+                                                return isRival ? <span className="italic text-olive/60">Oculta (Misterio)</span> : (partido.pareja2?.nombre_pareja || "TBD");
                                             })()}
                                         </td>
                                         <td className="py-2 text-right font-medium text-blue-700">{partido.lugar || "Pendiente"}</td>
@@ -358,14 +361,14 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
             </div>
 
             {/* PIE DE PÁGINA */}
-            <div className="pdf-section mt-12 pt-4 border-t-2 border-blue-900 flex items-center justify-between">
-                <p className="text-[10px] text-gray-400 uppercase tracking-widest">Reporte oficial del torneo</p>
+            <div className="pdf-section mt-12 pt-4 border-t-2 border-olive flex items-center justify-between">
+                <p className="text-[10px] text-olive/60 uppercase tracking-widest">Reporte oficial del torneo</p>
                 <div className="flex items-center gap-3">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/logo.png" alt="Pádel Manía" className="w-10 h-10 object-contain" />
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-blue-900 uppercase tracking-widest">Pádel Manía</span>
-                        <span className="text-[9px] text-gray-400 font-medium">— Tu Club · Tu Juego · Tu Ranking</span>
+                        <span className="text-[10px] font-black text-olive uppercase tracking-widest">Pádel Manía</span>
+                        <span className="text-[9px] text-olive/60 font-medium">— Tu Club · Tu Juego · Tu Ranking</span>
                     </div>
                 </div>
             </div>
