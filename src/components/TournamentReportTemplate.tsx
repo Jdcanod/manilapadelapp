@@ -303,76 +303,82 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
             {/* SECCIÓN DE CRONOGRAMA */}
             <div className="mb-10">
                 <h3 className="text-lg font-bold bg-paper-soft p-2 mb-4 uppercase border-l-4 border-olive">Parrilla (Programación)</h3>
-                {fechasOrdenadas.map(fechaKey => (
-                    <div key={fechaKey} className="pdf-section mb-6">
-                        <div className="bg-olive text-white px-4 py-1 text-sm font-bold uppercase mb-2">
-                            {(() => {
-                                if (fechaKey === "Pendiente") return "Fechas por Programar";
-                                const [fy, fm, fd] = fechaKey.split('-').map(Number);
-                                const localDate = new Date(fy, fm - 1, fd);
-                                return format(localDate, "EEEE dd 'de' MMMM", { locale: es });
-                            })()}
-                        </div>
-                        <table className="w-full text-xs border-collapse">
-                            <thead>
-                                <tr className="border-b border-olive/30 text-olive/70">
-                                    <th className="py-2 text-left w-16">Hora</th>
-                                    <th className="py-2 text-left">{isCopaDavis ? `Pareja ${torneo.club?.nombre || 'Local'}` : 'Pareja 1'}</th>
-                                    <th className="py-2 text-center w-8">vs</th>
-                                    <th className="py-2 text-left">{isCopaDavis ? `Pareja ${torneo.club_rival?.nombre || 'Rival'}` : 'Pareja 2'}</th>
-                                    <th className="py-2 text-right">Cancha</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                {([...partidosPorFecha[fechaKey]] as any[]).sort((a, b) => {
-                                    const ha = (a.hora || "99:99");
-                                    const hb = (b.hora || "99:99");
-                                    return ha.localeCompare(hb);
-                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                }).map((partido: any) => (
-                                    <tr key={partido.id} className="border-b border-olive/10 hover:bg-paper-soft">
-                                        <td className="py-2 font-bold">{partido.hora || "--:--"}</td>
-                                        <td className="py-2">
-                                            {(() => {
-                                                const pId = partido.pareja1_id || partido.pareja1?.id;
-                                                const clubId = getParejaClubId(pId);
-                                                const isRival = isCopaDavis && clubId && clubId !== currentClubId;
-                                                return isRival ? <span className="italic text-olive/60">Oculta (Misterio)</span> : (partido.pareja1?.nombre_pareja || "TBD");
-                                            })()}
-                                        </td>
-                                        <td className="py-2 text-center">
-                                            {partido.resultado ? (
-                                                <span className="font-bold text-emerald-600">{partido.resultado}</span>
-                                            ) : (
-                                                <span className="text-gray-300 italic">vs</span>
-                                            )}
-                                        </td>
-                                        <td className="py-2">
-                                            {(() => {
-                                                const pId = partido.pareja2_id || partido.pareja2?.id;
-                                                const clubId = getParejaClubId(pId);
-                                                const isRival = isCopaDavis && clubId && clubId !== currentClubId;
-                                                return isRival ? <span className="italic text-olive/60">Oculta (Misterio)</span> : (partido.pareja2?.nombre_pareja || "TBD");
-                                            })()}
-                                        </td>
-                                        <td className="py-2 text-right font-medium text-ochre-dark">{(() => {
-                                            // El campo `lugar` puede traer cosas como:
-                                            //   "Cancha 1"
-                                            //   "Cancha 1 | Sin Asignar"
-                                            //   "Cancha 2 | [0] Cuartos de Final - 5ta || PH: Seed 1 vs Seed 8"
-                                            // Para el reporte queremos solo "Cancha N".
-                                            const lugar = partido.lugar || "";
-                                            const m = lugar.match(/Cancha\s+\d+/i);
-                                            if (m) return m[0];
-                                            return lugar || "Pendiente";
-                                        })()}</td>
+                {fechasOrdenadas.flatMap((fechaKey) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const sortedPartidos = ([...partidosPorFecha[fechaKey]] as any[]).sort((a, b) => {
+                        const ha = (a.hora || "99:99");
+                        const hb = (b.hora || "99:99");
+                        return ha.localeCompare(hb);
+                    });
+
+                    const chunkSize = 15;
+                    const chunks = [];
+                    for (let i = 0; i < sortedPartidos.length; i += chunkSize) {
+                        chunks.push(sortedPartidos.slice(i, i + chunkSize));
+                    }
+
+                    return chunks.map((chunk, cIdx) => (
+                        <div key={`${fechaKey}-${cIdx}`} className="pdf-section mb-6">
+                            <div className={`text-white px-4 py-1 uppercase mb-2 ${cIdx === 0 ? 'bg-olive text-sm font-bold' : 'bg-olive/80 text-xs font-bold'}`}>
+                                {(() => {
+                                    if (fechaKey === "Pendiente") return cIdx === 0 ? "Fechas por Programar" : "Fechas por Programar (Continuación)";
+                                    const [fy, fm, fd] = fechaKey.split('-').map(Number);
+                                    const localDate = new Date(fy, fm - 1, fd);
+                                    const dateStr = format(localDate, "EEEE dd 'de' MMMM", { locale: es });
+                                    return cIdx === 0 ? dateStr : `${dateStr} (Continuación)`;
+                                })()}
+                            </div>
+                            <table className="w-full text-xs border-collapse">
+                                <thead>
+                                    <tr className="border-b border-olive/30 text-olive/70">
+                                        <th className="py-2 text-left w-16">Hora</th>
+                                        <th className="py-2 text-left">{isCopaDavis ? `Pareja ${torneo.club?.nombre || 'Local'}` : 'Pareja 1'}</th>
+                                        <th className="py-2 text-center w-8">vs</th>
+                                        <th className="py-2 text-left">{isCopaDavis ? `Pareja ${torneo.club_rival?.nombre || 'Rival'}` : 'Pareja 2'}</th>
+                                        <th className="py-2 text-right">Cancha</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                ))}
+                                </thead>
+                                <tbody>
+                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                    {chunk.map((partido: any) => (
+                                        <tr key={partido.id} className="border-b border-olive/10 hover:bg-paper-soft">
+                                            <td className="py-2 font-bold">{partido.hora || "--:--"}</td>
+                                            <td className="py-2">
+                                                {(() => {
+                                                    const pId = partido.pareja1_id || partido.pareja1?.id;
+                                                    const clubId = getParejaClubId(pId);
+                                                    const isRival = isCopaDavis && clubId && clubId !== currentClubId;
+                                                    return isRival ? <span className="italic text-olive/60">Oculta (Misterio)</span> : (partido.pareja1?.nombre_pareja || "TBD");
+                                                })()}
+                                            </td>
+                                            <td className="py-2 text-center">
+                                                {partido.resultado ? (
+                                                    <span className="font-bold text-emerald-600">{partido.resultado}</span>
+                                                ) : (
+                                                    <span className="text-gray-300 italic">vs</span>
+                                                )}
+                                            </td>
+                                            <td className="py-2">
+                                                {(() => {
+                                                    const pId = partido.pareja2_id || partido.pareja2?.id;
+                                                    const clubId = getParejaClubId(pId);
+                                                    const isRival = isCopaDavis && clubId && clubId !== currentClubId;
+                                                    return isRival ? <span className="italic text-olive/60">Oculta (Misterio)</span> : (partido.pareja2?.nombre_pareja || "TBD");
+                                                })()}
+                                            </td>
+                                            <td className="py-2 text-right font-medium text-ochre-dark">{(() => {
+                                                const lugar = partido.lugar || "";
+                                                const m = lugar.match(/Cancha\s+\d+/i);
+                                                if (m) return m[0];
+                                                return lugar || "Pendiente";
+                                            })()}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ));
+                })}
             </div>
 
             {/* PIE DE PÁGINA */}
