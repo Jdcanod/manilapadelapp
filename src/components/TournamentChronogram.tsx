@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, Clock, Trash2, AlertCircle, ChevronRight, ChevronLeft, Star, GripVertical } from "lucide-react";
 import { format, addMinutes, startOfDay, parseISO, addDays, isSameDay } from "date-fns";
-import { updateMatchSchedule, unscheduleMatch } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { updateMatchSchedule, unscheduleMatch, moverPartidosDeDia } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton";
@@ -354,19 +354,53 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                         </div>
                     </div>
                     
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                         <Button variant="outline" size="icon" className="bg-paper border-olive/20 rounded-xl" onClick={() => setSelectedDate(addDays(selectedDate, -1))}>
                             <ChevronLeft className="w-4 h-4" />
                         </Button>
-                        <Input 
-                            type="date" 
-                            className="bg-paper border-olive/20 text-ink w-auto h-10 rounded-xl font-bold" 
+                        <Input
+                            type="date"
+                            className="bg-paper border-olive/20 text-ink w-auto h-10 rounded-xl font-bold"
                             value={format(selectedDate, "yyyy-MM-dd")}
                             onChange={(e) => setSelectedDate(parseISO(e.target.value))}
                         />
                         <Button variant="outline" size="icon" className="bg-paper border-olive/20 rounded-xl" onClick={() => setSelectedDate(addDays(selectedDate, 1))}>
                             <ChevronRight className="w-4 h-4" />
                         </Button>
+                        {isAdmin && (
+                            <Button
+                                variant="outline"
+                                onClick={async () => {
+                                    const origen = format(selectedDate, "yyyy-MM-dd");
+                                    const destinoStr = window.prompt(
+                                        `Mover TODOS los partidos del ${origen} a otro día.\n\nEscribe la nueva fecha (YYYY-MM-DD):`,
+                                        format(addDays(selectedDate, 1), "yyyy-MM-dd")
+                                    );
+                                    if (!destinoStr) return;
+                                    if (!/^\d{4}-\d{2}-\d{2}$/.test(destinoStr)) {
+                                        toast({ title: "Fecha inválida", description: "Usa el formato YYYY-MM-DD (ej: 2026-06-06)", variant: "destructive" });
+                                        return;
+                                    }
+                                    if (destinoStr === origen) {
+                                        toast({ title: "Misma fecha", description: "Origen y destino son iguales." });
+                                        return;
+                                    }
+                                    if (!confirm(`¿Mover TODOS los partidos programados el ${origen} al ${destinoStr}? Las horas del día se mantienen.`)) return;
+                                    const r = await moverPartidosDeDia(torneoId, origen, destinoStr);
+                                    if (r.success) {
+                                        toast({ title: "Listo", description: `${r.movidos ?? 0} partido(s) movido(s) al ${destinoStr}.` });
+                                        setSelectedDate(parseISO(destinoStr));
+                                        router.refresh();
+                                    } else {
+                                        toast({ title: "Error", description: r.error || "No se pudo mover el día.", variant: "destructive" });
+                                    }
+                                }}
+                                className="bg-ochre/10 border-ochre/30 text-ochre-dark hover:bg-ochre/20 h-10 rounded-xl font-bold text-xs uppercase tracking-widest"
+                                title="Mover todos los partidos visibles a otra fecha"
+                            >
+                                Mover día →
+                            </Button>
+                        )}
                     </div>
                 </div>
 

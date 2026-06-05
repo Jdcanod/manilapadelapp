@@ -878,6 +878,64 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
  * guardado decide quién va primero, segundo, etc. Cuando las parejas tienen
  * puntajes distintos, el orden natural por pts/%sets/%games gana siempre.
  */
+/**
+ * Mueve todos los partidos del torneo cuya fecha (parte día) coincide con
+ * fechaOrigen (YYYY-MM-DD) a la fecha fechaDestino (YYYY-MM-DD), manteniendo
+ * la HORA original. Útil cuando el admin programó la parrilla para un día y
+ * el torneo se aplazó.
+ */
+export async function moverPartidosDeDia(torneoId: string, fechaOrigen: string, fechaDestino: string) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, error: "No autenticado" };
+
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaOrigen) || !/^\d{4}-\d{2}-\d{2}$/.test(fechaDestino)) {
+            return { success: false, error: "Fechas deben venir como YYYY-MM-DD" };
+        }
+        if (fechaOrigen === fechaDestino) {
+            return { success: true, movidos: 0, message: "Mismo día, nada que mover" };
+        }
+
+        const admin = createPureAdminClient();
+
+        // Traer los partidos del torneo cuyo día coincida con fechaOrigen.
+        const inicioDia = `${fechaOrigen}T00:00:00`;
+        const finDia = `${fechaOrigen}T23:59:59.999`;
+        const { data: partidos, error: qErr } = await admin
+            .from('partidos')
+            .select('id, fecha')
+            .eq('torneo_id', torneoId)
+            .gte('fecha', inicioDia)
+            .lte('fecha', finDia);
+        if (qErr) return { success: false, error: qErr.message };
+        if (!partidos || partidos.length === 0) {
+            return { success: true, movidos: 0, message: "No hay partidos en esa fecha" };
+        }
+
+        // Para cada partido, reemplazar la parte día por fechaDestino, manteniendo la hora.
+        const diffMs = new Date(`${fechaDestino}T00:00:00`).getTime() - new Date(`${fechaOrigen}T00:00:00`).getTime();
+        let actualizados = 0;
+        for (const p of partidos as Array<{ id: string; fecha: string }>) {
+            const nueva = new Date(new Date(p.fecha).getTime() + diffMs).toISOString();
+            const { error: uErr } = await admin
+                .from('partidos').update({ fecha: nueva }).eq('id', p.id);
+            if (uErr) {
+                console.error("[moverPartidosDeDia] update error en", p.id, uErr);
+                continue;
+            }
+            actualizados++;
+        }
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        return { success: true, movidos: actualizados };
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Error";
+        console.error("[moverPartidosDeDia] EXCEPTION:", err);
+        return { success: false, error: msg };
+    }
+}
+
 export async function actualizarOrdenGrupo(torneoId: string, grupoId: string, parejaIds: string[]) {
     try {
         const supabase = createClient();
