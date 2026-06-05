@@ -285,6 +285,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                                 tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                                 formato={torneo.formato}
                                 setsCantidad={torneo.reglas_puntuacion?.sets}
+                                ordenGrupos={torneo.reglas_puntuacion?.orden_grupos || {}}
                             />
                     </TabsContent>
                     <TabsContent value="cuadros" className="mt-8">

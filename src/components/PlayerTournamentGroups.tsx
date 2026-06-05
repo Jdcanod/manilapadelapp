@@ -50,9 +50,12 @@ interface Props {
     tipoDesempate?: string;
     formato?: string; // 'relampago' | 'liguilla'
     setsCantidad?: number;
+    /** Orden manual por grupo (persistido en
+     *  torneo.reglas_puntuacion.orden_grupos). Tie-breaker FINAL del sort. */
+    ordenGrupos?: Record<string, string[]>;
 }
 
-export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId, tipoDesempate = "tercer_set", formato = "relampago", setsCantidad = 3 }: Props) {
+export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId, tipoDesempate = "tercer_set", formato = "relampago", setsCantidad = 3, ordenGrupos = {} }: Props) {
     const esLiguilla = formato === 'liguilla';
     const [isPendingAction, startTransition] = useTransition();
     const router = useRouter();
@@ -124,23 +127,29 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
             }
         });
 
-        // Ordenar por: Puntos -> % Sets -> % Games
+        // Ordenar por: Puntos -> % Sets -> % Games -> orden manual del admin
+        const ordenManual = ordenGrupos[grupoId] || [];
+        const ordenIdx = (parejaId: string) => {
+            const i = ordenManual.indexOf(parejaId);
+            return i === -1 ? 999999 : i;
+        };
         return Array.from(map.values()).sort((a, b) => {
             if (b.pts !== a.pts) return b.pts - a.pts;
-            
-            // % Sets
+
             const totalSetsA = a.sg + a.sp;
             const totalSetsB = b.sg + b.sp;
             const pctSetsA = totalSetsA > 0 ? (a.sg * 100) / totalSetsA : 0;
             const pctSetsB = totalSetsB > 0 ? (b.sg * 100) / totalSetsB : 0;
             if (pctSetsB !== pctSetsA) return pctSetsB - pctSetsA;
 
-            // % Games
             const totalGamesA = a.gg + a.gp;
             const totalGamesB = b.gg + b.gp;
             const pctGamesA = totalGamesA > 0 ? (a.gg * 100) / totalGamesA : 0;
             const pctGamesB = totalGamesB > 0 ? (b.gg * 100) / totalGamesB : 0;
-            return pctGamesB - pctGamesA;
+            if (pctGamesB !== pctGamesA) return pctGamesB - pctGamesA;
+
+            // Tie-breaker FINAL: orden manual definido por el admin
+            return ordenIdx(a.parejaId) - ordenIdx(b.parejaId);
         });
     };
 
