@@ -879,6 +879,32 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
  * puntajes distintos, el orden natural por pts/%sets/%games gana siempre.
  */
 /**
+ * Cuenta cuántos partidos del torneo están programados en una fecha (YYYY-MM-DD).
+ * Usado para detectar colisiones antes de mover un día completo.
+ */
+export async function contarPartidosDeDia(torneoId: string, fecha: string): Promise<{ success: boolean; count?: number; error?: string }> {
+    try {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+            return { success: false, error: "Fecha inválida (YYYY-MM-DD)" };
+        }
+        const admin = createPureAdminClient();
+        const inicio = `${fecha}T00:00:00`;
+        const fin = `${fecha}T23:59:59.999`;
+        const { count, error } = await admin
+            .from('partidos')
+            .select('id', { count: 'exact', head: true })
+            .eq('torneo_id', torneoId)
+            .gte('fecha', inicio)
+            .lte('fecha', fin);
+        if (error) return { success: false, error: error.message };
+        return { success: true, count: count ?? 0 };
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Error";
+        return { success: false, error: msg };
+    }
+}
+
+/**
  * Mueve todos los partidos del torneo cuya fecha (parte día) coincide con
  * fechaOrigen (YYYY-MM-DD) a la fecha fechaDestino (YYYY-MM-DD), manteniendo
  * la HORA original. Útil cuando el admin programó la parrilla para un día y

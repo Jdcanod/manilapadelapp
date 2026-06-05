@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, Clock, Trash2, AlertCircle, ChevronRight, ChevronLeft, Star, GripVertical } from "lucide-react";
 import { format, addMinutes, startOfDay, parseISO, addDays, isSameDay } from "date-fns";
-import { updateMatchSchedule, unscheduleMatch, moverPartidosDeDia } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { updateMatchSchedule, unscheduleMatch, moverPartidosDeDia, contarPartidosDeDia } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton";
@@ -385,7 +385,47 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                         toast({ title: "Misma fecha", description: "Origen y destino son iguales." });
                                         return;
                                     }
-                                    if (!confirm(`¿Mover TODOS los partidos programados el ${origen} al ${destinoStr}? Las horas del día se mantienen.`)) return;
+
+                                    // Chequear si el destino ya tiene partidos programados.
+                                    const c = await contarPartidosDeDia(torneoId, destinoStr);
+                                    if (!c.success) {
+                                        toast({ title: "Error", description: c.error || "No se pudo verificar el destino", variant: "destructive" });
+                                        return;
+                                    }
+
+                                    if ((c.count ?? 0) > 0) {
+                                        // Hay colisión. Preguntar qué hacer con los del destino.
+                                        const cascadaStr = window.prompt(
+                                            `⚠️ El ${destinoStr} ya tiene ${c.count} partido(s) programado(s).\n\n` +
+                                            `Antes de mover los del ${origen}, decide qué hacer con esos:\n\n` +
+                                            `• Escribe una FECHA (YYYY-MM-DD) para moverlos a ese día primero (cascada).\n` +
+                                            `• Deja en blanco para mantenerlos ahí y FUSIONAR ambos sets (puede haber traslapes de horario).`,
+                                            ""
+                                        );
+                                        if (cascadaStr === null) return; // canceló el prompt
+                                        const cascada = cascadaStr.trim();
+                                        if (cascada) {
+                                            if (!/^\d{4}-\d{2}-\d{2}$/.test(cascada)) {
+                                                toast({ title: "Fecha inválida", description: "Usa el formato YYYY-MM-DD", variant: "destructive" });
+                                                return;
+                                            }
+                                            if (cascada === destinoStr || cascada === origen) {
+                                                toast({ title: "Fecha repetida", description: "La cascada debe ser distinta a origen y destino.", variant: "destructive" });
+                                                return;
+                                            }
+                                            if (!confirm(`Mover primero los ${c.count} partido(s) del ${destinoStr} al ${cascada}, y luego los del ${origen} al ${destinoStr}. ¿Confirmar?`)) return;
+                                            const r1 = await moverPartidosDeDia(torneoId, destinoStr, cascada);
+                                            if (!r1.success) {
+                                                toast({ title: "Error en cascada", description: r1.error || "Falló mover el destino", variant: "destructive" });
+                                                return;
+                                            }
+                                        } else {
+                                            if (!confirm(`Vas a FUSIONAR los partidos del ${origen} sobre los del ${destinoStr} (sin reubicarlos). Puede haber dos partidos a la misma hora/cancha. ¿Continuar?`)) return;
+                                        }
+                                    } else {
+                                        if (!confirm(`¿Mover TODOS los partidos programados el ${origen} al ${destinoStr}? Las horas del día se mantienen.`)) return;
+                                    }
+
                                     const r = await moverPartidosDeDia(torneoId, origen, destinoStr);
                                     if (r.success) {
                                         toast({ title: "Listo", description: `${r.movidos ?? 0} partido(s) movido(s) al ${destinoStr}.` });
