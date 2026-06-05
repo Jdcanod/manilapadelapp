@@ -351,7 +351,17 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                 return isRival ? <span className="italic text-olive/60">Oculta (Misterio)</span> : (partido.pareja2?.nombre_pareja || "TBD");
                                             })()}
                                         </td>
-                                        <td className="py-2 text-right font-medium text-blue-700">{partido.lugar || "Pendiente"}</td>
+                                        <td className="py-2 text-right font-medium text-ochre-dark">{(() => {
+                                            // El campo `lugar` puede traer cosas como:
+                                            //   "Cancha 1"
+                                            //   "Cancha 1 | Sin Asignar"
+                                            //   "Cancha 2 | [0] Cuartos de Final - 5ta || PH: Seed 1 vs Seed 8"
+                                            // Para el reporte queremos solo "Cancha N".
+                                            const lugar = partido.lugar || "";
+                                            const m = lugar.match(/Cancha\s+\d+/i);
+                                            if (m) return m[0];
+                                            return lugar || "Pendiente";
+                                        })()}</td>
                                     </tr>
                                 ))}
                             </tbody>
