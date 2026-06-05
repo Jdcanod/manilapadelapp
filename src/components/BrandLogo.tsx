@@ -38,10 +38,7 @@ export function BrandLogo({ size = "md", showText = true, tone = "auto", href = 
     const content = (
         <span className={cn("inline-flex items-center gap-3", className)}>
             <span
-                className={cn(
-                    "inline-flex items-center justify-center overflow-hidden rounded-full",
-                    "bg-paper-soft ring-1 ring-olive/20 shadow-sm"
-                )}
+                className="inline-flex items-center justify-center"
                 style={{ width: s.logo, height: s.logo }}
             >
                 <Image
@@ -49,7 +46,7 @@ export function BrandLogo({ size = "md", showText = true, tone = "auto", href = 
                     alt="Pádel Manía"
                     width={s.logo}
                     height={s.logo}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                     priority={size === "lg"}
                 />
             </span>
