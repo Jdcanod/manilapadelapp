@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { Trophy, CalendarDays, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,8 +14,14 @@ export default async function TorneosPage() {
         redirect("/login");
     }
 
-    // Get all tournaments that are public and upcoming or ongoing
-    const { data: torneos } = await supabase
+    // Lista de torneos visible al jugador. Las cuentas embebidas
+    // (torneo_parejas / inscripciones) usaban el cliente con sesión, y la
+    // RLS sobre esas tablas devolvía 0 cuando el usuario no era admin del
+    // club host — daba la falsa impresión de que un torneo con 40 parejas
+    // tenía 0 inscritos. Usamos el admin client para esta lectura PUBLICA
+    // (solo conteos + datos no sensibles del torneo).
+    const adminRead = createPureAdminClient();
+    const { data: torneos } = await adminRead
         .from('torneos')
         .select(`
             *,

@@ -332,7 +332,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                 <thead>
                                     <tr className="border-b border-olive/30 text-olive/70">
                                         <th className="py-2 text-left w-14">Hora</th>
-                                        <th className="py-2 text-left w-20">Fase</th>
+                                        <th className="py-2 text-left w-[110px]">Fase</th>
                                         <th className="py-2 text-left">{isCopaDavis ? `Pareja ${torneo.club?.nombre || 'Local'}` : 'Pareja 1'}</th>
                                         <th className="py-2 text-center w-8">vs</th>
                                         <th className="py-2 text-left">{isCopaDavis ? `Pareja ${torneo.club_rival?.nombre || 'Rival'}` : 'Pareja 2'}</th>
@@ -361,7 +361,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                     else if (lugar.includes("tercer lugar") || lugar.includes("3er") || lugar.includes("3ro")) { fase = "3er Puesto"; color = "bg-ochre/20 text-ochre-dark"; }
                                                     else if (lugar.includes("final")) { fase = "Final"; color = "bg-olive text-paper font-black"; }
                                                     return (
-                                                        <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${color}`}>
+                                                        <span className={`inline-block text-[8.5px] font-black uppercase tracking-widest px-2 py-1 rounded whitespace-nowrap leading-none ${color}`}>
                                                             {fase}{nivel ? ` · ${nivel}` : ""}
                                                         </span>
                                                     );
