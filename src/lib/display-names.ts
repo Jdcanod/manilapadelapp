@@ -71,7 +71,22 @@ export function formatPlayerNameFull(player: { nombre?: string | null; apellido?
     if (!player) return 'Jugador';
     const nom = (player.nombre || '').trim();
     const ape = (player.apellido || '').trim();
-    const full = [nom, ape].filter(Boolean).join(' ') || 'Jugador';
+    // Algunos usuarios viejos tienen el apellido REPETIDO dentro del `nombre`
+    // (ej. nombre="Juan Camilo Ocampo Muñoz", apellido="Ocampo Muñoz"). Para
+    // evitar mostrar "Juan Camilo Ocampo Muñoz Ocampo Muñoz", chequeamos si el
+    // apellido ya está al final del nombre.
+    let full: string;
+    if (nom && ape) {
+        const nomLower = nom.toLowerCase();
+        const apeLower = ape.toLowerCase();
+        if (nomLower === apeLower || nomLower.endsWith(' ' + apeLower) || nomLower.endsWith(apeLower)) {
+            full = nom;
+        } else {
+            full = `${nom} ${ape}`;
+        }
+    } else {
+        full = nom || ape || 'Jugador';
+    }
     return isGuestEmail(player.email) ? `${full} (I)` : full;
 }
 

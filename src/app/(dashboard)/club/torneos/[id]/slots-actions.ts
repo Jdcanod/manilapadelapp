@@ -221,7 +221,21 @@ export async function asignarParejaASlot({
 
             if (existing?.id) {
                 parejaRealId = existing.id;
+                // Asegurar que esta pareja esté activa (puede haber quedado
+                // desactivada al armar otra pareja con uno de sus jugadores).
+                await admin.from("parejas").update({ activa: false })
+                    .in("jugador1_id", [j1Id, j2Id]).neq("id", existing.id);
+                await admin.from("parejas").update({ activa: false })
+                    .in("jugador2_id", [j1Id, j2Id]).neq("id", existing.id);
+                await admin.from("parejas").update({ activa: true }).eq("id", existing.id);
             } else {
+                // Desactivar parejas activas previas de cualquiera de los dos
+                // jugadores para no romper el partial unique index
+                // (idx_jugador1_activo / idx_jugador2_activo) cuando insertamos
+                // la nueva pareja con activa=true.
+                await admin.from("parejas").update({ activa: false }).in("jugador1_id", [j1Id, j2Id]);
+                await admin.from("parejas").update({ activa: false }).in("jugador2_id", [j1Id, j2Id]);
+
                 // Crear pareja real con nombre corto
                 const { data: jugadores } = await admin
                     .from("users").select("id, nombre, apellido").in("id", [j1Id, j2Id]);
