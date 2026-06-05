@@ -62,29 +62,11 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
     }, [isCopaDavis, partidos]);
     
     // Organizar partidos por fecha para el cronograma (Deduplicación Lógica)
-    // Evitamos que el mismo enfrentamiento aparezca dos veces en el mismo grupo/nivel
-    const seenMatches = new Set();
+    // Sin deduplicación adicional: los partidos vienen de la BD con id único
+    // como PRIMARY KEY, así que la dedup interna no era necesaria y podía
+    // bloquear filas legítimas. Dejamos el array completo como llega.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const uniquePartidos: any[] = [];
-    
-    // Priorizamos los partidos que ya tienen fecha/lugar asignado
-    const sortedPartidos = [...partidos].sort((a, b) => {
-        const hasA = (a.fecha && a.lugar && a.lugar !== 'Pendiente') ? 1 : 0;
-        const hasB = (b.fecha && b.lugar && b.lugar !== 'Pendiente') ? 1 : 0;
-        return hasB - hasA;
-    });
-
-    // Dedup por partido.id (único en DB) — es lo único 100% confiable.
-    // Antes deduplicábamos por (parejaA+parejaB)@contexto y eso descartaba
-    // bracket vs grupo cuando coincidían en categoría, o partidos repetidos
-    // de la misma pareja en distintos slots de horario.
-    for (const p of sortedPartidos) {
-        const idKey = `id:${p.id}`;
-        if (!seenMatches.has(idKey)) {
-            seenMatches.add(idKey);
-            uniquePartidos.push(p);
-        }
-    }
+    const uniquePartidos: any[] = [...partidos];
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const partidosPorFecha = uniquePartidos.reduce((acc: any, partido: any) => {
@@ -119,23 +101,16 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
     const fechasOrdenadas = Object.keys(partidosPorFecha).sort();
 
     // Diagnóstico: el usuario reporta que partidos 20:00+ no aparecen en el PDF.
-    // Lo imprimimos en consola al construir el reporte para poder verificar
-    // en DevTools cuántos partidos llegan y a qué buckets caen.
     if (typeof window !== "undefined") {
         // eslint-disable-next-line no-console
         console.log("[TournamentReportTemplate] partidos recibidos:", partidos.length,
-            "uniquePartidos:", uniquePartidos.length,
             "buckets:", fechasOrdenadas.map(k => `${k}:${partidosPorFecha[k].length}`).join(" | "));
+        // Listar TODOS los del 2026-06-06 ordenados por hora
+        const sabado = partidosPorFecha["2026-06-06"] || [];
         // eslint-disable-next-line no-console
-        const tarde = uniquePartidos
+        console.log("[TournamentReportTemplate] partidos sábado 2026-06-06:",
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .filter((p: any) => {
-                const h = (p.hora || "").split(":")[0];
-                return parseInt(h, 10) >= 19;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            }).map((p: any) => ({ id: p.id, hora: p.hora, fecha: p.fecha, lugar: p.lugar, p1: p.pareja1_id, p2: p.pareja2_id }));
-        // eslint-disable-next-line no-console
-        console.log("[TournamentReportTemplate] partidos hora >= 19:", tarde);
+            sabado.map((p: any) => `${p.hora || "??"} · ${p.lugar} · ${p.nivel} · ${p.id}`).sort());
     }
 
     return (
