@@ -282,7 +282,7 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                 </div>
                 <div className="absolute bottom-6 left-6 z-20 flex flex-col md:flex-row md:items-end gap-4 w-full pr-12">
                     <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2 text-ochre font-medium">
+                        <div className="flex items-center gap-2 mb-2 text-white/80 font-medium">
                             <CheckCircle className="w-4 h-4" />
                             <span className="text-sm tracking-wide uppercase">Club Verificado (Partner)</span>
                         </div>
