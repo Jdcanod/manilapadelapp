@@ -278,22 +278,20 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                     {pendingMatchesFiltrados.length}/{pendingMatches.length}
                                 </Badge>
                             </div>
-                            {/* Filtro por categoría — solo cuando hay más de una */}
-                            {bolsaCategorias.length > 1 && (
-                                <select
-                                    value={bolsaCatFilter}
-                                    onChange={e => setBolsaCatFilter(e.target.value)}
-                                    className="w-full bg-paper-soft border border-olive/20 rounded-lg px-3 py-2 text-xs text-ink focus:outline-none focus:border-ochre/40"
-                                >
-                                    <option value="all">Todas las categorías ({pendingMatches.length})</option>
-                                    {bolsaCategorias.sort().map(cat => {
-                                        const count = pendingMatches.filter(m => m.nivel === cat).length;
-                                        return (
-                                            <option key={cat} value={cat}>{cat} ({count})</option>
-                                        );
-                                    })}
-                                </select>
-                            )}
+                            {/* Filtro por categoría */}
+                            <select
+                                value={bolsaCatFilter}
+                                onChange={e => setBolsaCatFilter(e.target.value)}
+                                className="w-full bg-paper-soft border border-olive/20 rounded-lg px-3 py-2 text-xs text-ink focus:outline-none focus:border-ochre/40 font-bold"
+                            >
+                                <option value="all">Todas las categorías ({pendingMatches.length})</option>
+                                {bolsaCategorias.sort().map(cat => {
+                                    const count = pendingMatches.filter(m => m.nivel === cat).length;
+                                    return (
+                                        <option key={cat} value={cat}>{cat} ({count})</option>
+                                    );
+                                })}
+                            </select>
                         </div>
                         <div className="flex-1 overflow-y-auto p-3 space-y-3 max-h-[500px] xl:max-h-[800px] scrollbar-hide">
                             {pendingMatchesFiltrados.length === 0 ? (
