@@ -88,7 +88,7 @@ export function BracketMatchCardClient({ match, playerPairIds, currentUserId, ti
                             "text-sm font-black uppercase truncate pr-2",
                             match.pareja1_id && playerPairIds.includes(match.pareja1_id) ? "text-ochre-dark" : "text-ink"
                         )}>
-                            {match.pareja1?.nombre_pareja || (match.lugar?.includes('PH:') ? match.lugar.split('PH:')[1].split('vs')[0].trim() : "TBD")}
+                            {match.pareja1?.nombre_pareja || (match.lugar?.includes('||') ? match.lugar.split('||')[1].split('vs')[0]?.replace(/^\s*PH:\s*/i, '').trim() : "TBD")}
                         </span>
                         <div className="flex gap-1">
                             {(match.resultado || "-").split(',').map((setStr: string, idx: number) => (
@@ -106,7 +106,7 @@ export function BracketMatchCardClient({ match, playerPairIds, currentUserId, ti
                             "text-sm font-black uppercase truncate pr-2",
                             match.pareja2_id && playerPairIds.includes(match.pareja2_id) ? "text-ochre-dark" : "text-ink"
                         )}>
-                            {match.pareja2?.nombre_pareja || (match.lugar?.includes('PH:') ? match.lugar.split('PH:')[1].split('vs')[1]?.trim() : "TBD")}
+                            {match.pareja2?.nombre_pareja || (match.lugar?.includes('||') ? match.lugar.split('||')[1].split('vs')[1]?.replace(/^\s*PH:\s*/i, '').trim() : "TBD")}
                         </span>
                         <div className="flex gap-1">
                             {(match.resultado || "-").split(',').map((setStr: string, idx: number) => (

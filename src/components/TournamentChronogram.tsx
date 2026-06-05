@@ -51,8 +51,8 @@ function getBracketDisplayName(
 
     const parts = match.lugar?.split('||')[1]?.split('vs') || [];
     const ph = isPareja2 
-        ? parts[1]?.replace(/^PH:\s*/i, '').trim() 
-        : parts[0]?.replace(/^PH:\s*/i, '').trim();
+        ? parts[1]?.replace(/^\s*PH:\s*/i, '').trim() 
+        : parts[0]?.replace(/^\s*PH:\s*/i, '').trim();
 
     return ph || 'TBD';
 }
