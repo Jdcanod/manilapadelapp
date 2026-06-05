@@ -348,6 +348,11 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                             <td className="py-2">
                                                 {(() => {
                                                     const pId = partido.pareja1_id || partido.pareja1?.id;
+                                                    if (!pId) {
+                                                        const parts = partido.lugar?.split('||')[1]?.split('vs') || [];
+                                                        const ph = parts[0]?.replace(/^\s*PH:\s*/i, '').trim();
+                                                        return ph || "TBD";
+                                                    }
                                                     const clubId = getParejaClubId(pId);
                                                     const isRival = isCopaDavis && clubId && clubId !== currentClubId;
                                                     return isRival ? <span className="italic text-olive/60">Oculta (Misterio)</span> : (partido.pareja1?.nombre_pareja || "TBD");
@@ -363,6 +368,11 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                             <td className="py-2">
                                                 {(() => {
                                                     const pId = partido.pareja2_id || partido.pareja2?.id;
+                                                    if (!pId) {
+                                                        const parts = partido.lugar?.split('||')[1]?.split('vs') || [];
+                                                        const ph = parts[1]?.replace(/^\s*PH:\s*/i, '').trim();
+                                                        return ph || "TBD";
+                                                    }
                                                     const clubId = getParejaClubId(pId);
                                                     const isRival = isCopaDavis && clubId && clubId !== currentClubId;
                                                     return isRival ? <span className="italic text-olive/60">Oculta (Misterio)</span> : (partido.pareja2?.nombre_pareja || "TBD");

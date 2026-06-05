@@ -505,7 +505,6 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 .filter((p: any) => {
                                     if (!p.fecha) return false;
-                                    if (!p.pareja1_id && !p.pareja2_id) return false;
                                     // Excluir placeholders Copa Davis estilo "Pendiente · 4ta #1"
                                     const lugar = (p.lugar || '').toLowerCase();
                                     if (lugar.includes('pendiente ·')) return false;
