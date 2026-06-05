@@ -327,7 +327,8 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                     const dateStr = format(localDate, "EEEE dd 'de' MMMM", { locale: es });
                                     return cIdx === 0 ? dateStr : `${dateStr} (Continuación)`;
                                 })()}
-                                <table className="w-full text-xs border-collapse">
+                            </div>
+                            <table className="w-full text-xs border-collapse">
                                 <thead>
                                     <tr className="border-b border-olive/30 text-olive/70">
                                         <th className="py-2 text-left w-14">Hora</th>
