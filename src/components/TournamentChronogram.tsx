@@ -35,6 +35,29 @@ interface Match {
     estado_resultado?: string | null;
 }
 
+function getBracketDisplayName(
+    match: Match,
+    isPareja2: boolean,
+    parejaPlayers?: ParejaPlayersMap
+): string {
+    const pareja = isPareja2 ? match.pareja2 : match.pareja1;
+    const parejaId = isPareja2 ? match.pareja2_id : match.pareja1_id;
+    const nombre = pareja?.nombre_pareja;
+
+    const isTBD = !nombre || nombre === 'TBD';
+    if (!isTBD) {
+        return resolvePairName(pareja?.id || parejaId, nombre, parejaPlayers) || 'TBD';
+    }
+
+    const parts = match.lugar?.split('||')[1]?.split('vs') || [];
+    const ph = isPareja2 
+        ? parts[1]?.replace(/^PH:\s*/i, '').trim() 
+        : parts[0]?.replace(/^PH:\s*/i, '').trim();
+
+    return ph || 'TBD';
+}
+
+
 interface ChronogramProps {
     torneoId: string;
     matches: Match[];
@@ -313,8 +336,8 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                             <GripVertical className="w-3 h-3 text-olive/40 group-hover:text-olive/70 transition-colors" />
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-xs font-black text-ink uppercase truncate">{resolvePairName(match.pareja1?.id || match.pareja1_id, match.pareja1?.nombre_pareja, parejaPlayers) || "TBD"}</p>
-                                            <p className="text-xs font-black text-ink uppercase truncate">{resolvePairName(match.pareja2?.id || match.pareja2_id, match.pareja2?.nombre_pareja, parejaPlayers) || "TBD"}</p>
+                                            <p className="text-xs font-black text-ink uppercase truncate">{getBracketDisplayName(match, false, parejaPlayers)}</p>
+                                            <p className="text-xs font-black text-ink uppercase truncate">{getBracketDisplayName(match, true, parejaPlayers)}</p>
                                         </div>
                                         {/* Botón Gestionar Partido (solo Copa Davis) */}
                                         {copaDavisContext && (
@@ -574,8 +597,8 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                             {isAdmin && matchToShow.estado_resultado !== 'confirmado' && (
                                                                 <AdminTournamentResultModal
                                                                     matchId={matchToShow.id}
-                                                                    pareja1Nombre={resolvePairName(matchToShow.pareja1?.id || matchToShow.pareja1_id, matchToShow.pareja1?.nombre_pareja, parejaPlayers) || "TBD"}
-                                                                    pareja2Nombre={resolvePairName(matchToShow.pareja2?.id || matchToShow.pareja2_id, matchToShow.pareja2?.nombre_pareja, parejaPlayers) || "TBD"}
+                                                                    pareja1Nombre={getBracketDisplayName(matchToShow, false, parejaPlayers)}
+                                                                    pareja2Nombre={getBracketDisplayName(matchToShow, true, parejaPlayers)}
                                                                     initialResult={matchToShow.resultado}
                                                                     tipoDesempate={tipoDesempate}
                                                                     compact
@@ -594,7 +617,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                             <div className="flex items-center justify-between gap-1.5">
                                                                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                                                     <div className={`w-1 h-3 rounded-full flex-shrink-0 ${isMine ? 'bg-ochre' : 'bg-olive'}`} />
-                                                                    <p className="text-[10px] font-black text-ink uppercase truncate">{resolvePairName(matchToShow.pareja1?.id || matchToShow.pareja1_id, matchToShow.pareja1?.nombre_pareja, parejaPlayers) || "TBD"}</p>
+                                                                    <p className="text-[10px] font-black text-ink uppercase truncate">{getBracketDisplayName(matchToShow, false, parejaPlayers)}</p>
                                                                 </div>
                                                                 {matchToShow.resultado && (
                                                                     <div className="flex gap-0.5">
@@ -609,7 +632,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                             <div className="flex items-center justify-between gap-1.5">
                                                                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                                                     <div className={`w-1 h-3 rounded-full flex-shrink-0 ${isMine ? 'bg-ochre' : 'bg-blue-500'}`} />
-                                                                    <p className="text-[10px] font-black text-ink uppercase truncate">{resolvePairName(matchToShow.pareja2?.id || matchToShow.pareja2_id, matchToShow.pareja2?.nombre_pareja, parejaPlayers) || "TBD"}</p>
+                                                                    <p className="text-[10px] font-black text-ink uppercase truncate">{getBracketDisplayName(matchToShow, true, parejaPlayers)}</p>
                                                                 </div>
                                                                 {matchToShow.resultado && (
                                                                     <div className="flex gap-0.5">

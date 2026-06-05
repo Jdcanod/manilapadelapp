@@ -721,6 +721,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                             setsCantidad={torneo.reglas_puntuacion?.sets}
                             formato={torneo.formato || 'relampago'}
                             clasificanPorGrupoDefault={torneo.reglas_puntuacion?.config_clasifican_por_grupo}
+                            allParticipants={allParticipants}
                         />
 
                         {/* SECCIÓN HISTORIAL DE GRUPOS */}

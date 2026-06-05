@@ -31,10 +31,19 @@ interface MatchItem {
 }
 
 function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers, setsCantidad }: { match: MatchItem, tipoDesempate?: string, allPairs?: { id?: string; nombre_pareja: string | null }[], parejaPlayers?: ParejaPlayersMap, setsCantidad?: number }) {
-    const p1Display = resolvePairName(match.pareja1?.id || match.pareja1_id, match.pareja1?.nombre_pareja, parejaPlayers);
-    const p2Display = resolvePairName(match.pareja2?.id || match.pareja2_id, match.pareja2?.nombre_pareja, parejaPlayers);
     const p1IsTBD = !match.pareja1?.nombre_pareja || match.pareja1?.nombre_pareja === 'TBD';
     const p2IsTBD = !match.pareja2?.nombre_pareja || match.pareja2?.nombre_pareja === 'TBD';
+
+    const parts = match.lugar?.split('||')[1]?.split('vs') || [];
+    const ph1 = parts[0]?.replace(/^PH:\s*/i, '').trim() || '';
+    const ph2 = parts[1]?.replace(/^PH:\s*/i, '').trim() || '';
+
+    const p1Display = !p1IsTBD
+        ? resolvePairName(match.pareja1?.id || match.pareja1_id, match.pareja1?.nombre_pareja, parejaPlayers)
+        : (ph1 || 'TBD');
+    const p2Display = !p2IsTBD
+        ? resolvePairName(match.pareja2?.id || match.pareja2_id, match.pareja2?.nombre_pareja, parejaPlayers)
+        : (ph2 || 'TBD');
     return (
         <Card className="bg-paper border-olive/20 border-l-4 border-l-amber-500 shadow-2xl overflow-visible hover:border-olive/30 transition-all group w-full max-w-[280px] relative">
             {allPairs && match.estado !== 'jugado' && (
@@ -266,21 +275,31 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPla
     );
 }
 
-export function TournamentBracketManager({ categorias, partidos, tipoDesempate, parejaPlayers, setsCantidad, formato = 'relampago', clasificanPorGrupoDefault }: { categorias: string[], partidos: MatchItem[], tipoDesempate?: string, parejaPlayers?: ParejaPlayersMap, setsCantidad?: number, formato?: string, clasificanPorGrupoDefault?: number }) {
+export function TournamentBracketManager({ categorias, partidos, tipoDesempate, parejaPlayers, setsCantidad, formato = 'relampago', clasificanPorGrupoDefault, allParticipants = [] }: { categorias: string[], partidos: MatchItem[], tipoDesempate?: string, parejaPlayers?: ParejaPlayersMap, setsCantidad?: number, formato?: string, clasificanPorGrupoDefault?: number, allParticipants?: any[] }) {
     const [selectedCat, setSelectedCat] = useState(categorias[0] || '');
     const [loading, setLoading] = useState(false);
     const params = useParams();
     const torneoId = Array.isArray(params.id) ? params.id[0] : params.id;
     const { toast } = useToast();
 
-    const pairsMap = new Map<string, { id?: string; nombre_pareja: string | null }>();
-    partidos.filter(p => p.nivel === selectedCat && !p.torneo_grupo_id).forEach(p => {
-        if (p.pareja1?.id) pairsMap.set(p.pareja1.id, p.pareja1);
-        if (p.pareja2?.id) pairsMap.set(p.pareja2.id, p.pareja2);
-    });
-    const allPairs = Array.from(pairsMap.values()).sort((a, b) => 
-        (a.nombre_pareja || "").localeCompare(b.nombre_pareja || "")
-    );
+    const allPairs = allParticipants && allParticipants.length > 0
+        ? allParticipants
+            .filter(p => p.categoria === selectedCat)
+            .map(p => ({
+                id: p.pareja_id,
+                nombre_pareja: p.nombre
+            }))
+            .sort((a, b) => (a.nombre_pareja || "").localeCompare(b.nombre_pareja || ""))
+        : (() => {
+            const pairsMap = new Map<string, { id?: string; nombre_pareja: string | null }>();
+            partidos.filter(p => p.nivel === selectedCat && !p.torneo_grupo_id).forEach(p => {
+                if (p.pareja1?.id) pairsMap.set(p.pareja1.id, p.pareja1);
+                if (p.pareja2?.id) pairsMap.set(p.pareja2.id, p.pareja2);
+            });
+            return Array.from(pairsMap.values()).sort((a, b) => 
+                (a.nombre_pareja || "").localeCompare(b.nombre_pareja || "")
+            );
+        })();
 
     const eliminatoriasPartidos = partidos
         .filter(p => 

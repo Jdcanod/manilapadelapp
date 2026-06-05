@@ -1187,6 +1187,69 @@ export async function obtenerStandingsGlobales(torneoId: string, categoria: stri
  *     `totalClasificados` mejores parejas globales que tengan al menos
  *     `minMatches` partidos jugados.
  */
+interface BracketPlaceholderSeed {
+    placeholder: string;
+    grupoId: string;
+    seed: number;
+}
+
+interface GroupResult {
+    isFinished: boolean;
+    first: { parejaId: string; nombre: string; pts: number; sg: number; sp: number; gg: number; gp: number; pj: number; pg: number } | null;
+    second: { parejaId: string; nombre: string; pts: number; sg: number; sp: number; gg: number; gp: number; pj: number; pg: number } | null;
+}
+
+function generatePlaceholdersForBracket(grupos: { id: string; nombre_grupo: string }[], porGrupo: number) {
+    const totalClasificados = grupos.length * porGrupo;
+    let targetTeams = 2;
+    while (targetTeams < totalClasificados) targetTeams *= 2;
+    const numByes = targetTeams - totalClasificados;
+
+    const pot1: BracketPlaceholderSeed[] = grupos.map(g => ({
+        placeholder: `1ro ${g.nombre_grupo}`,
+        grupoId: g.id,
+        seed: 1
+    }));
+    const pot2: BracketPlaceholderSeed[] = grupos.map(g => ({
+        placeholder: `2do ${g.nombre_grupo}`,
+        grupoId: g.id,
+        seed: 2
+    }));
+
+    const seededGroupIds = new Set<string>();
+    // Si hay byes, los mejores seeds de pot1 reciben byes. Para relámpago asumimos orden por grupo
+    for (let i = 0; i < numByes; i++) {
+        if (pot1[i]) seededGroupIds.add(pot1[i].grupoId);
+    }
+
+    const matchesData: { seed: BracketPlaceholderSeed; opponent: BracketPlaceholderSeed }[] = [];
+    if (grupos.length === 2 && porGrupo === 2) {
+        // A1 vs B2, B1 vs A2
+        matchesData.push({ seed: pot1[0], opponent: pot2[1] });
+        matchesData.push({ seed: pot1[1], opponent: pot2[0] });
+    } else if (grupos.length === 4 && porGrupo === 2) {
+        matchesData.push({ seed: pot1[0], opponent: pot2[1] }); // 1A vs 2B
+        matchesData.push({ seed: pot1[2], opponent: pot2[3] }); // 1C vs 2D
+        matchesData.push({ seed: pot1[3], opponent: pot2[2] }); // 1D vs 2C
+        matchesData.push({ seed: pot1[1], opponent: pot2[0] }); // 1B vs 2A
+    } else {
+        // Cruzado por defecto
+        for (let i = 0; i < grupos.length; i++) {
+            const seed = pot1[i];
+            const opponentIdx = grupos.length - 1 - i;
+            const opponent = pot2[opponentIdx];
+            matchesData.push({ seed, opponent });
+        }
+    }
+
+    return {
+        targetTeams,
+        numByes,
+        matchesData,
+        seededGroupIds
+    };
+}
+
 export async function generarFaseEliminatoriaTopN(
     torneoId: string,
     categoria: string,
@@ -1226,6 +1289,7 @@ export async function generarFaseEliminatoriaTopN(
 
         // ===== Modo PER-GROUP (Relámpago típico): tomar top N de CADA grupo =====
         let topN: Array<{ parejaId: string; nombre: string; pts: number; sg: number; sp: number; gg: number; gp: number; pj: number; pg: number }> = [];
+        
         if (porGrupo && porGrupo > 0) {
             const { data: grupos } = await supabaseAdmin
                 .from('torneo_grupos')
@@ -1236,12 +1300,18 @@ export async function generarFaseEliminatoriaTopN(
             if (!grupos || grupos.length === 0) {
                 return { success: false, message: "No hay grupos para clasificar por grupo." };
             }
+
+            // Calculamos placeholders fijos
+            const { targetTeams, matchesData, seededGroupIds } = generatePlaceholdersForBracket(grupos, porGrupo);
+            
+            // Tratamos de obtener las parejas reales si los grupos ya terminaron
+            const groupResults: Record<string, GroupResult> = {};
             for (const g of grupos) {
                 const { data: rawGroupMatches } = await supabaseAdmin
                     .from('partidos')
                     .select('id, pareja1_id, pareja2_id, estado, resultado, estado_resultado')
                     .eq('torneo_grupo_id', g.id);
-                // Adjuntar nombres + tipoDesempate
+                
                 const allParejaIds = new Set<string>();
                 (rawGroupMatches || []).forEach(m => {
                     if (m.pareja1_id) allParejaIds.add(m.pareja1_id);
@@ -1253,31 +1323,123 @@ export async function generarFaseEliminatoriaTopN(
                         .from('parejas').select('id, nombre_pareja').in('id', Array.from(allParejaIds));
                     (parejas || []).forEach(p => nameMap.set(p.id, p.nombre_pareja || 'Pareja'));
                 }
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const matchesShape = (rawGroupMatches || []).map((m: any) => ({
+                const matchesShape = (rawGroupMatches || []).map((m: { id: string; pareja1_id: string | null; pareja2_id: string | null; estado: string; resultado: string | null; estado_resultado: string | null }) => ({
                     ...m,
                     pareja1: m.pareja1_id ? { nombre_pareja: nameMap.get(m.pareja1_id) || null } : null,
                     pareja2: m.pareja2_id ? { nombre_pareja: nameMap.get(m.pareja2_id) || null } : null,
                     tipoDesempate: tipoDesempateCatEli,
                 }));
-                const groupStandings = calculateStandings(matchesShape, standingsOptsEli);
-                topN.push(...groupStandings.slice(0, porGrupo));
+
+                const totalMatches = matchesShape.length;
+                const playedMatches = matchesShape.filter(m => (m.estado === 'jugado' || m.estado_resultado === 'confirmado') && m.resultado).length;
+                const isFinished = totalMatches > 0 && playedMatches >= totalMatches;
+
+                const groupStandings = calculateStandings(matchesShape, standingsOptsEli) as { parejaId: string; nombre: string; pts: number; sg: number; sp: number; gg: number; gp: number; pj: number; pg: number }[];
+                groupResults[g.id] = {
+                    isFinished,
+                    first: groupStandings[0] || null,
+                    second: groupStandings[1] || null
+                };
             }
 
-            if (topN.length < 2) {
-                return { success: false, message: "Aún no hay suficientes parejas con partidos en los grupos para generar el cuadro." };
+            let rondaName = "Final";
+            if (targetTeams === 4) rondaName = "Semifinal";
+            else if (targetTeams === 8) rondaName = "Cuartos de Final";
+            else if (targetTeams === 16) rondaName = "Octavos de Final";
+            else if (targetTeams === 32) rondaName = "Dieciseisavos de Final";
+
+            const allMatchesToCreate: Record<string, unknown>[] = [];
+
+            // Primera ronda - partidos basados en placeholders
+            for (let i = 0; i < matchesData.length; i++) {
+                const { seed, opponent } = matchesData[i];
+                const hasBye = seededGroupIds.has(seed.grupoId);
+                const placeholderText = `PH: ${seed.placeholder} vs ${opponent.placeholder}`;
+
+                const groupSeedResult = groupResults[seed.grupoId];
+                const groupOpponentResult = groupResults[opponent.grupoId];
+
+                const p1Real = (groupSeedResult?.isFinished && groupSeedResult.first) ? groupSeedResult.first.parejaId : null;
+                const p2Real = hasBye ? null : ((groupOpponentResult?.isFinished && groupOpponentResult.second) ? groupOpponentResult.second.parejaId : null);
+
+                allMatchesToCreate.push({
+                    torneo_id: torneoId,
+                    creador_id: userId,
+                    club_id: clubId,
+                    pareja1_id: p1Real,
+                    pareja2_id: p2Real,
+                    estado: hasBye ? 'jugado' : 'programado',
+                    tipo_partido: 'torneo',
+                    nivel: categoria,
+                    lugar: `[${i}] ${rondaName} - ${categoria} || ${placeholderText}`,
+                    fecha: fechaTorneo,
+                    cupos_totales: 4,
+                    cupos_disponibles: 0,
+                    resultado: hasBye ? 'Bye' : null,
+                    estado_resultado: hasBye ? 'confirmado' : null,
+                });
             }
 
-            // Ordenar globalmente por puntos / %sets / %games para seeding del bracket
-            topN.sort((a, b) => {
-                if (b.pts !== a.pts) return b.pts - a.pts;
-                const pctSA = (a.sg + a.sp) ? (a.sg * 100) / (a.sg + a.sp) : 0;
-                const pctSB = (b.sg + b.sp) ? (b.sg * 100) / (b.sg + b.sp) : 0;
-                if (pctSB !== pctSA) return pctSB - pctSA;
-                const pctGA = (a.gg + a.gp) ? (a.gg * 100) / (a.gg + a.gp) : 0;
-                const pctGB = (b.gg + b.gp) ? (b.gg * 100) / (b.gg + b.gp) : 0;
-                return pctGB - pctGA;
-            });
+            // Rondas siguientes (vacías)
+            let currentRondaMatches = (targetTeams / 2) / 2;
+            let currentRondaName = rondaName;
+            while (currentRondaMatches >= 1) {
+                if (currentRondaMatches === 1) currentRondaName = "Final";
+                else if (currentRondaMatches === 2) currentRondaName = "Semifinal";
+                else if (currentRondaMatches === 4) currentRondaName = "Cuartos de Final";
+                else if (currentRondaMatches === 8) currentRondaName = "Octavos de Final";
+                else if (currentRondaMatches === 16) currentRondaName = "Dieciseisavos de Final";
+
+                for (let j = 0; j < currentRondaMatches; j++) {
+                    allMatchesToCreate.push({
+                        torneo_id: torneoId,
+                        creador_id: userId,
+                        club_id: clubId,
+                        pareja1_id: null,
+                        pareja2_id: null,
+                        estado: 'programado',
+                        tipo_partido: 'torneo',
+                        nivel: categoria,
+                        lugar: `[${j}] ${currentRondaName} - ${categoria}`,
+                        fecha: fechaTorneo,
+                        cupos_totales: 4,
+                        cupos_disponibles: 0,
+                    });
+                }
+
+                if (currentRondaName === "Final") {
+                    allMatchesToCreate.push({
+                        torneo_id: torneoId,
+                        creador_id: userId,
+                        club_id: clubId,
+                        pareja1_id: null,
+                        pareja2_id: null,
+                        estado: 'programado',
+                        tipo_partido: 'torneo',
+                        nivel: categoria,
+                        lugar: `[0] Tercer Puesto - ${categoria}`,
+                        fecha: fechaTorneo,
+                        cupos_totales: 4,
+                        cupos_disponibles: 0,
+                    });
+                }
+
+                currentRondaMatches /= 2;
+            }
+
+            const { error: insertError } = await supabaseAdmin.from('partidos').insert(allMatchesToCreate);
+            if (insertError) throw insertError;
+
+            // Sincronizar por si acaso hay grupos ya terminados
+            const { sincronizarClasificados } = await import("@/lib/tournaments/progression");
+            await sincronizarClasificados(torneoId, categoria, clubId, userId);
+
+            revalidatePath(`/club/torneos/${torneoId}`);
+            return {
+                success: true,
+                message: `Cuadro de ${rondaName} generado con placeholders para los grupos.`,
+            };
+
         } else {
             // ===== Modo GLOBAL (legacy / liguilla) =====
             if (!totalClasificados || totalClasificados < 2) {
@@ -1299,117 +1461,112 @@ export async function generarFaseEliminatoriaTopN(
             }
             const cuantos = Math.min(totalClasificados, elegibles.length);
             topN = elegibles.slice(0, cuantos);
-        }
 
-        const N = topN.length;
+            const N = topN.length;
 
-        // 2. Calcular potencia de 2 superior y los byes
-        let targetTeams = 2;
-        while (targetTeams < N) targetTeams *= 2;
-        const numByes = targetTeams - N;
+            // 2. Calcular potencia de 2 superior y los byes
+            let targetTeams = 2;
+            while (targetTeams < N) targetTeams *= 2;
+            const numByes = targetTeams - N;
 
-        // 3. Construir bracket con siembra estándar:
-        //    Posición 1 vs Posición targetTeams, Posición 2 vs Posición targetTeams-1, ...
-        //    Las posiciones que no existen (entre N y targetTeams) son byes.
-        const seeds: ({ parejaId: string; nombre: string } | null)[] = [];
-        for (let i = 0; i < targetTeams; i++) {
-            seeds.push(topN[i] ? { parejaId: topN[i].parejaId, nombre: topN[i].nombre } : null);
-        }
+            // 3. Construir bracket con siembra estándar:
+            const seeds: ({ parejaId: string; nombre: string } | null)[] = [];
+            for (let i = 0; i < targetTeams; i++) {
+                seeds.push(topN[i] ? { parejaId: topN[i].parejaId, nombre: topN[i].nombre } : null);
+            }
 
-        // Nombre de la primera ronda según targetTeams
-        let rondaName = "Final";
-        if (targetTeams === 4) rondaName = "Semifinal";
-        else if (targetTeams === 8) rondaName = "Cuartos de Final";
-        else if (targetTeams === 16) rondaName = "Octavos de Final";
-        else if (targetTeams === 32) rondaName = "Dieciseisavos de Final";
+            // Nombre de la primera ronda según targetTeams
+            let rondaName = "Final";
+            if (targetTeams === 4) rondaName = "Semifinal";
+            else if (targetTeams === 8) rondaName = "Cuartos de Final";
+            else if (targetTeams === 16) rondaName = "Octavos de Final";
+            else if (targetTeams === 32) rondaName = "Dieciseisavos de Final";
 
-        const allMatchesToCreate: Record<string, unknown>[] = [];
+            const allMatchesToCreate: Record<string, unknown>[] = [];
 
-        // Primera ronda — partidos por siembra cruzada
-        const numFirstRoundMatches = targetTeams / 2;
-        for (let i = 0; i < numFirstRoundMatches; i++) {
-            const seedA = seeds[i];
-            const seedB = seeds[targetTeams - 1 - i];
+            // Primera ronda — partidos por siembra cruzada
+            const numFirstRoundMatches = targetTeams / 2;
+            for (let i = 0; i < numFirstRoundMatches; i++) {
+                const seedA = seeds[i];
+                const seedB = seeds[targetTeams - 1 - i];
 
-            // Si una pareja es bye, la otra avanza directo (estado=jugado, resultado=Bye)
-            const isBye = !seedA || !seedB;
-            const placeholderText = `PH: ${seedA ? `Seed ${i + 1}` : 'Bye'} vs ${seedB ? `Seed ${targetTeams - i}` : 'Bye'}`;
+                const isBye = !seedA || !seedB;
+                const placeholderText = `PH: ${seedA ? `Seed ${i + 1}` : 'Bye'} vs ${seedB ? `Seed ${targetTeams - i}` : 'Bye'}`;
 
-            allMatchesToCreate.push({
-                torneo_id: torneoId,
-                creador_id: userId,
-                club_id: clubId,
-                pareja1_id: seedA?.parejaId || null,
-                pareja2_id: seedB?.parejaId || null,
-                estado: isBye ? 'jugado' : 'programado',
-                tipo_partido: 'torneo',
-                nivel: categoria,
-                lugar: `[${i}] ${rondaName} - ${categoria} || ${placeholderText}`,
-                fecha: fechaTorneo,
-                cupos_totales: 4,
-                cupos_disponibles: 0,
-                resultado: isBye ? 'Bye' : null,
-                estado_resultado: isBye ? 'confirmado' : null,
-            });
-        }
-
-        // Rondas siguientes (vacías, se llenan al avanzar)
-        let currentRondaMatches = numFirstRoundMatches / 2;
-        let currentRondaName = rondaName;
-        while (currentRondaMatches >= 1) {
-            if (currentRondaMatches === 1) currentRondaName = "Final";
-            else if (currentRondaMatches === 2) currentRondaName = "Semifinal";
-            else if (currentRondaMatches === 4) currentRondaName = "Cuartos de Final";
-            else if (currentRondaMatches === 8) currentRondaName = "Octavos de Final";
-            else if (currentRondaMatches === 16) currentRondaName = "Dieciseisavos de Final";
-
-            for (let j = 0; j < currentRondaMatches; j++) {
                 allMatchesToCreate.push({
                     torneo_id: torneoId,
                     creador_id: userId,
                     club_id: clubId,
-                    pareja1_id: null,
-                    pareja2_id: null,
-                    estado: 'programado',
+                    pareja1_id: seedA?.parejaId || null,
+                    pareja2_id: seedB?.parejaId || null,
+                    estado: isBye ? 'jugado' : 'programado',
                     tipo_partido: 'torneo',
                     nivel: categoria,
-                    lugar: `[${j}] ${currentRondaName} - ${categoria}`,
+                    lugar: `[${i}] ${rondaName} - ${categoria} || ${placeholderText}`,
                     fecha: fechaTorneo,
                     cupos_totales: 4,
                     cupos_disponibles: 0,
+                    resultado: isBye ? 'Bye' : null,
+                    estado_resultado: isBye ? 'confirmado' : null,
                 });
             }
 
-            // Tercer puesto: solo cuando hay semifinal (currentRondaMatches=2 → siguiente es Final)
-            // En este loop estamos creando las "rondas siguientes" de la primera. La final es cuando currentRondaMatches=1
-            if (currentRondaName === "Final") {
-                allMatchesToCreate.push({
-                    torneo_id: torneoId,
-                    creador_id: userId,
-                    club_id: clubId,
-                    pareja1_id: null,
-                    pareja2_id: null,
-                    estado: 'programado',
-                    tipo_partido: 'torneo',
-                    nivel: categoria,
-                    lugar: `[0] Tercer Puesto - ${categoria}`,
-                    fecha: fechaTorneo,
-                    cupos_totales: 4,
-                    cupos_disponibles: 0,
-                });
+            // Rondas siguientes (vacías, se llenan al avanzar)
+            let currentRondaMatches = numFirstRoundMatches / 2;
+            let currentRondaName = rondaName;
+            while (currentRondaMatches >= 1) {
+                if (currentRondaMatches === 1) currentRondaName = "Final";
+                else if (currentRondaMatches === 2) currentRondaName = "Semifinal";
+                else if (currentRondaMatches === 4) currentRondaName = "Cuartos de Final";
+                else if (currentRondaMatches === 8) currentRondaName = "Octavos de Final";
+                else if (currentRondaMatches === 16) currentRondaName = "Dieciseisavos de Final";
+
+                for (let j = 0; j < currentRondaMatches; j++) {
+                    allMatchesToCreate.push({
+                        torneo_id: torneoId,
+                        creador_id: userId,
+                        club_id: clubId,
+                        pareja1_id: null,
+                        pareja2_id: null,
+                        estado: 'programado',
+                        tipo_partido: 'torneo',
+                        nivel: categoria,
+                        lugar: `[${j}] ${currentRondaName} - ${categoria}`,
+                        fecha: fechaTorneo,
+                        cupos_totales: 4,
+                        cupos_disponibles: 0,
+                    });
+                }
+
+                if (currentRondaName === "Final") {
+                    allMatchesToCreate.push({
+                        torneo_id: torneoId,
+                        creador_id: userId,
+                        club_id: clubId,
+                        pareja1_id: null,
+                        pareja2_id: null,
+                        estado: 'programado',
+                        tipo_partido: 'torneo',
+                        nivel: categoria,
+                        lugar: `[0] Tercer Puesto - ${categoria}`,
+                        fecha: fechaTorneo,
+                        cupos_totales: 4,
+                        cupos_disponibles: 0,
+                    });
+                }
+
+                currentRondaMatches /= 2;
             }
 
-            currentRondaMatches /= 2;
+            const { error: insertError } = await supabaseAdmin.from('partidos').insert(allMatchesToCreate);
+            if (insertError) throw insertError;
+
+            revalidatePath(`/club/torneos/${torneoId}`);
+            return {
+                success: true,
+                message: `Cuadro de ${rondaName} generado con ${N} clasificados${numByes > 0 ? ` (${numByes} bye${numByes > 1 ? 's' : ''})` : ''}.`,
+            };
         }
-
-        const { error: insertError } = await supabaseAdmin.from('partidos').insert(allMatchesToCreate);
-        if (insertError) throw insertError;
-
-        revalidatePath(`/club/torneos/${torneoId}`);
-        return {
-            success: true,
-            message: `Cuadro de ${rondaName} generado con ${N} clasificados${numByes > 0 ? ` (${numByes} bye${numByes > 1 ? 's' : ''})` : ''}.`,
-        };
     } catch (err: unknown) {
         const error = err as Error;
         console.error("Error en generarFaseEliminatoriaTopN:", error);
