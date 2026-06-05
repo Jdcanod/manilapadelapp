@@ -327,11 +327,11 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                     const dateStr = format(localDate, "EEEE dd 'de' MMMM", { locale: es });
                                     return cIdx === 0 ? dateStr : `${dateStr} (Continuación)`;
                                 })()}
-                            </div>
-                            <table className="w-full text-xs border-collapse">
+                                <table className="w-full text-xs border-collapse">
                                 <thead>
                                     <tr className="border-b border-olive/30 text-olive/70">
-                                        <th className="py-2 text-left w-16">Hora</th>
+                                        <th className="py-2 text-left w-14">Hora</th>
+                                        <th className="py-2 text-left w-14">Cat.</th>
                                         <th className="py-2 text-left">{isCopaDavis ? `Pareja ${torneo.club?.nombre || 'Local'}` : 'Pareja 1'}</th>
                                         <th className="py-2 text-center w-8">vs</th>
                                         <th className="py-2 text-left">{isCopaDavis ? `Pareja ${torneo.club_rival?.nombre || 'Rival'}` : 'Pareja 2'}</th>
@@ -343,6 +343,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                     {chunk.map((partido: any) => (
                                         <tr key={partido.id} className="border-b border-olive/10 hover:bg-paper-soft">
                                             <td className="py-2 font-bold">{partido.hora || "--:--"}</td>
+                                            <td className="py-2 font-black text-olive">{partido.nivel || "—"}</td>
                                             <td className="py-2">
                                                 {(() => {
                                                     const pId = partido.pareja1_id || partido.pareja1?.id;
