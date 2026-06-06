@@ -36,25 +36,20 @@ export default async function TorneosPage() {
     const conteoParejasPorTorneo = new Map<string, number>();
     const conteoInscripcionesPorTorneo = new Map<string, number>();
     if (torneoIds.length > 0) {
-        const parejasResp = await adminRead
+        const { data: parejasData } = await adminRead
             .from('torneo_parejas')
             .select('torneo_id')
             .in('torneo_id', torneoIds);
-        console.log("[/torneos] torneoIds:", torneoIds);
-        console.log("[/torneos] parejasResp:", JSON.stringify({ rows: parejasResp.data?.length, error: parejasResp.error }));
-        (parejasResp.data || []).forEach((row: { torneo_id: string }) => {
+        (parejasData || []).forEach((row: { torneo_id: string }) => {
             conteoParejasPorTorneo.set(row.torneo_id, (conteoParejasPorTorneo.get(row.torneo_id) || 0) + 1);
         });
-        const inscResp = await adminRead
+        const { data: inscripcionesData } = await adminRead
             .from('inscripciones_torneo')
             .select('torneo_id')
             .in('torneo_id', torneoIds);
-        console.log("[/torneos] inscResp:", JSON.stringify({ rows: inscResp.data?.length, error: inscResp.error }));
-        (inscResp.data || []).forEach((row: { torneo_id: string }) => {
+        (inscripcionesData || []).forEach((row: { torneo_id: string }) => {
             conteoInscripcionesPorTorneo.set(row.torneo_id, (conteoInscripcionesPorTorneo.get(row.torneo_id) || 0) + 1);
         });
-        console.log("[/torneos] conteoParejas:", Array.from(conteoParejasPorTorneo.entries()));
-        console.log("[/torneos] conteoInscripciones:", Array.from(conteoInscripcionesPorTorneo.entries()));
     }
 
     // Filter out tournaments completely finished more than 7 days ago if we want, but for now just show all or those not finished long ago.
@@ -131,8 +126,12 @@ export default async function TorneosPage() {
 
                         const inscripcionesCount = conteoInscripcionesPorTorneo.get(torneo.id) || 0;
                         const parejasCount = conteoParejasPorTorneo.get(torneo.id) || 0;
-                        const countParejas = (torneo.tipo === 'master') ? inscripcionesCount : (parejasCount + inscripcionesCount);
-                        console.log(`[/torneos render] id=${torneo.id} nombre="${torneo.nombre}" tipo=${torneo.tipo} parejasCount=${parejasCount} inscripcionesCount=${inscripcionesCount} final=${countParejas}`);
+                        // SUMAR ambos counts sin importar tipo. La razón: torneos
+                        // tipo=master guardan sus inscritos en `torneo_parejas`
+                        // (las parejas pre-cargadas como TBD) además de las que
+                        // pasan por `inscripciones_torneo`. Igual lógica que el
+                        // admin /club/torneos.
+                        const countParejas = parejasCount + inscripcionesCount;
                         
                         const nombreSede = (torneo.tipo === 'master') ? `Torneo Ciudad (${torneo.ciudad})` : ((torneo.club && torneo.club.nombre) ? torneo.club.nombre : "Club Organizador");
 
