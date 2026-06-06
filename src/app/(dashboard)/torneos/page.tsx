@@ -14,23 +14,40 @@ export default async function TorneosPage() {
         redirect("/login");
     }
 
-    // Lista de torneos visible al jugador. Las cuentas embebidas
-    // (torneo_parejas / inscripciones) usaban el cliente con sesión, y la
-    // RLS sobre esas tablas devolvía 0 cuando el usuario no era admin del
-    // club host — daba la falsa impresión de que un torneo con 40 parejas
-    // tenía 0 inscritos. Usamos el admin client para esta lectura PUBLICA
-    // (solo conteos + datos no sensibles del torneo).
+    // Lista de torneos visible al jugador. Para los conteos de inscritos,
+    // RLS sobre torneo_parejas / inscripciones bloqueaba la lectura para
+    // jugadores no-admin del club host — el embed count daba 0 aunque
+    // hubiera 40 parejas. Usamos el admin client para esta lectura pública.
     const adminRead = createPureAdminClient();
     const { data: torneos } = await adminRead
         .from('torneos')
         .select(`
             *,
             club:users!torneos_club_id_fkey(nombre),
-            torneo_parejas:torneo_parejas(count),
-            inscripciones:inscripciones_torneo(count),
             partidos(id, estado, lugar, estado_resultado)
         `)
         .order('fecha_inicio', { ascending: true });
+
+    // Conteos de inscritos por torneo (query separado, más confiable).
+    const torneoIds = (torneos || []).map((t: { id: string }) => t.id);
+    const conteoParejasPorTorneo = new Map<string, number>();
+    const conteoInscripcionesPorTorneo = new Map<string, number>();
+    if (torneoIds.length > 0) {
+        const { data: parejasData } = await adminRead
+            .from('torneo_parejas')
+            .select('torneo_id')
+            .in('torneo_id', torneoIds);
+        (parejasData || []).forEach((row: { torneo_id: string }) => {
+            conteoParejasPorTorneo.set(row.torneo_id, (conteoParejasPorTorneo.get(row.torneo_id) || 0) + 1);
+        });
+        const { data: inscripcionesData } = await adminRead
+            .from('inscripciones_torneo')
+            .select('torneo_id')
+            .in('torneo_id', torneoIds);
+        (inscripcionesData || []).forEach((row: { torneo_id: string }) => {
+            conteoInscripcionesPorTorneo.set(row.torneo_id, (conteoInscripcionesPorTorneo.get(row.torneo_id) || 0) + 1);
+        });
+    }
 
     // Filter out tournaments completely finished more than 7 days ago if we want, but for now just show all or those not finished long ago.
     // Let's just show tournaments that are active, upcoming, or recently finished.
@@ -104,9 +121,9 @@ export default async function TorneosPage() {
                             statusText = "Por Iniciar";
                         }
 
-                        const inscripcionesCount = (torneo.inscripciones && torneo.inscripciones[0]?.count) ? torneo.inscripciones[0].count : 0;
-                        const parejasCount = (torneo.torneo_parejas && torneo.torneo_parejas[0]?.count) ? torneo.torneo_parejas[0].count : 0;
-                        const countParejas = (torneo.tipo === 'master') ? inscripcionesCount : parejasCount;
+                        const inscripcionesCount = conteoInscripcionesPorTorneo.get(torneo.id) || 0;
+                        const parejasCount = conteoParejasPorTorneo.get(torneo.id) || 0;
+                        const countParejas = (torneo.tipo === 'master') ? inscripcionesCount : (parejasCount + inscripcionesCount);
                         
                         const nombreSede = (torneo.tipo === 'master') ? `Torneo Ciudad (${torneo.ciudad})` : ((torneo.club && torneo.club.nombre) ? torneo.club.nombre : "Club Organizador");
 
