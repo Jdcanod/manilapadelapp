@@ -6,6 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { InscribirParejaDialog } from "./InscribirParejaDialog";
 import Link from "next/link";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function TorneosPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
