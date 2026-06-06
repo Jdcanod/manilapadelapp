@@ -36,20 +36,25 @@ export default async function TorneosPage() {
     const conteoParejasPorTorneo = new Map<string, number>();
     const conteoInscripcionesPorTorneo = new Map<string, number>();
     if (torneoIds.length > 0) {
-        const { data: parejasData } = await adminRead
+        const parejasResp = await adminRead
             .from('torneo_parejas')
             .select('torneo_id')
             .in('torneo_id', torneoIds);
-        (parejasData || []).forEach((row: { torneo_id: string }) => {
+        console.log("[/torneos] torneoIds:", torneoIds);
+        console.log("[/torneos] parejasResp:", JSON.stringify({ rows: parejasResp.data?.length, error: parejasResp.error }));
+        (parejasResp.data || []).forEach((row: { torneo_id: string }) => {
             conteoParejasPorTorneo.set(row.torneo_id, (conteoParejasPorTorneo.get(row.torneo_id) || 0) + 1);
         });
-        const { data: inscripcionesData } = await adminRead
+        const inscResp = await adminRead
             .from('inscripciones_torneo')
             .select('torneo_id')
             .in('torneo_id', torneoIds);
-        (inscripcionesData || []).forEach((row: { torneo_id: string }) => {
+        console.log("[/torneos] inscResp:", JSON.stringify({ rows: inscResp.data?.length, error: inscResp.error }));
+        (inscResp.data || []).forEach((row: { torneo_id: string }) => {
             conteoInscripcionesPorTorneo.set(row.torneo_id, (conteoInscripcionesPorTorneo.get(row.torneo_id) || 0) + 1);
         });
+        console.log("[/torneos] conteoParejas:", Array.from(conteoParejasPorTorneo.entries()));
+        console.log("[/torneos] conteoInscripciones:", Array.from(conteoInscripcionesPorTorneo.entries()));
     }
 
     // Filter out tournaments completely finished more than 7 days ago if we want, but for now just show all or those not finished long ago.
