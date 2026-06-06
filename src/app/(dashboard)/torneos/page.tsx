@@ -132,6 +132,7 @@ export default async function TorneosPage() {
                         const inscripcionesCount = conteoInscripcionesPorTorneo.get(torneo.id) || 0;
                         const parejasCount = conteoParejasPorTorneo.get(torneo.id) || 0;
                         const countParejas = (torneo.tipo === 'master') ? inscripcionesCount : (parejasCount + inscripcionesCount);
+                        console.log(`[/torneos render] id=${torneo.id} nombre="${torneo.nombre}" tipo=${torneo.tipo} parejasCount=${parejasCount} inscripcionesCount=${inscripcionesCount} final=${countParejas}`);
                         
                         const nombreSede = (torneo.tipo === 'master') ? `Torneo Ciudad (${torneo.ciudad})` : ((torneo.club && torneo.club.nombre) ? torneo.club.nombre : "Club Organizador");
 
