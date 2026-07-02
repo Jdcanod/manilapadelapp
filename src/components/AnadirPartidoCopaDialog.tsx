@@ -93,6 +93,16 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
         return m;
     }, [localJugadores]);
 
+    // En modo asignar con categoría fija: mostrar primero solo las parejas de esa
+    // categoría. Si ninguna coincide, se muestran todas para no bloquear al admin.
+    const catPartido = (categoriaFija || categoria).trim().toLowerCase();
+    const parejasFiltradas = useMemo(() => {
+        if (!esModoAsignar || !catPartido) return localParejas;
+        const deLaCategoria = localParejas.filter(p => (p.categoria || '').trim().toLowerCase() === catPartido);
+        return deLaCategoria.length > 0 ? deLaCategoria : localParejas;
+    }, [esModoAsignar, catPartido, localParejas]);
+    const hayFiltro = esModoAsignar && !!catPartido && parejasFiltradas.length < localParejas.length;
+
     const labelPareja = (p: Pareja) => {
         const j1 = jugadorMap.get(p.jugador1_id);
         const j2 = jugadorMap.get(p.jugador2_id);
@@ -220,7 +230,7 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                                         <SelectValue placeholder="Selecciona tu pareja…" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[260px]">
-                                        {localParejas.map(p => (
+                                        {parejasFiltradas.map(p => (
                                             <SelectItem key={p.id} value={p.id}>{labelPareja(p)}</SelectItem>
                                         ))}
                                         <SelectItem value="__none__" className="text-red-300 italic">— Quitar mi pareja (dejar TBD) —</SelectItem>
@@ -228,6 +238,7 @@ export function AnadirPartidoCopaDialog({ torneoId, clubLocal, clubRival, catego
                                 </Select>
                             )}
                             <p className="text-[10px] text-olive/50 mt-1">
+                                {hayFiltro && <>Mostrando solo parejas de la categoría <strong>{categoriaFija || categoria}</strong>. </>}
                                 El club rival asignará su pareja por separado para mantener la intriga.
                             </p>
                         </div>
