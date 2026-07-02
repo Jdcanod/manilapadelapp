@@ -1,0 +1,30 @@
+[
+  {
+    "id": "ffeee54b-91e8-4ded-89fe-4ca0b3fee1f5",
+    "nombre": "torneo prueba 1",
+    "torneo_parejas": [
+      {
+        "count": 1
+      }
+    ],
+    "torneo_fases": [
+      {
+        "count": 0
+      }
+    ]
+  },
+  {
+    "id": "8a390925-c47c-4699-a6da-d79ae1d5c7d6",
+    "nombre": "GRAND SLAM MANILA",
+    "torneo_parejas": [
+      {
+        "count": 0
+      }
+    ],
+    "torneo_fases": [
+      {
+        "count": 1
+      }
+    ]
+  }
+]

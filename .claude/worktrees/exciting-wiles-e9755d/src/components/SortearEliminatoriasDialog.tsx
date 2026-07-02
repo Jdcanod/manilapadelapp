@@ -1,0 +1,464 @@
+"use client";
+
+import { useState, useTransition, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Loader2, Swords, Trophy, AlertTriangle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { generarFaseEliminatoriaTopN, obtenerStandingsGlobales, obtenerStandingsPorGrupo } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { formatLegacyPairName } from "@/lib/display-names";
+
+interface Standing {
+    parejaId: string;
+    nombre: string;
+    pj: number;
+    pg: number;
+    pp?: number;
+    sg: number;
+    sp: number;
+    gg: number;
+    gp: number;
+    pts: number;
+}
+
+interface Diag {
+    grupos: number;
+    matchesPorGrupo: number;
+    matchesPorCategoria: number;
+    matchesTotalUsados: number;
+    matchesConResultado: number;
+    matchesEnTorneo: number;
+    matchesEnTorneoConGrupo: number;
+    categoriasEnTorneo: string[];
+    categoriaBuscada: string;
+    queryError?: string | null;
+}
+
+interface Props {
+    torneoId: string;
+    categoria: string;
+    yaTieneBracket: boolean;
+    /** Formato del torneo. Si es 'relampago', el dialog cambia a modo per-group:
+     *  pregunta cuántos clasifican por grupo y no exige mínimo de partidos. */
+    formato?: string;
+    /** Default sugerido para "clasifican por grupo" (persistido en
+     *  torneo.reglas_puntuacion.config_clasifican_por_grupo). */
+    clasificanPorGrupoDefault?: number;
+}
+
+const OPCIONES_CLASIFICADOS = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20];
+const OPCIONES_POR_GRUPO = [1, 2, 3, 4];
+
+export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket, formato = "relampago", clasificanPorGrupoDefault }: Props) {
+    const esRelampago = formato === "relampago";
+    const [open, setOpen] = useState(false);
+    const [selectedN, setSelectedN] = useState<number>(8);
+    const [porGrupo, setPorGrupo] = useState<number>(clasificanPorGrupoDefault && clasificanPorGrupoDefault >= 1 ? clasificanPorGrupoDefault : 2);
+    const [minMatches, setMinMatches] = useState<number>(0);
+    const [standings, setStandings] = useState<Standing[]>([]);
+    const [grupoStandings, setGrupoStandings] = useState<Array<{ grupoId: string; nombreGrupo: string; standings: Standing[] }>>([]);
+    const [diag, setDiag] = useState<Diag | null>(null);
+    const [loadingStandings, setLoadingStandings] = useState(false);
+    const [pending, startTransition] = useTransition();
+    const [error, setError] = useState<string | null>(null);
+    const router = useRouter();
+
+    // Cargar standings cuando se abre el dialog (globales + per-grupo)
+    useEffect(() => {
+        if (!open) return;
+        setLoadingStandings(true);
+        setError(null);
+        Promise.all([
+            obtenerStandingsGlobales(torneoId, categoria),
+            obtenerStandingsPorGrupo(torneoId, categoria),
+        ])
+            .then(([res, resGrupo]) => {
+                if (res.success) {
+                    setStandings(res.standings as Standing[]);
+                    setDiag((res as { diag?: Diag }).diag || null);
+                    const len = res.standings.length;
+                    const sugerido = OPCIONES_CLASIFICADOS.findLast?.(o => o <= len) ?? 8;
+                    setSelectedN(sugerido);
+                } else {
+                    setError(res.message || 'No se pudieron cargar los standings');
+                    setStandings([]);
+                    setDiag((res as { diag?: Diag }).diag || null);
+                }
+                if (resGrupo.success) {
+                    setGrupoStandings(resGrupo.grupos as Array<{ grupoId: string; nombreGrupo: string; standings: Standing[] }>);
+                } else {
+                    setGrupoStandings([]);
+                }
+            })
+            .catch(e => setError(e?.message || 'Error'))
+            .finally(() => setLoadingStandings(false));
+    }, [open, torneoId, categoria]);
+
+    const handleConfirm = () => {
+        if (yaTieneBracket) {
+            const ok = window.confirm(
+                `¿RE-SORTEAR las eliminatorias de ${categoria}?\n\nEsto borrará todos los cruces actuales y los resultados ya cargados de esta fase. No se puede deshacer.`
+            );
+            if (!ok) return;
+        }
+        setError(null);
+        startTransition(async () => {
+            const r = esRelampago
+                ? await generarFaseEliminatoriaTopN(torneoId, categoria, 0, 0, porGrupo)
+                : await generarFaseEliminatoriaTopN(torneoId, categoria, selectedN, minMatches);
+            if (!r.success) {
+                setError(r.message || 'Error al generar el cuadro');
+                return;
+            }
+            setOpen(false);
+            router.refresh();
+        });
+    };
+
+    // Filtrar parejas según mínimo de partidos jugados (solo modo global)
+    const elegibles = esRelampago
+        ? standings
+        : (minMatches > 0 ? standings.filter(s => s.pj >= minMatches) : standings);
+
+    // En relámpago: N efectivo = porGrupo × nº de grupos.
+    const grupos = diag?.grupos ?? 0;
+    const totalRelampago = esRelampago ? porGrupo * grupos : 0;
+    const effectiveN = esRelampago ? totalRelampago : selectedN;
+
+    // Calcular potencia de 2 superior y byes (informativo)
+    let targetTeams = 2;
+    while (targetTeams < effectiveN) targetTeams *= 2;
+    const byes = Math.max(0, targetTeams - effectiveN);
+
+    const topNPreview = elegibles.slice(0, effectiveN);
+    const optionsHabilitadas = OPCIONES_CLASIFICADOS.filter(n => n <= Math.max(2, elegibles.length));
+
+    // Máximo razonable de partidos jugados entre las parejas (para el selector)
+    const maxPjEntreParejas = standings.reduce((m, s) => Math.max(m, s.pj), 0);
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <button
+                    className={cn(
+                        "flex items-center gap-2 font-black py-2 px-6 rounded-xl transition-all transform active:scale-95 uppercase text-[10px] tracking-widest border border-olive/50",
+                        yaTieneBracket
+                            ? "bg-paper text-olive hover:bg-olive-dark/30"
+                            : "bg-olive hover:bg-olive text-paper shadow-xl hover:scale-105"
+                    )}
+                >
+                    <Swords className="w-3 h-3" />
+                    {yaTieneBracket ? `Re-Sortear Eliminatorias ${categoria}` : `Sortear Eliminatorias ${categoria}`}
+                </button>
+            </DialogTrigger>
+            <DialogContent className="bg-paper-soft border-olive/20 text-ink max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle className="text-xl flex items-center gap-2">
+                        <Trophy className="w-5 h-5 text-ochre-dark" />
+                        Sortear Eliminatorias — {categoria}
+                    </DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-5 py-2">
+                    {esRelampago ? (
+                        // === Modo Relámpago: clasifican por grupo ===
+                        <div>
+                            <p className="text-[10px] font-black text-olive/70 uppercase tracking-widest mb-2">
+                                ¿Cuántos clasifican por grupo?
+                            </p>
+                            <div className="flex flex-wrap gap-2 items-center">
+                                {OPCIONES_POR_GRUPO.map(n => (
+                                    <button
+                                        key={n}
+                                        onClick={() => setPorGrupo(n)}
+                                        className={cn(
+                                            "w-12 h-12 rounded-lg font-black text-sm border transition-colors",
+                                            porGrupo === n
+                                                ? "bg-ochre text-black border-amber-500"
+                                                : "bg-paper text-ink border-olive/30 hover:bg-paper-dark"
+                                        )}
+                                    >
+                                        {n}
+                                    </button>
+                                ))}
+                                <span className="text-[10px] text-olive/50 ml-2">
+                                    por cada uno de los <span className="text-ochre font-bold">{grupos}</span> grupo{grupos !== 1 ? 's' : ''}
+                                </span>
+                            </div>
+                            <div className="mt-3 bg-paper/50 border border-olive/20 rounded-lg p-3">
+                                <p className="text-[10px] text-olive/70 uppercase tracking-widest font-black mb-1">Resumen del cuadro</p>
+                                <p className="text-xs text-ink">
+                                    <span className="text-ochre font-black">{porGrupo}</span>{' '}
+                                    × {grupos} grupo{grupos !== 1 ? 's' : ''} ={' '}
+                                    <span className="text-ochre font-black">{totalRelampago}</span> parejas al bracket
+                                    {byes > 0 && (
+                                        <> · cuadro de {targetTeams} con {byes} bye{byes > 1 ? 's' : ''}</>
+                                    )}
+                                </p>
+                                <p className="text-[10px] text-olive/50 mt-1">
+                                    Los <span className="text-ochre font-bold">{porGrupo}</span> mejores de cada grupo clasifican (no se exige mínimo de partidos jugados).
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                        {/* Mínimo de partidos jugados para clasificar */}
+                        <div>
+                            <p className="text-[10px] font-black text-olive/70 uppercase tracking-widest mb-2">
+                                Mínimo de partidos jugados para clasificar
+                            </p>
+                            <div className="flex flex-wrap gap-2 items-center">
+                                {[0, 1, 2, 3, 4, 5].map(n => {
+                                    const habilitado = n === 0 || n <= maxPjEntreParejas;
+                                    return (
+                                        <button
+                                            key={n}
+                                            onClick={() => habilitado && setMinMatches(n)}
+                                            disabled={!habilitado}
+                                            className={cn(
+                                                "w-10 h-10 rounded-lg font-black text-xs border transition-colors",
+                                                !habilitado
+                                                    ? "bg-paper/30 text-olive/40 border-olive/15 cursor-not-allowed"
+                                                    : minMatches === n
+                                                        ? "bg-olive text-black border-olive"
+                                                        : "bg-paper text-ink border-olive/30 hover:bg-paper-dark"
+                                            )}
+                                        >
+                                            {n === 0 ? '∞' : n}
+                                        </button>
+                                    );
+                                })}
+                                <span className="text-[10px] text-olive/50 ml-2">
+                                    {minMatches === 0
+                                        ? 'Todas las parejas (sin filtro)'
+                                        : `Solo parejas con ≥ ${minMatches} partido${minMatches > 1 ? 's' : ''} jugado${minMatches > 1 ? 's' : ''}`}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Selector de cantidad de clasificados */}
+                        <div>
+                            <p className="text-[10px] font-black text-olive/70 uppercase tracking-widest mb-2">
+                                ¿Cuántos clasificados al cuadro?
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {OPCIONES_CLASIFICADOS.map(n => {
+                                    const habilitado = optionsHabilitadas.includes(n);
+                                    return (
+                                        <button
+                                            key={n}
+                                            onClick={() => habilitado && setSelectedN(n)}
+                                            disabled={!habilitado}
+                                            className={cn(
+                                                "w-12 h-12 rounded-lg font-black text-sm border transition-colors",
+                                                !habilitado
+                                                    ? "bg-paper/30 text-olive/40 border-olive/15 cursor-not-allowed"
+                                                    : selectedN === n
+                                                        ? "bg-ochre text-black border-amber-500"
+                                                        : "bg-paper text-ink border-olive/30 hover:bg-paper-dark"
+                                            )}
+                                            title={!habilitado ? `Solo ${elegibles.length} pareja(s) elegibles` : ''}
+                                        >
+                                            {n}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <p className="text-[10px] text-olive/50 mt-2">
+                                Cuadro a generar: <span className="text-ochre font-bold">{targetTeams}</span> equipos
+                                {byes > 0 && <> ({byes} bye{byes > 1 ? 's' : ''} para los mejores sembrados)</>}
+                                <span className="ml-2 text-olive/40">• {elegibles.length} pareja{elegibles.length !== 1 ? 's' : ''} elegible{elegibles.length !== 1 ? 's' : ''} (de {standings.length})</span>
+                            </p>
+                        </div>
+                        </>
+                    )}
+
+                    {/* Preview de los clasificados */}
+                    <div>
+                        <p className="text-[10px] font-black text-olive/70 uppercase tracking-widest mb-2">
+                            {esRelampago
+                                ? `Clasificados por grupo (${effectiveN} al bracket)`
+                                : `Top ${selectedN} por puntos (preview)`}
+                        </p>
+                        {esRelampago && !loadingStandings && grupoStandings.length > 0 ? (
+                            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                                {grupoStandings.map(g => {
+                                    const clasifican = g.standings.slice(0, porGrupo);
+                                    const noClasifican = g.standings.slice(porGrupo);
+                                    return (
+                                        <div key={g.grupoId} className="bg-paper border border-olive/20 rounded-lg overflow-hidden">
+                                            <div className="px-3 py-1.5 bg-olive/10 border-b border-olive/20 flex items-center justify-between">
+                                                <span className="text-xs font-black text-olive uppercase tracking-widest">{g.nombreGrupo}</span>
+                                                <span className="text-[9px] text-olive/70 uppercase tracking-widest">
+                                                    {clasifican.length} clasifica{clasifican.length === 1 ? '' : 'n'}
+                                                </span>
+                                            </div>
+                                            <table className="w-full text-xs">
+                                                <thead className="bg-paper-soft/60 text-olive/70 uppercase tracking-widest text-[9px]">
+                                                    <tr>
+                                                        <th className="px-2 py-1.5 text-left w-8">#</th>
+                                                        <th className="px-2 py-1.5 text-left">Pareja</th>
+                                                        <th className="px-2 py-1.5 text-center">PJ</th>
+                                                        <th className="px-2 py-1.5 text-center">SG/SP</th>
+                                                        <th className="px-2 py-1.5 text-center text-ochre">PTS</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {clasifican.map((s, idx) => (
+                                                        <tr key={s.parejaId} className="border-t border-olive/20 bg-olive/5">
+                                                            <td className="px-2 py-1.5 text-olive font-black">
+                                                                {idx + 1}
+                                                                <span className="ml-0.5 text-[8px] align-top">★</span>
+                                                            </td>
+                                                            <td className="px-2 py-1.5 text-ink font-bold truncate max-w-[220px]">
+                                                                {formatLegacyPairName(s.nombre)}
+                                                            </td>
+                                                            <td className="px-2 py-1.5 text-center text-ink">{s.pj}</td>
+                                                            <td className="px-2 py-1.5 text-center text-olive/70 text-[10px]">{s.sg}/{s.sp}</td>
+                                                            <td className="px-2 py-1.5 text-center text-ochre font-black">{s.pts}</td>
+                                                        </tr>
+                                                    ))}
+                                                    {noClasifican.map((s, idx) => (
+                                                        <tr key={s.parejaId} className="border-t border-olive/20 opacity-40">
+                                                            <td className="px-2 py-1.5 text-olive/50 font-black">{porGrupo + idx + 1}</td>
+                                                            <td className="px-2 py-1.5 text-olive/70 truncate max-w-[220px] line-through">
+                                                                {formatLegacyPairName(s.nombre)}
+                                                            </td>
+                                                            <td className="px-2 py-1.5 text-center text-olive/50">{s.pj}</td>
+                                                            <td className="px-2 py-1.5 text-center text-olive/40 text-[10px]">{s.sg}/{s.sp}</td>
+                                                            <td className="px-2 py-1.5 text-center text-olive/50 font-black">{s.pts}</td>
+                                                        </tr>
+                                                    ))}
+                                                    {g.standings.length === 0 && (
+                                                        <tr>
+                                                            <td colSpan={5} className="px-2 py-3 text-center text-olive/50 text-[10px] italic">
+                                                                Aún no hay resultados en este grupo
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    );
+                                })}
+                                <p className="text-[10px] text-olive/50 pt-1">
+                                    Las filas en verde con ★ son los que clasifican al cuadro. Las grises (tachadas) quedan fuera.
+                                </p>
+                            </div>
+                        ) : loadingStandings ? (
+                            <div className="py-8 text-center text-olive/70 text-sm flex items-center justify-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin" /> Cargando standings…
+                            </div>
+                        ) : standings.length === 0 ? (
+                            <div className="py-6 px-4 text-center text-olive/70 text-sm border border-dashed border-olive/20 rounded-lg space-y-3">
+                                <p className="font-semibold text-ink">No se encontraron parejas en la categoría &quot;{categoria}&quot;.</p>
+                                {diag && (
+                                    <div className="text-left max-w-md mx-auto bg-paper border border-olive/20 rounded-lg p-3 space-y-2">
+                                        <p className="text-[10px] font-black text-ochre uppercase tracking-widest">Diagnóstico</p>
+                                        <ul className="text-[11px] text-olive space-y-1 font-mono">
+                                            <li>• Grupos para &quot;{categoria}&quot;: <span className="text-ink">{diag.grupos}</span></li>
+                                            <li>• Partidos vinculados al grupo: <span className="text-ink">{diag.matchesPorGrupo}</span></li>
+                                            <li>• Partidos en categoría &quot;{categoria}&quot;: <span className="text-ink">{diag.matchesPorCategoria}</span></li>
+                                            <li>• Total partidos en el torneo: <span className="text-ink">{diag.matchesEnTorneo}</span> ({diag.matchesEnTorneoConGrupo} en grupos)</li>
+                                            {diag.categoriasEnTorneo.length > 0 && (
+                                                <li>• Categorías existentes: <span className="text-ink">{diag.categoriasEnTorneo.join(', ')}</span></li>
+                                            )}
+                                            {diag.queryError && (
+                                                <li className="text-red-400">• Error de query: <span className="break-all">{diag.queryError}</span></li>
+                                            )}
+                                        </ul>
+
+                                        {diag.matchesEnTorneo === 0 ? (
+                                            <p className="text-[10px] text-olive/70 pt-2 border-t border-olive/20">
+                                                ⚠️ El torneo no tiene partidos creados. Genera los grupos primero en el tab <span className="text-olive font-semibold">Fase de Grupos</span>.
+                                            </p>
+                                        ) : diag.matchesPorGrupo === 0 && diag.matchesPorCategoria === 0 ? (
+                                            diag.categoriasEnTorneo.length > 0 && !diag.categoriasEnTorneo.includes(categoria) ? (
+                                                <p className="text-[10px] text-olive/70 pt-2 border-t border-olive/20">
+                                                    ⚠️ Tus partidos están en otras categorías ({diag.categoriasEnTorneo.join(', ')}). Selecciona una de esas arriba.
+                                                </p>
+                                            ) : (
+                                                <p className="text-[10px] text-olive/70 pt-2 border-t border-olive/20">
+                                                    ⚠️ El grupo de &quot;{categoria}&quot; está creado pero no tiene partidos generados. Vuelve a <span className="text-olive font-semibold">Fase de Grupos</span> y haz click en &quot;Sorteo Grupos&quot; (o &quot;Reiniciar Sorteo&quot; en Configuración).
+                                                </p>
+                                            )
+                                        ) : null}
+                                    </div>
+                                )}
+                            </div>
+                        ) : elegibles.length === 0 ? (
+                            <div className="py-6 text-center text-olive/70 text-sm border border-dashed border-amber-500/40 rounded-lg space-y-1">
+                                <p>Ninguna pareja cumple el mínimo de {minMatches} partido{minMatches > 1 ? 's' : ''} jugado{minMatches > 1 ? 's' : ''}.</p>
+                                <p className="text-[10px] text-olive/50">Baja el mínimo o espera a que se jueguen más partidos.</p>
+                            </div>
+                        ) : (
+                            <div className="bg-paper border border-olive/20 rounded-lg overflow-hidden max-h-[280px] overflow-y-auto">
+                                <table className="w-full text-xs">
+                                    <thead className="bg-paper-soft/80 text-olive/70 uppercase tracking-widest text-[9px] sticky top-0">
+                                        <tr>
+                                            <th className="px-3 py-2 text-left w-8">#</th>
+                                            <th className="px-3 py-2 text-left">Pareja</th>
+                                            <th className="px-2 py-2 text-center">PJ</th>
+                                            <th className="px-2 py-2 text-center">PG</th>
+                                            <th className="px-2 py-2 text-center">SG/SP</th>
+                                            <th className="px-2 py-2 text-center text-ochre">PTS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {topNPreview.map((s, idx) => (
+                                            <tr key={s.parejaId} className="border-t border-olive/20">
+                                                <td className="px-3 py-2 text-ochre font-black">{idx + 1}</td>
+                                                <td className="px-3 py-2 text-ink font-semibold truncate max-w-[260px]">
+                                                    {formatLegacyPairName(s.nombre)}
+                                                </td>
+                                                <td className="px-2 py-2 text-center text-ink">{s.pj}</td>
+                                                <td className="px-2 py-2 text-center text-ink">{s.pg}</td>
+                                                <td className="px-2 py-2 text-center text-olive/70 text-[10px]">{s.sg}/{s.sp}</td>
+                                                <td className="px-2 py-2 text-center text-ochre font-black">{s.pts}</td>
+                                            </tr>
+                                        ))}
+                                        {byes > 0 && (
+                                            <tr>
+                                                <td colSpan={6} className="px-3 py-2 text-center text-[10px] text-olive/50 italic">
+                                                    Los {byes} mejor{byes > 1 ? 'es' : ''} sembrado{byes > 1 ? 's' : ''} reciben bye en la primera ronda
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+
+                    {error && (
+                        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-xs text-red-300 flex items-start gap-2">
+                            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                            <span>{error}</span>
+                        </div>
+                    )}
+                </div>
+
+                <DialogFooter className="gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => setOpen(false)}
+                        disabled={pending}
+                        className="bg-paper-soft border-olive/20 text-olive"
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        onClick={handleConfirm}
+                        disabled={pending || loadingStandings || elegibles.length < 2 || (esRelampago && grupos < 1)}
+                        className="bg-ochre-dark hover:bg-ochre text-paper font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {pending
+                            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generando…</>
+                            : <><Swords className="w-4 h-4 mr-2" /> Generar cuadro de {esRelampago ? totalRelampago : Math.min(selectedN, elegibles.length)}</>}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}

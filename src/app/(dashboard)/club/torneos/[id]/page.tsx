@@ -15,6 +15,7 @@ import { TournamentChronogram } from "@/components/TournamentChronogram";
 import { TournamentExportButton } from "@/components/TournamentExportButton";
 import { TournamentResultsManager } from "@/components/TournamentResultsManager";
 import { CopaDavisManager } from "@/components/CopaDavisManager";
+import { CrearVueltaCopaDialog } from "@/components/CrearVueltaCopaDialog";
 import { PersistentTabs } from "@/components/PersistentTabs";
 import { formatPairName } from "@/lib/display-names";
 
@@ -297,6 +298,27 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         currentClubIdCopa = String(userData.id);
     }
 
+    // Copa Davis serie ida/vuelta: cargar el torneo enlazado (si existe) para
+    // mostrar el enlace de trazabilidad, y decidir si se puede crear la vuelta.
+    let serieEnlace: { id: string; nombre: string; esVuelta: boolean } | null = null;
+    let puedeCrearVuelta = false;
+    if (torneo.formato === 'copa_davis') {
+        const copaSerie = torneo.reglas_puntuacion?.copa_serie as
+            | { rol: 'ida' | 'vuelta'; torneo_ida_id?: string; torneo_vuelta_id?: string }
+            | undefined;
+        const enlaceId = copaSerie?.rol === 'vuelta' ? copaSerie.torneo_ida_id : copaSerie?.torneo_vuelta_id;
+        if (enlaceId) {
+            const { data: tEnlace } = await adminSupabase
+                .from('torneos').select('id, nombre').eq('id', enlaceId).maybeSingle();
+            if (tEnlace) {
+                serieEnlace = { id: tEnlace.id, nombre: tEnlace.nombre || 'Torneo enlazado', esVuelta: copaSerie?.rol === 'ida' };
+            }
+        }
+        // Cualquier admin de los dos clubes puede crear la vuelta, solo si:
+        // este torneo NO es ya una vuelta, y no existe una vuelta viva enlazada.
+        puedeCrearVuelta = copaSerie?.rol !== 'vuelta' && !serieEnlace && !!torneo.club_rival_id;
+    }
+
     // Mapa pareja_id → club que representa (necesario para privacidad en partidos)
     const parejaToClub: Map<string, string> = new Map();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -556,6 +578,36 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         </div>
                     ) : (
                         <>
+                        {/* Serie ida/vuelta: enlace de trazabilidad + crear vuelta */}
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                {serieEnlace ? (
+                                    <Link href={`/club/torneos/${serieEnlace.id}`}
+                                        className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-3 py-1.5 hover:bg-emerald-500/20 transition-colors">
+                                        🔗 {serieEnlace.esVuelta ? 'Ver Vuelta' : 'Ver Ida'}: {serieEnlace.nombre}
+                                    </Link>
+                                ) : (torneo.reglas_puntuacion?.copa_serie?.rol === 'vuelta' && (
+                                    <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 uppercase tracking-widest text-[10px]">
+                                        Torneo de vuelta
+                                    </Badge>
+                                ))}
+                            </div>
+                            {puedeCrearVuelta && (
+                                <CrearVueltaCopaDialog
+                                    torneoIdaId={params.id}
+                                    torneoIdaNombre={torneo.nombre || 'Copa Davis'}
+                                    clubLocal={{ id: String(clubInfo?.id || torneo.club_id), nombre: clubInfo?.nombre || 'Local' }}
+                                    clubRival={rivalClubData}
+                                    categoriasIda={torneo.reglas_puntuacion?.categorias_habilitadas || []}
+                                    partidosIdaPorCategoria={Object.fromEntries(
+                                        Object.entries(
+                                            (torneo.reglas_puntuacion?.copa_categorias_config || {}) as Record<string, { partidos?: number }>
+                                        ).map(([cat, cfg]) => [cat, cfg?.partidos || 2])
+                                    )}
+                                    fechaFinIda={torneo.fecha_fin}
+                                />
+                            )}
+                        </div>
                         <CopaDavisManager
                             torneoId={params.id}
                             clubLocal={{ id: String(clubInfo?.id || torneo.club_id), nombre: clubInfo?.nombre || 'Local' }}

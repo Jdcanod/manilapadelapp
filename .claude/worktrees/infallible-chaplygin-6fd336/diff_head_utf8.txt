@@ -1,0 +1,676 @@
+﻿commit 4722585b2afaa62a35195f6361666baba1f9d2db
+Author: Jdcanod <jdcanod@gmail.com>
+Date:   Thu Feb 19 22:07:47 2026 -0500
+
+    Fix: actualizando lint y errores de sintaxis en el mapa
+
+diff --git a/.env.example b/.env.example
+index f4d3c54..518c2b9 100644
+--- a/.env.example
++++ b/.env.example
+@@ -1,14 +1,16 @@
+-# SUPABASE CONFIGURATION
+-NEXT_PUBLIC_SUPABASE_URL="https://your-supabase-url.supabase.co"
+-NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
+-SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
++# Configuraci├│n de Supabase (Backend/Base de Datos)
++NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
++NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-anon-key-publica
++SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key-privada
+ 
+-# TWILIO CONFIGURATION (WHATSAPP)
+-TWILIO_ACCOUNT_SID="your-twilio-sid"
+-TWILIO_AUTH_TOKEN="your-twilio-auth-token"
+-TWILIO_WHATSAPP_NUMBER="whatsapp:+123456789"
++# Configuraci├│n de Twilio (Notificaciones WhatsApp)
++TWILIO_ACCOUNT_SID=tu-account-sid
++TWILIO_AUTH_TOKEN=tu-auth-token
++TWILIO_PHONE_NUMBER=+1234567890
+ 
+-# WEB PUSH API CONFIGURATION (VAPID KEYS)
+-NEXT_PUBLIC_VAPID_PUBLIC_KEY="your-vapid-public-key"
+-VAPID_PRIVATE_KEY="your-vapid-private-key"
+-VAPID_SUBJECT="mailto:your-email@example.com"
++# Configuraci├│n de Web Push API (Notificaciones Push Web)
++NEXT_PUBLIC_VAPID_PUBLIC_KEY=tu-vapid-public-key
++VAPID_PRIVATE_KEY=tu-vapid-private-key
++
++# Otras configuraciones del servidor
++NEXT_PUBLIC_BASE_URL=http://localhost:3000
+diff --git a/build_output.txt b/build_output.txt
+new file mode 100644
+index 0000000..5b77ae8
+--- /dev/null
++++ b/build_output.txt
+@@ -0,0 +1,5 @@
++  Γû▓ Next.js 14.2.35
++
++   Creating an optimized production build ...
++ Γ£ô Compiled successfully
++   Linting and checking validity of types ...
+diff --git a/clubes_diff.txt b/clubes_diff.txt
+new file mode 100644
+index 0000000..6dfd78f
+--- /dev/null
++++ b/clubes_diff.txt
+@@ -0,0 +1,154 @@
++∩╗┐commit 24eb9a8ebc512035e189ff2676e934695d9a7b31
++Author: Jdcanod <jdcanod@gmail.com>
++Date:   Thu Feb 19 19:35:11 2026 -0500
++
++    Version 1.0 lista para producciΓö£Γöén
++
++diff --git a/src/app/(dashboard)/clubes/page.tsx b/src/app/(dashboard)/clubes/page.tsx
++new file mode 100644
++index 0000000..d991788
++--- /dev/null
+++++ b/src/app/(dashboard)/clubes/page.tsx
++@@ -0,0 +1,142 @@
+++"use client";
+++
+++import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+++import { Badge } from "@/components/ui/badge";
+++import { Button } from "@/components/ui/button";
+++import { Input } from "@/components/ui/input";
+++import { MapPin, Search, Star, Navigation, Clock } from "lucide-react";
+++
+++export default function ClubesMapPage() {
+++    const clubesMock = [
+++        {
+++            id: "1",
+++            name: "Manizales Padel Central",
+++            address: "Calle 65 # 23-44, Sector El Cable",
+++            courts: 4,
+++            rating: 4.8,
+++            status: "Abierto",
+++            coors: { x: 50, y: 30 } // % of map
+++        },
+++        {
+++            id: "2",
+++            name: "Bosque Padel",
+++            address: "Km 2 VΓö£┬ía VillamarΓö£┬ía",
+++            courts: 2,
+++            rating: 4.9,
+++            status: "Abierto",
+++            coors: { x: 75, y: 65 }
+++        },
+++        {
+++            id: "3",
+++            name: "La Enea Padel Zone",
+++            address: "Cra 104 # 16-10",
+++            courts: 3,
+++            rating: 4.5,
+++            status: "Cerrado",
+++            coors: { x: 25, y: 80 }
+++        }
+++    ];
+++
+++    return (
+++        <div className="space-y-6 h-full flex flex-col md:h-[calc(100vh-100px)]">
+++            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+++                <div>
+++                    <h1 className="text-3xl font-bold tracking-tight text-white mb-1">Mapa de Clubes</h1>
+++                    <p className="text-neutral-400">Descubre las mejores canchas de pΓö£├¡del en Manizales.</p>
+++                </div>
+++                <div className="relative w-full sm:w-auto">
+++                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+++                    <Input
+++                        placeholder="Buscar por zona o club..."
+++                        className="pl-9 bg-neutral-900/80 border-neutral-800 text-white w-full sm:w-[300px]"
+++                    />
+++                </div>
+++            </div>
+++
+++            <div className="flex flex-col md:flex-row gap-6 flex-1 h-full min-h-[500px]">
+++                {/* Interactive Map Area (Mock Visual) */}
+++                <Card className="flex-1 bg-neutral-900 border-neutral-800 shadow-xl overflow-hidden relative">
+++                    {/* Faux map background gradient to look like geography */}
+++                    <div className="absolute inset-0 bg-neutral-950">
+++                        <div className="absolute inset-0 bg-[url('https://maps.googleapis.com/maps/api/staticmap?center=Manizales,Colombia&zoom=13&size=800x800&maptype=roadmap&style=feature:all|element:labels.text.fill|color:0xffffff&style=feature:all|element:labels.text.stroke|color:0x000000&style=feature:all|element:labels.icon|visibility:off&style=feature:administrative|element:geometry.fill|color:0x000000&style=feature:administrative|element:geometry.stroke|color:0x144b53&style=feature:landscape|element:geometry|color:0x08304b&style=feature:poi|element:geometry|color:0x0c4152&style=feature:road.highway|element:geometry.fill|color:0x000000&style=feature:road.highway|element:geometry.stroke|color:0x0b434f&style=feature:road.arterial|element:geometry|color:0x000000&style=feature:road.local|element:geometry|color:0x000000&style=feature:transit|element:geometry|color:0x146474&style=feature:water|element:geometry|color:0x021019')] bg-cover bg-center opacity-40 mix-blend-luminosity grayscale" />
+++                    </div>
+++
+++                    <div className="absolute top-4 left-4 z-10 bg-neutral-950/80 backdrop-blur-md px-4 py-2 rounded-full border border-neutral-800 text-sm font-medium text-emerald-400">
+++                        Vista Manizales
+++                    </div>
+++
+++                    {/* Map Pins */}
+++                    {clubesMock.map((club) => (
+++                        <div
+++                            key={club.id}
+++                            className="absolute z-20 group -translate-x-1/2 -translate-y-full hover:z-30 cursor-pointer"
+++                            style={{ left: `${club.coors.x}%`, top: `${club.coors.y}%` }}
+++                        >
+++                            <div className="relative">
+++                                {/* Pin Pulse */}
+++                                {club.status === "Abierto" && (
+++                                    <div className="absolute -inset-2 bg-emerald-500/30 rounded-full blur animate-ping shadow-lg shadow-emerald-500/50" />
+++                                )}
+++                                {/* Pin Body */}
+++                                <div className={`p-2 rounded-full border-2 bg-neutral-950 shadow-xl relative z-10 transition-transform group-hover:scale-110 ${club.status === "Abierto" ? 'border-emerald-500' : 'border-neutral-600'
+++                                    }`}>
+++                                    <Navigation className={`w-5 h-5 ${club.status === "Abierto" ? 'text-emerald-400' : 'text-neutral-500'}`} />
+++                                </div>
+++
+++                                {/* Pin Tooltip/Card */}
+++                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 bg-neutral-900 border border-neutral-700 w-[220px] rounded-xl p-3 shadow-2xl opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all origin-bottom">
+++                                    <h4 className="font-bold text-white text-sm truncate">{club.name}</h4>
+++                                    <p className="text-xs text-neutral-400 mt-1 line-clamp-1">{club.address}</p>
+++                                    <div className="flex items-center justify-between mt-3 text-xs">
+++                                        <span className="flex items-center font-medium text-amber-500"><Star className="w-3 h-3 mr-1 fill-amber-500" /> {club.rating}</span>
+++                                        <span className="text-neutral-300">{club.courts} canchas</span>
+++                                    </div>
+++                                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-neutral-900 border-b border-r border-neutral-700 rotate-45" />
+++                                </div>
+++                            </div>
+++                        </div>
+++                    ))}
+++                </CardCard>
+++
+++                {/* List of Clubs Sidebar */}
+++                <div className="w-full md:w-[350px] flex flex-col gap-4 overflow-y-auto pr-2">
+++                    {clubesMock.map((club) => (
+++                        <Card key={club.id} className="bg-neutral-900 border-neutral-800 hover:border-neutral-700 transition-all cursor-pointer group">
+++                            <CardContent className="p-4 flex gap-4">
+++                                <div className="w-16 h-16 rounded-xl bg-neutral-800 border border-neutral-700 shrink-0 overflow-hidden relative">
+++                                    {/* Imagen de club simulada */}
+++                                    <div className="absolute inset-0 bg-emerald-500/20 mix-blend-multiply" />
+++                                </div>
+++                                <div className="flex-1">
+++                                    <div className="flex justify-between items-start mb-1">
+++                                        <h3 className="font-bold text-white text-sm group-hover:text-emerald-400 transition-colors line-clamp-1">{club.name}</h3>
+++                                        {club.status === "Abierto" ? (
+++                                            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+++                                        ) : (
+++                                            <span className="w-2 h-2 rounded-full bg-neutral-600" />
+++                                        )}
+++                                    </div>
+++                                    <p className="text-xs text-neutral-400 flex items-center mb-2 line-clamp-1">
+++                                        <MapPin className="w-3 h-3 mr-1 shrink-0" /> {club.address}
+++                                    </p>
+++                                    <div className="flex items-center justify-between">
+++                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-neutral-950 border-neutral-800 text-neutral-300">
+++                                            {club.courts} Canchas
+++                                        </Badge>
+++                                        <span className="text-xs flex items-center text-amber-500 font-bold">
+++                                            <Star className="w-3 h-3 mr-0.5" /> {club.rating}
+++                                        </span>
+++                                    </div>
+++                                </div>
+++                            </CardContent>
+++                        </Card>
+++                    ))}
+++
+++                    <Button variant="outline" className="w-full border-dashed border-neutral-700 text-neutral-400 hover:text-white mt-2">
+++                        Ver todos los clubes
+++                    </Button>
+++                </div>
+++            </div>
+++        </div>
+++    );
+++}
+diff --git a/eslint.json b/eslint.json
+new file mode 100644
+index 0000000..a318c4b
+Binary files /dev/null and b/eslint.json differ
+diff --git a/eslint.log b/eslint.log
+new file mode 100644
+index 0000000..61065d2
+Binary files /dev/null and b/eslint.log differ
+diff --git a/eslint_context.txt b/eslint_context.txt
+new file mode 100644
+index 0000000..427e18c
+Binary files /dev/null and b/eslint_context.txt differ
+diff --git a/eslint_errors.txt b/eslint_errors.txt
+new file mode 100644
+index 0000000..363797c
+Binary files /dev/null and b/eslint_errors.txt differ
+diff --git a/eslint_final.txt b/eslint_final.txt
+new file mode 100644
+index 0000000..e69de29
+diff --git a/eslint_final_errors.txt b/eslint_final_errors.txt
+new file mode 100644
+index 0000000..b194628
+Binary files /dev/null and b/eslint_final_errors.txt differ
+diff --git a/eslint_issues.txt b/eslint_issues.txt
+new file mode 100644
+index 0000000..dc54f01
+Binary files /dev/null and b/eslint_issues.txt differ
+diff --git a/eslint_next_output.txt b/eslint_next_output.txt
+new file mode 100644
+index 0000000..b194628
+Binary files /dev/null and b/eslint_next_output.txt differ
+diff --git a/eslint_output.txt b/eslint_output.txt
+new file mode 100644
+index 0000000..61065d2
+Binary files /dev/null and b/eslint_output.txt differ
+diff --git a/eslint_output_utf8.txt b/eslint_output_utf8.txt
+new file mode 100644
+index 0000000..352a6ab
+--- /dev/null
++++ b/eslint_output_utf8.txt
+@@ -0,0 +1,33 @@
++∩╗┐
++C:\Users\jdcan\.gemini\antigravity\scratch\manilapadelapp\src\app\(dashboard)\club\page.tsx
++   8:10  error  'Avatar' is defined but never used            @typescript-eslint/no-unused-vars
++   8:18  error  'AvatarFallback' is defined but never used    @typescript-eslint/no-unused-vars
++   8:34  error  'AvatarImage' is defined but never used       @typescript-eslint/no-unused-vars
++   9:10  error  'MapPin' is defined but never used            @typescript-eslint/no-unused-vars
++   9:59  error  'Lock' is defined but never used              @typescript-eslint/no-unused-vars
++  10:10  error  'Tabs' is defined but never used              @typescript-eslint/no-unused-vars
++  10:16  error  'TabsContent' is defined but never used       @typescript-eslint/no-unused-vars
++  10:29  error  'TabsList' is defined but never used          @typescript-eslint/no-unused-vars
++  10:39  error  'TabsTrigger' is defined but never used       @typescript-eslint/no-unused-vars
++  14:18  error  'setDate' is assigned a value but never used  @typescript-eslint/no-unused-vars
++
++C:\Users\jdcan\.gemini\antigravity\scratch\manilapadelapp\src\app\(dashboard)\clubes\page.tsx
++  3:29  error  'CardDescription' is defined but never used  @typescript-eslint/no-unused-vars
++  3:46  error  'CardHeader' is defined but never used       @typescript-eslint/no-unused-vars
++  3:58  error  'CardTitle' is defined but never used        @typescript-eslint/no-unused-vars
++  7:44  error  'Clock' is defined but never used            @typescript-eslint/no-unused-vars
++
++C:\Users\jdcan\.gemini\antigravity\scratch\manilapadelapp\src\app\(dashboard)\layout.tsx
++  2:40  error  'Menu' is defined but never used  @typescript-eslint/no-unused-vars
++
++C:\Users\jdcan\.gemini\antigravity\scratch\manilapadelapp\src\app\(dashboard)\partidos\page.tsx
++  5:18  error  'AvatarFallback' is defined but never used  @typescript-eslint/no-unused-vars
++
++C:\Users\jdcan\.gemini\antigravity\scratch\manilapadelapp\src\hooks\use-toast.ts
++  21:7  error  'actionTypes' is assigned a value but only used as a type  @typescript-eslint/no-unused-vars
++
++C:\Users\jdcan\.gemini\antigravity\scratch\manilapadelapp\tailwind.config.ts
++  61:13  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
++
++╬ô┬ú├╗ 18 problems (18 errors, 0 warnings)
++
+diff --git a/eslint_raw_utf8.txt b/eslint_raw_utf8.txt
+new file mode 100644
+index 0000000..9a69848
+--- /dev/null
++++ b/eslint_raw_utf8.txt
+@@ -0,0 +1,30 @@
++∩╗┐
++C:\Users\jdcan\.gemini\antigravity\scratch\manilapadelapp\src\app\(dashboard)\club\page.tsx
++   8:10  error  'Avatar' is defined but never used            @typescript-eslint/no-unused-vars
++   8:18  error  'AvatarFallback' is defined but never used    @typescript-eslint/no-unused-vars
++   8:34  error  'AvatarImage' is defined but never used       @typescript-eslint/no-unused-vars
++   9:10  error  'MapPin' is defined but never used            @typescript-eslint/no-unused-vars
++   9:59  error  'Lock' is defined but never used              @typescript-eslint/no-unused-vars
++  10:10  error  'Tabs' is defined but never used              @typescript-eslint/no-unused-vars
++  10:16  error  'TabsContent' is defined but never used       @typescript-eslint/no-unused-vars
++  10:29  error  'TabsList' is defined but never used          @typescript-eslint/no-unused-vars
++  10:39  error  'TabsTrigger' is defined but never used       @typescript-eslint/no-unused-vars
++  14:18  error  'setDate' is assigned a value but never used  @typescript-eslint/no-unused-vars
++
++C:\Users\jdcan\.gemini\antigravity\scratch\manilapadelapp\src\app\(dashboard)\clubes\page.tsx
++  3:29  error  'CardDescription' is defined but never used  @typescript-eslint/no-unused-vars
++  3:46  error  'CardHeader' is defined but never used       @typescript-eslint/no-unused-vars
++  3:58  error  'CardTitle' is defined but never used        @typescript-eslint/no-unused-vars
++  7:44  error  'Clock' is defined but never used            @typescript-eslint/no-unused-vars
++
++C:\Users\jdcan\.gemini\antigravity\scratch\manilapadelapp\src\app\(dashboard)\layout.tsx
++  2:40  error  'Menu' is defined but never used  @typescript-eslint/no-unused-vars
++
++C:\Users\jdcan\.gemini\antigravity\scratch\manilapadelapp\src\app\(dashboard)\partidos\page.tsx
++  5:18  error  'AvatarFallback' is defined but never used  @typescript-eslint/no-unused-vars
++
++C:\Users\jdcan\.gemini\antigravity\scratch\manilapadelapp\src\hooks\use-toast.ts
++  21:7  error  'actionTypes' is assigned a value but only used as a type  @typescript-eslint/no-unused-vars
++
++╬ô┬ú├╗ 17 problems (17 errors, 0 warnings)
++
+diff --git a/eslint_report.json b/eslint_report.json
+new file mode 100644
+index 0000000..b62111c
+Binary files /dev/null and b/eslint_report.json differ
+diff --git a/next_lint_out.txt b/next_lint_out.txt
+new file mode 100644
+index 0000000..e69de29
+diff --git a/simple_errors.txt b/simple_errors.txt
+new file mode 100644
+index 0000000..6ddbaab
+Binary files /dev/null and b/simple_errors.txt differ
+diff --git a/simple_errors_utf8.txt b/simple_errors_utf8.txt
+new file mode 100644
+index 0000000..634b4b4
+--- /dev/null
++++ b/simple_errors_utf8.txt
+@@ -0,0 +1,72 @@
++∩╗┐
++   8:10  error  'Avatar' is 
++defined but never used       
++     @typescript-eslint/no-un
++used-vars
++   8:18  error  
++'AvatarFallback' is defined 
++but never used    @typescript
++-eslint/no-unused-vars
++   8:34  error  
++'AvatarImage' is defined but 
++never used       @typescript-
++eslint/no-unused-vars
++   9:10  error  'MapPin' is 
++defined but never used       
++     @typescript-eslint/no-un
++used-vars
++   9:59  error  'Lock' is 
++defined but never used       
++       @typescript-eslint/no-
++unused-vars
++  10:10  error  'Tabs' is 
++defined but never used       
++       @typescript-eslint/no-
++unused-vars
++  10:16  error  
++'TabsContent' is defined but 
++never used       @typescript-
++eslint/no-unused-vars
++  10:29  error  'TabsList' 
++is defined but never used    
++      @typescript-eslint/no-u
++nused-vars
++  10:39  error  
++'TabsTrigger' is defined but 
++never used       @typescript-
++eslint/no-unused-vars
++  14:18  error  'setDate' is 
++assigned a value but never 
++used  @typescript-eslint/no-u
++nused-vars
++  3:29  error  
++'CardDescription' is defined 
++but never used  @typescript-e
++slint/no-unused-vars
++  3:46  error  'CardHeader' 
++is defined but never used    
++   @typescript-eslint/no-unus
++ed-vars
++  3:58  error  'CardTitle' 
++is defined but never used    
++    @typescript-eslint/no-unu
++sed-vars
++  7:44  error  'Clock' is 
++defined but never used       
++     @typescript-eslint/no-un
++used-vars
++  2:40  error  'Menu' is 
++defined but never used  @type
++script-eslint/no-unused-vars
++  5:18  error  
++'AvatarFallback' is defined 
++but never used  @typescript-e
++slint/no-unused-vars
++  21:7  error  'actionTypes' 
++is assigned a value but only 
++used as a type  @typescript-e
++slint/no-unused-vars
++╬ô┬ú├╗ 17 problems (17 errors, 
++0 warnings)
++
++
+diff --git a/src/app/(dashboard)/club/page.tsx b/src/app/(dashboard)/club/page.tsx
+index 9d46e30..301df81 100644
+--- a/src/app/(dashboard)/club/page.tsx
++++ b/src/app/(dashboard)/club/page.tsx
+@@ -5,13 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
+ import { Badge } from "@/components/ui/badge";
+ import { Button } from "@/components/ui/button";
+ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+-import { MapPin, CheckCircle, Plus, CalendarRange, Clock, Lock, User, MoreVertical, Trophy } from "lucide-react";
+-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
++import { CheckCircle, Plus, CalendarRange, Clock, User, MoreVertical, Trophy } from "lucide-react";
+ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+ 
+ export default function ClubDashboard() {
+-    const [date, setDate] = useState("Hoy, 19 Feb");
++    const [date] = useState("Hoy, 19 Feb");
+ 
+     // Mock data for the reservation grid
+     const courts = ["Cancha 1 (Panor├ímica)", "Cancha 2", "Cancha 3", "Cancha 4"];
+diff --git a/src/app/(dashboard)/clubes/page.tsx b/src/app/(dashboard)/clubes/page.tsx
+index d991788..9afca94 100644
+--- a/src/app/(dashboard)/clubes/page.tsx
++++ b/src/app/(dashboard)/clubes/page.tsx
+@@ -1,10 +1,10 @@
+ "use client";
+ 
+-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
++import { Card, CardContent } from "@/components/ui/card";
+ import { Badge } from "@/components/ui/badge";
+ import { Button } from "@/components/ui/button";
+ import { Input } from "@/components/ui/input";
+-import { MapPin, Search, Star, Navigation, Clock } from "lucide-react";
++import { MapPin, Search, Star, Navigation } from "lucide-react";
+ 
+ export default function ClubesMapPage() {
+     const clubesMock = [
+@@ -96,7 +96,7 @@ export default function ClubesMapPage() {
+                             </div>
+                         </div>
+                     ))}
+-                </CardCard>
++                </Card>
+ 
+                 {/* List of Clubs Sidebar */}
+                 <div className="w-full md:w-[350px] flex flex-col gap-4 overflow-y-auto pr-2">
+diff --git a/src/app/(dashboard)/layout.tsx b/src/app/(dashboard)/layout.tsx
+index 19efb27..2965cab 100644
+--- a/src/app/(dashboard)/layout.tsx
++++ b/src/app/(dashboard)/layout.tsx
+@@ -1,5 +1,5 @@
+ import Link from "next/link";
+-import { Trophy, Home, User, Calendar, Menu } from "lucide-react";
++import { Trophy, Home, User, Calendar } from "lucide-react";
+ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+ 
+ export default function DashboardLayout({
+diff --git a/src/app/(dashboard)/partidos/page.tsx b/src/app/(dashboard)/partidos/page.tsx
+index 8de9adb..2c22fba 100644
+--- a/src/app/(dashboard)/partidos/page.tsx
++++ b/src/app/(dashboard)/partidos/page.tsx
+@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
+ import { Card, CardContent } from "@/components/ui/card";
+ import { Badge } from "@/components/ui/badge";
+ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
++import { Avatar, AvatarImage } from "@/components/ui/avatar";
+ import { Calendar, MapPin, Plus, Swords, UserPlus } from "lucide-react";
+ import Link from "next/link";
+ 
+diff --git a/src/app/(dashboard)/superadmin/page.tsx b/src/app/(dashboard)/superadmin/page.tsx
+index 483748b..4644cce 100644
+--- a/src/app/(dashboard)/superadmin/page.tsx
++++ b/src/app/(dashboard)/superadmin/page.tsx
+@@ -1,6 +1,7 @@
+ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+ import { Badge } from "@/components/ui/badge";
+ import { Button } from "@/components/ui/button";
++import { Input } from "@/components/ui/input";
+ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+ import { ShieldAlert, UserCheck, TrendingUp, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+diff --git a/src/hooks/use-toast.ts b/src/hooks/use-toast.ts
+index 02e111d..0e9d8d2 100644
+--- a/src/hooks/use-toast.ts
++++ b/src/hooks/use-toast.ts
+@@ -18,6 +18,7 @@ type ToasterToast = ToastProps & {
+   action?: ToastActionElement
+ }
+ 
++// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ const actionTypes = {
+   ADD_TOAST: "ADD_TOAST",
+   UPDATE_TOAST: "UPDATE_TOAST",
+@@ -36,21 +37,21 @@ type ActionType = typeof actionTypes
+ 
+ type Action =
+   | {
+-      type: ActionType["ADD_TOAST"]
+-      toast: ToasterToast
+-    }
++    type: ActionType["ADD_TOAST"]
++    toast: ToasterToast
++  }
+   | {
+-      type: ActionType["UPDATE_TOAST"]
+-      toast: Partial<ToasterToast>
+-    }
++    type: ActionType["UPDATE_TOAST"]
++    toast: Partial<ToasterToast>
++  }
+   | {
+-      type: ActionType["DISMISS_TOAST"]
+-      toastId?: ToasterToast["id"]
+-    }
++    type: ActionType["DISMISS_TOAST"]
++    toastId?: ToasterToast["id"]
++  }
+   | {
+-      type: ActionType["REMOVE_TOAST"]
+-      toastId?: ToasterToast["id"]
+-    }
++    type: ActionType["REMOVE_TOAST"]
++    toastId?: ToasterToast["id"]
++  }
+ 
+ interface State {
+   toasts: ToasterToast[]
+@@ -108,9 +109,9 @@ export const reducer = (state: State, action: Action): State => {
+         toasts: state.toasts.map((t) =>
+           t.id === toastId || toastId === undefined
+             ? {
+-                ...t,
+-                open: false,
+-              }
++              ...t,
++              open: false,
++            }
+             : t
+         ),
+       }
+diff --git a/tailwind.config.ts b/tailwind.config.ts
+index 0aecfcc..d3d1775 100644
+--- a/tailwind.config.ts
++++ b/tailwind.config.ts
+@@ -1,63 +1,63 @@
+ import type { Config } from "tailwindcss";
+ 
+ const config: Config = {
+-    darkMode: ["class"],
+-    content: [
+-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+-  ],
+-  theme: {
+-  	extend: {
+-  		colors: {
+-  			background: 'hsl(var(--background))',
+-  			foreground: 'hsl(var(--foreground))',
+-  			card: {
+-  				DEFAULT: 'hsl(var(--card))',
+-  				foreground: 'hsl(var(--card-foreground))'
+-  			},
+-  			popover: {
+-  				DEFAULT: 'hsl(var(--popover))',
+-  				foreground: 'hsl(var(--popover-foreground))'
+-  			},
+-  			primary: {
+-  				DEFAULT: 'hsl(var(--primary))',
+-  				foreground: 'hsl(var(--primary-foreground))'
+-  			},
+-  			secondary: {
+-  				DEFAULT: 'hsl(var(--secondary))',
+-  				foreground: 'hsl(var(--secondary-foreground))'
+-  			},
+-  			muted: {
+-  				DEFAULT: 'hsl(var(--muted))',
+-  				foreground: 'hsl(var(--muted-foreground))'
+-  			},
+-  			accent: {
+-  				DEFAULT: 'hsl(var(--accent))',
+-  				foreground: 'hsl(var(--accent-foreground))'
+-  			},
+-  			destructive: {
+-  				DEFAULT: 'hsl(var(--destructive))',
+-  				foreground: 'hsl(var(--destructive-foreground))'
+-  			},
+-  			border: 'hsl(var(--border))',
+-  			input: 'hsl(var(--input))',
+-  			ring: 'hsl(var(--ring))',
+-  			chart: {
+-  				'1': 'hsl(var(--chart-1))',
+-  				'2': 'hsl(var(--chart-2))',
+-  				'3': 'hsl(var(--chart-3))',
+-  				'4': 'hsl(var(--chart-4))',
+-  				'5': 'hsl(var(--chart-5))'
+-  			}
+-  		},
+-  		borderRadius: {
+-  			lg: 'var(--radius)',
+-  			md: 'calc(var(--radius) - 2px)',
+-  			sm: 'calc(var(--radius) - 4px)'
+-  		}
+-  	}
+-  },
+-  plugins: [require("tailwindcss-animate")],
++	darkMode: ["class"],
++	content: [
++		"./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
++		"./src/components/**/*.{js,ts,jsx,tsx,mdx}",
++		"./src/app/**/*.{js,ts,jsx,tsx,mdx}",
++	],
++	theme: {
++		extend: {
++			colors: {
++				background: 'hsl(var(--background))',
++				foreground: 'hsl(var(--foreground))',
++				card: {
++					DEFAULT: 'hsl(var(--card))',
++					foreground: 'hsl(var(--card-foreground))'
++				},
++				popover: {
++					DEFAULT: 'hsl(var(--popover))',
++					foreground: 'hsl(var(--popover-foreground))'
++				},
++				primary: {
++					DEFAULT: 'hsl(var(--primary))',
++					foreground: 'hsl(var(--primary-foreground))'
++				},
++				secondary: {
++					DEFAULT: 'hsl(var(--secondary))',
++					foreground: 'hsl(var(--secondary-foreground))'
++				},
++				muted: {
++					DEFAULT: 'hsl(var(--muted))',
++					foreground: 'hsl(var(--muted-foreground))'
++				},
++				accent: {
++					DEFAULT: 'hsl(var(--accent))',
++					foreground: 'hsl(var(--accent-foreground))'
++				},
++				destructive: {
++					DEFAULT: 'hsl(var(--destructive))',
++					foreground: 'hsl(var(--destructive-foreground))'
++				},
++				border: 'hsl(var(--border))',
++				input: 'hsl(var(--input))',
++				ring: 'hsl(var(--ring))',
++				chart: {
++					'1': 'hsl(var(--chart-1))',
++					'2': 'hsl(var(--chart-2))',
++					'3': 'hsl(var(--chart-3))',
++					'4': 'hsl(var(--chart-4))',
++					'5': 'hsl(var(--chart-5))'
++				}
++			},
++			borderRadius: {
++				lg: 'var(--radius)',
++				md: 'calc(var(--radius) - 2px)',
++				sm: 'calc(var(--radius) - 4px)'
++			}
++		}
++	},
++	plugins: [require("tailwindcss-animate")], // eslint-disable-line @typescript-eslint/no-require-imports
+ };
+ export default config;

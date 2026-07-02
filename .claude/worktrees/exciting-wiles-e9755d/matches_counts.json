@@ -1,0 +1,26 @@
+[
+  {
+    "nombre": "Prueba Uno",
+    "partidos": 0,
+    "id": "23d93876-f68f-46b2-a9f2-a3f4f5afa8bb",
+    "auth_id": "3fa7c090-1647-4800-92fa-6f1916d64084"
+  },
+  {
+    "nombre": "Prueba Dos",
+    "partidos": 0,
+    "id": "c7c67dbd-6bb8-4073-82b4-72a0122e9c10",
+    "auth_id": "6a8a3dbb-a3c2-4a21-b5bc-92c06519c9c1"
+  },
+  {
+    "nombre": "club_prueba1",
+    "partidos": 0,
+    "id": "78f9a88c-fc1f-45d8-aafc-656e38e841f3",
+    "auth_id": "7b205fa5-4de5-4085-9fcb-b2fbfad30ec8"
+  },
+  {
+    "nombre": "Prueba Club 2",
+    "partidos": 0,
+    "id": "e3771f94-65e3-4d7e-b4ba-9322449e4eb6",
+    "auth_id": "f17915ca-3c8f-4d6d-a113-123d0da7b78d"
+  }
+]

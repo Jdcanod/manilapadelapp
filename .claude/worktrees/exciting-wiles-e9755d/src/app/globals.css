@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+    .text-balance {
+        text-wrap: balance;
+    }
+}
+
+@layer base {
+    /* === Pádel Manía vintage palette (default theme) ===
+       paper        #F5EFE0  →  hsl(45, 53%, 92%)
+       paper-soft   #EDE5D3  →  hsl(43, 41%, 88%)
+       paper-dark   #DDD2B7  →  hsl(41, 35%, 79%)
+       olive        #5E6118  →  hsl(63, 60%, 24%)
+       olive-dark   #3F3F10  →  hsl(60, 60%, 16%)
+       ochre        #A88A4B  →  hsl(38, 38%, 47%)
+       ink          #2A2A0A  →  hsl(60, 62%, 11%)
+       ink-soft     #4A4A20  →  hsl(60, 41%, 21%) */
+    :root {
+        --background: 45 53% 92%;
+        --foreground: 60 62% 11%;
+        --card: 43 41% 88%;
+        --card-foreground: 60 62% 11%;
+        --popover: 45 53% 92%;
+        --popover-foreground: 60 62% 11%;
+        --primary: 63 60% 24%;
+        --primary-foreground: 45 53% 92%;
+        --secondary: 41 35% 79%;
+        --secondary-foreground: 63 60% 24%;
+        --muted: 43 41% 88%;
+        --muted-foreground: 60 41% 25%;
+        --accent: 38 38% 47%;
+        --accent-foreground: 45 53% 92%;
+        --destructive: 0 65% 42%;
+        --destructive-foreground: 45 53% 92%;
+        --border: 60 25% 70%;
+        --input: 60 25% 70%;
+        --ring: 63 60% 24%;
+        --chart-1: 63 60% 24%;
+        --chart-2: 38 38% 47%;
+        --chart-3: 0 65% 42%;
+        --chart-4: 200 50% 35%;
+        --chart-5: 25 75% 45%;
+        --radius: 0.5rem;
+    }
+}
+
+@layer components {
+    .bracket-column {
+        @apply flex flex-col justify-around gap-16 relative py-12;
+    }
+
+    .bracket-pair-container {
+        @apply relative flex flex-col gap-12;
+    }
+
+    .bracket-pair-container::after {
+        content: '';
+        @apply absolute -right-8 top-[25%] bottom-[25%] w-[2px] bg-olive/40;
+    }
+
+    .bracket-pair-connector-out {
+        @apply absolute -right-16 top-1/2 w-8 h-[2px] bg-olive/40;
+    }
+
+    .bracket-match-connector-in {
+        @apply absolute -left-8 top-1/2 w-8 h-[2px] bg-olive/40;
+    }
+}

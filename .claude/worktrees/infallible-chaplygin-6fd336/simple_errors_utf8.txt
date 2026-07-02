@@ -1,0 +1,72 @@
+﻿
+   8:10  error  'Avatar' is 
+defined but never used       
+     @typescript-eslint/no-un
+used-vars
+   8:18  error  
+'AvatarFallback' is defined 
+but never used    @typescript
+-eslint/no-unused-vars
+   8:34  error  
+'AvatarImage' is defined but 
+never used       @typescript-
+eslint/no-unused-vars
+   9:10  error  'MapPin' is 
+defined but never used       
+     @typescript-eslint/no-un
+used-vars
+   9:59  error  'Lock' is 
+defined but never used       
+       @typescript-eslint/no-
+unused-vars
+  10:10  error  'Tabs' is 
+defined but never used       
+       @typescript-eslint/no-
+unused-vars
+  10:16  error  
+'TabsContent' is defined but 
+never used       @typescript-
+eslint/no-unused-vars
+  10:29  error  'TabsList' 
+is defined but never used    
+      @typescript-eslint/no-u
+nused-vars
+  10:39  error  
+'TabsTrigger' is defined but 
+never used       @typescript-
+eslint/no-unused-vars
+  14:18  error  'setDate' is 
+assigned a value but never 
+used  @typescript-eslint/no-u
+nused-vars
+  3:29  error  
+'CardDescription' is defined 
+but never used  @typescript-e
+slint/no-unused-vars
+  3:46  error  'CardHeader' 
+is defined but never used    
+   @typescript-eslint/no-unus
+ed-vars
+  3:58  error  'CardTitle' 
+is defined but never used    
+    @typescript-eslint/no-unu
+sed-vars
+  7:44  error  'Clock' is 
+defined but never used       
+     @typescript-eslint/no-un
+used-vars
+  2:40  error  'Menu' is 
+defined but never used  @type
+script-eslint/no-unused-vars
+  5:18  error  
+'AvatarFallback' is defined 
+but never used  @typescript-e
+slint/no-unused-vars
+  21:7  error  'actionTypes' 
+is assigned a value but only 
+used as a type  @typescript-e
+slint/no-unused-vars
+Γ£û 17 problems (17 errors, 
+0 warnings)
+
+

@@ -242,6 +242,181 @@ export async function borrarPartidoCopa(partidoId: string) {
 }
 
 /**
+ * Crea el torneo de VUELTA de una Copa Davis existente (la ida).
+ * La vuelta es un torneo copa_davis independiente (mismo flujo de siempre),
+ * enlazado a la ida vía reglas_puntuacion.copa_serie — sin tocar el esquema.
+ *   - reglas_puntuacion.copa_serie = { rol: 'vuelta', torneo_ida_id }
+ *   - En la ida se guarda   { rol: 'ida', torneo_vuelta_id }
+ * Solo el club HOST de la ida puede crear la vuelta, y solo una vez.
+ */
+export async function crearVueltaCopa({
+    torneoIdaId,
+    nombre,
+    fechaInicio,
+    fechaFin,
+    categoriasConfig,
+    copiarInscripciones,
+    intercambiarClubes,
+}: {
+    torneoIdaId: string;
+    nombre: string;
+    fechaInicio: string; // ISO
+    fechaFin: string;    // ISO
+    /** categoría → nº de partidos placeholder a generar */
+    categoriasConfig: Record<string, number>;
+    /** Copiar las parejas inscritas de la ida (de las categorías elegidas). */
+    copiarInscripciones: boolean;
+    /** La vuelta se juega en casa del rival: intercambia local/visitante. */
+    intercambiarClubes: boolean;
+}) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado" };
+
+        const admin = createPureAdminClient();
+        const { data: me } = await admin.from('users').select('id, rol').eq('auth_id', user.id).single();
+        if (!me || me.rol !== 'admin_club') return { success: false, message: "Solo un admin de club puede crear la vuelta" };
+
+        const { data: ida } = await admin
+            .from('torneos')
+            .select('id, nombre, club_id, club_rival_id, formato, reglas_puntuacion')
+            .eq('id', torneoIdaId)
+            .single();
+        if (!ida) return { success: false, message: "Torneo de ida no encontrado" };
+        if (ida.formato !== 'copa_davis') return { success: false, message: "Solo aplica a Copa Davis" };
+        if (!ida.club_rival_id) return { success: false, message: "La ida no tiene club rival asignado" };
+
+        const esLocal = String(ida.club_id) === String(me.id);
+        const esRival = String(ida.club_rival_id) === String(me.id);
+        if (!esLocal && !esRival) return { success: false, message: "No eres parte de este torneo" };
+
+        // ¿Ya tiene vuelta? (si el torneo referenciado fue borrado, permitimos recrear)
+        const vueltaExistenteId = ida.reglas_puntuacion?.copa_serie?.torneo_vuelta_id;
+        if (vueltaExistenteId) {
+            const { data: vueltaExistente } = await admin
+                .from('torneos').select('id').eq('id', vueltaExistenteId).maybeSingle();
+            if (vueltaExistente) return { success: false, message: "Este torneo ya tiene una vuelta creada" };
+        }
+
+        const categorias = Object.keys(categoriasConfig).filter(c => c.trim());
+        if (categorias.length === 0) return { success: false, message: "Selecciona al menos una categoría" };
+        if (!nombre?.trim()) return { success: false, message: "El nombre es requerido" };
+        if (!fechaInicio || !fechaFin) return { success: false, message: "Las fechas son requeridas" };
+
+        // Local/visitante de la vuelta (intercambio opcional)
+        const nuevoClubId = intercambiarClubes ? ida.club_rival_id : ida.club_id;
+        const nuevoRivalId = intercambiarClubes ? ida.club_id : ida.club_rival_id;
+
+        // Config por categoría: partidos del formulario, parejas heredadas de la ida (o 2)
+        const idaConfig = (ida.reglas_puntuacion?.copa_categorias_config || {}) as Record<string, { parejas?: number; partidos?: number }>;
+        const copaConfigVuelta: Record<string, { parejas: number; partidos: number }> = {};
+        categorias.forEach(cat => {
+            copaConfigVuelta[cat] = {
+                parejas: Math.max(1, idaConfig[cat]?.parejas || 2),
+                partidos: Math.max(1, categoriasConfig[cat] || 1),
+            };
+        });
+
+        const reglasVuelta = {
+            ...(ida.reglas_puntuacion || {}),
+            categorias_habilitadas: categorias,
+            copa_categorias_config: copaConfigVuelta,
+            copa_serie: { rol: 'vuelta', torneo_ida_id: ida.id },
+        };
+
+        const { data: vuelta, error: errT } = await admin
+            .from('torneos')
+            .insert({
+                club_id: nuevoClubId,
+                club_rival_id: nuevoRivalId,
+                nombre: nombre.trim(),
+                fecha_inicio: fechaInicio,
+                fecha_fin: fechaFin,
+                formato: 'copa_davis',
+                participantes: [],
+                resultados: {},
+                reglas_puntuacion: reglasVuelta,
+            })
+            .select('id')
+            .single();
+        if (errT || !vuelta) return { success: false, message: "Error creando la vuelta: " + (errT?.message || 'desconocido') };
+
+        // Enlazar la ida → vuelta (trazabilidad). No tocamos nada más de la ida.
+        const { error: errIda } = await admin
+            .from('torneos')
+            .update({
+                reglas_puntuacion: {
+                    ...(ida.reglas_puntuacion || {}),
+                    copa_serie: { rol: 'ida', torneo_vuelta_id: vuelta.id },
+                },
+            })
+            .eq('id', ida.id);
+        if (errIda) {
+            // Revertir para no dejar una vuelta huérfana sin enlace
+            await admin.from('torneos').delete().eq('id', vuelta.id);
+            return { success: false, message: "Error enlazando ida y vuelta: " + errIda.message };
+        }
+
+        // Partidos placeholder por categoría (mismo formato que la creación normal)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const partidosACrear: any[] = [];
+        Object.entries(copaConfigVuelta).forEach(([cat, cfg]) => {
+            for (let i = 1; i <= cfg.partidos; i++) {
+                partidosACrear.push({
+                    torneo_id: vuelta.id,
+                    club_id: nuevoClubId,
+                    creador_id: user.id,
+                    pareja1_id: null,
+                    pareja2_id: null,
+                    nivel: cat,
+                    lugar: `Pendiente · ${cat} #${i}`,
+                    fecha: fechaInicio,
+                    estado: 'programado',
+                    tipo_partido: 'torneo',
+                    puntos_partido: 1,
+                    cupos_totales: 4,
+                    cupos_disponibles: 0,
+                });
+            }
+        });
+        let warning: string | null = null;
+        if (partidosACrear.length > 0) {
+            const { error: pErr } = await admin.from('partidos').insert(partidosACrear);
+            if (pErr) warning = `La vuelta se creó, pero no se pudieron generar los partidos placeholder: ${pErr.message}. Puedes añadirlos manualmente.`;
+        }
+
+        // Copiar inscripciones de la ida (solo categorías seleccionadas)
+        if (copiarInscripciones) {
+            const { data: insIda } = await admin
+                .from('torneo_parejas')
+                .select('pareja_id, categoria, representando_club_id')
+                .eq('torneo_id', ida.id)
+                .in('categoria', categorias);
+            if (insIda && insIda.length > 0) {
+                const filas = insIda.map((i: { pareja_id: string; categoria: string | null; representando_club_id: string | null }) => ({
+                    torneo_id: vuelta.id,
+                    pareja_id: i.pareja_id,
+                    categoria: i.categoria,
+                    estado_pago: 'pagado',
+                    representando_club_id: i.representando_club_id,
+                }));
+                const { error: iErr } = await admin.from('torneo_parejas').insert(filas);
+                if (iErr) warning = (warning ? warning + ' ' : '') + `No se pudieron copiar las inscripciones: ${iErr.message}.`;
+            }
+        }
+
+        revalidatePath(`/club/torneos/${ida.id}`);
+        revalidatePath(`/club/torneos/${vuelta.id}`);
+        revalidatePath(`/club/torneos`);
+        return { success: true, vueltaId: vuelta.id, warning };
+    } catch (err: unknown) {
+        const e = err as Error;
+        return { success: false, message: e.message || "Error desconocido" };
+    }
+}
+
+/**
  * Inscribe una pareja para Copa Davis, asignándole el club que representa y
  * la categoría. Soporta crear "invitados" (ghost users) cuando jugadorXSel
  * empieza con "manual:NombreCompleto".

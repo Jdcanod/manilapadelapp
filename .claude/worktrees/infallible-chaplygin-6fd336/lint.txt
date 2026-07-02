@@ -1,0 +1,10 @@
+
+> manilapadelapp@0.1.0 lint
+> next lint
+
+
+./src/app/(dashboard)/clubes/[id]/page.tsx
+282:71  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+340:71  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules

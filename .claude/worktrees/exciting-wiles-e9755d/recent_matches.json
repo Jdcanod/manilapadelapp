@@ -1,0 +1,37 @@
+[
+  {
+    "id": "54c4ebac-297c-4f45-91d0-a1b9494031cd",
+    "fecha": "2026-02-25T02:00:00+00:00",
+    "lugar": "club_prueba1 - cancha_2",
+    "estado": "abierto",
+    "creador_id": "3fa7c090-1647-4800-92fa-6f1916d64084"
+  },
+  {
+    "id": "416c0224-7d89-4c76-8d63-9814a68257c2",
+    "fecha": "2026-02-25T01:30:00+00:00",
+    "lugar": "club_prueba1 - cancha_1",
+    "estado": "abierto",
+    "creador_id": "3fa7c090-1647-4800-92fa-6f1916d64084"
+  },
+  {
+    "id": "49a4d36f-7aaf-424a-b43b-ff85bec698ae",
+    "fecha": "2026-02-25T00:00:00+00:00",
+    "lugar": "club_prueba1 - cancha_1",
+    "estado": "abierto",
+    "creador_id": "7b205fa5-4de5-4085-9fcb-b2fbfad30ec8"
+  },
+  {
+    "id": "c93148c2-7576-427f-9097-7f7843a174d2",
+    "fecha": "2026-02-24T21:00:00+00:00",
+    "lugar": "club_prueba1 - cancha_1",
+    "estado": "abierto",
+    "creador_id": "7b205fa5-4de5-4085-9fcb-b2fbfad30ec8"
+  },
+  {
+    "id": "caf5725c-6901-44a0-a396-0dc887805a8a",
+    "fecha": "2026-02-24T03:00:00+00:00",
+    "lugar": "club_prueba1",
+    "estado": "abierto",
+    "creador_id": "3fa7c090-1647-4800-92fa-6f1916d64084"
+  }
+]
