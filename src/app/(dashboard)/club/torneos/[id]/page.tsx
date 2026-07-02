@@ -640,47 +640,55 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                                 />
                             )}
                         </div>
-                        <CopaDavisManager
-                            torneoId={params.id}
-                            clubLocal={{ id: String(clubInfo?.id || torneo.club_id), nombre: clubInfo?.nombre || 'Local' }}
-                            clubRival={rivalClubData}
-                            partidos={partidosReales as unknown as Parameters<typeof CopaDavisManager>[0]['partidos']}
-                            tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
-                            parejaPlayers={parejaPlayersMap}
-                            inscripciones={inscripcionesCopa as unknown as Parameters<typeof CopaDavisManager>[0]['inscripciones']}
-                            inscripcionesJugadores={inscripcionesJugadores}
-                            categoriasHabilitadas={torneo.reglas_puntuacion?.categorias_habilitadas || []}
-                            currentClubId={currentClubIdCopa}
-                            serie={serieEnlace && seriePuntosEnlace ? {
-                                esteEsVuelta: !serieEnlace.esVuelta,
-                                otroNombre: serieEnlace.nombre,
-                                otroLocal: seriePuntosEnlace.local,
-                                otroRival: seriePuntosEnlace.rival,
-                            } : null}
-                        />
+                        <PersistentTabs defaultValue="copa" className="w-full">
+                            <TabsList className="bg-paper-soft border border-olive/20 p-1 w-full flex overflow-x-auto justify-start sm:w-auto overflow-y-hidden">
+                                <TabsTrigger value="copa" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">
+                                    Marcador y Partidos
+                                    <Badge variant="secondary" className="ml-2 bg-paper-dark text-olive border-none">{(partidosReales || []).length}</Badge>
+                                </TabsTrigger>
+                                <TabsTrigger value="cronograma" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Parrilla (Programación)</TabsTrigger>
+                            </TabsList>
 
-                        {/* Cronograma — los partidos placeholder caen en la bolsa y se programan aquí */}
-                        <div className="mt-8 pt-8 border-t border-olive/20">
-                            <h3 className="text-lg font-bold text-ink mb-4 flex items-center gap-2">
-                                📅 Parrilla de Programación
-                            </h3>
-                            <TournamentChronogram
-                                torneoId={params.id}
-                                matches={partidosReales}
-                                config={{
-                                    duracion: torneo.reglas_puntuacion?.config_duracion || 60,
-                                    canchas: torneo.reglas_puntuacion?.config_canchas || 2
-                                }}
-                                tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
-                                parejaPlayers={parejaPlayersMap}
-                                copaDavisContext={{
-                                    clubLocal: { id: String(clubInfo?.id || torneo.club_id), nombre: clubInfo?.nombre || 'Local' },
-                                    clubRival: rivalClubData,
-                                    categoriasSugeridas: torneo.reglas_puntuacion?.categorias_habilitadas || [],
-                                    currentClubId: currentClubIdCopa,
-                                }}
-                            />
-                        </div>
+                            <TabsContent value="copa" className="mt-6">
+                                <CopaDavisManager
+                                    torneoId={params.id}
+                                    clubLocal={{ id: String(clubInfo?.id || torneo.club_id), nombre: clubInfo?.nombre || 'Local' }}
+                                    clubRival={rivalClubData}
+                                    partidos={partidosReales as unknown as Parameters<typeof CopaDavisManager>[0]['partidos']}
+                                    tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
+                                    parejaPlayers={parejaPlayersMap}
+                                    inscripciones={inscripcionesCopa as unknown as Parameters<typeof CopaDavisManager>[0]['inscripciones']}
+                                    inscripcionesJugadores={inscripcionesJugadores}
+                                    categoriasHabilitadas={torneo.reglas_puntuacion?.categorias_habilitadas || []}
+                                    currentClubId={currentClubIdCopa}
+                                    serie={serieEnlace && seriePuntosEnlace ? {
+                                        esteEsVuelta: !serieEnlace.esVuelta,
+                                        otroNombre: serieEnlace.nombre,
+                                        otroLocal: seriePuntosEnlace.local,
+                                        otroRival: seriePuntosEnlace.rival,
+                                    } : null}
+                                />
+                            </TabsContent>
+
+                            <TabsContent value="cronograma" className="mt-6">
+                                <TournamentChronogram
+                                    torneoId={params.id}
+                                    matches={partidosReales}
+                                    config={{
+                                        duracion: torneo.reglas_puntuacion?.config_duracion || 60,
+                                        canchas: torneo.reglas_puntuacion?.config_canchas || 2
+                                    }}
+                                    tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
+                                    parejaPlayers={parejaPlayersMap}
+                                    copaDavisContext={{
+                                        clubLocal: { id: String(clubInfo?.id || torneo.club_id), nombre: clubInfo?.nombre || 'Local' },
+                                        clubRival: rivalClubData,
+                                        categoriasSugeridas: torneo.reglas_puntuacion?.categorias_habilitadas || [],
+                                        currentClubId: currentClubIdCopa,
+                                    }}
+                                />
+                            </TabsContent>
+                        </PersistentTabs>
                         </>
                     )}
                 </div>
