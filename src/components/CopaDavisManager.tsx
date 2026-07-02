@@ -59,6 +59,15 @@ interface Props {
     /** ID del club del admin actual — para forzar inscripción solo de su club
      *  y filtrar la sección de "Parejas Inscritas" a su columna. */
     currentClubId: string;
+    /** Serie ida/vuelta: puntos del torneo enlazado (ya mapeados a clubLocal/
+     *  clubRival de ESTE torneo) para mostrar el marcador global. */
+    serie?: {
+        /** true si este torneo es la vuelta (el enlazado es la ida). */
+        esteEsVuelta: boolean;
+        otroNombre: string;
+        otroLocal: number;
+        otroRival: number;
+    } | null;
 }
 
 /** "6-3,4-6,10-7" → 1 si ganó pareja1, 2 si ganó pareja2, null si no se puede */
@@ -79,7 +88,7 @@ function getWinner(resultado: string | null | undefined): 1 | 2 | null {
     } catch { return null; }
 }
 
-export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tipoDesempate, parejaPlayers = {}, inscripciones = [], inscripcionesJugadores = [], categoriasHabilitadas = [], currentClubId }: Props) {
+export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tipoDesempate, parejaPlayers = {}, inscripciones = [], inscripcionesJugadores = [], categoriasHabilitadas = [], currentClubId, serie = null }: Props) {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [pending, startTransition] = useTransition();
     const router = useRouter();
@@ -210,6 +219,43 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                             </Badge>
                         )}
                     </div>
+
+                    {/* SERIE GLOBAL (ida + vuelta) — se calcula en vivo desde ambos torneos */}
+                    {serie && (
+                        <div className="mt-4 pt-4 border-t border-emerald-500/20">
+                            <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                                    🏆 Serie Global — Ida + Vuelta
+                                </span>
+                                <span className="text-[10px] text-olive/60 uppercase tracking-widest">
+                                    {serie.esteEsVuelta
+                                        ? `Ida: ${serie.otroLocal}–${serie.otroRival} · Vuelta: ${scoreboard.local}–${scoreboard.rival}`
+                                        : `Ida: ${scoreboard.local}–${scoreboard.rival} · Vuelta: ${serie.otroLocal}–${serie.otroRival}`}
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-4 py-3">
+                                <div className="text-right">
+                                    <p className="text-xs font-bold text-ink uppercase truncate">{clubLocal.nombre}</p>
+                                    <p className={cn(
+                                        "text-3xl font-black leading-none mt-1",
+                                        (scoreboard.local + serie.otroLocal) >= (scoreboard.rival + serie.otroRival) ? "text-emerald-400" : "text-olive/70"
+                                    )}>
+                                        {scoreboard.local + serie.otroLocal}
+                                    </p>
+                                </div>
+                                <span className="text-[10px] font-black text-emerald-400/70 uppercase tracking-widest">Total</span>
+                                <div>
+                                    <p className="text-xs font-bold text-ink uppercase truncate">{clubRival.nombre}</p>
+                                    <p className={cn(
+                                        "text-3xl font-black leading-none mt-1",
+                                        (scoreboard.rival + serie.otroRival) >= (scoreboard.local + serie.otroLocal) ? "text-emerald-400" : "text-olive/70"
+                                    )}>
+                                        {scoreboard.rival + serie.otroRival}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 

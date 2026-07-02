@@ -302,6 +302,9 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
     // mostrar el enlace de trazabilidad, y decidir si se puede crear la vuelta.
     let serieEnlace: { id: string; nombre: string; esVuelta: boolean } | null = null;
     let puedeCrearVuelta = false;
+    // Puntos del torneo enlazado, mapeados a los clubes de ESTE torneo (por id,
+    // porque local/visitante pueden estar intercambiados entre ida y vuelta).
+    let seriePuntosEnlace: { local: number; rival: number } | null = null;
     if (torneo.formato === 'copa_davis') {
         const copaSerie = torneo.reglas_puntuacion?.copa_serie as
             | { rol: 'ida' | 'vuelta'; torneo_ida_id?: string; torneo_vuelta_id?: string }
@@ -309,9 +312,38 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         const enlaceId = copaSerie?.rol === 'vuelta' ? copaSerie.torneo_ida_id : copaSerie?.torneo_vuelta_id;
         if (enlaceId) {
             const { data: tEnlace } = await adminSupabase
-                .from('torneos').select('id, nombre').eq('id', enlaceId).maybeSingle();
+                .from('torneos').select('id, nombre, club_id, club_rival_id').eq('id', enlaceId).maybeSingle();
             if (tEnlace) {
                 serieEnlace = { id: tEnlace.id, nombre: tEnlace.nombre || 'Torneo enlazado', esVuelta: copaSerie?.rol === 'ida' };
+
+                // Marcador del torneo enlazado: pareja1 = club_id (host de ESE torneo),
+                // pareja2 = club_rival_id. Se acumula por id de club real.
+                const { data: pEnlace } = await adminSupabase
+                    .from('partidos')
+                    .select('resultado, puntos_partido')
+                    .eq('torneo_id', tEnlace.id);
+                const puntosPorClub: Record<string, number> = {
+                    [String(tEnlace.club_id)]: 0,
+                    [String(tEnlace.club_rival_id)]: 0,
+                };
+                (pEnlace || []).forEach((p: { resultado: string | null; puntos_partido: number | null }) => {
+                    if (!p.resultado) return;
+                    const normalised = p.resultado.replace(/[;/|]/g, ',').replace(/\s{2,}/g, ',').trim();
+                    const raw = normalised.includes(',') ? normalised : normalised.replace(/\s+/g, ',');
+                    let s1 = 0, s2 = 0;
+                    raw.split(',').forEach(s => {
+                        const [a, b] = s.trim().split('-').map(Number);
+                        if (isNaN(a) || isNaN(b)) return;
+                        if (a > b) s1++; else if (b > a) s2++;
+                    });
+                    const valor = p.puntos_partido || 0;
+                    if (s1 > s2) puntosPorClub[String(tEnlace.club_id)] += valor;
+                    else if (s2 > s1) puntosPorClub[String(tEnlace.club_rival_id)] += valor;
+                });
+                seriePuntosEnlace = {
+                    local: puntosPorClub[String(torneo.club_id)] || 0,
+                    rival: puntosPorClub[String(torneo.club_rival_id)] || 0,
+                };
             }
         }
         // Cualquier admin de los dos clubes puede crear la vuelta, solo si:
@@ -619,6 +651,12 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                             inscripcionesJugadores={inscripcionesJugadores}
                             categoriasHabilitadas={torneo.reglas_puntuacion?.categorias_habilitadas || []}
                             currentClubId={currentClubIdCopa}
+                            serie={serieEnlace && seriePuntosEnlace ? {
+                                esteEsVuelta: !serieEnlace.esVuelta,
+                                otroNombre: serieEnlace.nombre,
+                                otroLocal: seriePuntosEnlace.local,
+                                otroRival: seriePuntosEnlace.rival,
+                            } : null}
                         />
 
                         {/* Cronograma — los partidos placeholder caen en la bolsa y se programan aquí */}
