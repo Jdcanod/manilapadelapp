@@ -53,7 +53,10 @@ export function TournamentExportButton({ torneo, clubInfo, partidos, participant
             container.style.display = "block";
             await new Promise(resolve => setTimeout(resolve, 300));
 
-            const sections = Array.from(container.querySelectorAll('.pdf-section'));
+            // Secciones normales (.pdf-section) se pegan como bloque completo.
+            // Secciones fluidas (.pdf-flow) se cortan en el límite exacto de una
+            // fila (.pdf-row) al llenar cada página — tabla continua sin huecos.
+            const sections = Array.from(container.querySelectorAll('.pdf-section, .pdf-flow'));
             if (sections.length === 0) {
                 alert("No se encontraron secciones para exportar.");
                 setIsExporting(false);
@@ -65,12 +68,24 @@ export function TournamentExportButton({ torneo, clubInfo, partidos, participant
             const pdfHeight = pdf.internal.pageSize.getHeight();
             const margin = 10;
             const contentWidth = pdfWidth - (2 * margin);
-            
+
             let currentY = margin;
+
+            // Recorta una franja [startPx, endPx) del canvas y la agrega al PDF.
+            const addSlice = (canvas: HTMLCanvasElement, startPx: number, endPx: number) => {
+                const slice = document.createElement('canvas');
+                slice.width = canvas.width;
+                slice.height = Math.max(1, Math.round(endPx - startPx));
+                const ctx = slice.getContext('2d')!;
+                ctx.drawImage(canvas, 0, startPx, canvas.width, slice.height, 0, 0, canvas.width, slice.height);
+                const hMm = (slice.height * contentWidth) / canvas.width;
+                pdf.addImage(slice.toDataURL("image/png"), "PNG", margin, currentY, contentWidth, hMm);
+                currentY += hMm;
+            };
 
             for (let i = 0; i < sections.length; i++) {
                 const section = sections[i] as HTMLElement;
-                
+
                 const canvas = await html2canvas(section, {
                     scale: 2,
                     useCORS: true,
@@ -80,6 +95,42 @@ export function TournamentExportButton({ torneo, clubInfo, partidos, participant
                     height: section.offsetHeight
                 });
 
+                if (section.classList.contains('pdf-flow')) {
+                    // Límites de corte en px del canvas: el borde inferior de cada fila
+                    const pxScale = canvas.height / section.offsetHeight;
+                    const sectionTop = section.getBoundingClientRect().top;
+                    const boundaries = Array.from(section.querySelectorAll('.pdf-row'))
+                        .map(r => {
+                            const rect = (r as HTMLElement).getBoundingClientRect();
+                            return (rect.bottom - sectionTop) * pxScale;
+                        })
+                        .sort((a, b) => a - b);
+                    boundaries.push(canvas.height);
+
+                    let startPx = 0;
+                    while (startPx < canvas.height - 1) {
+                        const availMm = pdfHeight - margin - currentY;
+                        const availPx = (availMm * canvas.width) / contentWidth;
+                        // El mayor límite de fila que cabe en lo que queda de página
+                        const fit = boundaries.filter(b => b > startPx + 1 && b <= startPx + availPx).pop();
+                        if (fit !== undefined) {
+                            addSlice(canvas, startPx, fit);
+                            startPx = fit;
+                        } else if (currentY > margin) {
+                            // No cabe ni una fila: página nueva
+                            pdf.addPage();
+                            currentY = margin;
+                        } else {
+                            // Fila más alta que una página entera: corte forzado
+                            const forced = Math.min(startPx + availPx, canvas.height);
+                            addSlice(canvas, startPx, forced);
+                            startPx = forced;
+                        }
+                    }
+                    currentY += 2;
+                    continue;
+                }
+
                 const imgData = canvas.toDataURL("image/png");
                 const sectionHeightMm = (canvas.height * contentWidth) / canvas.width;
 
@@ -88,7 +139,7 @@ export function TournamentExportButton({ torneo, clubInfo, partidos, participant
                     pdf.addPage();
                     currentY = margin;
                 }
-                
+
                 pdf.addImage(imgData, "PNG", margin, currentY, contentWidth, sectionHeightMm);
                 currentY += sectionHeightMm + 2; // 2mm de espacio entre secciones
             }

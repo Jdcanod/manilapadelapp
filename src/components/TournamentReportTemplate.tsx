@@ -300,9 +300,24 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                 );
             })()}
 
-            {/* SECCIÓN DE CRONOGRAMA — chunks de N partidos para que cada pdf-section quepa en una página A4 */}
+            {/* SECCIÓN DE CRONOGRAMA — una sola tabla continua. El export corta
+                la imagen en el límite exacto de una fila al llenar cada página
+                (clase pdf-flow), así no quedan espacios en blanco. */}
             <div className="mb-10">
                 <h3 className="text-lg font-bold bg-paper-soft p-2 mb-4 uppercase border-l-4 border-olive">Parrilla (Programación)</h3>
+                <div className="pdf-flow">
+                    <table className="w-full text-xs border-collapse">
+                        <thead>
+                            <tr className="pdf-row border-b border-olive/30 text-olive/70">
+                                <th className="py-2 text-left w-14">Hora</th>
+                                <th className="py-2 text-left w-[110px]">Fase</th>
+                                <th className="py-2 text-left">{isCopaDavis ? `Pareja ${torneo.club?.nombre || 'Local'}` : 'Pareja 1'}</th>
+                                <th className="py-2 text-center w-8">vs</th>
+                                <th className="py-2 text-left">{isCopaDavis ? `Pareja ${torneo.club_rival?.nombre || 'Rival'}` : 'Pareja 2'}</th>
+                                <th className="py-2 text-right">Cancha</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                 {fechasOrdenadas.flatMap((fechaKey) => {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const matches = ([...partidosPorFecha[fechaKey]] as any[]).sort((a, b) => {
@@ -310,42 +325,24 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                         const hb = (b.hora || "99:99");
                         return ha.localeCompare(hb);
                     });
-                    // Bloques pequeños: el PDF empaca sección por sección, así que
-                    // entre más chico el bloque, menos espacio en blanco queda al
-                    // saltar de página (el peor caso es la altura de UN bloque).
-                    const ROWS_PER_CHUNK = 7;
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const chunks: any[][] = [];
-                    for (let i = 0; i < matches.length; i += ROWS_PER_CHUNK) {
-                        chunks.push(matches.slice(i, i + ROWS_PER_CHUNK));
-                    }
-                    if (chunks.length === 0) chunks.push([]);
-                    return chunks.map((chunk, ci) => (
-                        <div key={`${fechaKey}-${ci}`} className="pdf-section mb-2">
-                            <div className={`px-4 uppercase ${ci === 0 ? 'bg-olive text-paper text-sm font-bold py-1 mb-2' : 'bg-olive/60 text-paper text-[9px] font-bold py-0.5 mb-1'}`}>
-                                {(() => {
-                                    if (fechaKey === "Pendiente") return ci === 0 ? "Fechas por Programar" : "Fechas por Programar (cont.)";
-                                    const [fy, fm, fd] = fechaKey.split('-').map(Number);
-                                    const localDate = new Date(fy, fm - 1, fd);
-                                    const label = format(localDate, "EEEE dd 'de' MMMM", { locale: es });
-                                    return chunks.length > 1 ? `${label} (${ci + 1}/${chunks.length})` : label;
-                                })()}
-                            </div>
-                            <table className="w-full text-xs border-collapse">
-                                <thead>
-                                    <tr className="border-b border-olive/30 text-olive/70">
-                                        <th className="py-2 text-left w-14">Hora</th>
-                                        <th className="py-2 text-left w-[110px]">Fase</th>
-                                        <th className="py-2 text-left">{isCopaDavis ? `Pareja ${torneo.club?.nombre || 'Local'}` : 'Pareja 1'}</th>
-                                        <th className="py-2 text-center w-8">vs</th>
-                                        <th className="py-2 text-left">{isCopaDavis ? `Pareja ${torneo.club_rival?.nombre || 'Rival'}` : 'Pareja 2'}</th>
-                                        <th className="py-2 text-right">Cancha</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                    {chunk.map((partido: any, ri: number) => (
-                                        <tr key={partido.id} className={`border-b border-olive/10 ${ri % 2 === 1 ? 'bg-olive/5' : ''}`}>
+                    const label = (() => {
+                        if (fechaKey === "Pendiente") return "Fechas por Programar";
+                        const [fy, fm, fd] = fechaKey.split('-').map(Number);
+                        const localDate = new Date(fy, fm - 1, fd);
+                        return format(localDate, "EEEE dd 'de' MMMM", { locale: es });
+                    })();
+                    const headerRow = (
+                        <tr key={`${fechaKey}-header`} className="pdf-row">
+                            <td colSpan={6} className="bg-olive text-paper text-sm font-bold uppercase px-4 py-1">
+                                {label}
+                            </td>
+                        </tr>
+                    );
+                    const chunk = matches;
+                    return [headerRow,
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    ...chunk.map((partido: any, ri: number) => (
+                                        <tr key={partido.id} className={`pdf-row border-b border-olive/10 ${ri % 2 === 1 ? 'bg-olive/5' : ''}`}>
                                             <td className="py-1.5 font-bold">{partido.hora || "--:--"}</td>
                                             <td className="py-1.5">
                                                 {(() => {
@@ -412,12 +409,11 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                 return lugar || "Pendiente";
                                             })()}</td>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    ));
+                                    ))];
                 })}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* PIE DE PÁGINA */}
