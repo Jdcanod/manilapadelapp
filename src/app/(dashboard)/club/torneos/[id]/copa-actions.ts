@@ -501,15 +501,11 @@ export async function inscribirParejaCopa({
             const { data: jugadores } = await admin
                 .from('users').select('id, nombre, apellido').in('id', [j1Id, j2Id]);
             const nombreCorto = (u: { nombre?: string | null; apellido?: string | null }) => {
-                const n = (u.nombre || '').trim();
-                const a = (u.apellido || '').trim();
-                if (n && a) return `${n.charAt(0).toUpperCase()}. ${a.split(/\s+/)[0]}`;
-                if (n) {
-                    const parts = n.split(/\s+/);
-                    if (parts.length === 1) return parts[0];
-                    return `${parts[0].charAt(0).toUpperCase()}. ${parts.length >= 3 ? parts[2] : parts[1]}`;
-                }
-                return 'Jugador';
+                const n = (u.nombre || '').replace(/\s+/g, ' ').trim();
+                const a = (u.apellido || '').replace(/\s+/g, ' ').trim();
+                // "Nombre PrimerApellido" — mismo formato que display-names
+                if (n && a) return `${n} ${a.split(' ')[0]}`;
+                return n || a || 'Jugador';
             };
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const u1 = jugadores?.find((u: any) => u.id === j1Id);
@@ -680,15 +676,11 @@ export async function editarInscripcionCopa({
             const { data: jugadores } = await admin
                 .from('users').select('id, nombre, apellido').in('id', [j1Id, j2Id]);
             const nombreCorto = (u: { nombre?: string | null; apellido?: string | null }) => {
-                const n = (u.nombre || '').trim();
-                const a = (u.apellido || '').trim();
-                if (n && a) return `${n.charAt(0).toUpperCase()}. ${a.split(/\s+/)[0]}`;
-                if (n) {
-                    const parts = n.split(/\s+/);
-                    if (parts.length === 1) return parts[0];
-                    return `${parts[0].charAt(0).toUpperCase()}. ${parts.length >= 3 ? parts[2] : parts[1]}`;
-                }
-                return 'Jugador';
+                const n = (u.nombre || '').replace(/\s+/g, ' ').trim();
+                const a = (u.apellido || '').replace(/\s+/g, ' ').trim();
+                // "Nombre PrimerApellido" — mismo formato que display-names
+                if (n && a) return `${n} ${a.split(' ')[0]}`;
+                return n || a || 'Jugador';
             };
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const u1 = jugadores?.find((u: any) => u.id === j1Id);

@@ -12,39 +12,35 @@ export function isGuestEmail(email: string | null | undefined): boolean {
 }
 
 /**
- * Compone "Inicial. PrimerApellido" priorizando el campo `apellido`
- * cuando viene separado en DB. Si no hay apellido, infiere desde el
- * nombre completo.
+ * Compone "Nombre PrimerApellido" priorizando el campo `apellido` cuando
+ * viene separado en DB. Evita duplicados: si el nombre ya termina con el
+ * apellido (datos legacy), no lo repite.
  *
  * Casos:
- *   {nombre: "Juan David", apellido: "Cano"}      → "J. Cano"
- *   {nombre: "Juan David Cano"}                   → "J. Cano"   (heurística)
- *   {nombre: "Pedro", apellido: "Pérez"}          → "P. Pérez"
- *   {nombre: "Pedro Pérez"}                       → "P. Pérez"
- *   {nombre: "José"}                              → "José"
- *   {nombre: null}                                → "Jugador"
+ *   {nombre: "Juan David", apellido: "Cano Duque"}  → "Juan David Cano"
+ *   {nombre: "Pedro", apellido: "Pérez"}            → "Pedro Pérez"
+ *   {nombre: "Pedro Pérez"}                         → "Pedro Pérez"
+ *   {nombre: "José"}                                → "José"
+ *   {nombre: null}                                  → "Jugador"
  */
 function compactName(nombre: string | null | undefined, apellido?: string | null | undefined): string {
-    const nom = (nombre || '').trim();
-    const ape = (apellido || '').trim();
+    const nom = (nombre || '').replace(/\s+/g, ' ').trim();
+    const ape = (apellido || '').replace(/\s+/g, ' ').trim();
 
-    // Caso ideal: ambos campos existen → "I. Apellido"
-    if (nom && ape) {
-        const inicial = nom.charAt(0).toUpperCase();
-        const primerApellido = ape.split(/\s+/)[0]!;
-        return `${inicial}. ${primerApellido}`;
+    if (!nom && !ape) return 'Jugador';
+    if (!ape) return nom;
+    if (!nom) return ape;
+
+    const primerApellido = ape.split(' ')[0]!;
+    // Anti-duplicado (datos legacy): si el nombre ya contiene el apellido al
+    // final, no lo agregamos otra vez.
+    const nomLower = nom.toLowerCase();
+    const apeLower = ape.toLowerCase();
+    const primerApeLower = primerApellido.toLowerCase();
+    if (nomLower === apeLower || nomLower.endsWith(' ' + apeLower) || nomLower.endsWith(' ' + primerApeLower)) {
+        return nom;
     }
-
-    // Solo nombre → heurística según número de palabras
-    if (!nom) return 'Jugador';
-    const parts = nom.split(/\s+/);
-    if (parts.length === 1) return parts[0];
-
-    const inicial = parts[0]!.charAt(0).toUpperCase();
-    // 2 palabras → apellido = parts[1]
-    // 3+ palabras → asume nombre compuesto, apellido = parts[2]
-    const apellidoInferido = parts.length === 2 ? parts[1]! : parts[2]!;
-    return `${inicial}. ${apellidoInferido}`;
+    return `${nom} ${primerApellido}`;
 }
 
 /**
