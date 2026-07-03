@@ -56,7 +56,7 @@ export function CommentSection({ partidoId, currentUserId }: { partidoId: string
 
     if (!isOpen) {
         return (
-            <Button variant="ghost" size="sm" className="text-neutral-400 hover:text-white" onClick={() => setIsOpen(true)}>
+            <Button variant="ghost" size="sm" className="text-olive/70 hover:text-ink" onClick={() => setIsOpen(true)}>
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Comentar
             </Button>
@@ -64,36 +64,36 @@ export function CommentSection({ partidoId, currentUserId }: { partidoId: string
     }
 
     return (
-        <div className="w-full mt-4 border-t border-neutral-800 pt-4">
+        <div className="w-full mt-4 border-t border-olive/20 pt-4">
             <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                    <MessageCircle className="w-4 h-4 text-emerald-500" />
+                <h4 className="text-sm font-bold text-ink flex items-center gap-2">
+                    <MessageCircle className="w-4 h-4 text-emerald-700" />
                     Comentarios ({comments.length})
                 </h4>
-                <Button variant="ghost" size="sm" className="h-6 text-xs text-neutral-500 hover:text-neutral-300" onClick={() => setIsOpen(false)}>
+                <Button variant="ghost" size="sm" className="h-6 text-xs text-olive/60 hover:text-ink-soft" onClick={() => setIsOpen(false)}>
                     Cerrar
                 </Button>
             </div>
 
-            <div className="space-y-4 max-h-[200px] overflow-y-auto pr-2 mb-4 scrollbar-thin scrollbar-thumb-neutral-800">
+            <div className="space-y-4 max-h-[200px] overflow-y-auto pr-2 mb-4 scrollbar-thin scrollbar-thumb-olive/20">
                 {comments.length === 0 ? (
-                    <p className="text-xs text-neutral-500 text-center italic">Sé el primero en comentar.</p>
+                    <p className="text-xs text-olive/60 text-center italic">Sé el primero en comentar.</p>
                 ) : (
                     comments.map((c) => (
                         <div key={c.id} className="flex items-start gap-3">
-                            <Avatar className="w-6 h-6 border border-neutral-800">
-                                <AvatarFallback className="text-[10px] bg-neutral-800 text-neutral-400">
+                            <Avatar className="w-6 h-6 border border-olive/20">
+                                <AvatarFallback className="text-[10px] bg-olive/10 text-olive/70">
                                     {(c.users?.nombre || "U").substring(0, 2).toUpperCase()}
                                 </AvatarFallback>
                             </Avatar>
-                            <div className="flex-1 bg-neutral-900/50 rounded-xl p-2.5 border border-neutral-800/50">
+                            <div className="flex-1 bg-paper-soft/60 rounded-xl p-2.5 border border-olive/10">
                                 <div className="flex justify-between items-center mb-1">
-                                    <span className="text-xs font-bold text-white">{c.users?.nombre || "Usuario"}</span>
-                                    <span className="text-[10px] text-neutral-500">
+                                    <span className="text-xs font-bold text-ink">{c.users?.nombre || "Usuario"}</span>
+                                    <span className="text-[10px] text-olive/60">
                                         {new Date(c.created_at).toLocaleDateString('es-CO', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                 </div>
-                                <p className="text-sm text-neutral-300 break-words">{c.comentario}</p>
+                                <p className="text-sm text-ink-soft break-words">{c.comentario}</p>
                             </div>
                         </div>
                     ))
@@ -106,15 +106,15 @@ export function CommentSection({ partidoId, currentUserId }: { partidoId: string
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                         placeholder="Escribe un comentario..."
-                        className="bg-neutral-900 border-neutral-800 text-sm h-9"
+                        className="bg-paper-soft border-olive/20 text-sm h-9"
                         disabled={isLoading}
                     />
-                    <Button type="submit" size="icon" className="h-9 w-9 shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white" disabled={isLoading || !newComment.trim()}>
+                    <Button type="submit" size="icon" className="h-9 w-9 shrink-0 bg-emerald-600 hover:bg-emerald-500 text-ink" disabled={isLoading || !newComment.trim()}>
                         <Send className="w-4 h-4" />
                     </Button>
                 </form>
             ) : (
-                <p className="text-xs text-neutral-500 text-center">Inicia sesión para comentar.</p>
+                <p className="text-xs text-olive/60 text-center">Inicia sesión para comentar.</p>
             )}
         </div>
     );
