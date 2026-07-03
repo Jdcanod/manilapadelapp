@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, UserPlus, AlertCircle } from "lucide-react";
+import { Loader2, UserPlus, AlertCircle, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { inscribirParejaCopa, obtenerJugadoresParaCopa } from "@/app/(dashboard)/club/torneos/[id]/copa-actions";
-import { formatPlayerName, isGuestEmail } from "@/lib/display-names";
+import { formatPlayerNameFull, isGuestEmail } from "@/lib/display-names";
 
 interface ClubLite { id: string; nombre: string; }
 interface Jugador { id: string; nombre: string; apellido?: string | null; email: string; }
@@ -58,8 +58,8 @@ export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, cate
 
     const sortedJugadores = useMemo(() =>
         [...allJugadores].sort((a, b) => {
-            const na = formatPlayerName(a);
-            const nb = formatPlayerName(b);
+            const na = formatPlayerNameFull(a);
+            const nb = formatPlayerNameFull(b);
             return na.localeCompare(nb);
         }),
         [allJugadores]
@@ -219,7 +219,46 @@ interface JugadorSelectorProps {
     loading: boolean;
 }
 
+/** Quita tildes y pasa a minúsculas para búsquedas tolerantes. */
+function normalizar(s: string): string {
+    return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
 function JugadorSelector({ label, manual, setManual, sel, setSel, name, setName, jugadores, loading }: JugadorSelectorProps) {
+    const [query, setQuery] = useState("");
+    const [openList, setOpenList] = useState(false);
+    const boxRef = useRef<HTMLDivElement>(null);
+
+    const seleccionado = useMemo(() => jugadores.find(j => j.id === sel) || null, [jugadores, sel]);
+
+    const coincidencias = useMemo(() => {
+        const q = normalizar(query.trim());
+        if (!q) return jugadores.slice(0, 50);
+        return jugadores
+            .filter(j => {
+                const texto = normalizar(`${j.nombre || ''} ${j.apellido || ''} ${j.email || ''}`);
+                // Todas las palabras de la búsqueda deben aparecer
+                return q.split(/\s+/).every(palabra => texto.includes(palabra));
+            })
+            .slice(0, 50);
+    }, [jugadores, query]);
+
+    // Cerrar la lista al hacer click fuera
+    useEffect(() => {
+        if (!openList) return;
+        const onDown = (e: MouseEvent) => {
+            if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpenList(false);
+        };
+        document.addEventListener('mousedown', onDown);
+        return () => document.removeEventListener('mousedown', onDown);
+    }, [openList]);
+
+    const elegir = (j: Jugador) => {
+        setSel(j.id);
+        setQuery("");
+        setOpenList(false);
+    };
+
     return (
         <div className="space-y-1.5">
             <div className="flex items-center justify-between">
@@ -241,25 +280,54 @@ function JugadorSelector({ label, manual, setManual, sel, setSel, name, setName,
                     onChange={e => setName(e.target.value)}
                     className="bg-paper border-olive/20 text-ink"
                 />
-            ) : (
-                <Select value={sel} onValueChange={setSel}>
-                    <SelectTrigger className="bg-paper border-olive/20 text-ink">
-                        <SelectValue placeholder={loading ? "Cargando…" : "Selecciona jugador…"} />
-                    </SelectTrigger>
-                    <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[300px]">
-                        {jugadores.map(u => (
-                            <SelectItem key={u.id} value={u.id}>
-                                {formatPlayerName(u)}
-                                {!isGuestEmail(u.email) && (
-                                    <span className="text-olive/70 text-xs ml-2">({u.email})</span>
-                                )}
-                            </SelectItem>
-                        ))}
-                        {jugadores.length === 0 && !loading && (
-                            <SelectItem value="empty" disabled>Sin jugadores</SelectItem>
+            ) : seleccionado ? (
+                // Jugador ya elegido: chip con opción de quitar
+                <div className="flex items-center justify-between gap-2 rounded-lg border-2 border-olive/40 bg-olive/10 px-3 py-2.5">
+                    <span className="text-sm font-bold text-ink truncate">
+                        {formatPlayerNameFull(seleccionado)}
+                        {!isGuestEmail(seleccionado.email) && (
+                            <span className="text-olive/70 text-xs font-normal ml-2">({seleccionado.email})</span>
                         )}
-                    </SelectContent>
-                </Select>
+                    </span>
+                    <button type="button" onClick={() => { setSel(""); setQuery(""); }}
+                        title="Cambiar jugador"
+                        className="p-1 rounded-md text-olive/70 hover:text-red-400 hover:bg-red-500/10 flex-shrink-0 transition-colors">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            ) : (
+                <div ref={boxRef} className="relative">
+                    <div className="relative">
+                        <Search className="w-4 h-4 text-olive/50 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <Input
+                            placeholder={loading ? "Cargando jugadores…" : "Escribe el nombre para buscar…"}
+                            value={query}
+                            disabled={loading}
+                            onChange={e => { setQuery(e.target.value); setOpenList(true); }}
+                            onFocus={() => setOpenList(true)}
+                            className="bg-paper border-olive/20 text-ink pl-9"
+                        />
+                    </div>
+                    {openList && !loading && (
+                        <div className="absolute z-50 mt-1 w-full max-h-[260px] overflow-y-auto rounded-lg border border-olive/20 bg-paper-soft shadow-xl">
+                            {coincidencias.length === 0 ? (
+                                <div className="px-3 py-3 text-xs text-olive/70">
+                                    Sin coincidencias para &quot;{query}&quot;. Si no está registrado, usa la opción <strong>Invitado</strong>.
+                                </div>
+                            ) : (
+                                coincidencias.map(j => (
+                                    <button key={j.id} type="button" onClick={() => elegir(j)}
+                                        className="w-full text-left px-3 py-2 text-sm text-ink hover:bg-olive/15 transition-colors border-b border-olive/10 last:border-b-0">
+                                        <span className="font-semibold">{formatPlayerNameFull(j)}</span>
+                                        {!isGuestEmail(j.email) && (
+                                            <span className="block text-[11px] text-olive/60">{j.email}</span>
+                                        )}
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                    )}
+                </div>
             )}
         </div>
     );

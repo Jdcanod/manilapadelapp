@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Lock, KeyRound } from "lucide-react";
+import { Lock, KeyRound, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/utils/supabase/client";
 
 export default function ReestablecerPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const { toast } = useToast();
     const supabase = createClient();
 
@@ -88,13 +89,22 @@ export default function ReestablecerPage() {
                                 <Input
                                     id="password"
                                     name="password"
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     placeholder="••••••••"
                                     required
                                     minLength={6}
-                                    className="bg-neutral-950 border-neutral-800 text-neutral-100 pl-10 focus:ring-blue-500/20"
+                                    className="bg-neutral-950 border-neutral-800 text-neutral-100 pl-10 pr-10 focus:ring-blue-500/20"
                                 />
                                 <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-neutral-500" />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(v => !v)}
+                                    tabIndex={-1}
+                                    title={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                                    className="absolute right-3 top-2.5 text-neutral-500 hover:text-neutral-300 transition-colors"
+                                >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
                             </div>
                         </div>
                         <div className="space-y-2">
@@ -103,11 +113,11 @@ export default function ReestablecerPage() {
                                 <Input
                                     id="confirmPassword"
                                     name="confirmPassword"
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     placeholder="••••••••"
                                     required
                                     minLength={6}
-                                    className="bg-neutral-950 border-neutral-800 text-neutral-100 pl-10 focus:ring-blue-500/20"
+                                    className="bg-neutral-950 border-neutral-800 text-neutral-100 pl-10 pr-10 focus:ring-blue-500/20"
                                 />
                                 <Lock className="absolute left-3 top-2.5 h-4 w-4 text-neutral-500" />
                             </div>

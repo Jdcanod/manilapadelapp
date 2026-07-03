@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/utils/supabase/client";
 
 export default function LoginPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const { toast } = useToast();
     const supabase = createClient();
 
@@ -128,13 +129,24 @@ export default function LoginPage() {
                                     ¿Olvidaste tu contraseña?
                                 </Link>
                             </div>
-                            <Input
-                                id="password"
-                                name="password"
-                                type="password"
-                                required
-                                className="bg-paper border-olive/30 text-ink focus:border-olive focus:ring-olive/20"
-                            />
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    name="password"
+                                    type={showPassword ? "text" : "password"}
+                                    required
+                                    className="bg-paper border-olive/30 text-ink focus:border-olive focus:ring-olive/20 pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(v => !v)}
+                                    tabIndex={-1}
+                                    title={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-olive/60 hover:text-olive transition-colors"
+                                >
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
                         </div>
 
                         <div className="pt-2">
