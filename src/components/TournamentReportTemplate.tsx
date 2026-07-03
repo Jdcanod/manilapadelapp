@@ -310,7 +310,10 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                         const hb = (b.hora || "99:99");
                         return ha.localeCompare(hb);
                     });
-                    const ROWS_PER_CHUNK = 14;
+                    // Bloques pequeños: el PDF empaca sección por sección, así que
+                    // entre más chico el bloque, menos espacio en blanco queda al
+                    // saltar de página (el peor caso es la altura de UN bloque).
+                    const ROWS_PER_CHUNK = 7;
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const chunks: any[][] = [];
                     for (let i = 0; i < matches.length; i += ROWS_PER_CHUNK) {
@@ -318,8 +321,8 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                     }
                     if (chunks.length === 0) chunks.push([]);
                     return chunks.map((chunk, ci) => (
-                        <div key={`${fechaKey}-${ci}`} className="pdf-section mb-6">
-                            <div className={`px-4 py-1 uppercase mb-2 ${ci === 0 ? 'bg-olive text-paper text-sm font-bold' : 'bg-olive/80 text-paper text-xs font-bold'}`}>
+                        <div key={`${fechaKey}-${ci}`} className="pdf-section mb-2">
+                            <div className={`px-4 uppercase ${ci === 0 ? 'bg-olive text-paper text-sm font-bold py-1 mb-2' : 'bg-olive/60 text-paper text-[9px] font-bold py-0.5 mb-1'}`}>
                                 {(() => {
                                     if (fechaKey === "Pendiente") return ci === 0 ? "Fechas por Programar" : "Fechas por Programar (cont.)";
                                     const [fy, fm, fd] = fechaKey.split('-').map(Number);
@@ -341,10 +344,10 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                 </thead>
                                 <tbody>
                                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                    {chunk.map((partido: any) => (
-                                        <tr key={partido.id} className="border-b border-olive/10 hover:bg-paper-soft">
-                                            <td className="py-2 font-bold">{partido.hora || "--:--"}</td>
-                                            <td className="py-2">
+                                    {chunk.map((partido: any, ri: number) => (
+                                        <tr key={partido.id} className={`border-b border-olive/10 ${ri % 2 === 1 ? 'bg-olive/5' : ''}`}>
+                                            <td className="py-1.5 font-bold">{partido.hora || "--:--"}</td>
+                                            <td className="py-1.5">
                                                 {(() => {
                                                     // Fase = parse de `lugar`. Bracket lugar suele venir como:
                                                     //   "Cancha 1 | [0] Cuartos de Final - 4ta || PH: Seed 1 vs Seed 8"
@@ -367,7 +370,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                     );
                                                 })()}
                                             </td>
-                                            <td className="py-2">
+                                            <td className="py-1.5">
                                                 {(() => {
                                                     const pId = partido.pareja1_id || partido.pareja1?.id;
                                                     if (!pId) {
@@ -382,14 +385,14 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                     return isRival ? <span className="italic text-olive/60">Oculta (Misterio)</span> : (partido.pareja1?.nombre_pareja || "TBD");
                                                 })()}
                                             </td>
-                                            <td className="py-2 text-center">
+                                            <td className="py-1.5 text-center">
                                                 {partido.resultado ? (
                                                     <span className="font-bold text-emerald-600">{partido.resultado}</span>
                                                 ) : (
                                                     <span className="text-olive/40 italic">vs</span>
                                                 )}
                                             </td>
-                                            <td className="py-2">
+                                            <td className="py-1.5">
                                                 {(() => {
                                                     const pId = partido.pareja2_id || partido.pareja2?.id;
                                                     if (!pId) {
@@ -402,7 +405,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                     return isRival ? <span className="italic text-olive/60">Oculta (Misterio)</span> : (partido.pareja2?.nombre_pareja || "TBD");
                                                 })()}
                                             </td>
-                                            <td className="py-2 text-right font-medium text-ochre-dark">{(() => {
+                                            <td className="py-1.5 text-right font-medium text-ochre-dark">{(() => {
                                                 const lugar = partido.lugar || "";
                                                 const m = lugar.match(/Cancha\s+\d+/i);
                                                 if (m) return m[0];

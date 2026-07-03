@@ -90,7 +90,7 @@ export function TournamentExportButton({ torneo, clubInfo, partidos, participant
                 }
                 
                 pdf.addImage(imgData, "PNG", margin, currentY, contentWidth, sectionHeightMm);
-                currentY += sectionHeightMm + 5; // 5mm de espacio entre secciones
+                currentY += sectionHeightMm + 2; // 2mm de espacio entre secciones
             }
 
             pdf.save(`Reporte-${torneo.nombre}.pdf`);
