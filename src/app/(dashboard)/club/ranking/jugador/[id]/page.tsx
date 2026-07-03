@@ -190,86 +190,86 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
         <div className="space-y-6 pb-20">
             {/* Header */}
             <div className="flex items-center gap-4">
-                <Link href="/club/ranking" className="p-2 bg-neutral-900 border border-neutral-800 rounded-xl text-white hover:bg-neutral-800 transition-colors">
+                <Link href="/club/ranking" className="p-2 bg-paper-soft border border-olive/20 rounded-xl text-ink hover:bg-paper-dark transition-colors">
                     <ChevronLeft className="w-5 h-5" />
                 </Link>
                 <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 to-purple-500/20 border border-neutral-700 flex items-center justify-center text-2xl font-black text-white">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 to-purple-500/20 border border-olive/30 flex items-center justify-center text-2xl font-black text-ink">
                         {jugador.nombre?.charAt(0)?.toUpperCase() || '?'}
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-white">{jugador.nombre}</h1>
-                        <p className="text-neutral-500 text-sm">{allMatches.length} partidos en torneos del club</p>
+                        <h1 className="text-2xl font-bold text-ink">{jugador.nombre}</h1>
+                        <p className="text-olive/60 text-sm">{allMatches.length} partidos en torneos del club</p>
                     </div>
                 </div>
             </div>
 
             {/* KPIs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="bg-neutral-900 border-neutral-800 text-center py-5">
-                    <Target className="w-5 h-5 text-emerald-500 mx-auto mb-2" />
-                    <div className="text-3xl font-black text-white">{winRate !== null ? `${winRate}%` : '—'}</div>
-                    <p className="text-xs text-neutral-500 mt-1">Win Rate</p>
-                    {confirmedTotal > 0 && <p className="text-[10px] text-neutral-700 mt-0.5">{wins}V – {losses}D</p>}
+                <Card className="bg-paper-soft border-olive/20 text-center py-5">
+                    <Target className="w-5 h-5 text-emerald-700 mx-auto mb-2" />
+                    <div className="text-3xl font-black text-ink">{winRate !== null ? `${winRate}%` : '—'}</div>
+                    <p className="text-xs text-olive/60 mt-1">Win Rate</p>
+                    {confirmedTotal > 0 && <p className="text-[10px] text-olive/40 mt-0.5">{wins}V – {losses}D</p>}
                 </Card>
 
-                <Card className="bg-neutral-900 border-neutral-800 text-center py-5">
-                    <Trophy className="w-5 h-5 text-amber-500 mx-auto mb-2" />
-                    <div className="text-3xl font-black text-white">
+                <Card className="bg-paper-soft border-olive/20 text-center py-5">
+                    <Trophy className="w-5 h-5 text-amber-600 mx-auto mb-2" />
+                    <div className="text-3xl font-black text-ink">
                         {torneoHistory.filter(t => t?.posicion?.includes('Campeón')).length}
                     </div>
-                    <p className="text-xs text-neutral-500 mt-1">Campeonatos</p>
+                    <p className="text-xs text-olive/60 mt-1">Campeonatos</p>
                 </Card>
 
-                <Card className="bg-neutral-900 border-neutral-800 text-center py-5">
-                    <Calendar className="w-5 h-5 text-blue-400 mx-auto mb-2" />
-                    <div className="text-3xl font-black text-white">{played}</div>
-                    <p className="text-xs text-neutral-500 mt-1">Partidos Jugados</p>
+                <Card className="bg-paper-soft border-olive/20 text-center py-5">
+                    <Calendar className="w-5 h-5 text-blue-600 mx-auto mb-2" />
+                    <div className="text-3xl font-black text-ink">{played}</div>
+                    <p className="text-xs text-olive/60 mt-1">Partidos Jugados</p>
                 </Card>
 
-                <Card className="bg-neutral-900 border-neutral-800 text-center py-5">
-                    <Award className="w-5 h-5 text-purple-400 mx-auto mb-2" />
-                    <div className="text-3xl font-black text-white">{torneoHistory.length}</div>
-                    <p className="text-xs text-neutral-500 mt-1">Torneos</p>
+                <Card className="bg-paper-soft border-olive/20 text-center py-5">
+                    <Award className="w-5 h-5 text-purple-700 mx-auto mb-2" />
+                    <div className="text-3xl font-black text-ink">{torneoHistory.length}</div>
+                    <p className="text-xs text-olive/60 mt-1">Torneos</p>
                 </Card>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Historial de torneos */}
                 <div className="lg:col-span-2">
-                    <Card className="bg-neutral-900 border-neutral-800">
-                        <CardHeader className="border-b border-neutral-800 pb-4">
-                            <CardTitle className="text-white text-base flex items-center gap-2">
-                                <TrendingUp className="w-4 h-4 text-amber-500" /> Historial por Torneo
+                    <Card className="bg-paper-soft border-olive/20">
+                        <CardHeader className="border-b border-olive/20 pb-4">
+                            <CardTitle className="text-ink text-base flex items-center gap-2">
+                                <TrendingUp className="w-4 h-4 text-amber-600" /> Historial por Torneo
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
                             {torneoHistory.length === 0 ? (
-                                <div className="py-10 text-center text-neutral-600 text-sm">Sin torneos registrados</div>
+                                <div className="py-10 text-center text-olive/50 text-sm">Sin torneos registrados</div>
                             ) : (
-                                <div className="divide-y divide-neutral-800">
+                                <div className="divide-y divide-olive/10">
                                     {torneoHistory.map(t => t && (
                                         <div key={t.torneoId} className="flex items-center gap-4 px-5 py-4">
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-semibold text-white truncate">{t.nombre}</p>
+                                                <p className="text-sm font-semibold text-ink truncate">{t.nombre}</p>
                                                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                                                    <span className="text-[10px] text-neutral-600">
+                                                    <span className="text-[10px] text-olive/50">
                                                         {t.fecha ? new Date(t.fecha).toLocaleDateString('es-CO', { month: 'short', year: 'numeric' }) : ''}
                                                     </span>
-                                                    <span className="text-[10px] text-neutral-700 capitalize">{t.formato}</span>
+                                                    <span className="text-[10px] text-olive/40 capitalize">{t.formato}</span>
                                                 </div>
                                             </div>
                                             <div className="text-right flex-shrink-0 space-y-1">
                                                 {t.posicion && (
-                                                    <p className="text-xs font-bold text-amber-400">{t.posicion}</p>
+                                                    <p className="text-xs font-bold text-amber-600">{t.posicion}</p>
                                                 )}
                                                 {t.total > 0 && (
-                                                    <p className="text-[10px] text-neutral-500">
+                                                    <p className="text-[10px] text-olive/60">
                                                         {t.wins}V/{t.total - t.wins}D de {t.partidos} partidos
                                                     </p>
                                                 )}
                                                 {t.total === 0 && (
-                                                    <p className="text-[10px] text-neutral-600">{t.partidos} partidos</p>
+                                                    <p className="text-[10px] text-olive/50">{t.partidos} partidos</p>
                                                 )}
                                             </div>
                                         </div>
@@ -282,30 +282,30 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
 
                 {/* Parejas frecuentes */}
                 <div>
-                    <Card className="bg-neutral-900 border-neutral-800">
-                        <CardHeader className="border-b border-neutral-800 pb-4">
-                            <CardTitle className="text-white text-base flex items-center gap-2">
-                                <Users className="w-4 h-4 text-purple-400" /> Compañeros de Pareja
+                    <Card className="bg-paper-soft border-olive/20">
+                        <CardHeader className="border-b border-olive/20 pb-4">
+                            <CardTitle className="text-ink text-base flex items-center gap-2">
+                                <Users className="w-4 h-4 text-purple-700" /> Compañeros de Pareja
                             </CardTitle>
                             <CardDescription className="text-xs">Ordenados por partidos jugados juntos</CardDescription>
                         </CardHeader>
                         <CardContent className="p-0">
                             {sortedPartners.length === 0 ? (
-                                <div className="py-8 text-center text-neutral-600 text-sm">Sin datos</div>
+                                <div className="py-8 text-center text-olive/50 text-sm">Sin datos</div>
                             ) : (
-                                <div className="divide-y divide-neutral-800">
+                                <div className="divide-y divide-olive/10">
                                     {sortedPartners.map((p, i) => (
                                         <div key={p.id} className="flex items-center gap-3 px-5 py-3.5">
                                             <span className={cn(
                                                 "text-sm font-black w-5 text-center",
-                                                i === 0 ? 'text-amber-400' : 'text-neutral-600'
+                                                i === 0 ? 'text-amber-600' : 'text-olive/50'
                                             )}>
                                                 {i === 0 ? '⭐' : `${i + 1}`}
                                             </span>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-semibold text-white truncate">{p.nombre}</p>
+                                                <p className="text-sm font-semibold text-ink truncate">{p.nombre}</p>
                                             </div>
-                                            <Badge variant="outline" className="text-[10px] border-neutral-700 text-neutral-400 flex-shrink-0">
+                                            <Badge variant="outline" className="text-[10px] border-olive/30 text-olive/70 flex-shrink-0">
                                                 {p.count} {p.count === 1 ? 'partido' : 'partidos'}
                                             </Badge>
                                         </div>
@@ -323,13 +323,13 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
 function EmptyState({ jugadorNombre }: { jugadorNombre: string }) {
     return (
         <div className="space-y-6">
-            <Link href="/club/ranking" className="inline-flex items-center gap-2 text-sm text-neutral-500 hover:text-white transition-colors">
+            <Link href="/club/ranking" className="inline-flex items-center gap-2 text-sm text-olive/60 hover:text-ink transition-colors">
                 <ChevronLeft className="w-4 h-4" /> Volver al ranking
             </Link>
-            <div className="py-20 text-center border border-dashed border-neutral-800 rounded-2xl">
-                <Trophy className="w-14 h-14 mx-auto mb-4 text-neutral-800" />
-                <p className="text-neutral-400 font-semibold">{jugadorNombre}</p>
-                <p className="text-neutral-600 text-sm mt-1">No hay torneos en este club aún.</p>
+            <div className="py-20 text-center border border-dashed border-olive/20 rounded-2xl">
+                <Trophy className="w-14 h-14 mx-auto mb-4 text-olive/30" />
+                <p className="text-olive/70 font-semibold">{jugadorNombre}</p>
+                <p className="text-olive/50 text-sm mt-1">No hay torneos en este club aún.</p>
             </div>
         </div>
     );
