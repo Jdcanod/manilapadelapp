@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { formatPlayerName } from "@/lib/display-names";
+import { formatPlayerName, isGuestEmail } from "@/lib/display-names";
+import { ResetPasswordJugadorButton } from "@/components/ResetPasswordJugadorButton";
 
 function getWinner(resultado: string): 1 | 2 | null {
     try {
@@ -189,19 +190,28 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
     return (
         <div className="space-y-6 pb-20">
             {/* Header */}
-            <div className="flex items-center gap-4">
-                <Link href="/club/ranking" className="p-2 bg-paper-soft border border-olive/20 rounded-xl text-ink hover:bg-paper-dark transition-colors">
-                    <ChevronLeft className="w-5 h-5" />
-                </Link>
+            <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 to-purple-500/20 border border-olive/30 flex items-center justify-center text-2xl font-black text-ink">
-                        {jugador.nombre?.charAt(0)?.toUpperCase() || '?'}
-                    </div>
-                    <div>
-                        <h1 className="text-2xl font-bold text-ink">{jugador.nombre}</h1>
-                        <p className="text-olive/60 text-sm">{allMatches.length} partidos en torneos del club</p>
+                    <Link href="/club/ranking" className="p-2 bg-paper-soft border border-olive/20 rounded-xl text-ink hover:bg-paper-dark transition-colors">
+                        <ChevronLeft className="w-5 h-5" />
+                    </Link>
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 to-purple-500/20 border border-olive/30 flex items-center justify-center text-2xl font-black text-ink">
+                            {jugador.nombre?.charAt(0)?.toUpperCase() || '?'}
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-bold text-ink">{jugador.nombre}</h1>
+                            <p className="text-olive/60 text-sm">{allMatches.length} partidos en torneos del club</p>
+                        </div>
                     </div>
                 </div>
+                {/* Restablecer contraseña sin correo (solo cuentas reales, no invitados) */}
+                {!isGuestEmail(jugadorRaw.email) && (
+                    <ResetPasswordJugadorButton
+                        jugadorUserId={params.id}
+                        jugadorNombre={jugador.nombre}
+                    />
+                )}
             </div>
 
             {/* KPIs */}

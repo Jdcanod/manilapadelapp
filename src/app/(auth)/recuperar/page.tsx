@@ -1,57 +1,14 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { Mail, CheckCircle2, ArrowLeft } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { recuperarPasswordAction } from "@/app/actions/auth";
+import { KeyRound, ArrowLeft, MessageCircle, UserCheck, LogIn } from "lucide-react";
 
+/**
+ * Recuperación de contraseña SIN correo: la plataforma no tiene proveedor de
+ * email, así que el restablecimiento lo hace el admin del club desde la app
+ * (genera una contraseña temporal y se la entrega al jugador).
+ */
 export default function RecuperarPage() {
-    const [loading, setLoading] = useState(false);
-    const [success, setSuccess] = useState(false);
-    const { toast } = useToast();
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setLoading(true);
-
-        const formData = new FormData(e.currentTarget);
-        const email = formData.get("email") as string;
-
-        try {
-            const result = await recuperarPasswordAction(email);
-            
-            if (result?.error) {
-                toast({
-                    title: "Error",
-                    description: result.error,
-                    variant: "destructive"
-                });
-            } else {
-                setSuccess(true);
-                toast({
-                    title: "Correo enviado",
-                    description: "Revisa tu bandeja de entrada para reestablecer tu contraseña.",
-                });
-            }
-        } 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        catch (err: any) {
-            console.error("Error en recuperación:", err);
-            toast({
-                title: "Error",
-                description: "No se pudo procesar la solicitud. Intenta de nuevo.",
-                variant: "destructive"
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
-
     return (
         <div className="flex flex-col items-center">
             <Link href="/login" className="self-start mb-6 inline-flex items-center text-sm text-olive/70 hover:text-ink transition-colors">
@@ -61,57 +18,51 @@ export default function RecuperarPage() {
             <Card className="w-full max-w-md bg-paper-soft border-olive/20 backdrop-blur-xl shadow-2xl">
                 <CardHeader className="space-y-1 text-center">
                     <div className="flex justify-center mb-2">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-green-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/20">
-                            <Mail className="w-6 h-6 text-ink" />
+                        <div className="w-12 h-12 rounded-full bg-ochre/15 border border-ochre/30 flex items-center justify-center">
+                            <KeyRound className="w-6 h-6 text-ochre-dark" />
                         </div>
                     </div>
-                    <CardTitle className="text-2xl font-bold text-ink tracking-tight">Recuperar Contraseña</CardTitle>
+                    <CardTitle className="text-2xl font-bold text-ink tracking-tight">¿Olvidaste tu contraseña?</CardTitle>
                     <CardDescription className="text-olive/70">
-                        {success 
-                            ? "Te hemos enviado las instrucciones." 
-                            : "Ingresa tu correo y te enviaremos un enlace para reestablecer tu acceso."}
+                        Tu club te la restablece en segundos — sin correos.
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
-                    {success ? (
-                        <div className="flex flex-col items-center py-6 text-center space-y-4">
-                            <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
-                                <CheckCircle2 className="w-10 h-10 text-green-500" />
-                            </div>
-                            <p className="text-ink-soft">
-                                Si existe una cuenta asociada a ese correo, recibirás un mensaje en breve.
+                <CardContent className="space-y-4">
+                    <div className="flex items-start gap-3 bg-paper border border-olive/20 rounded-xl p-3.5">
+                        <MessageCircle className="w-5 h-5 text-olive flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="text-sm font-bold text-ink">1. Escríbele a tu club</p>
+                            <p className="text-xs text-olive/70 mt-0.5">
+                                Contacta al administrador de tu club por WhatsApp o en persona y pídele restablecer tu contraseña.
                             </p>
-                            <Button asChild variant="outline" className="mt-4 border-olive/20 text-ink-soft">
-                                <Link href="/login">Regresar al Inicio</Link>
-                            </Button>
                         </div>
-                    ) : (
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="email" className="text-ink-soft">Correo Electrónico</Label>
-                                <Input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    placeholder="tu@email.com"
-                                    required
-                                    className="bg-paper border-olive/20 text-ink placeholder:text-olive/50 focus:ring-green-500/20"
-                                />
-                            </div>
+                    </div>
+                    <div className="flex items-start gap-3 bg-paper border border-olive/20 rounded-xl p-3.5">
+                        <UserCheck className="w-5 h-5 text-olive flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="text-sm font-bold text-ink">2. Recibe tu contraseña temporal</p>
+                            <p className="text-xs text-olive/70 mt-0.5">
+                                El club genera una contraseña temporal desde la app y te la entrega directamente.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-start gap-3 bg-paper border border-olive/20 rounded-xl p-3.5">
+                        <LogIn className="w-5 h-5 text-olive flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="text-sm font-bold text-ink">3. Entra y cámbiala</p>
+                            <p className="text-xs text-olive/70 mt-0.5">
+                                Inicia sesión con la temporal y cámbiala en <strong>Mi Perfil → Editar Perfil</strong>.
+                            </p>
+                        </div>
+                    </div>
 
-                            <Button 
-                                type="submit" 
-                                disabled={loading} 
-                                className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-ink border-0 shadow-lg shadow-green-900/20 active:scale-[0.98] transition-all"
-                            >
-                                {loading ? "Enviando enlace..." : "Enviar Enlace de Recuperación"}
-                            </Button>
-                        </form>
-                    )}
+                    <Button asChild className="w-full bg-olive hover:bg-olive-dark text-paper font-bold mt-2">
+                        <Link href="/login">Volver a iniciar sesión</Link>
+                    </Button>
                 </CardContent>
                 <CardFooter className="flex justify-center border-t border-olive/20 pt-6">
-                    <p className="text-xs text-olive/60 italic">
-                        ¿No recibes el correo? Revisa tu carpeta de Spam.
+                    <p className="text-xs text-olive/60 italic text-center">
+                        Solo el administrador de tu club (o de la plataforma) puede restablecer tu contraseña.
                     </p>
                 </CardFooter>
             </Card>

@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Users, Save } from "lucide-react";
 import { updatePlayerRanking } from "./actions";
+import { ResetPasswordJugadorButton } from "@/components/ResetPasswordJugadorButton";
 
 export default async function AdminJugadoresPage() {
     const supabase = createClient();
@@ -29,7 +30,7 @@ export default async function AdminJugadoresPage() {
     const { data: jugadoresData } = await supabase
         .from("users")
         .select(`
-            auth_id, nombre, email, ciudad, elo, club_id
+            id, auth_id, nombre, email, ciudad, elo, club_id
         `)
         .eq("rol", "jugador")
         .order("elo", { ascending: false });
@@ -124,15 +125,22 @@ function PlayerRow({ jugador, clubes }: { jugador: any, clubes: any[] }) {
                 />
             </TableCell>
             <TableCell className="text-right">
-                <Button
-                    type="submit"
-                    form={`form-${jugador.auth_id}`}
-                    size="sm"
-                    variant="outline"
-                    className="h-8 w-8 p-0 bg-paper border-olive/20 hover:bg-olive/20 hover:text-olive hover:border-olive/50 transition-colors"
-                >
-                    <Save className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center justify-end gap-1.5">
+                    <ResetPasswordJugadorButton
+                        jugadorUserId={jugador.id}
+                        jugadorNombre={jugador.nombre}
+                        iconOnly
+                    />
+                    <Button
+                        type="submit"
+                        form={`form-${jugador.auth_id}`}
+                        size="sm"
+                        variant="outline"
+                        className="h-8 w-8 p-0 bg-paper border-olive/20 hover:bg-olive/20 hover:text-olive hover:border-olive/50 transition-colors"
+                    >
+                        <Save className="w-4 h-4" />
+                    </Button>
+                </div>
             </TableCell>
         </TableRow>
     );

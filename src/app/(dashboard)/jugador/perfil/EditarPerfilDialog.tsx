@@ -13,9 +13,10 @@ import {
 } from "@/components/ui/dialog";
 
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Save } from "lucide-react";
+import { Save, Eye, EyeOff } from "lucide-react";
 import { actualizarPerfilAction } from "./actions";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
@@ -28,6 +29,7 @@ export function EditarPerfilDialog({
 }) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [clubs, setClubs] = useState<{id: string, nombre: string, ciudad: string}[]>([]);
     const { toast } = useToast();
     const router = useRouter();
@@ -49,10 +51,23 @@ export function EditarPerfilDialog({
         const formData = new FormData(e.currentTarget);
 
         try {
+            // Cambio de contraseña (opcional): se hace con la sesión del propio
+            // usuario, sin correo ni links de recuperación.
+            const nuevaContrasena = (formData.get("nueva_contrasena") as string || "").trim();
+            if (nuevaContrasena) {
+                if (nuevaContrasena.length < 6) {
+                    throw new Error("La nueva contraseña debe tener al menos 6 caracteres.");
+                }
+                const { error: passError } = await supabase.auth.updateUser({ password: nuevaContrasena });
+                if (passError) throw new Error("No se pudo cambiar la contraseña: " + passError.message);
+            }
+
             await actualizarPerfilAction(formData);
             toast({
                 title: "Perfil actualizado",
-                description: "Tus datos han sido guardados correctamente.",
+                description: nuevaContrasena
+                    ? "Tus datos y tu contraseña fueron actualizados."
+                    : "Tus datos han sido guardados correctamente.",
             });
             setOpen(false);
             router.refresh();
@@ -116,6 +131,28 @@ export function EditarPerfilDialog({
                                     ))}
                                 </SelectContent>
                             </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="nueva_contrasena" className="text-ink-soft">Nueva contraseña (opcional)</Label>
+                            <div className="relative">
+                                <Input
+                                    id="nueva_contrasena"
+                                    name="nueva_contrasena"
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="Déjala vacía para no cambiarla"
+                                    minLength={6}
+                                    className="bg-paper border-olive/20 text-ink pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(v => !v)}
+                                    tabIndex={-1}
+                                    title={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-olive/60 hover:text-olive transition-colors"
+                                >
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>
