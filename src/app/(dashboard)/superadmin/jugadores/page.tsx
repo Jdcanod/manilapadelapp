@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Users, Save } from "lucide-react";
 import { updatePlayerRanking } from "./actions";
 import { ResetPasswordJugadorButton } from "@/components/ResetPasswordJugadorButton";
+import { EditarJugadorButton } from "@/components/EditarJugadorButton";
 
 export default async function AdminJugadoresPage({ searchParams }: { searchParams?: { q?: string } }) {
     const supabase = createClient();
@@ -31,7 +32,7 @@ export default async function AdminJugadoresPage({ searchParams }: { searchParam
     let query = supabase
         .from("users")
         .select(`
-            id, auth_id, nombre, email, ciudad, elo, club_id
+            id, auth_id, nombre, apellido, email, ciudad, elo, club_id
         `)
         .eq("rol", "jugador")
         .not("email", "ilike", "invitado_%")
@@ -156,6 +157,13 @@ function PlayerRow({ jugador, clubes }: { jugador: any, clubes: any[] }) {
             </TableCell>
             <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1.5">
+                    <EditarJugadorButton
+                        jugadorUserId={jugador.id}
+                        nombre={jugador.nombre || ''}
+                        apellido={jugador.apellido || ''}
+                        email={jugador.email || ''}
+                        iconOnly
+                    />
                     <ResetPasswordJugadorButton
                         jugadorUserId={jugador.id}
                         jugadorNombre={jugador.nombre}
