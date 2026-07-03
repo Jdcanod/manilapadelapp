@@ -167,7 +167,7 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
     return (
         <div className="space-y-6">
             {/* SCOREBOARD */}
-            <Card className="bg-gradient-to-br from-purple-900/30 via-neutral-900 to-emerald-900/30 border-purple-500/30 overflow-hidden">
+            <Card className="bg-paper-soft border-olive/20 overflow-hidden">
                 <CardContent className="p-6">
                     <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center">
                         {/* Club Local */}
@@ -186,19 +186,19 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
 
                         {/* Separador VS */}
                         <div className="text-center">
-                            <Swords className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 mx-auto mb-1" />
-                            <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">VS</span>
+                            <Swords className="w-6 h-6 sm:w-8 sm:h-8 text-ochre-dark mx-auto mb-1" />
+                            <span className="text-[10px] font-black text-ochre-dark uppercase tracking-widest">VS</span>
                         </div>
 
                         {/* Club Rival */}
                         <div>
-                            <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-1">Visitante</p>
+                            <p className="text-[10px] font-black text-ochre-dark uppercase tracking-widest mb-1">Visitante</p>
                             <h3 className="text-lg sm:text-2xl font-black text-ink uppercase tracking-tight leading-tight">
                                 {clubRival.nombre}
                             </h3>
                             <p className={cn(
                                 "text-5xl sm:text-6xl font-black mt-2 leading-none",
-                                scoreboard.rival > scoreboard.local ? "text-purple-400" : "text-olive"
+                                scoreboard.rival > scoreboard.local ? "text-ochre-dark" : "text-olive"
                             )}>
                                 {scoreboard.rival}
                             </p>
@@ -211,7 +211,7 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                             <span className="text-olive/70">Total: <span className="text-ink">{scoreboard.total}</span></span>
                             <span className="text-olive">Confirmados: {scoreboard.jugados}</span>
                             {scoreboard.pendientes > 0 && <span className="text-ochre">Por confirmar: {scoreboard.pendientes}</span>}
-                            {scoreboard.sinResultado > 0 && <span className="text-blue-400">Sin score: {scoreboard.sinResultado}</span>}
+                            {scoreboard.sinResultado > 0 && <span className="text-blue-600">Sin score: {scoreboard.sinResultado}</span>}
                         </div>
                         {ganadorActual && (
                             <Badge className="bg-ochre/20 text-ochre-soft border border-ochre/40">
@@ -222,9 +222,9 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
 
                     {/* SERIE GLOBAL (ida + vuelta) — se calcula en vivo desde ambos torneos */}
                     {serie && (
-                        <div className="mt-4 pt-4 border-t border-emerald-500/20">
+                        <div className="mt-4 pt-4 border-t border-olive/20">
                             <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
-                                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                                <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
                                     🏆 Serie Global — Ida + Vuelta
                                 </span>
                                 <span className="text-[10px] text-olive/60 uppercase tracking-widest">
@@ -233,22 +233,22 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                                         : `Ida: ${scoreboard.local}–${scoreboard.rival} · Vuelta: ${serie.otroLocal}–${serie.otroRival}`}
                                 </span>
                             </div>
-                            <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-4 py-3">
+                            <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center bg-paper border border-olive/20 rounded-xl px-4 py-3">
                                 <div className="text-right">
                                     <p className="text-xs font-bold text-ink uppercase truncate">{clubLocal.nombre}</p>
                                     <p className={cn(
                                         "text-3xl font-black leading-none mt-1",
-                                        (scoreboard.local + serie.otroLocal) >= (scoreboard.rival + serie.otroRival) ? "text-emerald-400" : "text-olive/70"
+                                        (scoreboard.local + serie.otroLocal) >= (scoreboard.rival + serie.otroRival) ? "text-emerald-700" : "text-olive/60"
                                     )}>
                                         {scoreboard.local + serie.otroLocal}
                                     </p>
                                 </div>
-                                <span className="text-[10px] font-black text-emerald-400/70 uppercase tracking-widest">Total</span>
+                                <span className="text-[10px] font-black text-olive/60 uppercase tracking-widest">Total</span>
                                 <div>
                                     <p className="text-xs font-bold text-ink uppercase truncate">{clubRival.nombre}</p>
                                     <p className={cn(
                                         "text-3xl font-black leading-none mt-1",
-                                        (scoreboard.rival + serie.otroRival) >= (scoreboard.local + serie.otroLocal) ? "text-emerald-400" : "text-olive/70"
+                                        (scoreboard.rival + serie.otroRival) >= (scoreboard.local + serie.otroLocal) ? "text-emerald-700" : "text-olive/60"
                                     )}>
                                         {scoreboard.rival + serie.otroRival}
                                     </p>
@@ -274,7 +274,7 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h3 className="text-lg font-bold text-ink flex items-center gap-2">
-                        <Swords className="w-5 h-5 text-purple-400" />
+                        <Swords className="w-5 h-5 text-purple-700" />
                         Partidos
                     </h3>
                     <p className="text-xs text-olive/70 mt-0.5">
@@ -294,9 +294,9 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
             {grupos.length === 0 ? (
                 <Card className="bg-paper-soft border-olive/20 border-dashed">
                     <CardContent className="py-16 text-center">
-                        <Swords className="w-14 h-14 mx-auto mb-4 text-neutral-800" />
+                        <Swords className="w-14 h-14 mx-auto mb-4 text-olive/30" />
                         <p className="text-ink font-semibold">Aún no hay partidos creados</p>
-                        <p className="text-olive/50 text-sm mt-1">Usa <span className="text-purple-400 font-bold">+ Añadir Partido</span> para empezar.</p>
+                        <p className="text-olive/50 text-sm mt-1">Usa <span className="text-purple-700 font-bold">+ Añadir Partido</span> para empezar.</p>
                     </CardContent>
                 </Card>
             ) : (
@@ -323,10 +323,10 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
                                         <span className="text-olive">{localPtsCat}</span>
                                         <span className="text-olive/40">·</span>
-                                        <span className="text-purple-400">{rivalPtsCat}</span>
+                                        <span className="text-purple-700">{rivalPtsCat}</span>
                                     </div>
                                 </summary>
-                                <div className="divide-y divide-neutral-800">
+                                <div className="divide-y divide-olive/10">
                                         {ps.map((p, idx) => {
                                             const winner = getWinner(p.resultado);
                                             const p1Display = resolvePairName(p.pareja1?.id || p.pareja1_id, p.pareja1?.nombre_pareja, parejaPlayers) || 'TBD';
@@ -353,7 +353,7 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                                                                 p.puntos_partido === 3
                                                                     ? "bg-ochre/15 border-ochre/40 text-ochre-soft"
                                                                     : p.puntos_partido === 2
-                                                                        ? "bg-purple-500/15 border-purple-500/40 text-purple-300"
+                                                                        ? "bg-purple-500/15 border-purple-500/40 text-purple-700"
                                                                         : "bg-paper-dark border-olive/30 text-ink"
                                                             )}>
                                                                 {p.puntos_partido || 0} pt{(p.puntos_partido || 0) !== 1 ? 's' : ''}
@@ -369,7 +369,7 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
                                                         <div className="flex items-baseline gap-2 flex-wrap text-sm font-bold">
                                                             <span className={cn(winner === 1 ? "text-olive" : "text-ink")}>{p1Display}</span>
                                                             <span className="text-[10px] text-olive/50">vs</span>
-                                                            <span className={cn(winner === 2 ? "text-purple-400" : "text-ink")}>{p2Display}</span>
+                                                            <span className={cn(winner === 2 ? "text-purple-700" : "text-ink")}>{p2Display}</span>
                                                         </div>
 
                                                         {/* Resultado */}
@@ -522,12 +522,12 @@ function ParejasInscritasSection({
                     color === 'emerald' ? "bg-olive/5" : "bg-purple-500/5"
                 )}>
                     <div className="flex items-center gap-2">
-                        <Users className={cn("w-4 h-4", color === 'emerald' ? "text-olive" : "text-purple-400")} />
+                        <Users className={cn("w-4 h-4", color === 'emerald' ? "text-olive" : "text-purple-700")} />
                         <span className="text-xs font-black uppercase tracking-widest text-ink">{titulo}</span>
                     </div>
                     <Badge variant="outline" className={cn(
                         "text-[10px] font-black",
-                        color === 'emerald' ? "border-olive/40 text-olive/80" : "border-purple-500/40 text-purple-300"
+                        color === 'emerald' ? "border-olive/40 text-olive/80" : "border-purple-500/40 text-purple-700"
                     )}>
                         {list.length}
                     </Badge>
@@ -537,7 +537,7 @@ function ParejasInscritasSection({
                         Aún no hay parejas inscritas para este club.
                     </div>
                 ) : (
-                    <div className="divide-y divide-neutral-800/50">
+                    <div className="divide-y divide-olive/10">
                         {list.map(ins => {
                             const j1 = ins.pareja ? jugadorMap.get(ins.pareja.jugador1_id) : null;
                             const j2 = ins.pareja ? jugadorMap.get(ins.pareja.jugador2_id) : null;
@@ -600,7 +600,7 @@ function ParejasInscritasSection({
                         Parejas Inscritas
                     </h3>
                     <p className="text-xs text-olive/70 mt-0.5">
-                        Inscribe las parejas asignándoles club y categoría. Luego en <strong className="text-purple-400">Añadir Partido</strong> aparecerán para emparejarlas.
+                        Inscribe las parejas asignándoles club y categoría. Luego en <strong className="text-purple-700">Añadir Partido</strong> aparecerán para emparejarlas.
                     </p>
                 </div>
                 <InscribirParejaCopaDialog
@@ -621,7 +621,7 @@ function ParejasInscritasSection({
                             otroColor === 'emerald' ? "bg-olive/5" : "bg-purple-500/5"
                         )}>
                             <div className="flex items-center gap-2">
-                                <Users className={cn("w-4 h-4", otroColor === 'emerald' ? "text-olive" : "text-purple-400")} />
+                                <Users className={cn("w-4 h-4", otroColor === 'emerald' ? "text-olive" : "text-purple-700")} />
                                 <span className="text-xs font-black uppercase tracking-widest text-ink">{otroClub.nombre}</span>
                             </div>
                             <Badge variant="outline" className="text-[10px] font-black border-olive/30 text-olive/70">
