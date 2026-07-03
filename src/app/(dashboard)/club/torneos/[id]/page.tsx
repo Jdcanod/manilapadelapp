@@ -560,8 +560,14 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 .filter((p: any) => {
                                     if (!p.fecha) return false;
-                                    // Excluir placeholders Copa Davis estilo "Pendiente · 4ta #1"
                                     const lugar = (p.lugar || '').toLowerCase();
+                                    // Un partido está programado si su lugar tiene "Cancha N"
+                                    // (los placeholders Copa Davis conservan el sufijo
+                                    // "Pendiente · cat #N" incluso ya programados, ej.
+                                    // "Cancha 1 | Pendiente · 4ta #1" — deben INCLUIRSE).
+                                    const programado = /cancha\s*\d+/i.test(lugar);
+                                    if (programado) return true;
+                                    // No programado: excluir placeholders "Pendiente · cat #N"
                                     if (lugar.includes('pendiente ·')) return false;
                                     // Excluir partidos cuya fecha es exactamente la fecha_inicio del
                                     // torneo (sentinel para placeholders no programados).
