@@ -242,12 +242,12 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                         <div className="flex justify-center animate-in fade-in zoom-in duration-500">
                             <div className="bg-blue-950 border border-blue-900/50 text-ink px-10 py-6 rounded-3xl shadow-2xl flex items-center gap-10">
                                 <div className="text-center w-32">
-                                    <p className="text-[10px] text-blue-300 font-black uppercase tracking-widest mb-2 line-clamp-2 leading-tight">{torneo.club?.nombre || 'Local'}</p>
+                                    <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest mb-2 line-clamp-2 leading-tight">{torneo.club?.nombre || 'Local'}</p>
                                     <p className="text-5xl font-black">{scoreboard.local}</p>
                                 </div>
                                 <div className="text-3xl font-black text-blue-500/50">-</div>
                                 <div className="text-center w-32">
-                                    <p className="text-[10px] text-blue-300 font-black uppercase tracking-widest mb-2 line-clamp-2 leading-tight">{torneo.club_rival?.nombre || 'Rival'}</p>
+                                    <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest mb-2 line-clamp-2 leading-tight">{torneo.club_rival?.nombre || 'Rival'}</p>
                                     <p className="text-5xl font-black">{scoreboard.rival}</p>
                                 </div>
                             </div>

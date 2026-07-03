@@ -100,7 +100,7 @@ export function DetallePartidoDialog({ partido, trigger, userId: propUserId }: P
             <DialogContent className="sm:max-w-[500px] bg-paper-soft border-olive/20 text-ink p-0 overflow-hidden">
                 {/* Header Background */}
                 <div className="relative h-32 bg-paper border-b border-olive/20 flex items-end p-6">
-                    <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 to-transparent z-0" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-paper to-transparent z-0" />
                     <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1628126284698-b80c10faeeaa?q=80&w=600&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay z-0" />
                     <div className="relative z-10 w-full flex justify-between items-end">
                         <div>

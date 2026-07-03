@@ -27,7 +27,7 @@ export default async function PerfilJugadorPage() {
 
     return (
         <div className="max-w-2xl mx-auto space-y-6">
-            <div className="flex items-center gap-3 bg-gradient-to-r from-neutral-900 to-neutral-950 border border-olive/20 p-4 rounded-2xl shadow-xl">
+            <div className="flex items-center gap-3 bg-gradient-to-r from-paper to-paper-soft border border-olive/20 p-4 rounded-2xl shadow-xl">
                 <div className="bg-paper-dark p-3 rounded-xl border border-olive/30">
                     <User className="w-6 h-6 text-ink" />
                 </div>
@@ -51,7 +51,7 @@ export default async function PerfilJugadorPage() {
                 </CardHeader>
 
                 <CardContent className="space-y-6">
-                    <div className="bg-paper border border-olive/20 rounded-xl p-4 divide-y divide-neutral-800">
+                    <div className="bg-paper border border-olive/20 rounded-xl p-4 divide-y divide-olive/10">
 
                         <div className="flex items-center justify-between py-3">
                             <div className="flex items-center gap-3">

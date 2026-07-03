@@ -185,17 +185,17 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 {trigger !== undefined ? trigger : (
-                    <Button className="bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
+                    <Button className="bg-emerald-500 text-ink hover:bg-emerald-600 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
                         Organizar Partido
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] bg-neutral-900 border-neutral-800 text-neutral-100">
+            <DialogContent className="sm:max-w-[425px] bg-paper-soft border-olive/20 text-ink">
                 <DialogHeader>
                     <DialogTitle className="text-xl">
                         {step === 1 ? "Armar Nuevo Partido" : "Seleccionar Cancha"}
                     </DialogTitle>
-                    <DialogDescription className="text-neutral-400">
+                    <DialogDescription className="text-olive/70">
                         {step === 1 
                             ? "Define los detalles de tu próximo encuentro. ¡Otros podrán unirse!" 
                             : `Disponibilidad en ${selectedClub} para el ${selectedDate} a las ${selectedTime}`}
@@ -204,7 +204,7 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
                 <form onSubmit={handleSubmit} className="space-y-4 pt-4">
                     <div className={step === 1 ? "grid grid-cols-2 gap-4" : "hidden"}>
                         <div className="space-y-2 col-span-2">
-                            <Label className="text-neutral-300 flex items-center gap-2"><CalendarIcon className="w-4 h-4" /> Fecha y Hora</Label>
+                            <Label className="text-ink-soft flex items-center gap-2"><CalendarIcon className="w-4 h-4" /> Fecha y Hora</Label>
                             <div className="flex gap-2">
                                 <Input
                                     name="fecha_dia"
@@ -212,13 +212,13 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
                                     required
                                     value={selectedDate}
                                     onChange={(e) => setSelectedDate(e.target.value)}
-                                    className="bg-neutral-950 border-neutral-800 [color-scheme:dark] flex-1"
+                                    className="bg-paper border-olive/20 [color-scheme:dark] flex-1"
                                 />
                                 <Select name="fecha_hora" value={selectedTime} onValueChange={setSelectedTime}>
-                                    <SelectTrigger className="bg-neutral-950 border-neutral-800 w-[120px]">
+                                    <SelectTrigger className="bg-paper border-olive/20 w-[120px]">
                                         <SelectValue placeholder="Hora" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-neutral-900 border-neutral-800 max-h-[250px]">
+                                    <SelectContent className="bg-paper-soft border-olive/20 max-h-[250px]">
                                         {Array.from({ length: 24 }).flatMap((_, i) => {
                                             const h = i.toString().padStart(2, '0');
                                             return [
@@ -232,15 +232,15 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
                         </div>
 
                         <div className="space-y-2 col-span-2">
-                            <Label className="text-neutral-300 flex items-center gap-2"><MapPin className="w-4 h-4" /> Club o Lugar</Label>
+                            <Label className="text-ink-soft flex items-center gap-2"><MapPin className="w-4 h-4" /> Club o Lugar</Label>
                             <Select name="lugar" value={selectedClub} onValueChange={(val) => {
                                 setSelectedClub(val);
                                 setIsCustomClub(val === "Otro");
                             }}>
-                                <SelectTrigger className="bg-neutral-950 border-neutral-800">
+                                <SelectTrigger className="bg-paper border-olive/20">
                                     <SelectValue placeholder="Selecciona un club..." />
                                 </SelectTrigger>
-                                <SelectContent className="bg-neutral-900 border-neutral-800">
+                                <SelectContent className="bg-paper-soft border-olive/20">
                                     {defaultLugar && !clubes.find(c => c.nombre === defaultLugar) && defaultLugar !== "Otro" && (
                                         <SelectItem value={defaultLugar}>{defaultLugar}</SelectItem>
                                     )}
@@ -256,18 +256,18 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
                                     name="lugar_custom"
                                     placeholder="Escribe el nombre del club o lugar"
                                     required={isCustomClub}
-                                    className="bg-neutral-950 border-neutral-800 mt-2"
+                                    className="bg-paper border-olive/20 mt-2"
                                 />
                             )}
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-neutral-300">Nivel Buscado</Label>
+                            <Label className="text-ink-soft">Nivel Buscado</Label>
                             <Select name="nivel" defaultValue="intermedio">
-                                <SelectTrigger className="bg-neutral-950 border-neutral-800">
+                                <SelectTrigger className="bg-paper border-olive/20">
                                     <SelectValue placeholder="Nivel" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-neutral-900 border-neutral-800">
+                                <SelectContent className="bg-paper-soft border-olive/20">
                                     <SelectItem value="principiante">Principiante</SelectItem>
                                     <SelectItem value="intermedio">Intermedio (5ta - 6ta)</SelectItem>
                                     <SelectItem value="avanzado">Avanzado (3ra - 4ta)</SelectItem>
@@ -277,12 +277,12 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-neutral-300">Categoría</Label>
+                            <Label className="text-ink-soft">Categoría</Label>
                             <Select name="sexo" defaultValue="mixto">
-                                <SelectTrigger className="bg-neutral-950 border-neutral-800">
+                                <SelectTrigger className="bg-paper border-olive/20">
                                     <SelectValue placeholder="Categoría" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-neutral-900 border-neutral-800">
+                                <SelectContent className="bg-paper-soft border-olive/20">
                                     <SelectItem value="masculino">Masculino</SelectItem>
                                     <SelectItem value="femenino">Femenino</SelectItem>
                                     <SelectItem value="mixto">Mixto</SelectItem>
@@ -291,12 +291,12 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-neutral-300 flex items-center gap-2"><Users className="w-4 h-4" /> ¿Qué buscas?</Label>
+                            <Label className="text-ink-soft flex items-center gap-2"><Users className="w-4 h-4" /> ¿Qué buscas?</Label>
                             <Select name="faltantes" defaultValue="3">
-                                <SelectTrigger className="bg-neutral-950 border-neutral-800">
+                                <SelectTrigger className="bg-paper border-olive/20">
                                     <SelectValue placeholder="Jugadores faltantes" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-neutral-900 border-neutral-800">
+                                <SelectContent className="bg-paper-soft border-olive/20">
                                     <SelectItem value="3">Me faltan 3 jugadores</SelectItem>
                                     <SelectItem value="2">Nos faltan 2 (Tengo Pareja)</SelectItem>
                                     <SelectItem value="1">Me falta 1 jugador</SelectItem>
@@ -305,13 +305,13 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-neutral-300 flex items-center gap-2"><Coins className="w-4 h-4" /> Costo x c/u ($)</Label>
+                            <Label className="text-ink-soft flex items-center gap-2"><Coins className="w-4 h-4" /> Costo x c/u ($)</Label>
                             <Input
                                 name="precio"
                                 type="number"
                                 min="0"
                                 placeholder="Ej. 25000"
-                                className="bg-neutral-950 border-neutral-800"
+                                className="bg-paper border-olive/20"
                             />
                         </div>
                     </div>
@@ -331,29 +331,29 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
                                             onClick={() => setSelectedCancha(idCancha)}
                                             className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
                                                 isBusy 
-                                                    ? "bg-neutral-950 border-neutral-900 opacity-40 cursor-not-allowed" 
+                                                    ? "bg-paper border-olive/20 opacity-40 cursor-not-allowed" 
                                                     : isSelected
                                                         ? "bg-emerald-500/20 border-emerald-500 ring-2 ring-emerald-500/20"
-                                                        : "bg-neutral-950 border-neutral-800 hover:border-neutral-700 active:scale-95"
+                                                        : "bg-paper border-olive/20 hover:border-olive/30 active:scale-95"
                                             }`}
                                         >
-                                            <span className={`text-xs font-bold uppercase tracking-wider ${isSelected ? "text-emerald-400" : isBusy ? "text-neutral-600" : "text-neutral-400"}`}>
+                                            <span className={`text-xs font-bold uppercase tracking-wider ${isSelected ? "text-emerald-700" : isBusy ? "text-olive/50" : "text-olive/70"}`}>
                                                 Cancha {canchaNum}
                                             </span>
-                                            <span className={`text-lg font-black ${isSelected ? "text-white" : isBusy ? "text-red-900" : "text-neutral-200"}`}>
+                                            <span className={`text-lg font-black ${isSelected ? "text-ink" : isBusy ? "text-red-900" : "text-ink"}`}>
                                                 {isBusy ? "Ocupada" : "Disponible"}
                                             </span>
                                         </button>
                                     );
                                 }) : (
-                                    <div className="col-span-2 text-center py-8 text-neutral-500 italic border border-dashed border-neutral-800 rounded-xl">
+                                    <div className="col-span-2 text-center py-8 text-olive/60 italic border border-dashed border-olive/20 rounded-xl">
                                         No hay información de canchas para este club.
                                     </div>
                                 )}
                             </div>
                             
                             {!isCustomClub && (
-                                <p className="text-[10px] text-neutral-500 text-center">
+                                <p className="text-[10px] text-olive/60 text-center">
                                     Nota: Si la cancha está ocupada, significa que ya hay un partido o reserva en ese horario.
                                 </p>
                             )}
@@ -361,11 +361,11 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
 
                     <div className="pt-4 flex justify-between gap-2">
                         {step === 2 ? (
-                            <Button type="button" variant="ghost" className="text-neutral-400" onClick={() => setStep(1)}>
+                            <Button type="button" variant="ghost" className="text-olive/70" onClick={() => setStep(1)}>
                                 Volver
                             </Button>
                         ) : (
-                            <Button type="button" variant="ghost" className="text-neutral-400" onClick={() => setOpen(false)}>
+                            <Button type="button" variant="ghost" className="text-olive/70" onClick={() => setOpen(false)}>
                                 Cancelar
                             </Button>
                         )}
@@ -373,7 +373,7 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
                         <Button 
                             type="submit" 
                             disabled={loading || (step === 2 && !selectedCancha && !isCustomClub)} 
-                            className="bg-emerald-500 hover:bg-emerald-600 text-white min-w-[120px]"
+                            className="bg-emerald-500 hover:bg-emerald-600 text-ink min-w-[120px]"
                         >
                             {loading 
                                 ? (step === 1 ? "Verificando..." : "Publicando...") 

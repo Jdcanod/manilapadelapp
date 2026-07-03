@@ -297,7 +297,7 @@ export default async function JugadorDashboard() {
 
                     <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                         <div className="bg-paper/50 p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
-                            <div className="text-xs font-bold text-olive/70 uppercase tracking-widest mb-2 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-blue-400" /> Puntos ELO</div>
+                            <div className="text-xs font-bold text-olive/70 uppercase tracking-widest mb-2 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-blue-600" /> Puntos ELO</div>
                             <div className="text-3xl font-black text-ink">{userData?.elo?.toLocaleString() || '1,000'}</div>
                         </div>
                         <div className="bg-paper/50 p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
@@ -309,7 +309,7 @@ export default async function JugadorDashboard() {
                             <div className="text-lg font-black text-olive mt-1 line-clamp-1 truncate">{parejaActual}</div>
                         </div>
                         <div className="bg-paper/50 p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
-                            <div className="text-xs font-bold text-olive/70 uppercase tracking-widest mb-2 flex items-center gap-2"><Trophy className="w-4 h-4 text-purple-400" /> Torneos</div>
+                            <div className="text-xs font-bold text-olive/70 uppercase tracking-widest mb-2 flex items-center gap-2"><Trophy className="w-4 h-4 text-purple-700" /> Torneos</div>
                             <div className="text-3xl font-black text-ink">{numTorneos} <span className="text-sm text-olive/70 font-normal uppercase">PJ</span></div>
                         </div>
                     </div>
@@ -329,7 +329,7 @@ export default async function JugadorDashboard() {
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="bg-gradient-to-r from-neutral-950 to-neutral-900 p-5 rounded-2xl border border-olive/20 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+                                <div className="bg-gradient-to-r from-paper to-paper-soft p-5 rounded-2xl border border-olive/20 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
                                     <div className="absolute -right-4 -top-8 w-24 h-24 bg-olive/5 blur-2xl rounded-full pointer-events-none" />
 
                                     <div className="flex items-center gap-4 flex-1">
@@ -475,7 +475,7 @@ export default async function JugadorDashboard() {
                                     {followedClubIds.length > 0 ? "Noticias de tus clubes" : "Lo último en la comunidad"}
                                 </CardDescription>
                             </div>
-                            <Link href="/novedades" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">Ver Muro</Link>
+                            <Link href="/novedades" className="text-xs text-blue-600 hover:text-blue-600 transition-colors">Ver Muro</Link>
                         </CardHeader>
                         <CardContent className="px-1">
                             <ScrollArea className="h-[400px] px-5">
@@ -488,13 +488,13 @@ export default async function JugadorDashboard() {
                                             return (
                                                 <div key={news.id} className={`relative pl-6 ${!isLast ? 'pb-2' : ''}`}>
                                                     {!isLast && <div className="absolute left-[3px] top-6 bottom-0 w-[2px] bg-paper-dark rounded-full" />}
-                                                    <div className="absolute left-[-1px] top-1.5 w-2.5 h-2.5 rounded-full bg-blue-500 ring-4 ring-neutral-900" />
+                                                    <div className="absolute left-[-1px] top-1.5 w-2.5 h-2.5 rounded-full bg-blue-500 ring-4 ring-olive/20" />
                                                     <div className="flex flex-col">
                                                         <span className="text-xs text-olive/70 mb-1">
                                                             {new Date(news.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
                                                         </span>
                                                         <h4 className="text-sm text-ink font-bold leading-tight line-clamp-2 mb-1">
-                                                            <span className="text-blue-400 capitalize mr-1">[{news.tipo}]</span>
+                                                            <span className="text-blue-600 capitalize mr-1">[{news.tipo}]</span>
                                                             {news.titulo}
                                                         </h4>
                                                         <p className="text-xs text-olive line-clamp-2">

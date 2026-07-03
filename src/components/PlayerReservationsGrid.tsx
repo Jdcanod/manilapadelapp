@@ -54,14 +54,14 @@ export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, cou
                 defaultCourt={selectedCourt}
                 trigger={<div className="hidden"></div>}
             />
-            <ScrollArea className="w-full whitespace-nowrap rounded-b-xl border border-neutral-800 bg-neutral-900/50">
+            <ScrollArea className="w-full whitespace-nowrap rounded-b-xl border border-olive/20 bg-paper-soft">
                 <div className="flex w-max min-w-full p-6 pb-8">
                     {/* Timeline Column */}
-                    <div className="flex flex-col w-[80px] shrink-0 border-r border-neutral-800 pr-4 mr-4 mt-[40px]">
+                    <div className="flex flex-col w-[80px] shrink-0 border-r border-olive/20 pr-4 mr-4 mt-[40px]">
                         {timeSlots.map((time, idx) => {
                             const isHour = time.endsWith(":00");
                             return (
-                                <div key={idx} className={`h-[50px] mb-2 flex items-start justify-end pr-2 text-[10px] sm:text-xs transform -translate-y-2 ${isHour ? "font-bold text-neutral-300" : "font-medium text-neutral-600"}`}>
+                                <div key={idx} className={`h-[50px] mb-2 flex items-start justify-end pr-2 text-[10px] sm:text-xs transform -translate-y-2 ${isHour ? "font-bold text-ink-soft" : "font-medium text-olive/50"}`}>
                                     {time}
                                 </div>
                             );
@@ -72,10 +72,10 @@ export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, cou
                     <div className="flex flex-1 gap-4">
                         {courts.map((court, cIdx) => (
                             <div key={cIdx} className="w-[180px] sm:w-[220px] flex flex-col">
-                                <div className="h-[40px] bg-neutral-950/80 border border-neutral-800 rounded-lg flex items-center justify-center font-bold text-sm text-neutral-300 mb-4 sticky top-0 z-10">
+                                <div className="h-[40px] bg-paper border border-olive/20 rounded-lg flex items-center justify-center font-bold text-sm text-ink-soft mb-4 sticky top-0 z-10">
                                     {court}
                                 </div>
-                                <div className="flex flex-col relative w-full border-l border-neutral-800/30 pl-2">
+                                <div className="flex flex-col relative w-full border-l border-olive/20 pl-2">
                                     {timeSlots.map((time, tIdx) => {
                                         const reservation = reservations.find(r => r.courtIndex === cIdx && r.timeIndex === tIdx);
 
@@ -88,21 +88,21 @@ export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, cou
                                         if (!reservation) {
                                             if (isPast) {
                                                 return (
-                                                    <div key={tIdx} className={`h-[50px] relative w-full mb-2 ${isHour ? "border-t border-dashed border-neutral-700/50 pt-[1px]" : ""}`}>
-                                                        <div className="absolute inset-0 bg-neutral-900 border border-neutral-800/50 rounded-lg flex items-center justify-center opacity-50">
-                                                            <span className="text-xs font-medium text-neutral-600">No Disponible</span>
+                                                    <div key={tIdx} className={`h-[50px] relative w-full mb-2 ${isHour ? "border-t border-dashed border-olive/30 pt-[1px]" : ""}`}>
+                                                        <div className="absolute inset-0 bg-paper-soft border border-olive/20 rounded-lg flex items-center justify-center opacity-50">
+                                                            <span className="text-xs font-medium text-olive/50">No Disponible</span>
                                                         </div>
                                                     </div>
                                                 );
                                             }
 
                                             return (
-                                                <div key={tIdx} className={`h-[50px] relative w-full mb-2 group ${isHour ? "border-t border-dashed border-neutral-700/50 pt-[1px]" : ""}`}>
+                                                <div key={tIdx} className={`h-[50px] relative w-full mb-2 group ${isHour ? "border-t border-dashed border-olive/30 pt-[1px]" : ""}`}>
                                                     <div
                                                         className="absolute inset-0 bg-emerald-500/5 border border-emerald-500/20 rounded-lg flex items-center justify-center cursor-pointer hover:bg-emerald-500/10 transition-colors"
                                                         onClick={() => handleSlotClick(court, time)}
                                                     >
-                                                        <span className="text-xs font-medium text-emerald-500 group-hover:scale-105 transition-transform">Crear Partido</span>
+                                                        <span className="text-xs font-medium text-emerald-700 group-hover:scale-105 transition-transform">Crear Partido</span>
                                                     </div>
                                                 </div>
                                             );
@@ -115,12 +115,12 @@ export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, cou
 
                                         const title = isMiPartido ? "Mi Partido" : (isAbierto ? "Partido Abierto" : "Ocupado");
                                         const badgeText = isMiPartido ? "MI PARTIDO" : (isAbierto ? "UNIRSE" : "RESERVADO");
-                                        const badgeColor = isMiPartido ? "text-blue-500 bg-blue-500/20" : (isAbierto ? 'text-amber-500 bg-amber-500/20' : 'text-neutral-500 bg-neutral-800');
+                                        const badgeColor = isMiPartido ? "text-blue-500 bg-blue-500/20" : (isAbierto ? 'text-amber-600 bg-amber-500/20' : 'text-olive/60 bg-paper-dark');
 
                                         const content = (
-                                            <div className={`absolute inset-0 rounded-lg p-3 z-10 flex flex-col justify-between shadow-md ${isMiPartido ? 'bg-blue-500/10 border border-blue-500/50' : (isAbierto ? 'bg-amber-500/10 border border-amber-500/50' : 'bg-neutral-900 border border-neutral-800 opacity-60')} ${isInteractive ? "hover:scale-[1.02] cursor-pointer transition-transform" : ""}`}>
+                                            <div className={`absolute inset-0 rounded-lg p-3 z-10 flex flex-col justify-between shadow-md ${isMiPartido ? 'bg-blue-500/10 border border-blue-500/50' : (isAbierto ? 'bg-amber-500/10 border border-amber-500/50' : 'bg-paper-soft border border-olive/20 opacity-60')} ${isInteractive ? "hover:scale-[1.02] cursor-pointer transition-transform" : ""}`}>
                                                 <div className="flex justify-between items-start">
-                                                    <div className="font-bold text-sm text-white line-clamp-1">
+                                                    <div className="font-bold text-sm text-ink line-clamp-1">
                                                         {title}
                                                     </div>
                                                 </div>
@@ -134,14 +134,14 @@ export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, cou
 
                                         if (isInteractive) {
                                             return (
-                                                <div key={tIdx} className={`h-[50px] relative w-full mb-2 ${isHour ? "border-t border-dashed border-neutral-700/50 pt-[1px]" : ""}`}>
+                                                <div key={tIdx} className={`h-[50px] relative w-full mb-2 ${isHour ? "border-t border-dashed border-olive/30 pt-[1px]" : ""}`}>
                                                     <DetallePartidoDialog partido={reservation.partido} trigger={content} userId={userId} />
                                                 </div>
                                             );
                                         }
 
                                         return (
-                                            <div key={tIdx} className={`h-[50px] relative w-full mb-2 ${isHour ? "border-t border-dashed border-neutral-700/50 pt-[1px]" : ""}`}>
+                                            <div key={tIdx} className={`h-[50px] relative w-full mb-2 ${isHour ? "border-t border-dashed border-olive/30 pt-[1px]" : ""}`}>
                                                 {content}
                                             </div>
                                         );
@@ -151,7 +151,7 @@ export function PlayerReservationsGrid({ userId, currentDateStr, clubNombre, cou
                         ))}
                     </div>
                 </div>
-                <ScrollBar orientation="horizontal" className="bg-neutral-900" />
+                <ScrollBar orientation="horizontal" className="bg-paper-soft" />
             </ScrollArea>
         </>
     );

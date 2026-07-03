@@ -50,7 +50,7 @@ export function AdminEditBracketModal({ matchId, currentPareja1Id, currentPareja
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <button className="absolute -top-2 -right-2 bg-paper-dark hover:bg-neutral-700 text-olive hover:text-ink p-1.5 rounded-full shadow-lg border border-olive/30 z-50 transition-colors">
+                <button className="absolute -top-2 -right-2 bg-paper-dark hover:bg-paper-dark text-olive hover:text-ink p-1.5 rounded-full shadow-lg border border-olive/30 z-50 transition-colors">
                     <Settings className="w-3.5 h-3.5" />
                 </button>
             </DialogTrigger>

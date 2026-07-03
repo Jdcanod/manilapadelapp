@@ -476,7 +476,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
 
             {gruposCategoria.length === 0 ? (
                 <div className="text-center py-12 bg-paper/30 border border-olive/20 border-dashed rounded-xl">
-                    <Users className="w-12 h-12 text-neutral-800 mx-auto mb-4" />
+                    <Users className="w-12 h-12 text-olive/30 mx-auto mb-4" />
                     <p className="text-olive/70">No se han generado grupos para esta categoría aún.</p>
                 </div>
             ) : (

@@ -189,7 +189,7 @@ export default async function RankingPage({ searchParams }: { searchParams: { ci
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 bg-gradient-to-r from-neutral-900 to-neutral-900/60 p-6 rounded-3xl border border-olive/20 shadow-xl overflow-hidden relative">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 bg-gradient-to-r from-paper to-paper-soft p-6 rounded-3xl border border-olive/20 shadow-xl overflow-hidden relative">
                 <div className="absolute right-0 top-0 w-64 h-64 bg-ochre/10 blur-3xl rounded-full pointer-events-none" />
 
                 <div className="z-10">

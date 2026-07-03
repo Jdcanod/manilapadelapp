@@ -292,7 +292,7 @@ export default async function PartidosPage() {
                                     <CardContent className="p-5">
                                         <div className="flex justify-between items-start mb-4 gap-4">
                                             <div className="flex-1">
-                                                <Badge variant="outline" className="text-blue-400 border-blue-400/30 bg-blue-400/10 mb-2">
+                                                <Badge variant="outline" className="text-blue-600 border-blue-400/30 bg-blue-400/10 mb-2">
                                                     {match.tipo_partido} - {match.sexo}
                                                 </Badge>
                                                 <Badge variant="outline" className="ml-2 text-olive border-olive/30 bg-olive-light/10 mb-2">
@@ -413,7 +413,7 @@ export default async function PartidosPage() {
                             const isJugado = match.estado_original === 'jugado';
                             const isCerrado = match.status === 'Cerrado';
                             const bgAccent = isJugado ? 'bg-olive' : isCerrado ? 'bg-neutral-600' : 'bg-blue-500';
-                            const badgeBg = isJugado ? 'bg-olive/20 text-olive hover:bg-olive/30' : isCerrado ? 'bg-neutral-500/20 text-olive' : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30';
+                            const badgeBg = isJugado ? 'bg-olive/20 text-olive hover:bg-olive/30' : isCerrado ? 'bg-neutral-500/20 text-olive' : 'bg-blue-500/20 text-blue-600 hover:bg-blue-500/30';
                             
                             return (
                                 <Card key={match.id} className={`bg-paper-soft/80 border-olive/20 relative overflow-hidden group hover:bg-paper-soft transition-colors ${isJugado ? 'border-emerald-900/50' : ''}`}>
@@ -454,7 +454,7 @@ export default async function PartidosPage() {
                                                 }}
                                                 userId={user.id}
                                                 trigger={
-                                                    <Button variant="secondary" className="w-full bg-paper-dark hover:bg-neutral-700 text-ink">Detalles</Button>
+                                                    <Button variant="secondary" className="w-full bg-paper-dark hover:bg-paper-dark text-ink">Detalles</Button>
                                                 }
                                             />
                                             {match.isPast && match.creador_id === user.id && !match.isTournamentMatch && (

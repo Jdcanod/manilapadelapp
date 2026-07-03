@@ -58,9 +58,9 @@ export default async function HistorialPartidosPage() {
     if (ids.length === 0) {
         return (
             <div className="p-8 text-center space-y-4">
-                <HistoryIcon className="w-16 h-16 text-neutral-800 mx-auto" />
-                <h2 className="text-xl font-bold text-white">Aún no tienes historial</h2>
-                <p className="text-neutral-500">Tus partidos jugados aparecerán aquí.</p>
+                <HistoryIcon className="w-16 h-16 text-olive/30 mx-auto" />
+                <h2 className="text-xl font-bold text-ink">Aún no tienes historial</h2>
+                <p className="text-olive/60">Tus partidos jugados aparecerán aquí.</p>
                 <Link href="/jugador">
                     <Button variant="outline">Volver al Panel</Button>
                 </Link>
@@ -98,49 +98,49 @@ export default async function HistorialPartidosPage() {
     return (
         <div className="space-y-6 pb-20">
             <div className="flex items-center gap-4">
-                <Link href="/jugador" className="p-2 bg-neutral-900 border border-neutral-800 rounded-xl text-white">
+                <Link href="/jugador" className="p-2 bg-paper-soft border border-olive/20 rounded-xl text-ink">
                     <ChevronLeft className="w-5 h-5" />
                 </Link>
-                <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                    <HistoryIcon className="w-6 h-6 text-emerald-500" />
+                <h1 className="text-2xl font-bold text-ink flex items-center gap-2">
+                    <HistoryIcon className="w-6 h-6 text-emerald-700" />
                     Historial de Partidos
                 </h1>
             </div>
 
             <div className="grid gap-4">
                 {!partidos || partidos.length === 0 ? (
-                    <p className="text-neutral-500 text-center py-20">No has completado partidos todavía.</p>
+                    <p className="text-olive/60 text-center py-20">No has completado partidos todavía.</p>
                 ) : (
                     partidos.map((partido) => {
                         const isTorneo = partido.torneo_id || partido.tipo_partido === 'torneo' || partido.tipo_partido_oficial === 'torneo';
                         const torneoName = partido.torneo_id ? torneoNamesMap.get(partido.torneo_id) : null;
                         
                         return (
-                        <Card key={partido.id} className="bg-neutral-900 border-neutral-800 hover:border-emerald-900/50 transition-colors">
+                        <Card key={partido.id} className="bg-paper-soft border-olive/20 hover:border-emerald-900/50 transition-colors">
                             <CardContent className="p-5">
                                 <div className="flex flex-col sm:flex-row justify-between gap-4">
                                     <div className="space-y-2">
                                         <div className="flex items-center gap-2">
-                                            <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
+                                            <Badge className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20">
                                                 Jugado - {isTorneo ? 'Torneo' : 'Amistoso'}
                                             </Badge>
-                                            <span className="text-xs text-neutral-500">
+                                            <span className="text-xs text-olive/60">
                                                 {new Date(partido.fecha).toLocaleDateString()}
                                             </span>
                                         </div>
-                                        <h3 className="text-lg font-bold text-white flex flex-col gap-1">
+                                        <h3 className="text-lg font-bold text-ink flex flex-col gap-1">
                                             {isTorneo && torneoName && (
-                                                <span className="text-xl text-white">{torneoName}</span>
+                                                <span className="text-xl text-ink">{torneoName}</span>
                                             )}
-                                            <span className="flex items-center gap-2 text-neutral-400 text-sm font-normal">
-                                                <Trophy className="w-4 h-4 text-neutral-500" />
+                                            <span className="flex items-center gap-2 text-olive/70 text-sm font-normal">
+                                                <Trophy className="w-4 h-4 text-olive/60" />
                                                 {partido.lugar || 'Cancha por definir'}
                                             </span>
                                         </h3>
-                                        <div className="flex items-center gap-4 text-sm text-neutral-400">
+                                        <div className="flex items-center gap-4 text-sm text-olive/70">
                                             <span className="flex items-center gap-1">
                                                 {isTorneo ? (
-                                                    <span className="text-emerald-500/80 font-bold">Categoría: {partido.nivel || 'N/A'}</span>
+                                                    <span className="text-emerald-700/80 font-bold">Categoría: {partido.nivel || 'N/A'}</span>
                                                 ) : (
                                                     <span className="flex items-center gap-1"><Users className="w-4 h-4" /> 4 Jugadores</span>
                                                 )}
@@ -148,12 +148,12 @@ export default async function HistorialPartidosPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex flex-col items-center sm:items-end justify-center bg-neutral-950 p-4 rounded-xl border border-neutral-800 min-w-[120px]">
-                                        <div className="text-[10px] text-emerald-500 uppercase font-black mb-1">Resultado Final</div>
-                                        <div className="text-2xl font-black text-white tracking-widest">
+                                    <div className="flex flex-col items-center sm:items-end justify-center bg-paper p-4 rounded-xl border border-olive/20 min-w-[120px]">
+                                        <div className="text-[10px] text-emerald-700 uppercase font-black mb-1">Resultado Final</div>
+                                        <div className="text-2xl font-black text-ink tracking-widest">
                                             {partido.resultado || "0-0"}
                                         </div>
-                                        <Trophy className="w-4 h-4 text-emerald-500 mt-2" />
+                                        <Trophy className="w-4 h-4 text-emerald-700 mt-2" />
                                     </div>
                                 </div>
                             </CardContent>
@@ -172,5 +172,5 @@ interface ButtonProps {
 }
 
 function Button({ children, variant, className }: ButtonProps) {
-    return <button className={`px-4 py-2 rounded-lg font-bold ${variant === 'outline' ? 'border border-neutral-800 text-white' : ''} ${className}`}>{children}</button>;
+    return <button className={`px-4 py-2 rounded-lg font-bold ${variant === 'outline' ? 'border border-olive/20 text-ink' : ''} ${className}`}>{children}</button>;
 }

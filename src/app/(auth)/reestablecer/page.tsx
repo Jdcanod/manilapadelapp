@@ -69,22 +69,22 @@ export default function ReestablecerPage() {
 
     return (
         <div className="flex flex-col items-center">
-            <Card className="w-full max-w-md bg-neutral-900/50 border-neutral-800 backdrop-blur-xl shadow-2xl">
+            <Card className="w-full max-w-md bg-paper-soft border-olive/20 backdrop-blur-xl shadow-2xl">
                 <CardHeader className="space-y-1 text-center">
                     <div className="flex justify-center mb-2">
                         <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-400 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                            <Lock className="w-6 h-6 text-white" />
+                            <Lock className="w-6 h-6 text-ink" />
                         </div>
                     </div>
-                    <CardTitle className="text-2xl font-bold text-white tracking-tight">Nueva Contraseña</CardTitle>
-                    <CardDescription className="text-neutral-400">
+                    <CardTitle className="text-2xl font-bold text-ink tracking-tight">Nueva Contraseña</CardTitle>
+                    <CardDescription className="text-olive/70">
                         Ingresa tu nueva contraseña para recuperar el acceso a tu cuenta.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="password" className="text-neutral-300">Nueva Contraseña</Label>
+                            <Label htmlFor="password" className="text-ink-soft">Nueva Contraseña</Label>
                             <div className="relative">
                                 <Input
                                     id="password"
@@ -93,22 +93,22 @@ export default function ReestablecerPage() {
                                     placeholder="••••••••"
                                     required
                                     minLength={6}
-                                    className="bg-neutral-950 border-neutral-800 text-neutral-100 pl-10 pr-10 focus:ring-blue-500/20"
+                                    className="bg-paper border-olive/20 text-ink pl-10 pr-10 focus:ring-blue-500/20"
                                 />
-                                <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-neutral-500" />
+                                <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-olive/60" />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(v => !v)}
                                     tabIndex={-1}
                                     title={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
-                                    className="absolute right-3 top-2.5 text-neutral-500 hover:text-neutral-300 transition-colors"
+                                    className="absolute right-3 top-2.5 text-olive/60 hover:text-ink-soft transition-colors"
                                 >
                                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                 </button>
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="confirmPassword" className="text-neutral-300">Confirmar Contraseña</Label>
+                            <Label htmlFor="confirmPassword" className="text-ink-soft">Confirmar Contraseña</Label>
                             <div className="relative">
                                 <Input
                                     id="confirmPassword"
@@ -117,16 +117,16 @@ export default function ReestablecerPage() {
                                     placeholder="••••••••"
                                     required
                                     minLength={6}
-                                    className="bg-neutral-950 border-neutral-800 text-neutral-100 pl-10 pr-10 focus:ring-blue-500/20"
+                                    className="bg-paper border-olive/20 text-ink pl-10 pr-10 focus:ring-blue-500/20"
                                 />
-                                <Lock className="absolute left-3 top-2.5 h-4 w-4 text-neutral-500" />
+                                <Lock className="absolute left-3 top-2.5 h-4 w-4 text-olive/60" />
                             </div>
                         </div>
 
                         <Button 
                             type="submit" 
                             disabled={loading} 
-                            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white border-0 shadow-lg shadow-blue-900/20 active:scale-[0.98] transition-all"
+                            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-ink border-0 shadow-lg shadow-blue-900/20 active:scale-[0.98] transition-all"
                         >
                             {loading ? "Actualizando..." : "Actualizar Contraseña"}
                         </Button>

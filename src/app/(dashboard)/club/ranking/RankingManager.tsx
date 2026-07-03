@@ -112,7 +112,7 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
                 <CardContent className="p-0">
                     {ranked.length === 0 ? (
                         <div className="py-16 text-center">
-                            <Users className="w-12 h-12 mx-auto mb-3 text-neutral-800" />
+                            <Users className="w-12 h-12 mx-auto mb-3 text-olive/30" />
                             <p className="text-olive/70 text-sm">No hay jugadores inscritos en tus torneos aún</p>
                         </div>
                     ) : (
@@ -123,7 +123,7 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
                                 <span>Jugador</span>
                                 <span className="text-right">Puntos</span>
                             </div>
-                            <div className="divide-y divide-neutral-800/60">
+                            <div className="divide-y divide-olive/10">
                                 {ranked.map((j, i) => (
                                     <Link
                                         key={j.id}
@@ -243,7 +243,7 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
                 <Card className="bg-paper-soft border-olive/20">
                     <CardHeader className="border-b border-olive/20 pb-4">
                         <CardTitle className="text-ink text-base flex items-center gap-2">
-                            <Star className="w-4 h-4 text-purple-400" />
+                            <Star className="w-4 h-4 text-purple-700" />
                             Puntos Base (Manual)
                         </CardTitle>
                         <CardDescription>

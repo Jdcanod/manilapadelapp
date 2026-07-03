@@ -49,7 +49,7 @@ export function BotonSeguirClub({ clubId, clubNombre, jugadorAuthId, initialIsFo
                 onClick={handleToggle}
                 disabled={loading}
                 variant="outline"
-                className="w-full md:w-auto h-12 md:h-10 bg-neutral-900 border-emerald-500/50 text-emerald-400 hover:bg-red-900/20 hover:text-red-400 hover:border-red-900/50 transition-colors group"
+                className="w-full md:w-auto h-12 md:h-10 bg-paper-soft border-emerald-500/50 text-emerald-700 hover:bg-red-900/20 hover:text-red-400 hover:border-red-900/50 transition-colors group"
             >
                 {loading ? (
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -68,7 +68,7 @@ export function BotonSeguirClub({ clubId, clubNombre, jugadorAuthId, initialIsFo
         <Button
             onClick={handleToggle}
             disabled={loading}
-            className="w-full md:w-auto h-12 md:h-10 bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-900/20"
+            className="w-full md:w-auto h-12 md:h-10 bg-emerald-600 hover:bg-emerald-500 text-ink font-bold shadow-lg shadow-emerald-900/20"
         >
             {loading ? (
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />

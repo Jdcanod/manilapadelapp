@@ -26,23 +26,23 @@ export default function NuevoPartidoPage() {
 
     return (
         <div className="max-w-2xl mx-auto space-y-6">
-            <Link href="/partidos" className="inline-flex items-center text-sm font-medium text-neutral-400 hover:text-white mb-4">
+            <Link href="/partidos" className="inline-flex items-center text-sm font-medium text-olive/70 hover:text-ink mb-4">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Volver a Partidos
             </Link>
 
             <div>
-                <h1 className="text-3xl font-bold tracking-tight text-white">Organizar Partido</h1>
-                <p className="text-neutral-400 mt-1">
+                <h1 className="text-3xl font-bold tracking-tight text-ink">Organizar Partido</h1>
+                <p className="text-olive/70 mt-1">
                     Reserva una cancha e invita a otros jugadores de la comunidad.
                 </p>
             </div>
 
-            <Card className="bg-neutral-900 border-neutral-800 shadow-xl overflow-hidden">
+            <Card className="bg-paper-soft border-olive/20 shadow-xl overflow-hidden">
                 <div className="h-2 w-full bg-gradient-to-r from-emerald-500 to-emerald-400" />
                 <CardHeader>
-                    <CardTitle className="text-white text-xl">Detalles del Encuentro</CardTitle>
-                    <CardDescription className="text-neutral-400">
+                    <CardTitle className="text-ink text-xl">Detalles del Encuentro</CardTitle>
+                    <CardDescription className="text-olive/70">
                         Completa la información para publicarlo en la cartelera.
                     </CardDescription>
                 </CardHeader>
@@ -52,12 +52,12 @@ export default function NuevoPartidoPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Tipo de Partido */}
                                 <div className="space-y-2">
-                                    <Label htmlFor="match-type" className="text-neutral-300">Tipo de Partido <Users className="inline w-3 h-3 ml-1 text-emerald-500" /></Label>
+                                    <Label htmlFor="match-type" className="text-ink-soft">Tipo de Partido <Users className="inline w-3 h-3 ml-1 text-emerald-700" /></Label>
                                     <Select defaultValue="abierto">
-                                        <SelectTrigger id="match-type" className="bg-neutral-950 border-neutral-800 text-neutral-100">
+                                        <SelectTrigger id="match-type" className="bg-paper border-olive/20 text-ink">
                                             <SelectValue placeholder="Selecciona" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-neutral-900 border-neutral-800 text-neutral-100">
+                                        <SelectContent className="bg-paper-soft border-olive/20 text-ink">
                                             <SelectItem value="abierto">Abierto (Cualquiera se une)</SelectItem>
                                             <SelectItem value="privado">Entre Amigos (Privado)</SelectItem>
                                             <SelectItem value="competitivo">Rankeado ELO (Verificado)</SelectItem>
@@ -67,12 +67,12 @@ export default function NuevoPartidoPage() {
 
                                 {/* Nivel */}
                                 <div className="space-y-2">
-                                    <Label htmlFor="level" className="text-neutral-300">Nivel Esperado</Label>
+                                    <Label htmlFor="level" className="text-ink-soft">Nivel Esperado</Label>
                                     <Select defaultValue="intermedio">
-                                        <SelectTrigger id="level" className="bg-neutral-950 border-neutral-800 text-neutral-100">
+                                        <SelectTrigger id="level" className="bg-paper border-olive/20 text-ink">
                                             <SelectValue placeholder="Selecciona el nivel" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-neutral-900 border-neutral-800 text-neutral-100">
+                                        <SelectContent className="bg-paper-soft border-olive/20 text-ink">
                                             <SelectItem value="amateur">Amateur / Principiantes</SelectItem>
                                             <SelectItem value="intermedio">Intermedio (4ta / 5ta)</SelectItem>
                                             <SelectItem value="avanzado">Avanzado (2da / 3ra)</SelectItem>
@@ -82,16 +82,16 @@ export default function NuevoPartidoPage() {
                             </div>
 
                             {/* Reserva de Cancha */}
-                            <div className="pt-4 border-t border-neutral-800">
-                                <h3 className="text-sm font-semibold text-white mb-4">Reserva de Cancha</h3>
+                            <div className="pt-4 border-t border-olive/20">
+                                <h3 className="text-sm font-semibold text-ink mb-4">Reserva de Cancha</h3>
                                 <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="club" className="text-neutral-300">Club <MapPin className="inline w-3 h-3 ml-1 text-blue-400" /></Label>
+                                        <Label htmlFor="club" className="text-ink-soft">Club <MapPin className="inline w-3 h-3 ml-1 text-blue-600" /></Label>
                                         <Select defaultValue="central">
-                                            <SelectTrigger id="club" className="bg-neutral-950 border-neutral-800 text-neutral-100">
+                                            <SelectTrigger id="club" className="bg-paper border-olive/20 text-ink">
                                                 <SelectValue placeholder="Selecciona un club en Manizales" />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-neutral-900 border-neutral-800 text-neutral-100">
+                                            <SelectContent className="bg-paper-soft border-olive/20 text-ink">
                                                 <SelectItem value="central">Manizales Padel Central</SelectItem>
                                                 <SelectItem value="bosque">Bosque Padel</SelectItem>
                                             </SelectContent>
@@ -100,21 +100,21 @@ export default function NuevoPartidoPage() {
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label htmlFor="date" className="text-neutral-300">Fecha <CalendarIcon className="inline w-3 h-3 ml-1 text-emerald-500" /></Label>
+                                            <Label htmlFor="date" className="text-ink-soft">Fecha <CalendarIcon className="inline w-3 h-3 ml-1 text-emerald-700" /></Label>
                                             <Input
                                                 id="date"
                                                 type="date"
                                                 required
-                                                className="bg-neutral-950 border-neutral-800 text-neutral-100 [color-scheme:dark]"
+                                                className="bg-paper border-olive/20 text-ink [color-scheme:dark]"
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="time" className="text-neutral-300">Hora <Clock className="inline w-3 h-3 ml-1 text-amber-500" /></Label>
+                                            <Label htmlFor="time" className="text-ink-soft">Hora <Clock className="inline w-3 h-3 ml-1 text-amber-600" /></Label>
                                             <Select defaultValue="20:00">
-                                                <SelectTrigger id="time" className="bg-neutral-950 border-neutral-800 text-neutral-100">
+                                                <SelectTrigger id="time" className="bg-paper border-olive/20 text-ink">
                                                     <SelectValue placeholder="Hora" />
                                                 </SelectTrigger>
-                                                <SelectContent className="bg-neutral-900 border-neutral-800 text-neutral-100 max-h-[200px]">
+                                                <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[200px]">
                                                     <SelectItem value="18:00">18:00</SelectItem>
                                                     <SelectItem value="19:30">19:30</SelectItem>
                                                     <SelectItem value="20:00">20:00</SelectItem>
@@ -130,7 +130,7 @@ export default function NuevoPartidoPage() {
                         <Button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-6 shadow-lg shadow-emerald-900/40 text-lg transition-all"
+                            className="w-full bg-emerald-600 hover:bg-emerald-500 text-ink font-semibold py-6 shadow-lg shadow-emerald-900/40 text-lg transition-all"
                         >
                             {loading ? "Creando torneo..." : "Confirmar y Publicar Partido"}
                         </Button>

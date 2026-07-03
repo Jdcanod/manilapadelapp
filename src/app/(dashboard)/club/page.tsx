@@ -282,11 +282,11 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                 </div>
                 <div className="absolute bottom-6 left-6 z-20 flex flex-col md:flex-row md:items-end gap-4 w-full pr-12">
                     <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2 text-white/80 font-medium">
+                        <div className="flex items-center gap-2 mb-2 text-ink/80 font-medium">
                             <CheckCircle className="w-4 h-4" />
                             <span className="text-sm tracking-wide uppercase">Club Verificado (Partner)</span>
                         </div>
-                        <h1 className="text-4xl font-black text-white mb-2 truncate drop-shadow-lg">{nombreClub}</h1>
+                        <h1 className="text-4xl font-black text-ink mb-2 truncate drop-shadow-lg">{nombreClub}</h1>
                         <div className="mb-4">
                             <FollowersModal
                                 userId={userData.id}
@@ -296,25 +296,25 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                                 customTrigger={
                                     <button className="flex items-center gap-4 hover:bg-white/10 px-2 py-1.5 -ml-2 rounded-xl transition-colors">
                                         <div className="text-center">
-                                            <div className="font-bold text-white text-lg leading-none">{followersCount}</div>
-                                            <div className="text-[10px] text-white/70 uppercase tracking-wider mt-1">Seguidores</div>
+                                            <div className="font-bold text-ink text-lg leading-none">{followersCount}</div>
+                                            <div className="text-[10px] text-ink/70 uppercase tracking-wider mt-1">Seguidores</div>
                                         </div>
                                         <div className="w-px h-6 bg-white/30" />
                                         <div className="text-center">
-                                            <div className="font-bold text-white text-lg leading-none">{followingCount}</div>
-                                            <div className="text-[10px] text-white/70 uppercase tracking-wider mt-1">Seguidos</div>
+                                            <div className="font-bold text-ink text-lg leading-none">{followingCount}</div>
+                                            <div className="text-[10px] text-ink/70 uppercase tracking-wider mt-1">Seguidos</div>
                                         </div>
                                     </button>
                                 }
                             />
                         </div>
                         <div className="flex items-center gap-4 flex-wrap">
-                            <span className="text-sm text-white/90 flex items-center gap-1.5">
+                            <span className="text-sm text-ink/90 flex items-center gap-1.5">
                                 <Zap className="w-3.5 h-3.5 text-ochre" />
                                 {torneoActivos.length} torneo{torneoActivos.length !== 1 ? 's' : ''} activo{torneoActivos.length !== 1 ? 's' : ''}
                             </span>
-                            <span className="text-sm text-white/90 flex items-center gap-1.5">
-                                <Users className="w-3.5 h-3.5 text-white/70" />
+                            <span className="text-sm text-ink/90 flex items-center gap-1.5">
+                                <Users className="w-3.5 h-3.5 text-ink/70" />
                                 {playersCount} jugadores inscritos
                             </span>
                             {resultadosPendientes > 0 && (
@@ -374,7 +374,7 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                                 <Award className="w-5 h-5" />
                             </div>
                             <div className="min-w-0">
-                                <h3 className="text-sm font-bold text-ink group-hover:text-purple-400 transition-colors">Ranking</h3>
+                                <h3 className="text-sm font-bold text-ink group-hover:text-purple-700 transition-colors">Ranking</h3>
                                 <p className="text-olive/70 text-[11px]">Gestionar puntuación</p>
                             </div>
                         </CardContent>
@@ -391,7 +391,7 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                                 <History className="w-5 h-5" />
                             </div>
                             <div className="min-w-0">
-                                <h3 className="text-sm font-bold text-ink group-hover:text-blue-400 transition-colors">Historial</h3>
+                                <h3 className="text-sm font-bold text-ink group-hover:text-blue-600 transition-colors">Historial</h3>
                                 <p className="text-olive/70 text-[11px]">Partidos jugados</p>
                             </div>
                         </CardContent>
@@ -404,8 +404,8 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                 {[
                     { label: "Canchas", value: courts.length.toString(), badge: "Configuradas", color: "text-olive" },
                     { label: "Torneos Activos", value: torneoActivos.length.toString(), badge: "En curso", color: "text-ochre" },
-                    { label: "Partidos Abiertos", value: (partidosCount || 0).toString(), badge: "En la app", color: "text-blue-400" },
-                    { label: "Jugadores", value: playersCount.toString(), badge: "Inscritos en torneos", color: "text-purple-400" },
+                    { label: "Partidos Abiertos", value: (partidosCount || 0).toString(), badge: "En la app", color: "text-blue-600" },
+                    { label: "Jugadores", value: playersCount.toString(), badge: "Inscritos en torneos", color: "text-purple-700" },
                 ].map((stat, i) => (
                     <Card key={i} className="bg-paper-soft border-olive/20 text-center py-4">
                         <div className="text-xs text-olive/70 mb-1 font-medium">{stat.label}</div>
@@ -440,7 +440,7 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                                 No hay torneos creados aún
                             </div>
                         ) : (
-                            <div className="divide-y divide-neutral-800">
+                            <div className="divide-y divide-olive/10">
                                 {(clubTournaments || []).slice(0, 6).map(torneo => {
                                     const isActive = new Date(torneo.fecha_fin) >= now;
                                     const inscripciones = inscripcionesMap[torneo.id] || 0;
@@ -448,7 +448,7 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                                         <Link key={torneo.id} href={`/club/torneos/${torneo.id}`} className="flex items-center gap-4 px-5 py-3.5 hover:bg-paper-dark/50 transition-colors group">
                                             <div className={cn(
                                                 "w-2 h-2 rounded-full flex-shrink-0",
-                                                isActive ? "bg-olive shadow-[0_0_6px_rgba(16,185,129,0.6)]" : "bg-neutral-700"
+                                                isActive ? "bg-olive shadow-[0_0_6px_rgba(16,185,129,0.6)]" : "bg-paper-dark"
                                             )} />
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-semibold text-ink truncate group-hover:text-ochre transition-colors">{torneo.nombre}</p>
@@ -509,7 +509,7 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                     <Card className="bg-paper-soft border-olive/20 flex-1">
                         <CardHeader className="pb-3 border-b border-olive/20">
                             <CardTitle className="text-base text-ink flex items-center gap-2">
-                                <UserPlus className="w-4 h-4 text-purple-400" /> Inscripciones Recientes
+                                <UserPlus className="w-4 h-4 text-purple-700" /> Inscripciones Recientes
                             </CardTitle>
                             <CardDescription className="text-olive/70 text-xs mt-0.5">Últimas 7 días</CardDescription>
                         </CardHeader>
@@ -520,11 +520,11 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                                     Sin inscripciones recientes
                                 </div>
                             ) : (
-                                <div className="divide-y divide-neutral-800">
+                                <div className="divide-y divide-olive/10">
                                     {inscripcionesRecientes.map((ins, i) => (
                                         <div key={i} className="flex items-center gap-3 px-5 py-3">
                                             <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-                                                <Users className="w-4 h-4 text-purple-400" />
+                                                <Users className="w-4 h-4 text-purple-700" />
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-semibold text-ink truncate">{ins.pareja_nombre}</p>
@@ -553,7 +553,7 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                         </Card>
                         <Card className="bg-paper-soft border-olive/20 p-4 flex items-center gap-3">
                             <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                                <Clock className="w-4 h-4 text-blue-400" />
+                                <Clock className="w-4 h-4 text-blue-600" />
                             </div>
                             <div>
                                 <p className="text-xs text-olive/70">Inscrip. esta semana</p>

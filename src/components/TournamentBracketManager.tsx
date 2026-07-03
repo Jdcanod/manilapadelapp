@@ -108,7 +108,7 @@ function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers, setsC
                     <span className="text-[10px] text-ochre-dark uppercase tracking-widest font-black line-clamp-2">
                         {match.lugar ? match.lugar.split('||')[0].replace(/\[\d+\]\s*/, '').trim() : "Fase Final"}
                     </span>
-                    <Badge variant="secondary" className={`${match.estado === 'jugado' ? 'bg-olive/20 text-olive border-olive/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'} text-[10px] uppercase font-black px-2 py-0 h-4 shrink-0`}>
+                    <Badge variant="secondary" className={`${match.estado === 'jugado' ? 'bg-olive/20 text-olive border-olive/30' : 'bg-blue-500/20 text-blue-600 border-blue-500/30'} text-[10px] uppercase font-black px-2 py-0 h-4 shrink-0`}>
                         {match.estado}
                     </Badge>
                 </div>
@@ -200,7 +200,7 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPla
     if (matches.length === 0) {
         return (
             <div className="text-center py-20 text-olive/70 border-2 border-olive/20 border-dashed rounded-3xl bg-paper/50 relative z-10">
-                <Trophy className="w-20 h-20 text-neutral-800 mx-auto mb-6" />
+                <Trophy className="w-20 h-20 text-olive/30 mx-auto mb-6" />
                 <p className="max-w-xs mx-auto text-sm font-bold uppercase tracking-wider opacity-50">El cuadro para {categoria} se generará una vez finalices su fase de grupos</p>
             </div>
         );

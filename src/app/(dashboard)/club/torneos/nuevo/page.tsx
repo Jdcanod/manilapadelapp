@@ -27,20 +27,20 @@ export default async function NuevoTorneoPage() {
             <div className="flex items-center gap-4 mb-8">
                 <Link
                     href="/club/torneos"
-                    className="p-2 bg-neutral-900 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition-colors text-white mt-1"
+                    className="p-2 bg-paper-soft border border-olive/20 rounded-xl hover:bg-paper-dark transition-colors text-ink mt-1"
                 >
                     <ChevronLeft className="w-5 h-5" />
                 </Link>
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white mb-1 flex items-center gap-2">
-                        <Trophy className="w-8 h-8 text-amber-500" />
+                    <h1 className="text-3xl font-bold tracking-tight text-ink mb-1 flex items-center gap-2">
+                        <Trophy className="w-8 h-8 text-amber-600" />
                         Crear Nuevo Torneo
                     </h1>
-                    <p className="text-neutral-400">Configura las bases del torneo para abrir inscripciones.</p>
+                    <p className="text-olive/70">Configura las bases del torneo para abrir inscripciones.</p>
                 </div>
             </div>
 
-            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 sm:p-8">
+            <div className="bg-paper-soft border border-olive/20 rounded-2xl p-6 sm:p-8">
                 <CrearTorneoForm />
             </div>
         </div>

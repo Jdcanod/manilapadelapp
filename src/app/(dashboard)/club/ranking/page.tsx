@@ -70,7 +70,7 @@ export default async function ClubRankingPage() {
             <div className="space-y-6 pb-20">
                 <PageHeader />
                 <div className="py-20 text-center border border-dashed border-olive/20 rounded-2xl">
-                    <Trophy className="w-14 h-14 mx-auto mb-4 text-neutral-800" />
+                    <Trophy className="w-14 h-14 mx-auto mb-4 text-olive/30" />
                     <p className="text-olive font-semibold">No hay torneos creados aún</p>
                     <p className="text-olive/50 text-sm mt-1">Crea tu primer torneo para empezar a gestionar el ranking.</p>
                     <Link href="/club/torneos/nuevo" className="mt-4 inline-block text-sm text-ochre hover:text-ochre-soft font-bold">

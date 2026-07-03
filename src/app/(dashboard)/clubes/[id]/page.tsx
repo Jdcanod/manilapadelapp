@@ -219,45 +219,45 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
     return (
         <div className="space-y-6 max-w-7xl mx-auto flex flex-col pt-4">
             {/* Cabecera del Club */}
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-neutral-800 h-64 md:h-80">
-                <div className="absolute inset-0 bg-neutral-900">
-                    <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/80 to-transparent z-10" />
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-olive/20 h-64 md:h-80">
+                <div className="absolute inset-0 bg-paper-soft">
+                    <div className="absolute inset-0 bg-gradient-to-t from-paper via-paper-soft to-transparent z-10" />
                     {/* Placeholder image for club */}
                     <div className="w-full h-full bg-[url('https://images.unsplash.com/photo-1628126284698-b80c10faeeaa?q=80&w=1200&auto=format&fit=crop')] bg-cover bg-center mix-blend-overlay opacity-50" />
                 </div>
                 <div className="absolute bottom-6 left-6 z-20 flex flex-col md:flex-row md:items-end gap-4 w-full pr-12">
-                    <div className="w-20 h-20 md:w-28 md:h-28 rounded-2xl bg-neutral-800 border-4 border-neutral-950 shadow-xl overflow-hidden shrink-0">
+                    <div className="w-20 h-20 md:w-28 md:h-28 rounded-2xl bg-paper-dark border-4 border-olive/20 shadow-xl overflow-hidden shrink-0">
                         {/* Club Avatar */}
-                        <div className="w-full h-full flex items-center justify-center bg-emerald-500/20 text-emerald-400 font-bold text-3xl">
+                        <div className="w-full h-full flex items-center justify-center bg-emerald-500/20 text-emerald-700 font-bold text-3xl">
                             {clubNombre.substring(0, 1)}
                         </div>
                     </div>
                     <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2 text-amber-500 font-bold text-sm">
+                        <div className="flex items-center gap-2 mb-2 text-amber-600 font-bold text-sm">
                             <Star className="w-4 h-4 fill-amber-500" />
                             <span>4.8 (120 reseñas)</span>
-                            <Badge variant="outline" className="ml-2 bg-neutral-950/50 text-emerald-400 border-emerald-500/30">Abierto Ahora</Badge>
+                            <Badge variant="outline" className="ml-2 bg-paper text-emerald-700 border-emerald-500/30">Abierto Ahora</Badge>
                             <FollowersModal
                                 userId={clubData.id}
                                 isClub={true}
                                 followersCount={seguidoresCount}
                                 followingCount={followingCount}
                                 customTrigger={
-                                    <button className="hidden sm:inline-block ml-2 text-neutral-400 hover:text-white transition-colors font-medium bg-neutral-900/50 hover:bg-neutral-800 px-3 py-1 rounded-full border border-neutral-800 text-xs">
+                                    <button className="hidden sm:inline-block ml-2 text-olive/70 hover:text-ink transition-colors font-medium bg-paper-soft hover:bg-paper-dark px-3 py-1 rounded-full border border-olive/20 text-xs">
                                         {seguidoresCount} Seguidores • {followingCount} Seguidos
                                     </button>
                                 }
                             />
                         </div>
-                        <h1 className="text-4xl font-black text-white mb-2">{clubNombre}</h1>
-                        <p className="text-neutral-300 flex items-center gap-1.5 font-medium line-clamp-1">
-                            <MapPin className="w-4 h-4 text-emerald-500" /> Manizales, Caldas · {courtsCount} Canchas Activas
+                        <h1 className="text-4xl font-black text-ink mb-2">{clubNombre}</h1>
+                        <p className="text-ink-soft flex items-center gap-1.5 font-medium line-clamp-1">
+                            <MapPin className="w-4 h-4 text-emerald-700" /> Manizales, Caldas · {courtsCount} Canchas Activas
                         </p>
                     </div>
 
                     <div className="hidden md:flex flex-col gap-2 shrink-0 pb-1">
                         <div className="flex items-center gap-2 mb-1 justify-end">
-                            <Badge variant="secondary" className="bg-neutral-900 text-neutral-300 border border-neutral-800">Torneos y Partidos</Badge>
+                            <Badge variant="secondary" className="bg-paper-soft text-ink-soft border border-olive/20">Torneos y Partidos</Badge>
                         </div>
                         <div className="flex items-center gap-2">
                             {publicUser?.rol === 'jugador' && (
@@ -288,20 +288,20 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
 
             {/* Informacion Principal con Pestañas */}
             <Tabs defaultValue="partidos" className="w-full">
-                <TabsList className="bg-neutral-900 border border-neutral-800 p-1 w-full sm:w-auto mb-6 flex-wrap h-auto">
-                    <TabsTrigger value="partidos" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
+                <TabsList className="bg-paper-soft border border-olive/20 p-1 w-full sm:w-auto mb-6 flex-wrap h-auto">
+                    <TabsTrigger value="partidos" className="data-[state=active]:bg-paper-dark flex-1 sm:flex-none">
                         Partidos Abiertos
                     </TabsTrigger>
-                    <TabsTrigger value="historico" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
+                    <TabsTrigger value="historico" className="data-[state=active]:bg-paper-dark flex-1 sm:flex-none">
                         Histórico
                     </TabsTrigger>
-                    <TabsTrigger value="reservas" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
+                    <TabsTrigger value="reservas" className="data-[state=active]:bg-paper-dark flex-1 sm:flex-none">
                         Reservar Cancha
                     </TabsTrigger>
-                    <TabsTrigger value="novedades" className="data-[state=active]:bg-neutral-800 flex-1 sm:flex-none">
+                    <TabsTrigger value="novedades" className="data-[state=active]:bg-paper-dark flex-1 sm:flex-none">
                         Novedades
                         {formattedNews.length > 0 && (
-                            <Badge variant="secondary" className="ml-2 bg-emerald-500 text-white hover:bg-emerald-600">
+                            <Badge variant="secondary" className="ml-2 bg-emerald-500 text-ink hover:bg-emerald-600">
                                 {formattedNews.length}
                             </Badge>
                         )}
@@ -310,59 +310,59 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
 
                 <TabsContent value="partidos" className="space-y-4">
                     <div className="flex items-center justify-between mb-2">
-                        <h2 className="text-2xl font-bold text-white">Partidos organizados </h2>
+                        <h2 className="text-2xl font-bold text-ink">Partidos organizados </h2>
                         <div className="md:hidden">
                             <OrganizarPartidoDialog userId={user.id} />
                         </div>
                     </div>
 
                     {!partidosAbiertos || partidosAbiertos.length === 0 ? (
-                        <div className="text-center py-16 text-neutral-500 border border-neutral-800 border-dashed rounded-xl bg-neutral-900/30 flex flex-col items-center">
-                            <Info className="w-12 h-12 text-neutral-700 mb-4" />
-                            <p className="text-lg font-medium text-neutral-300 mb-1">No hay partidos abiertos en {clubNombre}</p>
+                        <div className="text-center py-16 text-olive/60 border border-olive/20 border-dashed rounded-xl bg-paper-soft flex flex-col items-center">
+                            <Info className="w-12 h-12 text-olive/40 mb-4" />
+                            <p className="text-lg font-medium text-ink-soft mb-1">No hay partidos abiertos en {clubNombre}</p>
                             <p className="text-sm">¡Sé el primero en organizar uno aquí!</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {partidosAbiertos.map((match) => (
-                                <Card key={match.id} className="bg-neutral-900 border-neutral-800 hover:border-neutral-700 transition-colors">
+                                <Card key={match.id} className="bg-paper-soft border-olive/20 hover:border-olive/30 transition-colors">
                                     <CardContent className="p-5">
                                         <div className="flex justify-between items-start mb-4 gap-2">
                                             <div className="flex-1">
-                                                <Badge variant="outline" className="text-blue-400 border-blue-400/30 bg-blue-400/10 mb-2">
+                                                <Badge variant="outline" className="text-blue-600 border-blue-400/30 bg-blue-400/10 mb-2">
                                                     {match.tipo_partido} - {match.sexo}
                                                 </Badge>
-                                                <Badge variant="outline" className="ml-2 text-emerald-400 border-emerald-400/30 bg-emerald-400/10 mb-2">
+                                                <Badge variant="outline" className="ml-2 text-emerald-700 border-emerald-400/30 bg-emerald-400/10 mb-2">
                                                     Lvl {match.nivel}
                                                 </Badge>
-                                                <h3 className="text-md font-bold text-white mb-1 line-clamp-1">{match.lugar}</h3>
-                                                <div className="flex items-center text-xs text-neutral-400 font-medium mt-1">
-                                                    <Calendar className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
+                                                <h3 className="text-md font-bold text-ink mb-1 line-clamp-1">{match.lugar}</h3>
+                                                <div className="flex items-center text-xs text-olive/70 font-medium mt-1">
+                                                    <Calendar className="w-3.5 h-3.5 mr-1.5 text-emerald-700" />
                                                     {new Date(match.fecha).toLocaleString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             </div>
-                                            <div className="text-center shrink-0 bg-neutral-950 px-3 py-1.5 rounded-xl border border-neutral-800">
-                                                <div className="text-[10px] text-neutral-500 uppercase tracking-tighter">Faltan</div>
-                                                <div className="text-2xl font-black text-amber-500 leading-none">{match.cupos_disponibles}</div>
+                                            <div className="text-center shrink-0 bg-paper px-3 py-1.5 rounded-xl border border-olive/20">
+                                                <div className="text-[10px] text-olive/60 uppercase tracking-tighter">Faltan</div>
+                                                <div className="text-2xl font-black text-amber-600 leading-none">{match.cupos_disponibles}</div>
                                             </div>
                                         </div>
 
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4 pt-4 border-t border-neutral-800 gap-3">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4 pt-4 border-t border-olive/20 gap-3">
                                             <div className="flex items-center gap-2 shrink-0">
-                                                <Avatar className="w-6 h-6 border border-neutral-800">
-                                                    <AvatarFallback className="bg-neutral-800 text-[10px] text-white">
+                                                <Avatar className="w-6 h-6 border border-olive/20">
+                                                    <AvatarFallback className="bg-paper-dark text-[10px] text-ink">
                                                         {match.creador?.nombre ? match.creador.nombre.substring(0, 2).toUpperCase() : "CR"}
                                                     </AvatarFallback>
                                                 </Avatar>
-                                                <span className="text-[11px] text-neutral-400 line-clamp-1 max-w-[100px]">
+                                                <span className="text-[11px] text-olive/70 line-clamp-1 max-w-[100px]">
                                                     {match.creador?.nombre || 'Jugador'}
                                                 </span>
                                             </div>
 
                                             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
                                                 {match.creador_id === user.id ? (
-                                                    <div className="flex items-center bg-neutral-900 border border-neutral-800 rounded-md p-1 pl-2 shrink-0 h-9">
-                                                        <span className="text-xs text-emerald-500 font-semibold hidden md:inline-flex items-center mr-1">
+                                                    <div className="flex items-center bg-paper-soft border border-olive/20 rounded-md p-1 pl-2 shrink-0 h-9">
+                                                        <span className="text-xs text-emerald-700 font-semibold hidden md:inline-flex items-center mr-1">
                                                             <UserPlus className="w-4 h-4 mr-1" />
                                                             Organizador
                                                         </span>
@@ -386,7 +386,7 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
                                                         creador: { nombre: match.creador?.nombre || 'Organizador' }
                                                     }}
                                                     trigger={
-                                                        <Button variant="outline" className="border-neutral-700 hover:bg-neutral-800 text-neutral-300 shrink-0 h-9 px-3 text-xs">
+                                                        <Button variant="outline" className="border-olive/30 hover:bg-paper-dark text-ink-soft shrink-0 h-9 px-3 text-xs">
                                                             Detalles
                                                         </Button>
                                                     }
@@ -402,40 +402,40 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
 
                 <TabsContent value="historico" className="space-y-4">
                     <div className="flex items-center justify-between mb-2">
-                        <h2 className="text-2xl font-bold text-white">Historial de Partidos</h2>
+                        <h2 className="text-2xl font-bold text-ink">Historial de Partidos</h2>
                     </div>
 
                     {!partidosHistoricos || partidosHistoricos.length === 0 ? (
-                        <div className="text-center py-16 text-neutral-500 border border-neutral-800 border-dashed rounded-xl bg-neutral-900/30 flex flex-col items-center">
-                            <Info className="w-12 h-12 text-neutral-700 mb-4" />
-                            <p className="text-lg font-medium text-neutral-300 mb-1">No hay historial en {clubNombre}</p>
+                        <div className="text-center py-16 text-olive/60 border border-olive/20 border-dashed rounded-xl bg-paper-soft flex flex-col items-center">
+                            <Info className="w-12 h-12 text-olive/40 mb-4" />
+                            <p className="text-lg font-medium text-ink-soft mb-1">No hay historial en {clubNombre}</p>
                             <p className="text-sm">Aún no se ha jugado ningún partido en este club.</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {partidosHistoricos.map((match) => (
-                                <Card key={match.id} className="bg-neutral-900 border-neutral-800 hover:border-neutral-700 transition-colors opacity-80">
+                                <Card key={match.id} className="bg-paper-soft border-olive/20 hover:border-olive/30 transition-colors opacity-80">
                                     <CardContent className="p-5">
                                         <div className="flex justify-between items-start mb-4 gap-2">
                                             <div className="flex-1">
-                                                <Badge variant="outline" className="text-neutral-400 border-neutral-700/50 bg-neutral-800/50 mb-2">
+                                                <Badge variant="outline" className="text-olive/70 border-olive/30 bg-paper-dark mb-2">
                                                     Jugado - {match.tipo_partido}
                                                 </Badge>
-                                                <h3 className="text-md font-bold text-neutral-300 mb-1 line-clamp-1">{match.lugar}</h3>
-                                                <div className="flex items-center text-xs text-neutral-500 font-medium mt-1">
-                                                    <Calendar className="w-3.5 h-3.5 mr-1.5 text-neutral-600" />
+                                                <h3 className="text-md font-bold text-ink-soft mb-1 line-clamp-1">{match.lugar}</h3>
+                                                <div className="flex items-center text-xs text-olive/60 font-medium mt-1">
+                                                    <Calendar className="w-3.5 h-3.5 mr-1.5 text-olive/50" />
                                                     {new Date(match.fecha).toLocaleString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', month: 'short', day: 'numeric' })}
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-neutral-800">
+                                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-olive/20">
                                             <div className="flex items-center gap-2">
-                                                <Avatar className="w-6 h-6 border border-neutral-800 opacity-50">
-                                                    <AvatarFallback className="bg-neutral-800 text-[10px] text-white">
+                                                <Avatar className="w-6 h-6 border border-olive/20 opacity-50">
+                                                    <AvatarFallback className="bg-paper-dark text-[10px] text-ink">
                                                         {match.creador?.nombre ? match.creador.nombre.substring(0, 2).toUpperCase() : "CR"}
                                                     </AvatarFallback>
                                                 </Avatar>
-                                                <span className="text-[11px] text-neutral-500 line-clamp-1 max-w-[80px]">
+                                                <span className="text-[11px] text-olive/60 line-clamp-1 max-w-[80px]">
                                                     {match.creador?.nombre || 'Jugador'}
                                                 </span>
                                             </div>
@@ -447,7 +447,7 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
                                                         creador: { nombre: match.creador?.nombre || 'Organizador' }
                                                     }}
                                                     trigger={
-                                                        <Button variant="outline" size="sm" className="border-neutral-700 hover:bg-neutral-800 text-neutral-400">
+                                                        <Button variant="outline" size="sm" className="border-olive/30 hover:bg-paper-dark text-olive/70">
                                                             Ver Resultado
                                                         </Button>
                                                     }
@@ -464,18 +464,18 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
                 <TabsContent value="reservas" className="space-y-4">
                     <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
-                            <h2 className="text-2xl font-bold text-white mb-1">Disponibilidad de Canchas</h2>
-                            <p className="text-neutral-400">Verifica qué canchas están libres para reservar o armar tu partido.</p>
+                            <h2 className="text-2xl font-bold text-ink mb-1">Disponibilidad de Canchas</h2>
+                            <p className="text-olive/70">Verifica qué canchas están libres para reservar o armar tu partido.</p>
                         </div>
-                        <div className="flex items-center gap-4 bg-neutral-900 border border-neutral-800 rounded-xl p-1 shrink-0">
-                            <Link href={`?date=${prevDateStr}`} className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-400 hover:text-white">
+                        <div className="flex items-center gap-4 bg-paper-soft border border-olive/20 rounded-xl p-1 shrink-0">
+                            <Link href={`?date=${prevDateStr}`} className="p-2 hover:bg-paper-dark rounded-lg transition-colors text-olive/70 hover:text-ink">
                                 <ChevronLeft className="w-5 h-5" />
                             </Link>
-                            <div className="flex items-center gap-2 px-2 text-sm font-bold text-white min-w-[120px] justify-center">
-                                <Calendar className="w-4 h-4 text-emerald-500" />
+                            <div className="flex items-center gap-2 px-2 text-sm font-bold text-ink min-w-[120px] justify-center">
+                                <Calendar className="w-4 h-4 text-emerald-700" />
                                 {todayDate.toLocaleDateString('es-CO', { weekday: 'short', month: 'short', day: 'numeric' })}
                             </div>
-                            <Link href={`?date=${nextDateStr}`} className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-400 hover:text-white">
+                            <Link href={`?date=${nextDateStr}`} className="p-2 hover:bg-paper-dark rounded-lg transition-colors text-olive/70 hover:text-ink">
                                 <ChevronRight className="w-5 h-5" />
                             </Link>
                         </div>
@@ -489,23 +489,23 @@ export default async function ClubDetailPage({ params, searchParams }: { params:
                         reservations={reservations}
                     />
                     <div className="mt-4 flex gap-4 bg-emerald-950/20 border border-emerald-900/50 rounded-xl p-4 items-center">
-                        <Info className="w-6 h-6 text-emerald-500 shrink-0" />
+                        <Info className="w-6 h-6 text-emerald-700 shrink-0" />
                         <p className="text-sm text-emerald-50 font-medium">
-                            ¿Encontraste una hora libre? ¡Comienza a <strong className="text-emerald-400">Organizar un Partido</strong> y selecciona este club en las opciones!
+                            ¿Encontraste una hora libre? ¡Comienza a <strong className="text-emerald-700">Organizar un Partido</strong> y selecciona este club en las opciones!
                         </p>
                     </div>
                 </TabsContent>
 
                 <TabsContent value="novedades" className="space-y-4">
                     <div className="mb-4">
-                        <h2 className="text-2xl font-bold text-white mb-1">Noticias de {clubNombre}</h2>
+                        <h2 className="text-2xl font-bold text-ink mb-1">Noticias de {clubNombre}</h2>
                     </div>
                     {!formattedNews || formattedNews.length === 0 ? (
-                        <div className="text-center py-16 text-neutral-500 border border-neutral-800 border-dashed rounded-xl bg-neutral-900/30">
+                        <div className="text-center py-16 text-olive/60 border border-olive/20 border-dashed rounded-xl bg-paper-soft">
                             El club no ha publicado novedades recientes.
                         </div>
                     ) : (
-                        <div className="bg-neutral-950 rounded-2xl p-0 md:border md:border-neutral-800 md:p-6">
+                        <div className="bg-paper rounded-2xl p-0 md:border md:border-olive/20 md:p-6">
                             <NovedadesList feed={formattedNews} currentUserId={user.id} />
                         </div>
                     )}

@@ -71,26 +71,26 @@ export function EditarPerfilDialog({
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="w-full sm:w-auto bg-transparent border-neutral-800 text-neutral-300 hover:bg-neutral-800 hover:text-white">
+                <Button variant="outline" className="w-full sm:w-auto bg-transparent border-olive/20 text-ink-soft hover:bg-paper-dark hover:text-ink">
                     Editar Perfil
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] bg-neutral-900 border-neutral-800 text-white">
+            <DialogContent className="sm:max-w-[425px] bg-paper-soft border-olive/20 text-ink">
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
                         <DialogTitle>Editar Perfil</DialogTitle>
-                        <DialogDescription className="text-neutral-400">
+                        <DialogDescription className="text-olive/70">
                             Actualiza tu información pública de jugador.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="space-y-2">
-                            <Label htmlFor="categoria" className="text-neutral-300">Categoría</Label>
+                            <Label htmlFor="categoria" className="text-ink-soft">Categoría</Label>
                             <Select name="categoria" defaultValue={usuario.categoria || ""}>
-                                <SelectTrigger className="bg-neutral-950 border-neutral-800 text-neutral-100">
+                                <SelectTrigger className="bg-paper border-olive/20 text-ink">
                                     <SelectValue placeholder="Selecciona tu categoría" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+                                <SelectContent className="bg-paper-soft border-olive/20 text-ink">
                                     <SelectItem value="1ra">1ra Categoría</SelectItem>
                                     <SelectItem value="2da">2da Categoría</SelectItem>
                                     <SelectItem value="3ra">3ra Categoría</SelectItem>
@@ -102,12 +102,12 @@ export function EditarPerfilDialog({
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="club_preferencia" className="text-neutral-300">Club de Preferencia</Label>
+                            <Label htmlFor="club_preferencia" className="text-ink-soft">Club de Preferencia</Label>
                             <Select name="club_preferencia" defaultValue={usuario.club_preferencia || "ninguno"}>
-                                <SelectTrigger className="bg-neutral-950 border-neutral-800 text-neutral-100">
+                                <SelectTrigger className="bg-paper border-olive/20 text-ink">
                                     <SelectValue placeholder="Selecciona tu club" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white max-h-[200px] overflow-y-auto">
+                                <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[200px] overflow-y-auto">
                                     <SelectItem value="ninguno">Ninguno</SelectItem>
                                     {clubs.map(club => (
                                         <SelectItem key={club.id} value={club.nombre}>
@@ -119,7 +119,7 @@ export function EditarPerfilDialog({
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button disabled={loading} type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg mt-2">
+                        <Button disabled={loading} type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-ink shadow-lg mt-2">
                             {loading ? "Guardando..." : <><Save className="w-4 h-4 mr-2" /> Guardar Cambios</>}
                         </Button>
                     </DialogFooter>

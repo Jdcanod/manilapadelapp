@@ -81,7 +81,7 @@ export default async function ClubTorneosPage() {
                             statusColor = "bg-paper-dark text-olive border-olive/30";
                             statusText = "Finalizado";
                         } else if (isUpcoming) {
-                            statusColor = "bg-blue-500/20 text-blue-400 border-blue-500/30";
+                            statusColor = "bg-blue-500/20 text-blue-600 border-blue-500/30";
                             statusText = "Próximo";
                         }
 
@@ -120,7 +120,7 @@ export default async function ClubTorneosPage() {
                                     </div>
 
                                     <div className="mt-auto pt-4 border-t border-olive/20">
-                                        <Button variant="secondary" className="w-full bg-paper-dark hover:bg-neutral-700 text-ink" asChild>
+                                        <Button variant="secondary" className="w-full bg-paper-dark hover:bg-paper-dark text-ink" asChild>
                                             <Link href={`/club/torneos/${torneo.id}`}>
                                                 Gestionar Torneo
                                             </Link>

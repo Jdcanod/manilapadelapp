@@ -156,7 +156,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
     if (grupos.length === 0) {
         return (
             <div className="text-center py-20 bg-paper-soft/30 border-2 border-dashed border-olive/15 rounded-3xl">
-                <Users className="w-12 h-12 text-neutral-800 mx-auto mb-4" />
+                <Users className="w-12 h-12 text-olive/30 mx-auto mb-4" />
                 <p className="text-olive/70 font-bold uppercase tracking-widest">Los grupos no han sido sorteados aún.</p>
             </div>
         );

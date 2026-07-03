@@ -32,8 +32,8 @@ export function DeleteTournamentButton({ torneoId, torneoNombre }: DeleteTournam
             <div className="mt-3 flex flex-col gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
                 <div className="flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-neutral-300 leading-relaxed">
-                        ¿Eliminar <span className="font-bold text-white">{torneoNombre}</span>?{" "}
+                    <p className="text-xs text-ink-soft leading-relaxed">
+                        ¿Eliminar <span className="font-bold text-ink">{torneoNombre}</span>?{" "}
                         Se borrarán todos los grupos, partidos e inscripciones. Esta acción no se puede deshacer.
                     </p>
                 </div>
@@ -55,7 +55,7 @@ export function DeleteTournamentButton({ torneoId, torneoNombre }: DeleteTournam
                         variant="outline"
                         onClick={() => setConfirming(false)}
                         disabled={isPending}
-                        className="flex-1 text-xs h-8 border-neutral-700 text-neutral-400 hover:text-white"
+                        className="flex-1 text-xs h-8 border-olive/30 text-olive/70 hover:text-ink"
                     >
                         Cancelar
                     </Button>
@@ -68,7 +68,7 @@ export function DeleteTournamentButton({ torneoId, torneoNombre }: DeleteTournam
         <Button
             variant="ghost"
             size="sm"
-            className="text-neutral-600 hover:text-red-400 hover:bg-red-500/10 transition-colors h-8 px-2"
+            className="text-olive/50 hover:text-red-400 hover:bg-red-500/10 transition-colors h-8 px-2"
             onClick={() => setConfirming(true)}
         >
             <Trash2 className="w-4 h-4" />

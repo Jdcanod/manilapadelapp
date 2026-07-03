@@ -31,20 +31,20 @@ export function RankingFilter({ clubes }: { clubes: { auth_id: string; nombre: s
     return (
         <div className="flex flex-col sm:flex-row gap-3 items-center w-full">
             <div className="relative w-full sm:w-[200px]">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-neutral-500" />
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-olive/60" />
                 <Input
                     type="text"
                     placeholder="Buscar jugador..."
-                    className="w-full bg-neutral-950 border-neutral-700 text-neutral-100 shadow-md pl-9"
+                    className="w-full bg-paper border-olive/30 text-ink shadow-md pl-9"
                     defaultValue={currentQuery}
                     onChange={(e) => handleSearch(e.target.value)}
                 />
             </div>
             <Select value={currentCity} onValueChange={(v) => updateFilter("ciudad", v)}>
-                <SelectTrigger className="w-full sm:w-[150px] bg-neutral-950 border-neutral-700 text-neutral-100 shadow-md">
+                <SelectTrigger className="w-full sm:w-[150px] bg-paper border-olive/30 text-ink shadow-md">
                     <SelectValue placeholder="Ciudad" />
                 </SelectTrigger>
-                <SelectContent className="bg-neutral-900 border-neutral-800 text-neutral-100">
+                <SelectContent className="bg-paper-soft border-olive/20 text-ink">
                     <SelectItem value="todas">Todas las ciudades</SelectItem>
                     <SelectItem value="manizales">Manizales</SelectItem>
                     <SelectItem value="pereira">Pereira</SelectItem>
@@ -53,10 +53,10 @@ export function RankingFilter({ clubes }: { clubes: { auth_id: string; nombre: s
             </Select>
 
             <Select value={currentClub} onValueChange={(v) => updateFilter("club", v)}>
-                <SelectTrigger className="w-full sm:w-[180px] bg-neutral-950 border-neutral-700 text-neutral-100 shadow-md">
+                <SelectTrigger className="w-full sm:w-[180px] bg-paper border-olive/30 text-ink shadow-md">
                     <SelectValue placeholder="Club" />
                 </SelectTrigger>
-                <SelectContent className="bg-neutral-900 border-neutral-800 text-neutral-100">
+                <SelectContent className="bg-paper-soft border-olive/20 text-ink">
                     <SelectItem value="todos">Todos los clubes</SelectItem>
                     {clubes.map((club) => (
                         <SelectItem key={club.auth_id} value={club.auth_id}>

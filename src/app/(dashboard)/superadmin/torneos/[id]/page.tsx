@@ -17,7 +17,7 @@ export default async function TorneoDetalleAdminPage({ params }: { params: { id:
         .single();
 
     if (!torneo) {
-        return <div className="text-center p-12 text-neutral-400">Torneo no encontrado</div>;
+        return <div className="text-center p-12 text-olive/70">Torneo no encontrado</div>;
     }
 
     // Obtener Inscripciones
@@ -50,16 +50,16 @@ export default async function TorneoDetalleAdminPage({ params }: { params: { id:
 
     return (
         <div className="space-y-6">
-            <Link href="/superadmin/torneos" className="text-sm text-neutral-400 hover:text-white mb-4 inline-block">
+            <Link href="/superadmin/torneos" className="text-sm text-olive/70 hover:text-ink mb-4 inline-block">
                 &larr; Volver a Torneos
             </Link>
 
-            <Card className="bg-neutral-900 border-neutral-800 shadow-xl overflow-hidden mb-8">
+            <Card className="bg-paper-soft border-olive/20 shadow-xl overflow-hidden mb-8">
                 <div className="h-1 w-full bg-violet-600" />
                 <CardHeader className="flex flex-row justify-between items-start">
                     <div>
-                        <CardTitle className="text-2xl text-white font-bold">{torneo.nombre}</CardTitle>
-                        <CardDescription className="text-neutral-400 mt-2 flex gap-4">
+                        <CardTitle className="text-2xl text-ink font-bold">{torneo.nombre}</CardTitle>
+                        <CardDescription className="text-olive/70 mt-2 flex gap-4">
                             <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {torneo.ciudad}</span>
                             <span className="flex items-center gap-1"><Calendar className="w-4 h-4" /> {torneo.fecha_inicio} a {torneo.fecha_fin}</span>
                         </CardDescription>
@@ -70,49 +70,49 @@ export default async function TorneoDetalleAdminPage({ params }: { params: { id:
                 </CardHeader>
             </Card>
 
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-emerald-500" /> Inscripciones Recientes
+            <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-emerald-700" /> Inscripciones Recientes
             </h2>
 
-            <Card className="bg-neutral-950 border-neutral-800 shadow-xl">
+            <Card className="bg-paper border-olive/20 shadow-xl">
                 <CardContent className="p-0">
                     <Table>
-                        <TableHeader className="bg-neutral-900">
-                            <TableRow className="border-neutral-800">
-                                <TableHead className="text-neutral-300">Pareja</TableHead>
-                                <TableHead className="text-neutral-300">Categoría</TableHead>
-                                <TableHead className="text-neutral-300">Comprobante</TableHead>
-                                <TableHead className="text-center text-neutral-300">Estado</TableHead>
-                                <TableHead className="text-right text-neutral-300">Acción</TableHead>
+                        <TableHeader className="bg-paper-soft">
+                            <TableRow className="border-olive/20">
+                                <TableHead className="text-ink-soft">Pareja</TableHead>
+                                <TableHead className="text-ink-soft">Categoría</TableHead>
+                                <TableHead className="text-ink-soft">Comprobante</TableHead>
+                                <TableHead className="text-center text-ink-soft">Estado</TableHead>
+                                <TableHead className="text-right text-ink-soft">Acción</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {inscripciones.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-8 text-neutral-500">
+                                    <TableCell colSpan={5} className="text-center py-8 text-olive/60">
                                         No hay inscripciones para este torneo todavía.
                                     </TableCell>
                                 </TableRow>
                             ) : inscripciones.map(i => (
-                                <TableRow key={i.id} className="border-neutral-800 hover:bg-neutral-800/50">
-                                    <TableCell className="text-white font-medium">
+                                <TableRow key={i.id} className="border-olive/20 hover:bg-paper-dark">
+                                    <TableCell className="text-ink font-medium">
                                         {i.jugador1?.nombre} & {i.jugador2?.nombre}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant="outline" className="border-neutral-700 bg-neutral-800 text-neutral-300">
+                                        <Badge variant="outline" className="border-olive/30 bg-paper-dark text-ink-soft">
                                             {i.nivel}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
                                         {i.comprobante_pago ? (
-                                            <a href={i.comprobante_pago} target="_blank" className="text-blue-400 hover:underline text-sm">Ver Recibo</a>
-                                        ) : <span className="text-neutral-600 text-sm">N/A</span>}
+                                            <a href={i.comprobante_pago} target="_blank" className="text-blue-600 hover:underline text-sm">Ver Recibo</a>
+                                        ) : <span className="text-olive/50 text-sm">N/A</span>}
                                     </TableCell>
                                     <TableCell className="text-center">
                                         <Badge className={
-                                            i.estado === 'aprobada' ? 'bg-emerald-500/20 text-emerald-500' :
+                                            i.estado === 'aprobada' ? 'bg-emerald-500/20 text-emerald-700' :
                                             i.estado === 'rechazada' ? 'bg-red-500/20 text-red-500' :
-                                            'bg-amber-500/20 text-amber-500'
+                                            'bg-amber-500/20 text-amber-600'
                                         }>
                                             {i.estado}
                                         </Badge>
@@ -123,14 +123,14 @@ export default async function TorneoDetalleAdminPage({ params }: { params: { id:
                                                 <form>
                                                     <input type="hidden" name="id" value={i.id} />
                                                     <input type="hidden" name="estado" value="rechazada" />
-                                                    <Button size="icon" variant="outline" className="h-8 w-8 bg-neutral-950 border-red-500/30 hover:bg-red-500/10 text-red-500">
+                                                    <Button size="icon" variant="outline" className="h-8 w-8 bg-paper border-red-500/30 hover:bg-red-500/10 text-red-500">
                                                         <XCircle className="w-4 h-4" />
                                                     </Button>
                                                 </form>
                                                 <form>
                                                     <input type="hidden" name="id" value={i.id} />
                                                     <input type="hidden" name="estado" value="aprobada" />
-                                                    <Button size="icon" className="h-8 w-8 bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg">
+                                                    <Button size="icon" className="h-8 w-8 bg-emerald-600 hover:bg-emerald-500 text-ink shadow-lg">
                                                         <CheckCircle className="w-4 h-4" />
                                                     </Button>
                                                 </form>

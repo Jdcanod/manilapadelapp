@@ -159,7 +159,7 @@ export function TournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, u
                                 id={`player-stb-toggle-${matchId}`}
                                 checked={isSuperTiebreak} 
                                 onChange={(e) => setIsSuperTiebreak(e.target.checked)}
-                                className="w-4 h-4 rounded border-olive/30 bg-paper-soft text-olive focus:ring-olive focus:ring-offset-neutral-950"
+                                className="w-4 h-4 rounded border-olive/30 bg-paper-soft text-olive focus:ring-olive focus:ring-offset-paper"
                             />
                             <label htmlFor={`player-stb-toggle-${matchId}`} className="text-xs text-olive font-medium cursor-pointer">
                                 El 3er set es un Super Tie-break

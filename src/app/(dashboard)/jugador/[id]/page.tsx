@@ -128,15 +128,15 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
     return (
         <div className="space-y-6 max-w-5xl mx-auto h-full flex flex-col pt-4">
             {/* Header Profile Summary */}
-            <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8 bg-neutral-900/50 p-6 md:p-10 rounded-[2.5rem] border border-neutral-800 backdrop-blur-md">
-                <Avatar className="w-28 h-28 md:w-32 md:h-32 border-4 border-neutral-800 shadow-2xl">
-                    <AvatarFallback className="text-3xl md:text-4xl bg-gradient-to-tr from-emerald-600 to-green-400 text-white font-black">{iniciales}</AvatarFallback>
+            <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8 bg-paper-soft p-6 md:p-10 rounded-[2.5rem] border border-olive/20 backdrop-blur-md">
+                <Avatar className="w-28 h-28 md:w-32 md:h-32 border-4 border-olive/20 shadow-2xl">
+                    <AvatarFallback className="text-3xl md:text-4xl bg-gradient-to-tr from-emerald-600 to-green-400 text-ink font-black">{iniciales}</AvatarFallback>
                 </Avatar>
                 <div className="text-center lg:text-left flex-1 w-full">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                         <div>
-                            <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white mb-2">{profile.nombre}</h1>
-                            <p className="text-neutral-400 text-lg font-medium capitalize flex items-center justify-center lg:justify-start gap-2">
+                            <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-ink mb-2">{profile.nombre}</h1>
+                            <p className="text-olive/70 text-lg font-medium capitalize flex items-center justify-center lg:justify-start gap-2">
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                                 {displayCategory}
                             </p>
@@ -148,7 +148,7 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
                                 await toggleFollow(myUserId, params.id);
                             }}>
                                 <Button 
-                                    className={`w-full sm:w-auto font-bold ${isFollowing ? 'bg-neutral-800 hover:bg-neutral-700 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}
+                                    className={`w-full sm:w-auto font-bold ${isFollowing ? 'bg-paper-dark hover:bg-paper-dark text-ink' : 'bg-emerald-600 hover:bg-emerald-500 text-ink'}`}
                                 >
                                     {isFollowing ? (
                                         <><UserCheck className="w-4 h-4 mr-2" /> Siguiendo</>
@@ -167,23 +167,23 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
                     </div>
 
                     <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                        <div className="bg-neutral-950/50 p-5 rounded-3xl border border-neutral-800/60 hover:bg-neutral-900 transition-colors">
-                            <div className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-blue-400" /> Puntos ELO</div>
-                            <div className="text-3xl font-black text-white">{profile.elo?.toLocaleString() || '1,000'}</div>
+                        <div className="bg-paper p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
+                            <div className="text-xs font-bold text-olive/60 uppercase tracking-widest mb-2 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-blue-600" /> Puntos ELO</div>
+                            <div className="text-3xl font-black text-ink">{profile.elo?.toLocaleString() || '1,000'}</div>
                         </div>
-                        <div className="bg-neutral-950/50 p-5 rounded-3xl border border-neutral-800/60 hover:bg-neutral-900 transition-colors">
-                            <div className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2 flex items-center gap-2"><Activity className="w-4 h-4 text-emerald-400" /> Win Rate</div>
-                            <div className="text-3xl font-black text-white">{winRate}%</div>
+                        <div className="bg-paper p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
+                            <div className="text-xs font-bold text-olive/60 uppercase tracking-widest mb-2 flex items-center gap-2"><Activity className="w-4 h-4 text-emerald-700" /> Win Rate</div>
+                            <div className="text-3xl font-black text-ink">{winRate}%</div>
                         </div>
-                        <div className="bg-neutral-950/50 p-5 rounded-3xl border border-neutral-800/60 hover:bg-neutral-900 transition-colors">
-                            <div className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2 flex items-center gap-2"><Trophy className="w-4 h-4 text-purple-400" /> Torneos</div>
-                            <div className="text-3xl font-black text-white">{numTorneos} <span className="text-sm text-neutral-500 font-normal uppercase">PJ</span></div>
+                        <div className="bg-paper p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
+                            <div className="text-xs font-bold text-olive/60 uppercase tracking-widest mb-2 flex items-center gap-2"><Trophy className="w-4 h-4 text-purple-700" /> Torneos</div>
+                            <div className="text-3xl font-black text-ink">{numTorneos} <span className="text-sm text-olive/60 font-normal uppercase">PJ</span></div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <div className="text-center mt-12 mb-20 text-neutral-500 text-sm">
+            <div className="text-center mt-12 mb-20 text-olive/60 text-sm">
                 Las estadísticas detalladas de este jugador son privadas.
             </div>
         </div>

@@ -43,11 +43,11 @@ export function FollowersModal({ userId, isClub, followersCount, followingCount,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const renderList = (list: any[], emptyMessage: string) => {
         if (loading) {
-            return <div className="text-center py-8 text-neutral-500 animate-pulse">Cargando...</div>;
+            return <div className="text-center py-8 text-olive/60 animate-pulse">Cargando...</div>;
         }
 
         if (list.length === 0) {
-            return <div className="text-center py-8 text-neutral-500">{emptyMessage}</div>;
+            return <div className="text-center py-8 text-olive/60">{emptyMessage}</div>;
         }
 
         return (
@@ -59,13 +59,13 @@ export function FollowersModal({ userId, isClub, followersCount, followingCount,
                         const url = isClubUser ? `/clubes/${u.id}` : `/jugador/${u.id}`;
                         
                         return (
-                            <Link key={u.id} href={url} onClick={() => setOpen(false)} className="flex items-center gap-3 p-2 rounded-xl hover:bg-neutral-800 transition-colors">
-                                <Avatar className="w-10 h-10 border border-neutral-700">
-                                    <AvatarFallback className="bg-emerald-600 text-white font-bold text-xs">{iniciales}</AvatarFallback>
+                            <Link key={u.id} href={url} onClick={() => setOpen(false)} className="flex items-center gap-3 p-2 rounded-xl hover:bg-paper-dark transition-colors">
+                                <Avatar className="w-10 h-10 border border-olive/30">
+                                    <AvatarFallback className="bg-emerald-600 text-ink font-bold text-xs">{iniciales}</AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 overflow-hidden">
-                                    <h4 className="font-bold text-white text-sm truncate">{u.nombre}</h4>
-                                    <p className="text-xs text-neutral-400 capitalize truncate">
+                                    <h4 className="font-bold text-ink text-sm truncate">{u.nombre}</h4>
+                                    <p className="text-xs text-olive/70 capitalize truncate">
                                         {isClubUser ? 'Club' : (u.categoria || u.nivel || 'Jugador')}
                                     </p>
                                 </div>
@@ -81,26 +81,26 @@ export function FollowersModal({ userId, isClub, followersCount, followingCount,
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
                 {customTrigger ? customTrigger : (
-                    <button className="flex gap-4 text-sm mr-2 hover:bg-neutral-800/50 p-2 rounded-xl transition-colors text-left">
+                    <button className="flex gap-4 text-sm mr-2 hover:bg-paper-dark p-2 rounded-xl transition-colors text-left">
                         <div className="text-center">
-                            <div className="font-bold text-white text-lg">{followersCount || 0}</div>
-                            <div className="text-neutral-500">Seguidores</div>
+                            <div className="font-bold text-ink text-lg">{followersCount || 0}</div>
+                            <div className="text-olive/60">Seguidores</div>
                         </div>
                         <div className="text-center">
-                            <div className="font-bold text-white text-lg">{followingCount || 0}</div>
-                            <div className="text-neutral-500">Seguidos</div>
+                            <div className="font-bold text-ink text-lg">{followingCount || 0}</div>
+                            <div className="text-olive/60">Seguidos</div>
                         </div>
                     </button>
                 )}
             </DialogTrigger>
-            <DialogContent className="bg-neutral-900 border-neutral-800 text-white sm:max-w-[425px]">
+            <DialogContent className="bg-paper-soft border-olive/20 text-ink sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle className="text-center text-xl font-black">Conexiones</DialogTitle>
                 </DialogHeader>
                 <Tabs defaultValue="seguidores" className="w-full mt-4">
-                    <TabsList className="grid w-full grid-cols-2 bg-neutral-950 border-neutral-800">
-                        <TabsTrigger value="seguidores" className="data-[state=active]:bg-neutral-800 data-[state=active]:text-emerald-400 font-bold">Seguidores</TabsTrigger>
-                        <TabsTrigger value="seguidos" className="data-[state=active]:bg-neutral-800 data-[state=active]:text-emerald-400 font-bold">Seguidos</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-2 bg-paper border-olive/20">
+                        <TabsTrigger value="seguidores" className="data-[state=active]:bg-paper-dark data-[state=active]:text-emerald-700 font-bold">Seguidores</TabsTrigger>
+                        <TabsTrigger value="seguidos" className="data-[state=active]:bg-paper-dark data-[state=active]:text-emerald-700 font-bold">Seguidos</TabsTrigger>
                     </TabsList>
                     <TabsContent value="seguidores" className="mt-4">
                         {renderList(followers, "Aún no hay seguidores.")}

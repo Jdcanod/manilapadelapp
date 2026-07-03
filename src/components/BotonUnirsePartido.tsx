@@ -115,7 +115,7 @@ export function BotonUnirsePartido({
                 disabled={loading || !canLeave}
                 className={`shrink-0 h-9 px-3 text-xs ${fullWidth ? 'w-full' : ''} ${canLeave
                     ? "bg-red-500/20 text-red-500 hover:bg-red-500/30 border border-red-500/30 font-semibold"
-                    : "bg-neutral-800 text-neutral-500 cursor-not-allowed"}`}
+                    : "bg-paper-dark text-olive/60 cursor-not-allowed"}`}
             >
                 {loading ? "Saliendo..." : canLeave ? "Salir" : "Aviso < 2h"}
             </Button>
@@ -126,7 +126,7 @@ export function BotonUnirsePartido({
 
     if (cuposDisponibles <= 0) {
         return (
-            <Button size="sm" variant="secondary" className={`bg-neutral-800 text-neutral-400 ${fullWidth ? 'w-full' : ''}`} disabled>
+            <Button size="sm" variant="secondary" className={`bg-paper-dark text-olive/70 ${fullWidth ? 'w-full' : ''}`} disabled>
                 Lleno
             </Button>
         );

@@ -104,28 +104,28 @@ export function PrimeTimeConfig({ initialRanges = [] }: { initialRanges: any }) 
 
             <div className="flex justify-between items-center">
                 <div>
-                    <h3 className="text-sm font-medium text-emerald-400">Reglas de Horario Prime (1 Hora y Media obligatoria)</h3>
-                    <p className="text-xs text-neutral-400">Configura rangos de fechas, horas y canchas en las que solo se permitan reservas de 90 mins.</p>
+                    <h3 className="text-sm font-medium text-emerald-700">Reglas de Horario Prime (1 Hora y Media obligatoria)</h3>
+                    <p className="text-xs text-olive/70">Configura rangos de fechas, horas y canchas en las que solo se permitan reservas de 90 mins.</p>
                 </div>
-                <Button type="button" onClick={openCreate} size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white">
+                <Button type="button" onClick={openCreate} size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-ink">
                     <Plus className="w-4 h-4 mr-1" /> Añadir Regla
                 </Button>
             </div>
 
             {ranges.length === 0 ? (
-                <div className="bg-neutral-950/50 border border-neutral-800 border-dashed rounded-lg p-6 text-center text-neutral-500 text-sm flex flex-col items-center">
+                <div className="bg-paper border border-olive/20 border-dashed rounded-lg p-6 text-center text-olive/60 text-sm flex flex-col items-center">
                     <Clock className="w-8 h-8 opacity-20 mb-2" />
                     No hay restricciones de horario prime configuradas. Se permitirán reservas de 60 y 90 minutos libremente.
                 </div>
             ) : (
                 <div className="grid grid-cols-1 gap-3">
                     {ranges.map(r => (
-                        <div key={r.id} className="bg-neutral-950 p-4 rounded-lg border border-neutral-800 flex justify-between items-center group">
+                        <div key={r.id} className="bg-paper p-4 rounded-lg border border-olive/20 flex justify-between items-center group">
                             <div>
-                                <h4 className="text-white font-medium text-sm">
+                                <h4 className="text-ink font-medium text-sm">
                                     {r.cancha === 'all' ? 'Todas las Canchas' : `Cancha ${r.cancha}`}
                                 </h4>
-                                <div className="text-xs text-neutral-400 mt-1 space-x-3">
+                                <div className="text-xs text-olive/70 mt-1 space-x-3">
                                     <span>⏱ {r.hora_inicio} a {r.hora_fin}</span>
                                     {(r.fecha_inicio || r.fecha_fin) ? (
                                         <span>📅 {r.fecha_inicio || 'Siempre'} hasta {r.fecha_fin || 'Siempre'}</span>
@@ -135,10 +135,10 @@ export function PrimeTimeConfig({ initialRanges = [] }: { initialRanges: any }) 
                                 </div>
                             </div>
                             <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button type="button" variant="outline" size="sm" onClick={() => openEdit(r)} className="h-8 bg-neutral-900 border-neutral-700 hover:text-white">
+                                <Button type="button" variant="outline" size="sm" onClick={() => openEdit(r)} className="h-8 bg-paper-soft border-olive/30 hover:text-ink">
                                     <Edit2 className="w-3.5 h-3.5" />
                                 </Button>
-                                <Button type="button" variant="destructive" size="sm" onClick={() => deleteRange(r.id)} className="h-8 bg-neutral-900 border-red-900/50 text-red-500 hover:bg-red-900/20">
+                                <Button type="button" variant="destructive" size="sm" onClick={() => deleteRange(r.id)} className="h-8 bg-paper-soft border-red-900/50 text-red-500 hover:bg-red-900/20">
                                     <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
                             </div>
@@ -148,21 +148,21 @@ export function PrimeTimeConfig({ initialRanges = [] }: { initialRanges: any }) 
             )}
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-[425px] bg-neutral-900 border-neutral-800 text-neutral-100">
+                <DialogContent className="sm:max-w-[425px] bg-paper-soft border-olive/20 text-ink">
                     <DialogHeader>
                         <DialogTitle className="text-xl">{editingId ? 'Editar Regla Prime' : 'Nueva Regla Prime'}</DialogTitle>
-                        <DialogDescription className="text-neutral-400">
+                        <DialogDescription className="text-olive/70">
                             Define el bloque donde las reservas deben ser de hora y media obligatoriamente.
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSave} className="space-y-4 pt-2">
                         <div className="space-y-2">
-                            <Label className="text-neutral-300">Aplica para:</Label>
+                            <Label className="text-ink-soft">Aplica para:</Label>
                             <Select value={cancha} onValueChange={setCancha} required>
-                                <SelectTrigger className="bg-neutral-950 border-neutral-800">
+                                <SelectTrigger className="bg-paper border-olive/20">
                                     <SelectValue placeholder="Selecciona" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+                                <SelectContent className="bg-paper-soft border-olive/20 text-ink">
                                     <SelectItem value="all">Todas las Canchas</SelectItem>
                                     <SelectItem value="1">Cancha 1</SelectItem>
                                     <SelectItem value="2">Cancha 2</SelectItem>
@@ -174,23 +174,23 @@ export function PrimeTimeConfig({ initialRanges = [] }: { initialRanges: any }) 
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label className="text-neutral-300">Hora Inicio</Label>
+                                <Label className="text-ink-soft">Hora Inicio</Label>
                                 <Select value={horaInicio} onValueChange={setHoraInicio} required>
-                                    <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
+                                    <SelectTrigger className="bg-paper border-olive/20 text-ink">
                                         <SelectValue placeholder="Hora Inicio" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-neutral-900 border-neutral-800 text-white h-[200px]">
+                                    <SelectContent className="bg-paper-soft border-olive/20 text-ink h-[200px]">
                                         {timeOptions.map(t => <SelectItem key={`ini-${t}`} value={t}>{t}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-neutral-300">Hora Fin</Label>
+                                <Label className="text-ink-soft">Hora Fin</Label>
                                 <Select value={horaFin} onValueChange={setHoraFin} required>
-                                    <SelectTrigger className="bg-neutral-950 border-neutral-800 text-white">
+                                    <SelectTrigger className="bg-paper border-olive/20 text-ink">
                                         <SelectValue placeholder="Hora Fin" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-neutral-900 border-neutral-800 text-white h-[200px]">
+                                    <SelectContent className="bg-paper-soft border-olive/20 text-ink h-[200px]">
                                         {timeOptions.map(t => <SelectItem key={`fin-${t}`} value={t}>{t}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
@@ -199,25 +199,25 @@ export function PrimeTimeConfig({ initialRanges = [] }: { initialRanges: any }) 
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label className="text-neutral-300">Desde (Fecha)</Label>
-                                <Input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} className="bg-neutral-950 border-neutral-800 text-white [color-scheme:dark]" />
-                                <span className="text-[10px] text-neutral-500">Opcional</span>
+                                <Label className="text-ink-soft">Desde (Fecha)</Label>
+                                <Input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} className="bg-paper border-olive/20 text-ink [color-scheme:dark]" />
+                                <span className="text-[10px] text-olive/60">Opcional</span>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-neutral-300">Hasta (Fecha)</Label>
-                                <Input type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} className="bg-neutral-950 border-neutral-800 text-white [color-scheme:dark]" />
-                                <span className="text-[10px] text-neutral-500">Opcional</span>
+                                <Label className="text-ink-soft">Hasta (Fecha)</Label>
+                                <Input type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} className="bg-paper border-olive/20 text-ink [color-scheme:dark]" />
+                                <span className="text-[10px] text-olive/60">Opcional</span>
                             </div>
                         </div>
 
                         <div className="pt-2 flex justify-end gap-2">
-                            <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="hover:bg-neutral-800 hover:text-white">Cancelar</Button>
-                            <Button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white">Guardar Regla</Button>
+                            <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="hover:bg-paper-dark hover:text-ink">Cancelar</Button>
+                            <Button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-ink">Guardar Regla</Button>
                         </div>
                     </form>
                 </DialogContent>
             </Dialog>
-            <div className="mt-2 text-[11px] text-amber-500 font-medium">
+            <div className="mt-2 text-[11px] text-amber-600 font-medium">
                 ⚠️ Recuerda que después de configurar estas reglas, debes hacer clic en el botón principal &quot;Guardar Configuraciones&quot; de la parte inferior para guardar los cambios a la base de datos de tu club.
             </div>
         </div>

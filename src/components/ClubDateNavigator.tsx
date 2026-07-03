@@ -22,23 +22,23 @@ export function ClubDateNavigator({ currentDateStr, displayDate }: Props) {
     };
 
     return (
-        <div className="flex items-center gap-1 bg-neutral-950 border border-neutral-700 rounded-md overflow-hidden">
+        <div className="flex items-center gap-1 bg-paper border border-olive/30 rounded-md overflow-hidden">
             <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 text-neutral-400 hover:text-white rounded-none hover:bg-neutral-800"
+                className="h-10 w-10 text-olive/70 hover:text-ink rounded-none hover:bg-paper-dark"
                 onClick={() => navigateDate(-1)}
             >
                 <ChevronLeft className="w-4 h-4" />
             </Button>
-            <div className="flex items-center justify-center min-w-[120px] text-sm font-medium text-white px-2">
-                <Clock className="w-4 h-4 mr-2 text-neutral-400" />
+            <div className="flex items-center justify-center min-w-[120px] text-sm font-medium text-ink px-2">
+                <Clock className="w-4 h-4 mr-2 text-olive/70" />
                 {displayDate}
             </div>
             <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 text-neutral-400 hover:text-white rounded-none hover:bg-neutral-800"
+                className="h-10 w-10 text-olive/70 hover:text-ink rounded-none hover:bg-paper-dark"
                 onClick={() => navigateDate(1)}
             >
                 <ChevronRight className="w-4 h-4" />

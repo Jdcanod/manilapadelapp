@@ -10,7 +10,7 @@ function BracketSection({ categoria, matches, playerPairIds, currentUserId, tipo
     if (matches.length === 0) {
         return (
             <div className="text-center py-20 text-olive/70 border-2 border-olive/20 border-dashed rounded-3xl bg-paper/50 relative z-10">
-                <Trophy className="w-20 h-20 text-neutral-800 mx-auto mb-6" />
+                <Trophy className="w-20 h-20 text-olive/30 mx-auto mb-6" />
                 <p className="max-w-xs mx-auto text-sm font-bold uppercase tracking-wider opacity-50">El cuadro para {categoria} se generará al finalizar grupos</p>
             </div>
         );
