@@ -10,7 +10,7 @@ import { Users, Save } from "lucide-react";
 import { updatePlayerRanking } from "./actions";
 import { ResetPasswordJugadorButton } from "@/components/ResetPasswordJugadorButton";
 
-export default async function AdminJugadoresPage() {
+export default async function AdminJugadoresPage({ searchParams }: { searchParams?: { q?: string } }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -26,14 +26,20 @@ export default async function AdminJugadoresPage() {
 
     const clubes = clubesData || [];
 
-    // Traer jugadores
-    const { data: jugadoresData } = await supabase
+    // Traer jugadores — sin invitados (ghost users con email invitado_*)
+    const q = (searchParams?.q || "").trim();
+    let query = supabase
         .from("users")
         .select(`
             id, auth_id, nombre, email, ciudad, elo, club_id
         `)
         .eq("rol", "jugador")
+        .not("email", "ilike", "invitado_%")
         .order("elo", { ascending: false });
+    if (q) {
+        query = query.or(`nombre.ilike.%${q}%,apellido.ilike.%${q}%,email.ilike.%${q}%`);
+    }
+    const { data: jugadoresData } = await query;
 
     const jugadores = jugadoresData || [];
 
@@ -52,6 +58,30 @@ export default async function AdminJugadoresPage() {
                         <Users className="w-5 h-5 text-olive" /> Lista de Jugadores
                     </CardTitle>
                     <CardDescription className="text-olive">Edita el ELO directamente para calibrar el ranking inicial.</CardDescription>
+                    {/* Búsqueda por nombre o correo (GET → recarga con filtro server-side) */}
+                    <form method="GET" className="flex items-center gap-2 pt-3">
+                        <Input
+                            type="search"
+                            name="q"
+                            defaultValue={q}
+                            placeholder="Buscar por nombre o correo…"
+                            className="bg-paper border-olive/20 text-ink max-w-sm h-9"
+                        />
+                        <Button type="submit" size="sm" variant="outline"
+                            className="h-9 bg-paper border-olive/20 text-ink hover:bg-paper-dark">
+                            Buscar
+                        </Button>
+                        {q && (
+                            <Button asChild size="sm" variant="ghost" className="h-9 text-olive/70 hover:text-ink">
+                                <a href="/superadmin/jugadores">Limpiar</a>
+                            </Button>
+                        )}
+                    </form>
+                    {q && (
+                        <p className="text-xs text-olive/60 pt-1">
+                            {jugadores.length} resultado{jugadores.length === 1 ? '' : 's'} para &quot;{q}&quot;
+                        </p>
+                    )}
                 </CardHeader>
                 <CardContent className="p-0">
                     <Table>
