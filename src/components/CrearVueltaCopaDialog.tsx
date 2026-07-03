@@ -61,6 +61,9 @@ export function CrearVueltaCopaDialog({
     });
     const [copiarInscripciones, setCopiarInscripciones] = useState(true);
     const [intercambiarClubes, setIntercambiarClubes] = useState(true);
+    // Categorías nuevas agregadas manualmente (además de las de la ida)
+    const [categoriasExtra, setCategoriasExtra] = useState<string[]>([]);
+    const [nuevaCategoria, setNuevaCategoria] = useState("");
 
     const toggleCategoria = (cat: string) => {
         setConfig(prev => {
@@ -72,7 +75,22 @@ export function CrearVueltaCopaDialog({
     };
 
     const setPartidos = (cat: string, n: number) => {
-        setConfig(prev => ({ ...prev, [cat]: Math.max(1, Math.min(20, n || 1)) }));
+        setConfig(prev => ({ ...prev, [cat]: Math.max(1, Math.min(99, n || 1)) }));
+    };
+
+    const agregarCategoria = () => {
+        const cat = nuevaCategoria.trim();
+        if (!cat) return;
+        const todas = [...categoriasIda, ...categoriasExtra];
+        if (todas.some(c => c.toLowerCase() === cat.toLowerCase())) {
+            setNuevaCategoria("");
+            setError(`La categoría "${cat}" ya está en la lista`);
+            return;
+        }
+        setCategoriasExtra(prev => [...prev, cat]);
+        setConfig(prev => ({ ...prev, [cat]: 2 }));
+        setNuevaCategoria("");
+        setError(null);
     };
 
     const handleSubmit = () => {
@@ -159,8 +177,9 @@ export function CrearVueltaCopaDialog({
                             Categorías y partidos por categoría
                         </label>
                         <div className="space-y-2">
-                            {categoriasIda.map(cat => {
+                            {[...categoriasIda, ...categoriasExtra].map(cat => {
                                 const activa = cat in config;
+                                const esNueva = categoriasExtra.includes(cat);
                                 return (
                                     <div key={cat} className={cn(
                                         "flex items-center justify-between gap-3 rounded-lg border-2 px-3 py-2 transition-all",
@@ -173,11 +192,16 @@ export function CrearVueltaCopaDialog({
                                                 activa ? "bg-emerald-500 border-emerald-500 text-white" : "border-olive/40"
                                             )}>{activa ? '✓' : ''}</span>
                                             {cat}
+                                            {esNueva && (
+                                                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/30 rounded-full px-1.5 py-0.5">
+                                                    Nueva
+                                                </span>
+                                            )}
                                         </button>
                                         {activa && (
                                             <div className="flex items-center gap-1.5">
                                                 <span className="text-[10px] text-olive/70 uppercase tracking-widest">Partidos</span>
-                                                <Input type="number" min={1} max={20} value={config[cat]}
+                                                <Input type="number" min={1} max={99} value={config[cat]}
                                                     onChange={e => setPartidos(cat, parseInt(e.target.value))}
                                                     className="bg-paper border-olive/20 text-ink w-16 h-8 text-center" />
                                             </div>
@@ -185,6 +209,21 @@ export function CrearVueltaCopaDialog({
                                     </div>
                                 );
                             })}
+                        </div>
+                        {/* Agregar categoría nueva */}
+                        <div className="flex items-center gap-2 pt-1">
+                            <Input
+                                value={nuevaCategoria}
+                                onChange={e => setNuevaCategoria(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); agregarCategoria(); } }}
+                                placeholder="Nueva categoría (ej: 6ta, Mixta…)"
+                                className="bg-paper border-olive/20 text-ink h-9"
+                            />
+                            <Button type="button" onClick={agregarCategoria} disabled={!nuevaCategoria.trim()}
+                                variant="outline"
+                                className="bg-emerald-500/10 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/20 hover:text-ink font-bold h-9 px-3 flex-shrink-0">
+                                <Plus className="w-4 h-4 mr-1" /> Agregar
+                            </Button>
                         </div>
                     </div>
 
