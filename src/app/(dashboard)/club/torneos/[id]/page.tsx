@@ -16,6 +16,7 @@ import { TournamentExportButton } from "@/components/TournamentExportButton";
 import { TournamentResultsManager } from "@/components/TournamentResultsManager";
 import { CopaDavisManager } from "@/components/CopaDavisManager";
 import { CrearVueltaCopaDialog } from "@/components/CrearVueltaCopaDialog";
+import { EditarCanchasControl } from "@/components/EditarCanchasControl";
 import { PersistentTabs } from "@/components/PersistentTabs";
 import { formatPairName } from "@/lib/display-names";
 
@@ -671,6 +672,12 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                             </TabsContent>
 
                             <TabsContent value="cronograma" className="mt-6">
+                                <div className="mb-4 flex justify-end">
+                                    <EditarCanchasControl
+                                        torneoId={params.id}
+                                        canchasActuales={torneo.reglas_puntuacion?.config_canchas || 2}
+                                    />
+                                </div>
                                 <TournamentChronogram
                                     torneoId={params.id}
                                     matches={partidosReales}
@@ -737,6 +744,12 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                 </TabsContent>
 
                 <TabsContent value="cronograma" className="mt-6">
+                    <div className="mb-4 flex justify-end">
+                        <EditarCanchasControl
+                            torneoId={params.id}
+                            canchasActuales={torneo.reglas_puntuacion?.config_canchas || 1}
+                        />
+                    </div>
                     <TournamentChronogram
                         torneoId={params.id}
                         matches={partidosReales}

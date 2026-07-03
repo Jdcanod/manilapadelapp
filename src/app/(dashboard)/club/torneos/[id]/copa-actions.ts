@@ -562,6 +562,53 @@ export async function inscribirParejaCopa({
 }
 
 /**
+ * Actualiza el número de canchas del torneo (reglas_puntuacion.config_canchas).
+ * Disponible para el admin del club dueño del torneo; en Copa Davis también
+ * para el club rival.
+ */
+export async function actualizarCanchasTorneo(torneoId: string, canchas: number) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado" };
+
+        const admin = createPureAdminClient();
+        const { data: me } = await admin.from('users').select('id, rol').eq('auth_id', user.id).single();
+        if (!me || me.rol !== 'admin_club') return { success: false, message: "Sin permisos" };
+
+        const { data: torneo } = await admin
+            .from('torneos')
+            .select('id, club_id, club_rival_id, formato, reglas_puntuacion')
+            .eq('id', torneoId)
+            .single();
+        if (!torneo) return { success: false, message: "Torneo no encontrado" };
+
+        const esDueno = String(torneo.club_id) === String(me.id);
+        const esRivalCopa = torneo.formato === 'copa_davis' && String(torneo.club_rival_id) === String(me.id);
+        if (!esDueno && !esRivalCopa) return { success: false, message: "No eres parte de este torneo" };
+
+        const n = Math.max(1, Math.min(20, Math.floor(canchas)));
+        const { error } = await admin
+            .from('torneos')
+            .update({
+                reglas_puntuacion: {
+                    ...(torneo.reglas_puntuacion || {}),
+                    config_canchas: n,
+                },
+            })
+            .eq('id', torneoId);
+        if (error) return { success: false, message: error.message };
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        revalidatePath(`/torneos/${torneoId}`);
+        return { success: true };
+    } catch (err: unknown) {
+        const e = err as Error;
+        return { success: false, message: e.message || "Error desconocido" };
+    }
+}
+
+/**
  * Edita una inscripción de Copa Davis ya creada: permite cambiar los dos
  * jugadores y/o la categoría. Si la pareja cambia, los partidos del torneo
  * que ya la tenían asignada se actualizan a la pareja nueva para no perder
