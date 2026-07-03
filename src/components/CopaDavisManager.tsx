@@ -554,17 +554,34 @@ function ParejasInscritasSection({
                                             </span>
                                         )}
                                     </div>
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => handleDelete(ins.id)}
-                                        disabled={pending && deletingId === ins.id}
-                                        className="text-olive/50 hover:text-red-400 hover:bg-red-500/10 h-7 w-7 p-0 flex-shrink-0"
-                                    >
-                                        {pending && deletingId === ins.id
-                                            ? <Loader2 className="w-3 h-3 animate-spin" />
-                                            : <X className="w-3.5 h-3.5" />}
-                                    </Button>
+                                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                                        {ins.pareja && (
+                                            <InscribirParejaCopaDialog
+                                                torneoId={torneoId}
+                                                clubLocal={clubLocal}
+                                                clubRival={clubRival}
+                                                categoriasSugeridas={categoriasSugeridas}
+                                                currentClubId={currentClubId}
+                                                editar={{
+                                                    inscripcionId: ins.id,
+                                                    categoria: ins.categoria || '',
+                                                    jugador1Id: ins.pareja.jugador1_id,
+                                                    jugador2Id: ins.pareja.jugador2_id,
+                                                }}
+                                            />
+                                        )}
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => handleDelete(ins.id)}
+                                            disabled={pending && deletingId === ins.id}
+                                            className="text-olive/50 hover:text-red-400 hover:bg-red-500/10 h-7 w-7 p-0"
+                                        >
+                                            {pending && deletingId === ins.id
+                                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                                : <X className="w-3.5 h-3.5" />}
+                                        </Button>
+                                    </div>
                                 </div>
                             );
                         })}

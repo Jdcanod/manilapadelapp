@@ -562,6 +562,132 @@ export async function inscribirParejaCopa({
 }
 
 /**
+ * Edita una inscripción de Copa Davis ya creada: permite cambiar los dos
+ * jugadores y/o la categoría. Si la pareja cambia, los partidos del torneo
+ * que ya la tenían asignada se actualizan a la pareja nueva para no perder
+ * la programación.
+ */
+export async function editarInscripcionCopa({
+    inscripcionId,
+    jugador1Sel,
+    jugador2Sel,
+    categoria,
+}: {
+    inscripcionId: string;
+    jugador1Sel: string;
+    jugador2Sel: string;
+    categoria: string;
+}) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado" };
+
+        const admin = createPureAdminClient();
+        const { data: me } = await admin.from('users').select('id, rol').eq('auth_id', user.id).single();
+        if (!me || me.rol !== 'admin_club') return { success: false, message: "Sin permisos" };
+
+        const { data: ins } = await admin
+            .from('torneo_parejas')
+            .select('id, torneo_id, pareja_id, representando_club_id, torneos!inner(club_id, club_rival_id, formato)')
+            .eq('id', inscripcionId)
+            .single();
+        if (!ins) return { success: false, message: "Inscripción no encontrada" };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const t = (ins as any).torneos;
+        if (t?.formato !== 'copa_davis') return { success: false, message: "Solo en Copa Davis" };
+        if (String(t.club_id) !== String(me.id) && String(t.club_rival_id) !== String(me.id)) {
+            return { success: false, message: "No eres parte de este torneo" };
+        }
+        // Cada club solo edita sus propias parejas
+        if (String(ins.representando_club_id) !== String(me.id)) {
+            return { success: false, message: "Solo puedes editar parejas de tu propio club" };
+        }
+
+        if (!categoria?.trim()) return { success: false, message: "La categoría es requerida" };
+        if (!jugador1Sel || !jugador2Sel) return { success: false, message: "Selecciona los dos jugadores" };
+
+        // Resolver jugadores (soporta "manual:Nombre" para invitados)
+        const resolveJugador = async (sel: string): Promise<string> => {
+            if (sel.startsWith("manual:")) {
+                return await getOrCreateInvitado(admin, sel);
+            }
+            return sel;
+        };
+        const j1Id = await resolveJugador(jugador1Sel);
+        const j2Id = await resolveJugador(jugador2Sel);
+        if (j1Id === j2Id) return { success: false, message: "Los dos jugadores deben ser distintos" };
+
+        // Buscar pareja existente con esos jugadores o crearla (misma lógica que inscribir)
+        const { data: existing } = await admin
+            .from('parejas')
+            .select('id')
+            .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
+            .maybeSingle();
+
+        let parejaId = existing?.id;
+        if (!parejaId) {
+            await admin.from('parejas').update({ activa: false }).in('jugador1_id', [j1Id, j2Id]);
+            await admin.from('parejas').update({ activa: false }).in('jugador2_id', [j1Id, j2Id]);
+
+            const { data: jugadores } = await admin
+                .from('users').select('id, nombre, apellido').in('id', [j1Id, j2Id]);
+            const nombreCorto = (u: { nombre?: string | null; apellido?: string | null }) => {
+                const n = (u.nombre || '').trim();
+                const a = (u.apellido || '').trim();
+                if (n && a) return `${n.charAt(0).toUpperCase()}. ${a.split(/\s+/)[0]}`;
+                if (n) {
+                    const parts = n.split(/\s+/);
+                    if (parts.length === 1) return parts[0];
+                    return `${parts[0].charAt(0).toUpperCase()}. ${parts.length >= 3 ? parts[2] : parts[1]}`;
+                }
+                return 'Jugador';
+            };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const u1 = jugadores?.find((u: any) => u.id === j1Id);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const u2 = jugadores?.find((u: any) => u.id === j2Id);
+            const nombre_pareja = `${nombreCorto(u1 || {})} / ${nombreCorto(u2 || {})}`;
+
+            const { data: nuevaPareja, error: errP } = await admin
+                .from('parejas')
+                .insert({ jugador1_id: j1Id, jugador2_id: j2Id, nombre_pareja, activa: true })
+                .select('id').single();
+            if (errP) return { success: false, message: "Error creando pareja: " + errP.message };
+            parejaId = nuevaPareja.id;
+        }
+
+        const parejaAnteriorId = ins.pareja_id;
+
+        // Actualizar la inscripción
+        const { error: errU } = await admin
+            .from('torneo_parejas')
+            .update({ pareja_id: parejaId, categoria: categoria.trim() })
+            .eq('id', inscripcionId);
+        if (errU) return { success: false, message: "Error actualizando inscripción: " + errU.message };
+
+        // Si la pareja cambió, actualizar los partidos del torneo que la tenían asignada
+        if (parejaId !== parejaAnteriorId && parejaAnteriorId) {
+            await admin.from('partidos')
+                .update({ pareja1_id: parejaId })
+                .eq('torneo_id', ins.torneo_id)
+                .eq('pareja1_id', parejaAnteriorId);
+            await admin.from('partidos')
+                .update({ pareja2_id: parejaId })
+                .eq('torneo_id', ins.torneo_id)
+                .eq('pareja2_id', parejaAnteriorId);
+        }
+
+        revalidatePath(`/club/torneos/${ins.torneo_id}`);
+        revalidatePath(`/torneos/${ins.torneo_id}`);
+        return { success: true };
+    } catch (err: unknown) {
+        const e = err as Error;
+        return { success: false, message: e.message || "Error desconocido" };
+    }
+}
+
+/**
  * Lista las parejas inscritas en el torneo (Copa Davis) por club.
  * Devuelve también el detalle de los jugadores para poder formatear el nombre.
  */

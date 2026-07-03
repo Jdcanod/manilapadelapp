@@ -5,10 +5,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, UserPlus, AlertCircle, Search, X } from "lucide-react";
+import { Loader2, UserPlus, AlertCircle, Search, X, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { inscribirParejaCopa, obtenerJugadoresParaCopa } from "@/app/(dashboard)/club/torneos/[id]/copa-actions";
+import { inscribirParejaCopa, editarInscripcionCopa, obtenerJugadoresParaCopa } from "@/app/(dashboard)/club/torneos/[id]/copa-actions";
 import { formatPlayerNameFull, isGuestEmail } from "@/lib/display-names";
 
 interface ClubLite { id: string; nombre: string; }
@@ -21,9 +21,17 @@ interface Props {
     categoriasSugeridas?: string[];
     /** ID del club del admin actual — fuerza a que solo inscriba SUS parejas. */
     currentClubId: string;
+    /** Modo edición: si se pasa, el dialog edita esta inscripción en lugar de crear una nueva. */
+    editar?: {
+        inscripcionId: string;
+        categoria: string;
+        jugador1Id: string;
+        jugador2Id: string;
+    };
 }
 
-export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, categoriasSugeridas = [], currentClubId }: Props) {
+export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, categoriasSugeridas = [], currentClubId, editar }: Props) {
+    const esEdicion = !!editar;
     const [open, setOpen] = useState(false);
     const router = useRouter();
     const [pending, startTransition] = useTransition();
@@ -32,19 +40,19 @@ export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, cate
     const [allJugadores, setAllJugadores] = useState<Jugador[]>([]);
     const [loading, setLoading] = useState(false);
 
-    const [categoria, setCategoria] = useState("");
+    const [categoria, setCategoria] = useState(editar?.categoria || "");
     // El club se fuerza al del admin actual — no se puede inscribir parejas del rival
     const representandoClubId = currentClubId;
     const miClubNombre = currentClubId === clubLocal.id ? clubLocal.nombre : clubRival.nombre;
 
     // Jugador 1
     const [j1Manual, setJ1Manual] = useState(false);
-    const [j1Sel, setJ1Sel] = useState("");
+    const [j1Sel, setJ1Sel] = useState(editar?.jugador1Id || "");
     const [j1Name, setJ1Name] = useState("");
 
     // Jugador 2
     const [j2Manual, setJ2Manual] = useState(false);
-    const [j2Sel, setJ2Sel] = useState("");
+    const [j2Sel, setJ2Sel] = useState(editar?.jugador2Id || "");
     const [j2Name, setJ2Name] = useState("");
 
     useEffect(() => {
@@ -66,9 +74,9 @@ export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, cate
     );
 
     const reset = () => {
-        setCategoria("");
-        setJ1Manual(false); setJ1Sel(""); setJ1Name("");
-        setJ2Manual(false); setJ2Sel(""); setJ2Name("");
+        setCategoria(editar?.categoria || "");
+        setJ1Manual(false); setJ1Sel(editar?.jugador1Id || ""); setJ1Name("");
+        setJ2Manual(false); setJ2Sel(editar?.jugador2Id || ""); setJ2Name("");
         setError(null);
     };
 
@@ -88,15 +96,22 @@ export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, cate
         if (j1Final === j2Final) return setError("Los dos jugadores deben ser distintos");
 
         startTransition(async () => {
-            const r = await inscribirParejaCopa({
-                torneoId,
-                jugador1Sel: j1Final,
-                jugador2Sel: j2Final,
-                categoria: categoria.trim(),
-                representandoClubId,
-            });
+            const r = esEdicion && editar
+                ? await editarInscripcionCopa({
+                    inscripcionId: editar.inscripcionId,
+                    jugador1Sel: j1Final,
+                    jugador2Sel: j2Final,
+                    categoria: categoria.trim(),
+                })
+                : await inscribirParejaCopa({
+                    torneoId,
+                    jugador1Sel: j1Final,
+                    jugador2Sel: j2Final,
+                    categoria: categoria.trim(),
+                    representandoClubId,
+                });
             if (!r.success) {
-                setError(r.message || "Error al inscribir");
+                setError(r.message || (esEdicion ? "Error al guardar cambios" : "Error al inscribir"));
                 return;
             }
             setOpen(false);
@@ -108,16 +123,24 @@ export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, cate
     return (
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="bg-paper-soft border-olive/20 hover:bg-paper-dark text-ink font-bold">
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Inscribir Pareja
-                </Button>
+                {esEdicion ? (
+                    <Button size="sm" variant="ghost" title="Editar pareja"
+                        className="text-olive/50 hover:text-olive hover:bg-olive/10 h-7 w-7 p-0 flex-shrink-0">
+                        <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                ) : (
+                    <Button variant="outline" className="bg-paper-soft border-olive/20 hover:bg-paper-dark text-ink font-bold">
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Inscribir Pareja
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="bg-paper-soft border-olive/20 text-ink max-w-lg">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <UserPlus className="w-5 h-5 text-olive" />
-                        Inscribir Pareja a Copa Davis
+                        {esEdicion
+                            ? <><Pencil className="w-5 h-5 text-olive" /> Editar Pareja</>
+                            : <><UserPlus className="w-5 h-5 text-olive" /> Inscribir Pareja a Copa Davis</>}
                     </DialogTitle>
                 </DialogHeader>
 
@@ -198,8 +221,10 @@ export function InscribirParejaCopaDialog({ torneoId, clubLocal, clubRival, cate
                     <Button onClick={handleSubmit} disabled={pending || loading}
                         className="bg-olive hover:bg-olive text-paper font-bold">
                         {pending
-                            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Inscribiendo…</>
-                            : <><UserPlus className="w-4 h-4 mr-2" /> Inscribir Pareja</>}
+                            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {esEdicion ? 'Guardando…' : 'Inscribiendo…'}</>
+                            : esEdicion
+                                ? <><Pencil className="w-4 h-4 mr-2" /> Guardar Cambios</>
+                                : <><UserPlus className="w-4 h-4 mr-2" /> Inscribir Pareja</>}
                     </Button>
                 </DialogFooter>
             </DialogContent>
