@@ -5,9 +5,7 @@ import { revalidatePath } from "next/cache";
 
 /**
  * Edita los datos básicos de un jugador (nombre, apellido y correo).
- * Mismos permisos que el reset de contraseña:
- *   - superadmin: cualquier jugador
- *   - admin_club: solo jugadores de su club
+ * SOLO superadmin (herramienta provisional de administración).
  * Si cambia el correo y el jugador tiene cuenta, se actualiza también en Auth
  * (es el correo con el que inicia sesión).
  */
@@ -30,8 +28,8 @@ export async function editarDatosJugador({
         const admin = createPureAdminClient();
         const { data: me } = await admin
             .from('users').select('id, rol').eq('auth_id', user.id).single();
-        if (!me || (me.rol !== 'admin_club' && me.rol !== 'superadmin')) {
-            return { success: false as const, message: "Sin permisos" };
+        if (!me || me.rol !== 'superadmin') {
+            return { success: false as const, message: "Solo el superadmin puede editar los datos de un jugador" };
         }
 
         const { data: jugador } = await admin
@@ -42,9 +40,6 @@ export async function editarDatosJugador({
         if (!jugador) return { success: false as const, message: "Jugador no encontrado" };
         if (jugador.rol !== 'jugador') {
             return { success: false as const, message: "Solo se pueden editar jugadores" };
-        }
-        if (me.rol === 'admin_club' && String(jugador.club_id) !== String(user.id)) {
-            return { success: false as const, message: "Este jugador no pertenece a tu club" };
         }
 
         const nom = (nombre || '').trim();

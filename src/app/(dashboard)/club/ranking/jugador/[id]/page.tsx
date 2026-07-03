@@ -9,7 +9,6 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { formatPlayerName, isGuestEmail } from "@/lib/display-names";
 import { ResetPasswordJugadorButton } from "@/components/ResetPasswordJugadorButton";
-import { EditarJugadorButton } from "@/components/EditarJugadorButton";
 
 function getWinner(resultado: string): 1 | 2 | null {
     try {
@@ -206,20 +205,13 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
                         </div>
                     </div>
                 </div>
-                {/* Editar datos + restablecer contraseña (solo cuentas reales, no invitados) */}
+                {/* Restablecer contraseña sin correo (solo cuentas reales, no invitados).
+                    Editar datos del jugador es exclusivo del superadmin. */}
                 {!isGuestEmail(jugadorRaw.email) && (
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <EditarJugadorButton
-                            jugadorUserId={params.id}
-                            nombre={jugadorRaw.nombre || ''}
-                            apellido={jugadorRaw.apellido || ''}
-                            email={jugadorRaw.email || ''}
-                        />
-                        <ResetPasswordJugadorButton
-                            jugadorUserId={params.id}
-                            jugadorNombre={jugador.nombre}
-                        />
-                    </div>
+                    <ResetPasswordJugadorButton
+                        jugadorUserId={params.id}
+                        jugadorNombre={jugador.nombre}
+                    />
                 )}
             </div>
 
