@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     title: "Pádel Manía | Tu Club · Tu Juego · Tu Ranking",
     description:
         "Pádel Manía es la comunidad de pádel: encuentra partidos, gestiona torneos, compite en el ranking y construye tu juego.",
-    metadataBase: new URL("https://manilapadel.com"), // mantenemos el dominio actual
+    metadataBase: new URL("https://manilapadelapp.vercel.app"), // actualizar cuando haya dominio propio
     // Nombre corto bajo el ícono al guardar en la pantalla de inicio (iOS)
     appleWebApp: {
         title: "Pádel Manía",
