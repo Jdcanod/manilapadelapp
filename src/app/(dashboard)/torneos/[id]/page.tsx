@@ -94,17 +94,29 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
         }
     }
 
+    // Copa Davis: las parejas del club contrario se revelan 15 min antes del
+    // partido, o cuando el partido ya tiene resultado (jugado/terminado).
+    const REVEAL_MINUTES_PLAYER = 15;
+    const nowMs = Date.now();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const partidoRevelado = (p: any): boolean => {
+        if (p.resultado) return true;
+        if (!p.fecha) return false;
+        const diffMin = (new Date(p.fecha).getTime() - nowMs) / 60000;
+        return diffMin <= REVEAL_MINUTES_PLAYER;
+    };
+
     const partidosReales = (rawPartidos || [])
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .filter((p: any) => torneo.formato === 'copa_davis' || p.torneo_grupo_id || p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/))
         .map(p => {
         const p1 = parejaDataMap.get(p.pareja1_id);
         const p2 = parejaDataMap.get(p.pareja2_id);
-        
+
         let name1 = p1?.nombre_pareja || "TBD";
         let name2 = p2?.nombre_pareja || "TBD";
-        
-        if (torneo.formato === 'copa_davis') {
+
+        if (torneo.formato === 'copa_davis' && !partidoRevelado(p)) {
             if (!isLocalClubPlayer && !isRivalClubPlayer) {
                 // Spectator
                 name1 = "Pareja Local";
@@ -192,6 +204,49 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
         return { local, rival };
     })();
 
+    // Serie ida/vuelta: puntos del torneo enlazado, mapeados a los clubes de
+    // ESTE torneo (por id — local/visitante pueden estar intercambiados).
+    let serieGlobal: { otroLocal: number; otroRival: number; esteEsVuelta: boolean } | null = null;
+    if (torneo.formato === 'copa_davis') {
+        const copaSerie = torneo.reglas_puntuacion?.copa_serie as
+            | { rol: 'ida' | 'vuelta'; torneo_ida_id?: string; torneo_vuelta_id?: string }
+            | undefined;
+        const enlaceId = copaSerie?.rol === 'vuelta' ? copaSerie.torneo_ida_id : copaSerie?.torneo_vuelta_id;
+        if (enlaceId) {
+            const { data: tEnlace } = await adminSupabase
+                .from('torneos').select('id, club_id, club_rival_id').eq('id', enlaceId).maybeSingle();
+            if (tEnlace) {
+                const { data: pEnlace } = await adminSupabase
+                    .from('partidos')
+                    .select('resultado, puntos_partido')
+                    .eq('torneo_id', tEnlace.id);
+                const puntosPorClub: Record<string, number> = {
+                    [String(tEnlace.club_id)]: 0,
+                    [String(tEnlace.club_rival_id)]: 0,
+                };
+                (pEnlace || []).forEach((p: { resultado: string | null; puntos_partido: number | null }) => {
+                    if (!p.resultado) return;
+                    const normalised = p.resultado.replace(/[;/|]/g, ',').replace(/\s{2,}/g, ',').trim();
+                    const raw = normalised.includes(',') ? normalised : normalised.replace(/\s+/g, ',');
+                    let s1 = 0, s2 = 0;
+                    raw.split(',').forEach(s => {
+                        const [a, b] = s.trim().split('-').map(Number);
+                        if (isNaN(a) || isNaN(b)) return;
+                        if (a > b) s1++; else if (b > a) s2++;
+                    });
+                    const valor = p.puntos_partido || 0;
+                    if (s1 > s2) puntosPorClub[String(tEnlace.club_id)] += valor;
+                    else if (s2 > s1) puntosPorClub[String(tEnlace.club_rival_id)] += valor;
+                });
+                serieGlobal = {
+                    otroLocal: puntosPorClub[String(torneo.club_id)] || 0,
+                    otroRival: puntosPorClub[String(torneo.club_rival_id)] || 0,
+                    esteEsVuelta: copaSerie?.rol === 'vuelta',
+                };
+            }
+        }
+    }
+
     return (
         <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
             {/* HEADER */}
@@ -239,18 +294,55 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                 <div className="mt-8 space-y-8">
                     {/* SCOREBOARD COPA DAVIS */}
                     {scoreboard && (
-                        <div className="flex justify-center animate-in fade-in zoom-in duration-500">
-                            <div className="bg-blue-950 border border-blue-900/50 text-ink px-10 py-6 rounded-3xl shadow-2xl flex items-center gap-10">
+                        <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
+                            <div className="bg-paper-soft border border-olive/20 text-ink px-10 py-6 rounded-3xl shadow-xl flex items-center gap-10">
                                 <div className="text-center w-32">
-                                    <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest mb-2 line-clamp-2 leading-tight">{torneo.club?.nombre || 'Local'}</p>
-                                    <p className="text-5xl font-black">{scoreboard.local}</p>
+                                    <p className="text-[10px] text-olive font-black uppercase tracking-widest mb-2 line-clamp-2 leading-tight">{torneo.club?.nombre || 'Local'}</p>
+                                    <p className="text-5xl font-black text-olive">{scoreboard.local}</p>
                                 </div>
-                                <div className="text-3xl font-black text-blue-500/50">-</div>
+                                <div className="text-3xl font-black text-olive/40">-</div>
                                 <div className="text-center w-32">
-                                    <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest mb-2 line-clamp-2 leading-tight">{torneo.club_rival?.nombre || 'Rival'}</p>
-                                    <p className="text-5xl font-black">{scoreboard.rival}</p>
+                                    <p className="text-[10px] text-ochre-dark font-black uppercase tracking-widest mb-2 line-clamp-2 leading-tight">{torneo.club_rival?.nombre || 'Rival'}</p>
+                                    <p className="text-5xl font-black text-ochre-dark">{scoreboard.rival}</p>
                                 </div>
                             </div>
+
+                            {/* Serie global (ida + vuelta) — calculada en vivo desde ambos torneos */}
+                            {serieGlobal && (
+                                <div className="bg-paper border border-olive/20 rounded-2xl px-6 py-4 w-full max-w-md">
+                                    <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                                        <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
+                                            🏆 Serie Global — Ida + Vuelta
+                                        </span>
+                                        <span className="text-[10px] text-olive/60 uppercase tracking-widest">
+                                            {serieGlobal.esteEsVuelta
+                                                ? `Ida: ${serieGlobal.otroLocal}–${serieGlobal.otroRival} · Vuelta: ${scoreboard.local}–${scoreboard.rival}`
+                                                : `Ida: ${scoreboard.local}–${scoreboard.rival} · Vuelta: ${serieGlobal.otroLocal}–${serieGlobal.otroRival}`}
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center">
+                                        <div className="text-right">
+                                            <p className="text-[11px] font-bold text-ink uppercase truncate">{torneo.club?.nombre || 'Local'}</p>
+                                            <p className={cn(
+                                                "text-3xl font-black leading-none mt-1",
+                                                (scoreboard.local + serieGlobal.otroLocal) >= (scoreboard.rival + serieGlobal.otroRival) ? "text-emerald-700" : "text-olive/60"
+                                            )}>
+                                                {scoreboard.local + serieGlobal.otroLocal}
+                                            </p>
+                                        </div>
+                                        <span className="text-[10px] font-black text-olive/60 uppercase tracking-widest">Total</span>
+                                        <div>
+                                            <p className="text-[11px] font-bold text-ink uppercase truncate">{torneo.club_rival?.nombre || 'Rival'}</p>
+                                            <p className={cn(
+                                                "text-3xl font-black leading-none mt-1",
+                                                (scoreboard.rival + serieGlobal.otroRival) >= (scoreboard.local + serieGlobal.otroLocal) ? "text-emerald-700" : "text-olive/60"
+                                            )}>
+                                                {scoreboard.rival + serieGlobal.otroRival}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                     <div className="bg-paper-soft/50 rounded-3xl border border-olive/20 p-6">
