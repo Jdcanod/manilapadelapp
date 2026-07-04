@@ -19,6 +19,10 @@ export const metadata: Metadata = {
     description:
         "Pádel Manía es la comunidad de pádel: encuentra partidos, gestiona torneos, compite en el ranking y construye tu juego.",
     metadataBase: new URL("https://manilapadel.com"), // mantenemos el dominio actual
+    // Nombre corto bajo el ícono al guardar en la pantalla de inicio (iOS)
+    appleWebApp: {
+        title: "Pádel Manía",
+    },
 };
 
 export default function RootLayout({
