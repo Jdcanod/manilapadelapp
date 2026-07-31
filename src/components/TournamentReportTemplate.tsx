@@ -38,6 +38,26 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
         return ptConClub ? ptConClub.representando_club_id : null;
     };
 
+    // Nombre de pareja resuelto desde `participantes`, que ya viene formateado
+    // con nombre + apellido (igual que en la tabla de grupos). El
+    // `nombre_pareja` guardado en la BD puede traer el formato viejo/abreviado,
+    // así que solo se usa como respaldo.
+    const nombrePorPareja = React.useMemo(() => {
+        const m = new Map<string, string>();
+        participantes.forEach(pt => {
+            if (pt?.pareja_id && pt?.nombre) m.set(String(pt.pareja_id), pt.nombre);
+        });
+        return m;
+    }, [participantes]);
+
+    const resolveNombrePareja = (parejaId: string | undefined | null, fallback?: string | null) => {
+        if (parejaId) {
+            const n = nombrePorPareja.get(String(parejaId));
+            if (n) return n;
+        }
+        return fallback || "TBD";
+    };
+
     // Calcular el marcador de la Copa Davis
     const scoreboard = React.useMemo(() => {
         if (!isCopaDavis) return null;
@@ -379,7 +399,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                     }
                                                     const clubId = getParejaClubId(pId);
                                                     const isRival = isCopaDavis && clubId && clubId !== currentClubId;
-                                                    return isRival ? <span className="italic text-olive/60">Oculta (Misterio)</span> : (partido.pareja1?.nombre_pareja || "TBD");
+                                                    return isRival ? <span className="italic text-olive/60">Oculta (Misterio)</span> : resolveNombrePareja(pId, partido.pareja1?.nombre_pareja);
                                                 })()}
                                             </td>
                                             <td className="py-1.5 text-center">
@@ -399,7 +419,7 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                     }
                                                     const clubId = getParejaClubId(pId);
                                                     const isRival = isCopaDavis && clubId && clubId !== currentClubId;
-                                                    return isRival ? <span className="italic text-olive/60">Oculta (Misterio)</span> : (partido.pareja2?.nombre_pareja || "TBD");
+                                                    return isRival ? <span className="italic text-olive/60">Oculta (Misterio)</span> : resolveNombrePareja(pId, partido.pareja2?.nombre_pareja);
                                                 })()}
                                             </td>
                                             <td className="py-1.5 text-right font-medium text-ochre-dark">{(() => {
