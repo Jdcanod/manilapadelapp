@@ -773,9 +773,12 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                     {/* ... (existing content) */}
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-bold text-ink uppercase tracking-wider">Parejas Inscritas</h3>
-                        {(rawPartidos || []).length === 0 && (
-                            <AddTournamentPlayerModal torneoId={params.id} categorias={categoriasHabilitadas} esMaster={torneo.tipo === 'master'} />
-                        )}
+                        <AddTournamentPlayerModal
+                            torneoId={params.id}
+                            categorias={categoriasHabilitadas}
+                            esMaster={torneo.tipo === 'master'}
+                            hasStarted={hasStarted}
+                        />
                     </div>
                     {allParticipants.length === 0 ? (
                         <div className="text-center py-12 text-olive/70 border border-olive/20 border-dashed rounded-xl bg-paper-soft/30">

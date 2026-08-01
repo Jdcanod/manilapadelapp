@@ -14,6 +14,9 @@ interface AddTournamentPlayerModalProps {
     torneoId: string;
     categorias: string[];
     esMaster: boolean;
+    /** El torneo ya tiene partidos creados: la pareja nueva queda sin grupo
+     *  hasta que el admin la arrastre a uno desde "Fase de Grupos". */
+    hasStarted?: boolean;
 }
 
 interface User {
@@ -23,7 +26,7 @@ interface User {
     email: string;
 }
 
-export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: AddTournamentPlayerModalProps) {
+export function AddTournamentPlayerModal({ torneoId, categorias, esMaster, hasStarted = false }: AddTournamentPlayerModalProps) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
@@ -108,6 +111,13 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster }: Add
                 <DialogHeader>
                     <DialogTitle className="text-xl">Inscribir Pareja Manualmente</DialogTitle>
                 </DialogHeader>
+                {hasStarted && (
+                    <div className="mt-3 text-[11px] text-ochre-dark bg-ochre/5 border border-ochre/30 rounded-lg p-2.5">
+                        El torneo ya tiene partidos creados. La pareja quedará inscrita
+                        <strong> sin grupo</strong>: para que juegue, arrástrala a un grupo
+                        desde la pestaña <strong>Fase de Grupos</strong>.
+                    </div>
+                )}
                 <div className="space-y-6 pt-4">
                     {/* Jugador 1 */}
                     <div className="space-y-2">
