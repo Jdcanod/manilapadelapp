@@ -417,8 +417,14 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         .filter((p: any) => {
             // Copa Davis: incluir todos los partidos del torneo (placeholders + ya asignados)
             if (esCopaDavis) return true;
-            // Otros formatos: solo de grupos o de fases finales nombradas
-            return p.torneo_grupo_id || p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/);
+            // Otros formatos: grupos, fases finales nombradas…
+            if (p.torneo_grupo_id || p.torneo_fase_id) return true;
+            if (p.lugar?.toLowerCase().match(/final|playoff|semifinal|cuartos|octavos|tercer puesto/)) return true;
+            // …y cualquier partido ya programado en una cancha. Sin esto, un
+            // partido que perdió su grupo (p. ej. tras un re-sorteo) quedaba
+            // invisible pero seguía ocupando el horario, y la parrilla reportaba
+            // "conflicto" contra un partido que el admin no podía ver ni borrar.
+            return /cancha\s*\d+/i.test(p.lugar || '');
         })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map((p: any) => {

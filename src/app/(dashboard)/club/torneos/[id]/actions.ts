@@ -29,7 +29,10 @@ export async function generarFaseGrupos(torneoId: string, categoria: string, num
     }
 
     try {
-        const supabaseAdmin = createAdminClient();
+        // Pure admin: createAdminClient reenvía cookies y RLS puede bloquear
+        // silenciosamente los DELETE, dejando partidos huérfanos que siguen
+        // ocupando su slot en la parrilla sin ser visibles.
+        const supabaseAdmin = createPureAdminClient();
 
         // Persistir el "clasifican por grupo" en la config del torneo (en reglas_puntuacion)
         // para que la tabla de standings sepa cuántos resaltar como clasificados.
@@ -49,20 +52,9 @@ export async function generarFaseGrupos(torneoId: string, categoria: string, num
                 .eq('id', torneoId);
         }
 
-        // 1. Limpieza de datos previos (grupos y sus partidos) para esta categoría
-        const { data: oldGroups } = await supabaseAdmin
-            .from('torneo_grupos')
-            .select('id')
-            .eq('torneo_id', torneoId)
-            .eq('categoria', categoria);
-
-        if (oldGroups && oldGroups.length > 0) {
-            const groupIds = oldGroups.map((g: { id: string }) => g.id);
-            // Borrar partidos asociados a esos grupos (tipo torneo)
-            await supabaseAdmin.from('partidos').delete().in('torneo_grupo_id', groupIds);
-            // Borrar los grupos
-            await supabaseAdmin.from('torneo_grupos').delete().in('id', groupIds);
-        }
+        // 1. (La limpieza de grupos y partidos previos se hace en el paso 2b,
+        //     después de validar que hay parejas suficientes, para no destruir
+        //     el sorteo actual si la generación no puede completarse.)
 
         // 2. Obtener participantes de ambas fuentes (Regular y Master)
         
@@ -161,31 +153,40 @@ export async function generarFaseGrupos(torneoId: string, categoria: string, num
             throw new Error(`Se necesitan al menos 3 parejas en la categoría ${categoria} para generar grupos. Actualmente hay ${participants.length}.`);
         }
 
-        // 2b. Limpiar grupos y partidos previos para esta categoría para permitir re-sortear
-        // Primero los partidos (por la restricción de llave foránea)
-        await supabaseAdmin
+        // 2b. Limpiar grupos y partidos previos de esta categoría (re-sorteo).
+        // Se borra TODO partido de fase de grupos de la categoría, sin filtrar
+        // por estado ni por torneo_grupo_id: los sorteos anteriores podían dejar
+        // partidos huérfanos (grupo borrado → torneo_grupo_id NULL) que seguían
+        // ocupando su horario y cancha, provocando "conflicto" con un partido
+        // que ya no se ve en la parrilla.
+        const { data: partidosCategoria, error: readErr } = await supabaseAdmin
             .from('partidos')
-            .delete()
+            .select('id, torneo_fase_id, lugar')
             .eq('torneo_id', torneoId)
-            .eq('nivel', categoria)
-            .not('torneo_grupo_id', 'is', null);
+            .eq('nivel', categoria);
+        if (readErr) throw new Error("No se pudieron leer los partidos de la categoría: " + readErr.message);
+
+        // Los de fase final (llaves) no se tocan: el resorteo es solo de grupos.
+        const esDeFaseFinal = (m: { torneo_fase_id?: string | null; lugar?: string | null }) =>
+            !!m.torneo_fase_id ||
+            /final|semifinal|semis|cuartos|octavos|dieciseisavos|tercer/i.test(m.lugar || '');
+
+        const idsABorrar = (partidosCategoria || [])
+            .filter((m: { torneo_fase_id?: string | null; lugar?: string | null }) => !esDeFaseFinal(m))
+            .map((m: { id: string }) => m.id);
+
+        if (idsABorrar.length > 0) {
+            const { error: delErr } = await supabaseAdmin.from('partidos').delete().in('id', idsABorrar);
+            if (delErr) throw new Error("No se pudieron borrar los partidos anteriores: " + delErr.message);
+        }
 
         // Luego los grupos
-        await supabaseAdmin
+        const { error: delGruposErr } = await supabaseAdmin
             .from('torneo_grupos')
             .delete()
             .eq('torneo_id', torneoId)
             .eq('categoria', categoria);
-
-        // También limpiar partidos que pudieron quedar huérfanos en la bolsa (parrilla)
-        await supabaseAdmin
-            .from('partidos')
-            .delete()
-            .eq('torneo_id', torneoId)
-            .eq('nivel', categoria)
-            .eq('estado', 'programado')
-            .is('torneo_grupo_id', null)
-            .is('torneo_fase_id', null);
+        if (delGruposErr) throw new Error("No se pudieron borrar los grupos anteriores: " + delGruposErr.message);
 
         // Get tournament info for inherited fields (debe ir antes del sorteo para detectar formato)
         const { data: torneoInfo } = await supabaseAdmin
