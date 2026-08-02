@@ -30,15 +30,17 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sortByLugar = (matches: any[]) => [...matches].sort((a, b) => getIdx(a.lugar) - getIdx(b.lugar));
 
-    // Clasificar partidos por ronda basándose en el nombre (lugar)
-    const octavos = sortByLugar(allMatches.filter(m => m.lugar?.toLowerCase().includes('octavos')));
-    const cuartos = sortByLugar(allMatches.filter(m => m.lugar?.toLowerCase().includes('cuartos')));
-    const semis = sortByLugar(allMatches.filter(m => m.lugar?.toLowerCase().includes('semifinal')));
+    const getRoundTitle = (lugar: string | null) => (lugar || '').split('||')[0].toLowerCase();
+
+    // Clasificar partidos por ronda basándose en la parte del nombre antes de ||
+    const octavos = sortByLugar(allMatches.filter(m => getRoundTitle(m.lugar).includes('octavos')));
+    const cuartos = sortByLugar(allMatches.filter(m => getRoundTitle(m.lugar).includes('cuartos')));
+    const semis = sortByLugar(allMatches.filter(m => getRoundTitle(m.lugar).includes('semifinal')));
     const final = sortByLugar(allMatches.filter(m => 
-        m.lugar?.toLowerCase().includes('final') && 
-        !m.lugar?.toLowerCase().includes('semi') && 
-        !m.lugar?.toLowerCase().includes('cuartos') && 
-        !m.lugar?.toLowerCase().includes('octavos')
+        getRoundTitle(m.lugar).includes('final') && 
+        !getRoundTitle(m.lugar).includes('semi') && 
+        !getRoundTitle(m.lugar).includes('cuartos') && 
+        !getRoundTitle(m.lugar).includes('octavos')
     ));
 
     const getWinner = (m: { estado: string; estado_resultado?: string | null; resultado?: string | null; pareja1_id?: string | null; pareja2_id?: string | null }) => {

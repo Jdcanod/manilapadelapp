@@ -16,12 +16,18 @@ function BracketSection({ categoria, matches, playerPairIds, currentUserId, tipo
         );
     }
 
-    const partidoFinal = matches.find(p => 
-        p.lugar?.toLowerCase().includes('final') && 
-        !p.lugar?.toLowerCase().includes('semi') && 
-        !p.lugar?.toLowerCase().includes('cuartos') && 
-        !p.lugar?.toLowerCase().includes('octavos')
-    );
+    const getRoundTitle = (lugar: string | null) => (lugar || '').split('||')[0].toLowerCase();
+
+    const octavosMatches = matches.filter(p => getRoundTitle(p.lugar).includes('octavos'));
+    const cuartosMatches = matches.filter(p => getRoundTitle(p.lugar).includes('cuartos'));
+    const semisMatches = matches.filter(p => getRoundTitle(p.lugar).includes('semifinal'));
+    const finalMatches = matches.filter(p => {
+        const title = getRoundTitle(p.lugar);
+        return title.includes('final') && !title.includes('semi') && !title.includes('cuartos') && !title.includes('octavos') && !title.includes('tercer');
+    });
+    const tercerMatches = matches.filter(p => getRoundTitle(p.lugar).includes('tercer'));
+
+    const partidoFinal = finalMatches[0];
     let campeon = null;
     let subcampeon = null;
     
@@ -69,31 +75,31 @@ function BracketSection({ categoria, matches, playerPairIds, currentUserId, tipo
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="relative z-10 flex flex-nowrap items-stretch justify-start md:justify-center gap-16 overflow-x-auto pb-12 px-4 scrollbar-hide min-h-[600px] pt-8">
                 {/* Octavos */}
-                {matches.some(p => p.lugar?.toLowerCase().includes('octavos')) && (
+                {octavosMatches.length > 0 && (
                     <div className="flex flex-col min-w-[280px]">
                         <h4 className="text-center text-xs font-black text-olive/70 uppercase tracking-[0.4em] mb-8 shrink-0">Octavos</h4>
                         <div className="flex flex-col justify-around flex-1 gap-12">
-                            {renderPairs(matches.filter(p => p.lugar?.toLowerCase().includes('octavos')))}
+                            {renderPairs(octavosMatches)}
                         </div>
                     </div>
                 )}
 
                 {/* Cuartos */}
-                {matches.some(p => p.lugar?.toLowerCase().includes('cuartos')) && (
+                {cuartosMatches.length > 0 && (
                     <div className="flex flex-col min-w-[280px]">
                         <h4 className="text-center text-xs font-black text-olive/70 uppercase tracking-[0.4em] mb-8 shrink-0">Cuartos</h4>
                         <div className="flex flex-col justify-around flex-1 gap-12">
-                            {renderPairs(matches.filter(p => p.lugar?.toLowerCase().includes('cuartos')))}
+                            {renderPairs(cuartosMatches)}
                         </div>
                     </div>
                 )}
 
                 {/* Semifinales */}
-                {matches.some(p => p.lugar?.toLowerCase().includes('semifinal')) && (
+                {semisMatches.length > 0 && (
                     <div className="flex flex-col min-w-[280px]">
                         <h4 className="text-center text-xs font-black text-olive/70 uppercase tracking-[0.4em] mb-8 shrink-0">Semifinales</h4>
                         <div className="flex flex-col justify-around flex-1 gap-12">
-                            {renderPairs(matches.filter(p => p.lugar?.toLowerCase().includes('semifinal')))}
+                            {renderPairs(semisMatches)}
                         </div>
                     </div>
                 )}
@@ -103,12 +109,7 @@ function BracketSection({ categoria, matches, playerPairIds, currentUserId, tipo
                     <div className="flex flex-col items-center justify-center flex-1 w-full">
                         <div className="w-full relative">
                             <h4 className="text-center text-xs font-black text-olive/70 uppercase tracking-[0.4em] mb-8">Gran Final</h4>
-                            {matches.filter(p => 
-                                p.lugar?.toLowerCase().includes('final') && 
-                                !p.lugar?.toLowerCase().includes('semi') && 
-                                !p.lugar?.toLowerCase().includes('cuartos') && 
-                                !p.lugar?.toLowerCase().includes('octavos')
-                            ).map((match) => (
+                            {finalMatches.map((match) => (
                                 <BracketMatchCardClient key={match.id} match={match} playerPairIds={playerPairIds} currentUserId={currentUserId} tipoDesempate={tipoDesempate} setsCantidad={setsCantidad} />
                             ))}
                         </div>
@@ -136,10 +137,10 @@ function BracketSection({ categoria, matches, playerPairIds, currentUserId, tipo
                         </div>
                     </div>
 
-                    {matches.some(p => p.lugar?.toLowerCase().includes('tercer puesto')) && (
+                    {tercerMatches.length > 0 && (
                         <div className="w-full mt-12 pt-12 border-t border-olive/20">
                             <h4 className="text-center text-xs font-black text-olive/70 uppercase tracking-[0.4em] mb-8">Tercer Puesto</h4>
-                            {matches.filter(p => p.lugar?.toLowerCase().includes('tercer puesto')).map((match) => (
+                            {tercerMatches.map((match) => (
                                 <div key={match.id} className="opacity-80 scale-95 origin-top relative">
                                     <BracketMatchCardClient match={match} playerPairIds={playerPairIds} currentUserId={currentUserId} tipoDesempate={tipoDesempate} setsCantidad={setsCantidad} />
                                 </div>
