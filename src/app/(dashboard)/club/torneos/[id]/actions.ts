@@ -779,8 +779,137 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
                 cupos_totales: 4,
                 cupos_disponibles: 0
             });
+        } else if (grupos.length === 3) {
+            // Caso 3 grupos (6 parejas): Los 2 mejores 1ros avanzan directo a Semifinales (Sembrados)
+            const seed1 = sortedPot1[0]; // Mejor 1ro -> Semifinal 0 (pareja1_id)
+            const seed2 = sortedPot1[1]; // 2do mejor 1ro -> Semifinal 1 (pareja1_id)
+            const seed3 = sortedPot1[2]; // 3er mejor 1ro -> Cuartos 0 (pareja1_id)
+
+            const pot2Sorted = groupResults.map(r => ({
+                parejaId: r.second?.parejaId || null,
+                grupoId: r.grupoId,
+                grupoNombre: r.nombre,
+                placeholder: `2do ${r.nombre}`,
+                isFinished: r.isFinished,
+                performance: r.second
+            })).sort((a, b) => {
+                if (!a.performance || !b.performance) return 0;
+                if (b.performance.pts !== a.performance.pts) return b.performance.pts - a.performance.pts;
+                const totalSetsA = a.performance.sg + a.performance.sp;
+                const totalSetsB = b.performance.sg + b.performance.sp;
+                const pctSetsA = totalSetsA > 0 ? (a.performance.sg * 100) / totalSetsA : 0;
+                const pctSetsB = totalSetsB > 0 ? (b.performance.sg * 100) / totalSetsB : 0;
+                return pctSetsB - pctSetsA;
+            });
+
+            const seed4 = pot2Sorted[0]; // Mejor 2do
+            const seed5 = pot2Sorted[1]; // 2do mejor 2do
+            const seed6 = pot2Sorted[2]; // 3er mejor 2do
+
+            let oppCuartos0 = seed6;
+            let oppCuartos1 = seed5;
+            if (seed3.grupoId === seed6.grupoId) {
+                oppCuartos0 = seed5;
+                oppCuartos1 = seed6;
+            }
+
+            // Cuartos 1 (index 0)
+            allMatchesToCreate.push({
+                torneo_id: torneoId,
+                creador_id: userId,
+                club_id: clubId,
+                pareja1_id: (seed3.isFinished && seed3.parejaId) ? seed3.parejaId : null,
+                pareja2_id: (oppCuartos0.isFinished && oppCuartos0.parejaId) ? oppCuartos0.parejaId : null,
+                estado: 'programado',
+                tipo_partido: 'torneo',
+                nivel: categoria,
+                lugar: `[0] Cuartos de Final - ${categoria} || PH: ${seed3.placeholder} vs ${oppCuartos0.placeholder}`,
+                fecha: fechaTorneo,
+                cupos_totales: 4,
+                cupos_disponibles: 0
+            });
+
+            // Cuartos 2 (index 1)
+            allMatchesToCreate.push({
+                torneo_id: torneoId,
+                creador_id: userId,
+                club_id: clubId,
+                pareja1_id: (seed4.isFinished && seed4.parejaId) ? seed4.parejaId : null,
+                pareja2_id: (oppCuartos1.isFinished && oppCuartos1.parejaId) ? oppCuartos1.parejaId : null,
+                estado: 'programado',
+                tipo_partido: 'torneo',
+                nivel: categoria,
+                lugar: `[1] Cuartos de Final - ${categoria} || PH: ${seed4.placeholder} vs ${oppCuartos1.placeholder}`,
+                fecha: fechaTorneo,
+                cupos_totales: 4,
+                cupos_disponibles: 0
+            });
+
+            // Semifinal 1 (index 0): seed1 (Sembrada #1) vs Ganador Cuartos 1
+            allMatchesToCreate.push({
+                torneo_id: torneoId,
+                creador_id: userId,
+                club_id: clubId,
+                pareja1_id: (seed1.isFinished && seed1.parejaId) ? seed1.parejaId : null,
+                pareja2_id: null,
+                estado: 'programado',
+                tipo_partido: 'torneo',
+                nivel: categoria,
+                lugar: `[0] Semifinal - ${categoria} || PH: ${seed1.placeholder} (Sembrado) vs Ganador Cuartos 1`,
+                fecha: fechaTorneo,
+                cupos_totales: 4,
+                cupos_disponibles: 0
+            });
+
+            // Semifinal 2 (index 1): seed2 (Sembrada #2) vs Ganador Cuartos 2
+            allMatchesToCreate.push({
+                torneo_id: torneoId,
+                creador_id: userId,
+                club_id: clubId,
+                pareja1_id: (seed2.isFinished && seed2.parejaId) ? seed2.parejaId : null,
+                pareja2_id: null,
+                estado: 'programado',
+                tipo_partido: 'torneo',
+                nivel: categoria,
+                lugar: `[1] Semifinal - ${categoria} || PH: ${seed2.placeholder} (Sembrado) vs Ganador Cuartos 2`,
+                fecha: fechaTorneo,
+                cupos_totales: 4,
+                cupos_disponibles: 0
+            });
+
+            // Final
+            allMatchesToCreate.push({
+                torneo_id: torneoId,
+                creador_id: userId,
+                club_id: clubId,
+                pareja1_id: null,
+                pareja2_id: null,
+                estado: 'programado',
+                tipo_partido: 'torneo',
+                nivel: categoria,
+                lugar: `[0] Final - ${categoria}`,
+                fecha: fechaTorneo,
+                cupos_totales: 4,
+                cupos_disponibles: 0
+            });
+
+            // Tercer Puesto
+            allMatchesToCreate.push({
+                torneo_id: torneoId,
+                creador_id: userId,
+                club_id: clubId,
+                pareja1_id: null,
+                pareja2_id: null,
+                estado: 'programado',
+                tipo_partido: 'torneo',
+                nivel: categoria,
+                lugar: `[0] Tercer Puesto - ${categoria}`,
+                fecha: fechaTorneo,
+                cupos_totales: 4,
+                cupos_disponibles: 0
+            });
         } else {
-            // Caso 2: Más de 2 grupos (Cuartos, Octavos, etc)
+            // Caso 2: Más de 3 grupos (Cuartos, Octavos, etc)
             for (let i = 0; i < matchesData.length; i++) {
                 const { seed, opponent } = matchesData[i];
                 const hasBye = seededGroupIds.has(seed.grupoId);
@@ -805,34 +934,19 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
             }
         }
 
-        // 3. Generar rondas futuras
-        let currentRondaMatches = targetTeams / 2;
-        let currentRondaName = rondaName;
+        // 3. Generar rondas futuras (solo si no es 2 o 3 grupos ya construidos por completo)
+        if (grupos.length > 3) {
+            let currentRondaMatches = targetTeams / 2;
+            let currentRondaName = rondaName;
 
-        while (currentRondaMatches > 1) {
-            currentRondaMatches /= 2;
-            if (currentRondaMatches === 1) currentRondaName = "Final";
-            else if (currentRondaMatches === 2) currentRondaName = "Semifinal";
-            else if (currentRondaMatches === 4) currentRondaName = "Cuartos de Final";
-            else if (currentRondaMatches === 8) currentRondaName = "Octavos de Final";
+            while (currentRondaMatches > 1) {
+                currentRondaMatches /= 2;
+                if (currentRondaMatches === 1) currentRondaName = "Final";
+                else if (currentRondaMatches === 2) currentRondaName = "Semifinal";
+                else if (currentRondaMatches === 4) currentRondaName = "Cuartos de Final";
+                else if (currentRondaMatches === 8) currentRondaName = "Octavos de Final";
 
-            for (let j = 0; j < currentRondaMatches; j++) {
-                allMatchesToCreate.push({
-                    torneo_id: torneoId,
-                    creador_id: userId,
-                    club_id: clubId,
-                    pareja1_id: null,
-                    pareja2_id: null,
-                    estado: 'programado',
-                    tipo_partido: 'torneo',
-                    nivel: categoria,
-                    lugar: `[${j}] ${currentRondaName} - ${categoria}`,
-                    fecha: fechaTorneo,
-                    cupos_totales: 4,
-                    cupos_disponibles: 0
-                });
-
-                if (currentRondaName === "Final") {
+                for (let j = 0; j < currentRondaMatches; j++) {
                     allMatchesToCreate.push({
                         torneo_id: torneoId,
                         creador_id: userId,
@@ -842,11 +956,28 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
                         estado: 'programado',
                         tipo_partido: 'torneo',
                         nivel: categoria,
-                        lugar: `[0] Tercer Puesto - ${categoria}`,
+                        lugar: `[${j}] ${currentRondaName} - ${categoria}`,
                         fecha: fechaTorneo,
                         cupos_totales: 4,
                         cupos_disponibles: 0
                     });
+
+                    if (currentRondaName === "Final") {
+                        allMatchesToCreate.push({
+                            torneo_id: torneoId,
+                            creador_id: userId,
+                            club_id: clubId,
+                            pareja1_id: null,
+                            pareja2_id: null,
+                            estado: 'programado',
+                            tipo_partido: 'torneo',
+                            nivel: categoria,
+                            lugar: `[0] Tercer Puesto - ${categoria}`,
+                            fecha: fechaTorneo,
+                            cupos_totales: 4,
+                            cupos_disponibles: 0
+                        });
+                    }
                 }
             }
         }

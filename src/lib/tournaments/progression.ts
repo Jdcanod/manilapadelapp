@@ -73,12 +73,14 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
     async function avanzarRonda(currentRound: { id: string; estado: string; estado_resultado?: string | null; resultado?: string | null; pareja1_id?: string | null; pareja2_id?: string | null; fecha?: string | null; lugar?: string | null }[], nextRound: { id: string; pareja1_id?: string | null; pareja2_id?: string | null }[], nextRoundName: string, expectedMatches: number) {
         if (currentRound.length === 0) return;
         
+        const isTwoVsTwo = (currentRound.length === 2 && nextRound.length === 2);
+
         for (let i = 0; i < currentRound.length; i++) {
             const winnerId = getWinner(currentRound[i]);
             if (!winnerId) continue;
 
-            const targetMatchIndex = Math.floor(i / 2);
-            const isPareja2 = i % 2 === 1;
+            const targetMatchIndex = isTwoVsTwo ? i : Math.floor(i / 2);
+            const isPareja2 = isTwoVsTwo ? true : (i % 2 === 1);
 
             if (nextRound[targetMatchIndex]) {
                 // El partido ya existe, actualizar solo si el slot está vacío o es diferente
