@@ -362,11 +362,18 @@ export async function confirmarResultado(matchId: string) {
             .or(`jugador1_id.eq.${internalUserId},jugador2_id.eq.${internalUserId}`);
         const myPairIds = (userPairs || []).map(p => p.id);
 
-        const isClubAdmin = (user.app_metadata?.rol === 'admin_club' || user.app_metadata?.rol === 'superadmin') && 
+        const isClubAdmin = (user.app_metadata?.rol === 'admin_club' || user.app_metadata?.rol === 'superadmin') &&
                            (match.club_id === internalUserId || match.club_id === user.id);
-        
-        const isRival = (match.pareja1_id && myPairIds.includes(match.pareja1_id) && match.resultado_registrado_por !== internalUserId) || 
-                        (match.pareja2_id && myPairIds.includes(match.pareja2_id) && match.resultado_registrado_por !== internalUserId);
+
+        // Partidos de TORNEO (cualquier formato) se oficializan solo por el
+        // dueño del torneo — la pareja rival no puede auto-confirmarse el
+        // resultado entre ellas. Los amistosos/reservas mantienen el flujo
+        // anterior: la pareja rival sí puede confirmar.
+        const esPartidoDeTorneo = match.tipo_partido === 'torneo';
+        const isRival = !esPartidoDeTorneo && (
+            (match.pareja1_id && myPairIds.includes(match.pareja1_id) && match.resultado_registrado_por !== internalUserId) ||
+            (match.pareja2_id && myPairIds.includes(match.pareja2_id) && match.resultado_registrado_por !== internalUserId)
+        );
 
         // Si no es club admin ni rival, verificar si es el admin del torneo
         let isTournamentAdmin = false;

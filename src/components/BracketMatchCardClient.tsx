@@ -1,12 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { PlayerTournamentResultModal } from "./PlayerTournamentResultModal";
-import { confirmarResultado } from "@/app/(dashboard)/torneos/actions";
 import { cn } from "@/lib/utils";
 
 export interface MatchItem {
@@ -34,26 +31,11 @@ interface BracketMatchCardClientProps {
 }
 
 export function BracketMatchCardClient({ match, playerPairIds, currentUserId, tipoDesempate = "tercer_set", setsCantidad = 3 }: BracketMatchCardClientProps) {
-    const [isPendingAction, startTransition] = useTransition();
-
-    const isParticipant = (match.pareja1_id && playerPairIds.includes(match.pareja1_id)) || 
+    const isParticipant = (match.pareja1_id && playerPairIds.includes(match.pareja1_id)) ||
                           (match.pareja2_id && playerPairIds.includes(match.pareja2_id));
 
     const isPending = match.estado === 'jugado' && !!match.resultado && match.estado_resultado === 'pendiente';
     const isConfirmed = match.estado_resultado === 'confirmado';
-
-    const handleConfirm = async (matchId: string) => {
-        if (!confirm("¿Confirmas que el resultado es correcto?")) return;
-        
-        startTransition(async () => {
-            const res = await confirmarResultado(matchId);
-            if (res.success) {
-                window.location.reload();
-            } else {
-                alert(res.message);
-            }
-        });
-    };
 
     return (
         <Card className={cn(
@@ -155,25 +137,13 @@ export function BracketMatchCardClient({ match, playerPairIds, currentUserId, ti
                                     </p>
                                 </div>
                                 <div className="flex gap-2">
-                                    {match.resultado_registrado_por === currentUserId ? (
-                                        <div className="flex-1 bg-ochre/10 text-ochre-dark font-black text-[10px] uppercase h-9 rounded-lg flex items-center justify-center text-center leading-tight">
-                                            Esperando Rival
-                                        </div>
-                                    ) : (
-                                        <Button 
-                                            size="sm"
-                                            onClick={() => handleConfirm(match.id)}
-                                            disabled={isPendingAction}
-                                            className="flex-1 bg-olive hover:bg-olive text-paper font-black text-[10px] uppercase h-10 rounded-lg flex flex-col items-center justify-center py-1"
-                                        >
-                                            {isPendingAction ? "..." : (
-                                                <>
-                                                    <span className="text-[8px] opacity-80">Confirmar Score</span>
-                                                    <span className="text-[11px] leading-none">{match.resultado}</span>
-                                                </>
-                                            )}
-                                        </Button>
-                                    )}
+                                    {/* Los partidos de torneo se oficializan solo por el club —
+                                        la pareja rival ya no puede auto-confirmarse el resultado. */}
+                                    <div className="flex-1 bg-ochre/10 text-ochre-dark font-black text-[10px] uppercase h-9 rounded-lg flex items-center justify-center text-center leading-tight px-2">
+                                        {match.resultado_registrado_por === currentUserId
+                                            ? "Esperando confirmación del club"
+                                            : "Pendiente por confirmar el club"}
+                                    </div>
                                     <div className="flex-1">
                                         <PlayerTournamentResultModal 
                                             matchId={match.id}

@@ -3,11 +3,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Swords, Users, Trophy } from "lucide-react";
 import { PlayerTournamentResultModal } from "@/components/PlayerTournamentResultModal";
-import { confirmarResultado } from "@/app/(dashboard)/torneos/actions";
-import { useTransition, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { GrupoMatchesList } from "@/components/GrupoMatchesList";
 
@@ -57,8 +55,6 @@ interface Props {
 
 export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId, tipoDesempate = "tercer_set", formato = "relampago", setsCantidad = 3, ordenGrupos = {} }: Props) {
     const esLiguilla = formato === 'liguilla';
-    const [isPendingAction, startTransition] = useTransition();
-    const router = useRouter();
 
     const uniqueCategorias = Array.from(new Set(grupos.map(g => g.categoria))).sort();
     const [selectedCat, setSelectedCat] = useState<string>("");
@@ -68,17 +64,6 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
             setSelectedCat(uniqueCategorias[0]);
         }
     }, [uniqueCategorias, selectedCat]);
-
-    const handleConfirm = (matchId: string) => {
-        startTransition(async () => {
-            const res = await confirmarResultado(matchId);
-            if (res.success) {
-                router.refresh();
-            } else {
-                alert(res.message);
-            }
-        });
-    };
 
     const getStandings = (grupoId: string) => {
         const matches = partidos.filter(p => p.torneo_grupo_id === grupoId);
@@ -379,26 +364,15 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                         Resultado Pendiente de Confirmación
                                                                     </p>
                                                                     <div className="flex gap-2">
-                                                                    {match.resultado_registrado_por === currentUserId ? (
-                                                                        <div className="flex-1 bg-ochre/20 text-ochre-dark font-bold text-[10px] uppercase h-10 rounded-lg flex items-center justify-center text-center leading-tight px-2">
-                                                                            Esperando verificación
-                                                                        </div>
-                                                                    ) : (
-                                                                        <Button 
-                                                                            onClick={() => handleConfirm(match.id)}
-                                                                            disabled={isPendingAction}
-                                                                            className="flex-1 bg-olive hover:bg-olive text-paper font-black text-[10px] uppercase h-10 rounded-lg shadow-lg transition-all flex flex-col items-center justify-center py-1"
-                                                                        >
-                                                                            {isPendingAction ? "..." : (
-                                                                                <>
-                                                                                    <span className="text-[8px] opacity-80">Confirmar</span>
-                                                                                    <span className="text-[11px] leading-none">{match.resultado}</span>
-                                                                                </>
-                                                                            )}
-                                                                        </Button>
-                                                                    )}
+                                                                    {/* Los partidos de torneo se oficializan solo por el club —
+                                                                        la pareja rival ya no puede auto-confirmarse el resultado. */}
+                                                                    <div className="flex-1 bg-ochre/20 text-ochre-dark font-bold text-[10px] uppercase h-10 rounded-lg flex items-center justify-center text-center leading-tight px-2">
+                                                                        {match.resultado_registrado_por === currentUserId
+                                                                            ? "Esperando confirmación del club"
+                                                                            : "Pendiente por confirmar el club"}
+                                                                    </div>
                                                                         <div className="flex-1">
-                                                                            <PlayerTournamentResultModal 
+                                                                            <PlayerTournamentResultModal
                                                                                 matchId={match.id}
                                                                                 pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"}
                                                                                 pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
