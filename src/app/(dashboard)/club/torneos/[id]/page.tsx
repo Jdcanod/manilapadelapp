@@ -740,6 +740,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         configClasifican={torneo.reglas_puntuacion?.config_clasifican_por_grupo}
                         setsCantidad={torneo.reglas_puntuacion?.sets}
                         ordenGrupos={torneo.reglas_puntuacion?.orden_grupos || {}}
+                        ligaClasificacionConfig={torneo.reglas_puntuacion?.liga_clasificacion_config || {}}
                     />
                 </TabsContent>
 
@@ -847,6 +848,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                             setsCantidad={torneo.reglas_puntuacion?.sets}
                             formato={torneo.formato || 'relampago'}
                             clasificanPorGrupoDefault={torneo.reglas_puntuacion?.config_clasifican_por_grupo}
+                            ligaClasificacionConfig={torneo.reglas_puntuacion?.liga_clasificacion_config || {}}
                             allParticipants={allParticipants}
                         />
 

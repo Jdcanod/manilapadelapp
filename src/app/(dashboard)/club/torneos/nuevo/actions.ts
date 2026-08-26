@@ -57,6 +57,19 @@ export async function crearTorneoCentral(formData: FormData) {
         });
     }
 
+    // Liguilla: leer la clasificación por categoría (total + mínimo de partidos)
+    const ligaClasificacionConfig: Record<string, { total: number; minPartidos: number }> = {};
+    if (formato === 'liguilla') {
+        categoriasSeleccionadas.forEach(cat => {
+            const total = parseInt(formData.get(`liga_clasifican_${cat}`) as string);
+            const minPartidos = parseInt(formData.get(`liga_min_partidos_${cat}`) as string);
+            ligaClasificacionConfig[cat] = {
+                total: isNaN(total) ? 8 : Math.max(2, Math.min(64, total)),
+                minPartidos: isNaN(minPartidos) ? 0 : Math.max(0, Math.min(20, minPartidos)),
+            };
+        });
+    }
+
     const reglasPuntuacion = esCopaDavis
         ? {
             sets: parseInt(formData.get("sets") as string) || 3,
@@ -88,6 +101,7 @@ export async function crearTorneoCentral(formData: FormData) {
                 categorias_habilitadas: formData.getAll("categorias") as string[],
                 config_duracion: parseInt(formData.get("config_duracion") as string) || 60,
                 config_canchas: parseInt(formData.get("config_canchas") as string) || 1,
+                ...(formato === 'liguilla' ? { liga_clasificacion_config: ligaClasificacionConfig } : {}),
             };
         })();
 

@@ -19,6 +19,60 @@ interface MasterResult {
     jugador2: { id: string; nombre: string; puntos_ranking: number } | null;
 }
 
+/**
+ * Actualiza cuántas parejas clasifican a la fase final de una categoría en
+ * formato Liguilla (sobre la tabla GLOBAL de la categoría, no por grupo) y
+ * el mínimo de partidos jugados para ser elegible. Editable en cualquier
+ * momento del torneo por el admin dueño — la tabla de posiciones resalta en
+ * vivo quién está clasificando con este valor.
+ */
+export async function actualizarClasificacionLiga(
+    torneoId: string,
+    categoria: string,
+    total: number,
+    minPartidos: number,
+) {
+    try {
+        const supabaseAuth = createClient();
+        const { data: { user } } = await supabaseAuth.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado." };
+
+        const { data: torneo } = await supabaseAuth
+            .from('torneos')
+            .select('club_id, reglas_puntuacion')
+            .eq('id', torneoId)
+            .single();
+        if (!torneo) return { success: false, message: "Torneo no encontrado." };
+
+        const { data: userData } = await supabaseAuth.from('users').select('id, rol').eq('auth_id', user.id).single();
+        const esAdmin = userData?.rol === 'admin_club' || userData?.rol === 'superadmin';
+        const esDelClub = String(torneo.club_id) === String(userData?.id);
+        if (!esAdmin || (!esDelClub && userData?.rol !== 'superadmin')) {
+            return { success: false, message: "No tienes permisos para modificar este torneo." };
+        }
+
+        const totalSano = Math.max(2, Math.min(64, Math.floor(total) || 8));
+        const minSano = Math.max(0, Math.min(20, Math.floor(minPartidos) || 0));
+
+        const supabaseAdmin = createPureAdminClient();
+        const nuevasReglas = {
+            ...(torneo.reglas_puntuacion || {}),
+            liga_clasificacion_config: {
+                ...(torneo.reglas_puntuacion?.liga_clasificacion_config || {}),
+                [categoria]: { total: totalSano, minPartidos: minSano },
+            },
+        };
+        const { error } = await supabaseAdmin.from('torneos').update({ reglas_puntuacion: nuevasReglas }).eq('id', torneoId);
+        if (error) return { success: false, message: error.message };
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        revalidatePath(`/torneos/${torneoId}`);
+        return { success: true };
+    } catch (err: unknown) {
+        return { success: false, message: (err as Error).message || "Error desconocido" };
+    }
+}
+
 export async function generarFaseGrupos(torneoId: string, categoria: string, numGrupos?: number, clasificanPorGrupo?: number) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();

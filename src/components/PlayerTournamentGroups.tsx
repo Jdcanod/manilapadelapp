@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { GrupoMatchesList } from "@/components/GrupoMatchesList";
+import { calculateStandings } from "@/lib/tournaments/standings";
 
 
 interface Standing {
@@ -53,9 +54,14 @@ interface Props {
     /** Orden manual por grupo (persistido en
      *  torneo.reglas_puntuacion.orden_grupos). Tie-breaker FINAL del sort. */
     ordenGrupos?: Record<string, string[]>;
+    /** Liguilla: clasificación por categoría (persistida en
+     *  torneo.reglas_puntuacion.liga_clasificacion_config) — cuántas parejas
+     *  clasifican sobre la tabla GLOBAL de la categoría y el mínimo de
+     *  partidos jugados para ser elegibles. */
+    ligaClasificacionConfig?: Record<string, { total: number; minPartidos: number }>;
 }
 
-export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId, tipoDesempate = "tercer_set", formato = "relampago", setsCantidad = 3, ordenGrupos = {} }: Props) {
+export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId, tipoDesempate = "tercer_set", formato = "relampago", setsCantidad = 3, ordenGrupos = {}, ligaClasificacionConfig = {} }: Props) {
     const esLiguilla = formato === 'liguilla';
     const [isPendingAction, startTransition] = useTransition();
     const router = useRouter();
@@ -164,6 +170,31 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
 
     const filteredGrupos = grupos.filter(g => g.categoria === selectedCat);
 
+    // Liguilla: set de parejas que clasifican HOY, sobre la tabla global de
+    // la categoría (todos los grupos combinados) — misma regla que usa el
+    // club al sortear la fase final.
+    const ligaConfigCat = ligaClasificacionConfig[selectedCat] || { total: 8, minPartidos: 0 };
+    const clasificandoGlobalSet = (() => {
+        if (!esLiguilla) return new Set<string>();
+        const grupoIdsCat = new Set(filteredGrupos.map(g => g.id));
+        const matchesCat = partidos
+            .filter(p => p.torneo_grupo_id && grupoIdsCat.has(p.torneo_grupo_id))
+            .map(p => ({
+                pareja1_id: p.pareja1_id ?? null,
+                pareja2_id: p.pareja2_id ?? null,
+                estado: p.estado || '',
+                resultado: p.resultado ?? null,
+                estado_resultado: p.estado_resultado ?? null,
+                pareja1: p.pareja1 ? { nombre_pareja: p.pareja1.nombre_pareja ?? null } : null,
+                pareja2: p.pareja2 ? { nombre_pareja: p.pareja2.nombre_pareja ?? null } : null,
+            }));
+        const globalStandings = calculateStandings(matchesCat, { pointsForLoss: 1 });
+        const elegibles = ligaConfigCat.minPartidos > 0
+            ? globalStandings.filter(s => s.pj >= ligaConfigCat.minPartidos)
+            : globalStandings;
+        return new Set(elegibles.slice(0, ligaConfigCat.total).map(s => s.parejaId));
+    })();
+
     return (
         <div className="space-y-6">
             {uniqueCategorias.length > 1 && (
@@ -182,6 +213,16 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                             {cat}
                         </button>
                     ))}
+                </div>
+            )}
+
+            {esLiguilla && (
+                <div className="flex items-center gap-2 text-[11px] text-olive/70 bg-paper-soft/40 border border-olive/15 rounded-xl px-4 py-2.5">
+                    <Trophy className="w-3.5 h-3.5 text-ochre-dark flex-shrink-0" />
+                    <span>
+                        Clasifican a la fase final las <span className="font-black text-ink">{ligaConfigCat.total}</span> mejores parejas
+                        de la tabla general{ligaConfigCat.minPartidos > 0 && <> con al menos <span className="font-black text-ink">{ligaConfigCat.minPartidos}</span> partido{ligaConfigCat.minPartidos > 1 ? 's' : ''} jugado{ligaConfigCat.minPartidos > 1 ? 's' : ''}</>} — resaltadas con ★ abajo.
+                    </span>
                 </div>
             )}
 
@@ -217,15 +258,21 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                     <tbody>
                                         {standings.map((team) => {
                                             const isMyTeam = playerPairIds.includes(team.parejaId);
+                                            const clasifica = esLiguilla && clasificandoGlobalSet.has(team.parejaId);
                                             return (
                                                 <tr key={team.parejaId} className={cn(
                                                     "border-b border-olive/15 transition-colors",
-                                                    isMyTeam ? "bg-ochre/10 hover:bg-ochre/20" : "hover:bg-paper-soft/30"
+                                                    isMyTeam
+                                                        ? "bg-ochre/10 hover:bg-ochre/20"
+                                                        : clasifica
+                                                            ? "bg-olive/5 border-l-2 border-l-emerald-500 hover:bg-olive/10"
+                                                            : "hover:bg-paper-soft/30"
                                                 )}>
                                                     <td className={cn(
                                                         "px-4 py-4 font-bold max-w-[150px] truncate",
                                                         isMyTeam ? "text-ochre-dark" : "text-ink"
                                                     )}>
+                                                        {clasifica && <span className="mr-1 text-emerald-600">★</span>}
                                                         {team.nombre}
                                                         {isMyTeam && <span className="ml-2 text-[10px] font-black text-amber-600 bg-ochre/10 px-1 rounded">TÚ</span>}
                                                     </td>

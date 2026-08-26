@@ -58,6 +58,24 @@ export function CrearTorneoForm() {
         setRelampagoGruposConfig(prev => ({ ...prev, [cat]: v }));
     };
 
+    // Liguilla: clasificación configurable por categoría — cuántas parejas
+    // pasan a la fase final (sobre la tabla GLOBAL, no por grupo) y el mínimo
+    // de partidos jugados para ser elegibles. Editable después desde el
+    // torneo ya creado.
+    const [ligaClasifConfig, setLigaClasifConfig] = useState<Record<string, { total: number; minPartidos: number }>>({});
+    const updateLigaClasif = (cat: string, key: 'total' | 'minPartidos', value: number) => {
+        setLigaClasifConfig(prev => ({
+            ...prev,
+            [cat]: {
+                total: prev[cat]?.total ?? 8,
+                minPartidos: prev[cat]?.minPartidos ?? 0,
+                [key]: key === 'total'
+                    ? Math.max(2, Math.min(64, isNaN(value) ? 8 : value))
+                    : Math.max(0, Math.min(20, isNaN(value) ? 0 : value)),
+            },
+        }));
+    };
+
     const toggleCat = (cat: string, on: boolean) => {
         setSelectedCats(prev => on ? Array.from(new Set([...prev, cat])) : prev.filter(c => c !== cat));
         if (on && !copaCatConfig[cat]) {
@@ -447,6 +465,59 @@ export function CrearTorneoForm() {
                                             </p>
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {/* Clasificación a la fase final — solo Liguilla */}
+                            {esLiguilla && selectedCats.length > 0 && (
+                                <div className="mt-4 pt-4 border-t border-olive/20 space-y-3">
+                                    <p className="text-sm font-bold text-olive">
+                                        Clasificación a la fase final (por categoría)
+                                    </p>
+                                    <p className="text-[11px] text-ink0 leading-snug">
+                                        Define cuántas parejas clasifican (sobre la tabla general de la categoría,
+                                        combinando todos los grupos) y el mínimo de partidos jugados para ser
+                                        elegibles. Podrás cambiar estos valores en cualquier momento desde el
+                                        torneo ya creado, y la tabla de posiciones irá resaltando en vivo quién
+                                        está clasificando.
+                                    </p>
+                                    <div className="space-y-2 bg-paper/40 border border-olive/20 rounded-xl p-4">
+                                        {selectedCats.map(cat => {
+                                            const cfg = ligaClasifConfig[cat] || { total: 8, minPartidos: 0 };
+                                            return (
+                                                <div key={cat} className="grid grid-cols-[60px_auto_auto] gap-3 items-center py-2 border-b border-olive/20 last:border-0">
+                                                    <span className="text-sm font-bold text-ink">{cat}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] text-ink0 uppercase tracking-wide">Clasifican</span>
+                                                        <Input
+                                                            type="number"
+                                                            min={2}
+                                                            max={64}
+                                                            value={cfg.total}
+                                                            onChange={e => updateLigaClasif(cat, 'total', parseInt(e.target.value))}
+                                                            name={`liga_clasifican_${cat}`}
+                                                            className="w-16 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] text-ink0 uppercase tracking-wide">Mín. partidos</span>
+                                                        <Input
+                                                            type="number"
+                                                            min={0}
+                                                            max={20}
+                                                            value={cfg.minPartidos}
+                                                            onChange={e => updateLigaClasif(cat, 'minPartidos', parseInt(e.target.value))}
+                                                            name={`liga_min_partidos_${cat}`}
+                                                            className="w-16 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                        <p className="text-[10px] text-olive/50 pt-1">
+                                            &quot;Mín. partidos&quot; en 0 significa sin exigencia — todas las parejas son elegibles según su posición en la tabla.
+                                        </p>
+                                    </div>
                                 </div>
                             )}
                         </>

@@ -45,17 +45,22 @@ interface Props {
     /** Default sugerido para "clasifican por grupo" (persistido en
      *  torneo.reglas_puntuacion.config_clasifican_por_grupo). */
     clasificanPorGrupoDefault?: number;
+    /** Liguilla: clasificación persistida por categoría (total + mínimo de
+     *  partidos), la misma que resalta ★ en la tabla de posiciones. Se usa
+     *  como default al abrir este dialog, para no tener que reconfigurar. */
+    ligaClasificacionConfig?: Record<string, { total: number; minPartidos: number }>;
 }
 
 const OPCIONES_CLASIFICADOS = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20];
 const OPCIONES_POR_GRUPO = [1, 2, 3, 4];
 
-export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket, formato = "relampago", clasificanPorGrupoDefault }: Props) {
+export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket, formato = "relampago", clasificanPorGrupoDefault, ligaClasificacionConfig = {} }: Props) {
     const esRelampago = formato === "relampago";
+    const ligaDefault = ligaClasificacionConfig[categoria];
     const [open, setOpen] = useState(false);
-    const [selectedN, setSelectedN] = useState<number>(8);
+    const [selectedN, setSelectedN] = useState<number>(ligaDefault?.total ?? 8);
     const [porGrupo, setPorGrupo] = useState<number>(clasificanPorGrupoDefault && clasificanPorGrupoDefault >= 1 ? clasificanPorGrupoDefault : 2);
-    const [minMatches, setMinMatches] = useState<number>(0);
+    const [minMatches, setMinMatches] = useState<number>(ligaDefault?.minPartidos ?? 0);
     const [standings, setStandings] = useState<Standing[]>([]);
     const [grupoStandings, setGrupoStandings] = useState<Array<{ grupoId: string; nombreGrupo: string; standings: Standing[] }>>([]);
     const [diag, setDiag] = useState<Diag | null>(null);

@@ -14,6 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 import { GrupoMatchesList } from "@/components/GrupoMatchesList";
 import { AsignarParejaSlotDialog } from "@/components/AsignarParejaSlotDialog";
+import { EditarClasificacionLigaControl } from "@/components/EditarClasificacionLigaControl";
+import { calculateStandings } from "@/lib/tournaments/standings";
 import { esParejaPlaceholder as esTBD } from "@/lib/tbd";
 
 interface Props {
@@ -52,6 +54,11 @@ interface Props {
      *  torneo.reglas_puntuacion.orden_grupos). Tie-breaker FINAL del sort: si
      *  pts/sets/games coinciden, este orden decide. */
     ordenGrupos?: Record<string, string[]>;
+    /** Liguilla: clasificación por categoría (persistida en
+     *  torneo.reglas_puntuacion.liga_clasificacion_config) — cuántas parejas
+     *  clasifican sobre la tabla GLOBAL de la categoría (todos los grupos
+     *  combinados) y el mínimo de partidos jugados para ser elegibles. */
+    ligaClasificacionConfig?: Record<string, { total: number; minPartidos: number }>;
 }
 
 interface Standing {
@@ -67,7 +74,7 @@ interface Standing {
     pts: number;
 }
 
-export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", tipoDesempatePorCategoria = {}, allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican, setsCantidad, ordenGrupos = {} }: Props) {
+export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", tipoDesempatePorCategoria = {}, allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican, setsCantidad, ordenGrupos = {}, ligaClasificacionConfig = {} }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const [selectedCat, setSelectedCat] = useState(categorias[0] || "General");
@@ -175,6 +182,35 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
     };
 
     const gruposCategoria = gruposExistentes.filter(g => g.categoria === selectedCat);
+
+    // Liguilla: config de clasificación de la categoría seleccionada (persistida,
+    // editable en vivo). Default 8 clasificados, sin mínimo de partidos.
+    const ligaConfigCat = ligaClasificacionConfig[selectedCat] || { total: 8, minPartidos: 0 };
+
+    // Liguilla: set de parejas que clasifican HOY, calculado sobre la tabla
+    // GLOBAL de la categoría (todos los grupos combinados) — es la misma
+    // regla que usa "Sortear Eliminatorias", así la tabla de posiciones
+    // muestra en vivo exactamente quién estaría clasificando en este momento.
+    const clasificandoGlobalSet = (() => {
+        if (!esLiguilla) return new Set<string>();
+        const grupoIdsCat = new Set(gruposCategoria.map(g => g.id));
+        const matchesCat = partidos
+            .filter(p => p.torneo_grupo_id && grupoIdsCat.has(p.torneo_grupo_id))
+            .map(p => ({
+                pareja1_id: p.pareja1_id ?? null,
+                pareja2_id: p.pareja2_id ?? null,
+                estado: p.estado || '',
+                resultado: p.resultado ?? null,
+                estado_resultado: p.estado_resultado ?? null,
+                pareja1: p.pareja1 ? { nombre_pareja: p.pareja1.nombre_pareja ?? null } : null,
+                pareja2: p.pareja2 ? { nombre_pareja: p.pareja2.nombre_pareja ?? null } : null,
+            }));
+        const globalStandings = calculateStandings(matchesCat, { pointsForLoss: 1 });
+        const elegibles = ligaConfigCat.minPartidos > 0
+            ? globalStandings.filter(s => s.pj >= ligaConfigCat.minPartidos)
+            : globalStandings;
+        return new Set(elegibles.slice(0, ligaConfigCat.total).map(s => s.parejaId));
+    })();
 
     // Identificar parejas inscritas en esta categoría que no están en ningún grupo
     const parejasEnGruposSignatures = new Set<string>();
@@ -380,6 +416,21 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                 <span className="text-olive/50 italic normal-case font-normal">(usa el global)</span>
                             )}
                         </div>
+
+                        {/* Clasificación a la fase final — solo Liguilla, editable en cualquier momento */}
+                        {esLiguilla && (
+                            <div className="mt-3 space-y-1.5">
+                                <EditarClasificacionLigaControl
+                                    torneoId={torneoId}
+                                    categoria={selectedCat}
+                                    totalActual={ligaConfigCat.total}
+                                    minPartidosActual={ligaConfigCat.minPartidos}
+                                />
+                                <p className="text-[10px] text-olive/60">
+                                    Clasificando ahora: <span className="font-black text-olive">{clasificandoGlobalSet.size}</span> de {ligaConfigCat.total} — resaltadas con ★ en la tabla de posiciones.
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Acción principal del header (solo cuando aún no hay grupos sorteados).
@@ -518,7 +569,11 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                             </thead>
                                             <tbody>
                                                 {standings.map((team, idx) => {
-                                                    const clasifica = idx < clasificanPorGrupo;
+                                                    // Liguilla: clasificación GLOBAL (tabla de toda la categoría);
+                                                    // otros formatos: top N de este grupo.
+                                                    const clasifica = esLiguilla
+                                                        ? clasificandoGlobalSet.has(team.parejaId)
+                                                        : idx < clasificanPorGrupo;
                                                     return (
                                                     <tr
                                                         key={team.parejaId}
@@ -836,6 +891,14 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                             </div>
                         )}
 
+                        {esLiguilla ? (
+                            <div className="bg-paper border border-olive/20 rounded-lg p-3 text-[11px] text-olive">
+                                En Liguilla la clasificación es sobre la tabla general de la categoría
+                                (todos los grupos combinados), no por grupo. Configúrala con el control
+                                <strong> &quot;Clasificación {selectedCat}&quot;</strong> arriba, junto a la tabla
+                                de posiciones — puedes cambiarla en cualquier momento.
+                            </div>
+                        ) : (
                         <div>
                             <p className="text-[10px] font-black text-olive/70 uppercase tracking-widest mb-2">
                                 ¿Cuántas parejas clasifican por grupo?
@@ -858,11 +921,9 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                             </div>
                             <p className="text-[10px] text-olive/50 mt-2">
                                 Los <span className="text-ochre font-bold">{dialogClasifican}</span> mejor{dialogClasifican > 1 ? 'es' : ''} de cada grupo se resaltarán en la tabla.
-                                {esLiguilla && (
-                                    <> Total al bracket: <span className="text-ochre font-bold">{dialogGrupos * dialogClasifican}</span> parejas.</>
-                                )}
                             </p>
                         </div>
+                        )}
 
                         <div className="bg-paper border border-olive/20 rounded-lg p-3 text-[11px] text-olive">
                             {gruposCategoria.length > 0 ? (
