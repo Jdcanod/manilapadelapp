@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { BarChart3, Clock, Calendar as CalendarIcon, TrendingUp, ChevronLeft, Trophy, Users, Target } from "lucide-react";
 import Link from "next/link";
 import { startOfDay, startOfWeek, startOfMonth } from "date-fns";
+import { formatFormatoLabel } from "@/lib/display-names";
 
 export const dynamic = 'force-dynamic';
 
@@ -351,7 +352,7 @@ export default async function EstadisticasClubPage({ searchParams }: { searchPar
                                         <span className="text-xs font-black text-olive/50 w-4">{i + 1}</span>
                                         <span className="text-sm text-ink font-medium truncate">{t.nombre}</span>
                                         <Badge variant="outline" className="text-[9px] border-olive/30 text-olive/70 capitalize flex-shrink-0">
-                                            {t.formato}
+                                            {formatFormatoLabel(t.formato)}
                                         </Badge>
                                     </div>
                                     <div className="flex items-center gap-2 flex-shrink-0 ml-3">

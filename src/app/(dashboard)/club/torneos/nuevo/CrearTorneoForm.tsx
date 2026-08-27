@@ -207,7 +207,7 @@ export function CrearTorneoForm() {
                         </SelectTrigger>
                         <SelectContent className="bg-paper-soft border-olive/20 text-ink">
                             <SelectItem value="relampago">Torneo Relámpago (Grupos y Eliminatorias)</SelectItem>
-                            <SelectItem value="liguilla">Liguilla / Round Robin Largo</SelectItem>
+                            <SelectItem value="liguilla">Liga / Round Robin Largo</SelectItem>
                             <SelectItem value="copa_davis">Copa Davis (Club vs Club)</SelectItem>
                         </SelectContent>
                     </Select>

@@ -11,6 +11,7 @@ import { BotonCancelarPartido } from "@/components/BotonCancelarPartido";
 import { DetallePartidoDialog } from "@/components/DetallePartidoDialog";
 import { redirect } from "next/navigation";
 import { autocancelarPartidosIncompletos } from "@/utils/cancelarPartidos";
+import { formatFormatoLabel } from "@/lib/display-names";
 
 export const dynamic = 'force-dynamic';
 
@@ -111,7 +112,7 @@ export default async function PartidosPage() {
             isTournament: true,
             isPast,
             status: statusDisplay,
-            type: `Torneo ${t.torneo.formato} - Cat. ${t.categoria}`,
+            type: `Torneo ${formatFormatoLabel(t.torneo.formato)} - Cat. ${t.categoria}`,
             opponents: `${t.pareja?.nombre_pareja || "Pareja"}`,
             time: timeStr,
             club: t.torneo.club?.nombre || "Club Organizador",

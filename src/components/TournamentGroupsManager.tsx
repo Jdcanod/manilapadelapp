@@ -336,13 +336,13 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                             Sorteos de Torneo
                             {esLiguilla && (
                                 <span className="ml-2 px-2 py-0.5 bg-olive/10 border border-olive/30 text-olive text-[10px] font-black uppercase rounded-lg tracking-widest">
-                                    Liguilla
+                                    Liga
                                 </span>
                             )}
                         </h3>
                         <p className="text-sm text-olive mb-3">
                             {esLiguilla
-                                ? "Formato liguilla: grupos grandes con round-robin completo, luego fase eliminatoria."
+                                ? "Formato liga: grupos grandes con round-robin completo, luego fase eliminatoria."
                                 : "Genera grupos o arma el cuadro de eliminatorias para cada categoría."}
                         </p>
                         {/* Selector de categoría */}
@@ -393,7 +393,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                 variant="outline"
                                 className="bg-olive hover:bg-olive text-paper font-bold"
                             >
-                                {isPending ? "Generando..." : (esLiguilla ? "Generar Grupos (Liguilla)" : "Sorteo Grupos")}
+                                {isPending ? "Generando..." : (esLiguilla ? "Generar Grupos (Liga)" : "Sorteo Grupos")}
                             </Button>
                         )}
                     </div>
@@ -455,7 +455,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                         {/* Opciones específicas de liguilla */}
                         {esLiguilla && (
                             <div>
-                                <p className="text-[10px] font-black text-olive uppercase tracking-widest mb-3">Configuración Liguilla</p>
+                                <p className="text-[10px] font-black text-olive uppercase tracking-widest mb-3">Configuración Liga</p>
                                 <div className="bg-paper border border-olive/20 rounded-xl p-3 max-w-sm">
                                     <label className="text-[10px] font-black text-olive uppercase tracking-widest block mb-2">Número de grupos</label>
                                     <div className="flex items-center gap-2">
