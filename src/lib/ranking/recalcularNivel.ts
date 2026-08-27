@@ -1,5 +1,6 @@
 import { createPureAdminClient } from "@/utils/supabase/server";
 import { calcularDeltaNivel, aplicarDeltaNivel } from "./nivel";
+import { isGuestEmail } from "@/lib/display-names";
 
 /** Dado el resultado "6-3,4-6,10-7" (o variantes de separador) devuelve qué pareja ganó: 1 o 2. */
 function getWinner(resultado: string): 1 | 2 | null {
@@ -67,15 +68,18 @@ export async function recalcularNivelPorPartido(matchId: string): Promise<void> 
             .filter((id): id is string => !!id);
         if (jugadorIds.length !== 4) return;
 
-        interface UserNivelRow { id: string; nivel_ranking: number | null; }
+        interface UserNivelRow { id: string; nivel_ranking: number | null; email: string | null; }
         const { data: jugadores } = await admin
             .from('users')
-            .select('id, nivel_ranking')
+            .select('id, nivel_ranking, email')
             .in('id', jugadorIds);
 
-        const nivelMap = new Map<string, number | null>(
-            ((jugadores || []) as UserNivelRow[]).map(j => [j.id, j.nivel_ranking])
-        );
+        const jugadoresRows = (jugadores || []) as UserNivelRow[];
+        // Los invitados (sin cuenta real, email 'invitado_%') nunca deben afectar
+        // ni recibir nivel: si alguno de los 4 es invitado, se omite el partido.
+        if (jugadoresRows.some(j => isGuestEmail(j.email))) return;
+
+        const nivelMap = new Map<string, number | null>(jugadoresRows.map(j => [j.id, j.nivel_ranking]));
         // Si a alguno de los 4 le falta nivel_ranking (el club aún no lo asignó),
         // no podemos calcular la diferencia de forma confiable: se omite el partido.
         if (jugadorIds.some(id => nivelMap.get(id) == null)) return;

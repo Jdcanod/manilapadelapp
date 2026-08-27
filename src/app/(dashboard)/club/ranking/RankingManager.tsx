@@ -23,6 +23,8 @@ export interface JugadorRankingData {
     participaciones: number;
     categoria_jugador: string | null;
     nivel_ranking: number | null;
+    es_invitado: boolean;
+    categoria_sugerida: string | null;
 }
 
 export interface RankingConfig {
@@ -52,8 +54,13 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
     const [configError, setConfigError] = useState<string | null>(null);
     const [pointsError, setPointsError] = useState<string | null>(null);
 
+    // Los invitados (sin cuenta real) no participan en el nivel de juego hasta
+    // que se les asocie a un usuario registrado — se excluyen de esta tabla.
+    const jugadoresRankeables = jugadores.filter(j => !j.es_invitado);
+    const jugadoresInvitados = jugadores.filter(j => j.es_invitado);
+
     const [niveles, setNiveles] = useState<Record<string, { categoria: string | null; nivel: number | null }>>(
-        Object.fromEntries(jugadores.map(j => [j.id, { categoria: j.categoria_jugador, nivel: j.nivel_ranking }]))
+        Object.fromEntries(jugadoresRankeables.map(j => [j.id, { categoria: j.categoria_jugador, nivel: j.nivel_ranking }]))
     );
     const [nivelesPending, startNivelesTransition] = useTransition();
     const [nivelesSaved, setNivelesSaved] = useState(false);
@@ -365,45 +372,73 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-5">
-                    {jugadores.length === 0 ? (
+                    {jugadoresRankeables.length === 0 ? (
                         <p className="text-sm text-olive/50 text-center py-8">
                             Inscribe jugadores en tus torneos para poder asignarles categoría y nivel.
                         </p>
                     ) : (
-                        <div className="space-y-2 max-h-96 overflow-y-auto pr-1 mb-4">
+                        <div className="space-y-3 max-h-96 overflow-y-auto pr-1 mb-4">
                             <div className="grid grid-cols-[1fr_7rem_6rem] gap-3 text-[10px] text-olive/50 uppercase tracking-widest font-bold pb-1 border-b border-olive/20">
                                 <span>Jugador</span>
                                 <span>Categoría</span>
                                 <span>Nivel</span>
                             </div>
-                            {jugadores.map(j => {
+                            {jugadoresRankeables.map(j => {
                                 const actual = niveles[j.id] || { categoria: null, nivel: null };
+                                const sugerenciaAplicable = !actual.categoria && j.categoria_sugerida && BANDAS_CATEGORIA[j.categoria_sugerida];
                                 return (
-                                    <div key={j.id} className="grid grid-cols-[1fr_7rem_6rem] gap-3 items-center">
-                                        <span className="text-sm text-ink truncate">{j.nombre}</span>
-                                        <select
-                                            value={actual.categoria ?? ''}
-                                            onChange={e => handleCategoriaChange(j.id, e.target.value)}
-                                            className="bg-paper border border-olive/30 rounded-md text-ink text-xs font-bold px-2 py-2"
-                                        >
-                                            <option value="">— Sin asignar —</option>
-                                            {Object.keys(BANDAS_CATEGORIA).map(cat => (
-                                                <option key={cat} value={cat}>{cat}</option>
-                                            ))}
-                                        </select>
-                                        <Input
-                                            type="number"
-                                            min="0"
-                                            max="5"
-                                            step="0.05"
-                                            value={actual.nivel ?? ''}
-                                            onChange={e => handleNivelChange(j.id, parseFloat(e.target.value) || 0)}
-                                            className="bg-paper border-olive/30 text-ink w-full text-center font-bold"
-                                        />
+                                    <div key={j.id}>
+                                        <div className="grid grid-cols-[1fr_7rem_6rem] gap-3 items-center">
+                                            <span className="text-sm text-ink truncate">{j.nombre}</span>
+                                            <select
+                                                value={actual.categoria ?? ''}
+                                                onChange={e => handleCategoriaChange(j.id, e.target.value)}
+                                                className="bg-paper border border-olive/30 rounded-md text-ink text-xs font-bold px-2 py-2"
+                                            >
+                                                <option value="">— Sin asignar —</option>
+                                                {Object.keys(BANDAS_CATEGORIA).map(cat => (
+                                                    <option key={cat} value={cat}>{cat}</option>
+                                                ))}
+                                            </select>
+                                            <Input
+                                                type="number"
+                                                min="0"
+                                                max="5"
+                                                step="0.05"
+                                                value={actual.nivel ?? ''}
+                                                onChange={e => handleNivelChange(j.id, parseFloat(e.target.value) || 0)}
+                                                className="bg-paper border-olive/30 text-ink w-full text-center font-bold"
+                                            />
+                                        </div>
+                                        {sugerenciaAplicable && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleCategoriaChange(j.id, j.categoria_sugerida!)}
+                                                className="text-[10px] text-olive/60 hover:text-emerald-700 mt-0.5"
+                                            >
+                                                Sugerido por su último torneo: <span className="font-bold">{j.categoria_sugerida}</span> — click para usar
+                                            </button>
+                                        )}
                                     </div>
                                 );
                             })}
                         </div>
+                    )}
+
+                    {jugadoresInvitados.length > 0 && (
+                        <details className="mb-4">
+                            <summary className="text-xs text-olive/60 cursor-pointer select-none hover:text-olive">
+                                {jugadoresInvitados.length} jugador{jugadoresInvitados.length !== 1 ? 'es' : ''} invitado{jugadoresInvitados.length !== 1 ? 's' : ''} sin cuenta — no participan en el nivel todavía
+                            </summary>
+                            <p className="text-[11px] text-olive/50 mt-2 mb-1">
+                                Cuando un invitado cree su cuenta y el club lo asocie a su historial, empezará a rankearse.
+                            </p>
+                            <div className="space-y-1 mt-1">
+                                {jugadoresInvitados.map(j => (
+                                    <div key={j.id} className="text-xs text-olive/50 italic">{j.nombre}</div>
+                                ))}
+                            </div>
+                        </details>
                     )}
 
                     {nivelesError && (
@@ -412,7 +447,7 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
 
                     <Button
                         onClick={handleSaveNiveles}
-                        disabled={nivelesPending || jugadores.length === 0}
+                        disabled={nivelesPending || jugadoresRankeables.length === 0}
                         className={cn(
                             "w-full font-bold transition-all",
                             nivelesSaved
