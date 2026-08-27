@@ -33,6 +33,39 @@ export async function saveRankingConfig(formData: FormData) {
     return { success: true };
 }
 
+export async function saveNivelesJugadores(
+    clubId: string,
+    updates: Record<string, { categoria: string | null; nivel: number | null }>
+) {
+    const supabase = createClient();
+    const adminSupabase = createAdminClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("No autenticado");
+
+    const { data: userData } = await supabase
+        .from('users')
+        .select('id, rol')
+        .eq('auth_id', user.id)
+        .single();
+    if (userData?.rol !== 'admin_club' || userData.id !== clubId) throw new Error("Sin permisos");
+
+    const entries = Object.entries(updates);
+    if (entries.length === 0) return { success: true };
+
+    for (const [jugadorId, { categoria, nivel }] of entries) {
+        const nivelClamped = nivel == null ? null : Math.min(5, Math.max(0, nivel));
+        const { error } = await adminSupabase
+            .from('users')
+            .update({ categoria_jugador: categoria, nivel_ranking: nivelClamped })
+            .eq('id', jugadorId);
+        if (error) throw new Error(`Error al guardar nivel de jugador ${jugadorId}: ` + error.message);
+    }
+
+    revalidatePath("/club/ranking");
+    return { success: true };
+}
+
 export async function saveBasePoints(clubId: string, points: Record<string, number>) {
     const supabase = createClient();
     const adminSupabase = createAdminClient();

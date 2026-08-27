@@ -124,15 +124,17 @@ export default async function ClubRankingPage() {
         allPlayerIds.add(j2);
     });
 
-    const playerMap = new Map<string, { nombre: string; foto?: string }>();
+    const playerMap = new Map<string, { nombre: string; foto?: string; categoria: string | null; nivel: number | null }>();
     if (allPlayerIds.size > 0) {
         const { data: players } = await adminSupabase
             .from('users')
-            .select('id, nombre, apellido, foto, email')
+            .select('id, nombre, apellido, foto, email, categoria_jugador, nivel_ranking')
             .in('id', Array.from(allPlayerIds));
         (players || []).forEach(p => playerMap.set(p.id, {
             nombre: formatPlayerName({ nombre: p.nombre, apellido: p.apellido, email: p.email }),
             foto: p.foto,
+            categoria: p.categoria_jugador,
+            nivel: p.nivel_ranking,
         }));
     }
 
@@ -243,6 +245,8 @@ export default async function ClubRankingPage() {
         subcampeonatos: subMap.get(id)  || 0,
         terceros:      tercMap.get(id)  || 0,
         participaciones: torneosPorPlayer.get(id)?.size || 0,
+        categoria_jugador: playerMap.get(id)?.categoria ?? null,
+        nivel_ranking: playerMap.get(id)?.nivel ?? null,
     }));
 
     return (

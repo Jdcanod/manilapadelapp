@@ -528,6 +528,9 @@ export async function registrarResultadoPorClub(matchId: string, resultado: stri
 
         if (error) throw new Error(error.message);
 
+        const { recalcularNivelPorPartido } = await import("@/lib/ranking/recalcularNivel");
+        await recalcularNivelPorPartido(matchId);
+
         // --- Lógica de Avance en Eliminatorias ---
         // 1. Obtener detalles del partido actualizado
         const { data: currentMatch } = await supabaseAdmin

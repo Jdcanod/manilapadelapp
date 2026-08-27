@@ -389,6 +389,9 @@ export async function confirmarResultado(matchId: string) {
 
         if (error) throw new Error(error.message);
 
+        const { recalcularNivelPorPartido } = await import("@/lib/ranking/recalcularNivel");
+        await recalcularNivelPorPartido(matchId);
+
         // Si se confirma, verificar avance de fase
         if (!match.torneo_grupo_id) {
             const { procesarAvanceCuadros } = await import("@/lib/tournaments/progression");
