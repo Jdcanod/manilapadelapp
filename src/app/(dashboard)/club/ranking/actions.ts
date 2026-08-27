@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient, createAdminClient } from "@/utils/supabase/server";
+import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
 export async function saveRankingConfig(formData: FormData) {
@@ -39,7 +39,7 @@ export async function saveNivelesJugadores(
     updates: Record<string, { categoria: string | null; nivel: number | null }>
 ) {
     const supabase = createClient();
-    const adminSupabase = createAdminClient();
+    const adminSupabase = createPureAdminClient();
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("No autenticado");
@@ -69,7 +69,7 @@ export async function saveNivelesJugadores(
 
 export async function saveBasePoints(clubId: string, points: Record<string, number>) {
     const supabase = createClient();
-    const adminSupabase = createAdminClient();
+    const adminSupabase = createPureAdminClient();
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("No autenticado");
