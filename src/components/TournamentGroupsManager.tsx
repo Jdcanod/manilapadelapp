@@ -1,8 +1,9 @@
 "use client";
 import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Swords, Users } from "lucide-react";
+import { Swords, Users, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { generarFaseGrupos, swapParejasDeGrupo, crearGrupoManual, moverParejaAGrupo, actualizarOrdenGrupo, crearRevancha, actualizarIdaVueltaCategoria } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Card, CardContent } from "@/components/ui/card";
@@ -765,6 +766,16 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                     categoria={selectedCat}
                                                                     yaAsignada={!esTBD(team.nombre)}
                                                                 />
+                                                                {esLiguilla && !esTBD(team.nombre) && (
+                                                                    <Link
+                                                                        href={`/club/torneos/${torneoId}/pareja/${team.parejaId}`}
+                                                                        title="Ver historial de la pareja"
+                                                                        className="text-olive/40 hover:text-olive flex-shrink-0"
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                    >
+                                                                        <History className="w-3.5 h-3.5" />
+                                                                    </Link>
+                                                                )}
                                                             </div>
                                                         </td>
                                                         <td className="px-2 py-3 text-center text-ink">{Number.isInteger(team.pj) ? team.pj : team.pj.toFixed(1)}</td>
