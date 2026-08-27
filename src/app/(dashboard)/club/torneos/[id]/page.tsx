@@ -153,6 +153,16 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         representando_club_id?: string | null;
     }
 
+    // Parejas marcadas como eliminadas por el corte de participación (liguilla).
+    // Quedan visibles en la tabla, pero excluidas de la clasificación a finales.
+    const parejasEliminadasSet = new Set<string>(
+        (torneo.torneo_parejas || [])
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .filter((tp: any) => tp.eliminada && tp.pareja_id)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .map((tp: any) => tp.pareja_id as string)
+    );
+
     const allParticipants: Participant[] = [];
     
     // Regular pairs
@@ -741,6 +751,9 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         setsCantidad={torneo.reglas_puntuacion?.sets}
                         ordenGrupos={torneo.reglas_puntuacion?.orden_grupos || {}}
                         idaVueltaConfig={torneo.reglas_puntuacion?.liga_ida_vuelta_config || {}}
+                        ligaClasificacionConfig={torneo.reglas_puntuacion?.liga_clasificacion_config || {}}
+                        parejasEliminadas={parejasEliminadasSet}
+                        corteConfig={torneo.reglas_puntuacion?.liga_corte_config || null}
                     />
                 </TabsContent>
 
@@ -848,6 +861,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                             setsCantidad={torneo.reglas_puntuacion?.sets}
                             formato={torneo.formato || 'relampago'}
                             clasificanPorGrupoDefault={torneo.reglas_puntuacion?.config_clasifican_por_grupo}
+                            ligaClasificacionConfig={torneo.reglas_puntuacion?.liga_clasificacion_config || {}}
                             allParticipants={allParticipants}
                         />
 
