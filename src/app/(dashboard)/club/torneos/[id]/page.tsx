@@ -740,6 +740,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         configClasifican={torneo.reglas_puntuacion?.config_clasifican_por_grupo}
                         setsCantidad={torneo.reglas_puntuacion?.sets}
                         ordenGrupos={torneo.reglas_puntuacion?.orden_grupos || {}}
+                        idaVueltaConfig={torneo.reglas_puntuacion?.liga_ida_vuelta_config || {}}
                     />
                 </TabsContent>
 

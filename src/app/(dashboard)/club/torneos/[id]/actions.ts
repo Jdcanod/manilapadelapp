@@ -191,13 +191,16 @@ export async function generarFaseGrupos(torneoId: string, categoria: string, num
         // Get tournament info for inherited fields (debe ir antes del sorteo para detectar formato)
         const { data: torneoInfo } = await supabaseAdmin
             .from('torneos')
-            .select('club_id, fecha_inicio, nombre, formato')
+            .select('club_id, fecha_inicio, nombre, formato, reglas_puntuacion')
             .eq('id', torneoId)
             .single();
 
         // 3. Ejecutar algoritmo de sorteo
         // Para liguilla: grupos grandes configurables; para relámpago: grupos de 3
         const esLiguilla = torneoInfo?.formato === 'liguilla';
+        // Ida y vuelta: la categoría juega cada cruce DOS veces (sin distinción
+        // local/visitante). Configurable por categoría, persistido en el torneo.
+        const esIdaVuelta = esLiguilla && !!(torneoInfo?.reglas_puntuacion?.liga_ida_vuelta_config?.[categoria]);
         const groupDistributions = esLiguilla
             ? distributeParticipantsIntoGroups(participants, numGrupos ?? Math.max(1, Math.ceil(participants.length / 16)))
             : distributeParticipantsIntoGroups(participants);
@@ -223,11 +226,16 @@ export async function generarFaseGrupos(torneoId: string, categoria: string, num
             }
 
             // Generar partidos Round Robin para el grupo (usando pareja_id real)
-            const baseMatches = generateMatchesForGroup(
-                group.id, 
-                groupDistributions[i].map(p => p.id!.toString()), 
+            let baseMatches = generateMatchesForGroup(
+                group.id,
+                groupDistributions[i].map(p => p.id!.toString()),
                 torneoId
             );
+            // Ida y vuelta: duplicar cada cruce (mismo par de parejas, un
+            // segundo partido independiente — sin distinción local/visitante).
+            if (esIdaVuelta) {
+                baseMatches = baseMatches.flatMap(m => [m, { ...m }]);
+            }
 
             // Inyectar campos obligatorios
             const finalMatches = baseMatches.map(m => ({
@@ -258,6 +266,123 @@ export async function generarFaseGrupos(torneoId: string, categoria: string, num
     } catch (err: unknown) {
         console.error("Error en generarFaseGrupos:", err);
         return { success: false, error: err instanceof Error ? err.message : "Error desconocido" };
+    }
+}
+
+/**
+ * Activa o desactiva "ida y vuelta" para una categoría de liguilla — cada
+ * cruce se juega dos veces, sin distinción local/visitante. Es manual,
+ * la elige el dueño del torneo y puede cambiarla en cualquier momento.
+ *
+ * Al ACTIVARLA, genera retroactivamente los partidos de vuelta faltantes
+ * para todos los cruces que ya existían en los grupos de esa categoría
+ * (uno por cada pareja-vs-pareja que hoy solo tiene un partido). Al
+ * DESACTIVARLA solo se apaga el flag para sorteos futuros — no borra
+ * partidos ya creados, para no perder resultados.
+ */
+export async function actualizarIdaVueltaCategoria(torneoId: string, categoria: string, activar: boolean) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado" };
+
+        const admin = createPureAdminClient();
+        const { data: me } = await admin.from('users').select('id, rol').eq('auth_id', user.id).single();
+        if (!me || (me.rol !== 'admin_club' && me.rol !== 'superadmin')) {
+            return { success: false, message: "Sin permisos" };
+        }
+
+        const { data: torneo } = await admin
+            .from('torneos')
+            .select('club_id, formato, reglas_puntuacion, fecha_inicio')
+            .eq('id', torneoId)
+            .single();
+        if (!torneo) return { success: false, message: "Torneo no encontrado" };
+        if (torneo.formato !== 'liguilla') return { success: false, message: "Solo aplica a torneos tipo liguilla" };
+        if (String(torneo.club_id) !== String(me.id) && me.rol !== 'superadmin') {
+            return { success: false, message: "Solo el dueño del torneo puede cambiar esta configuración" };
+        }
+
+        const nuevaConfig = {
+            ...(torneo.reglas_puntuacion || {}),
+            liga_ida_vuelta_config: {
+                ...(torneo.reglas_puntuacion?.liga_ida_vuelta_config || {}),
+                [categoria]: activar,
+            },
+        };
+        const { error: errUpdate } = await admin
+            .from('torneos')
+            .update({ reglas_puntuacion: nuevaConfig })
+            .eq('id', torneoId);
+        if (errUpdate) return { success: false, message: "Error guardando configuración: " + errUpdate.message };
+
+        let vueltasCreadas = 0;
+        if (activar) {
+            const { data: grupos } = await admin
+                .from('torneo_grupos')
+                .select('id')
+                .eq('torneo_id', torneoId)
+                .eq('categoria', categoria);
+
+            for (const grupo of grupos || []) {
+                const { data: matches } = await admin
+                    .from('partidos')
+                    .select('id, pareja1_id, pareja2_id, es_revancha')
+                    .eq('torneo_grupo_id', grupo.id)
+                    // Las revanchas no cuentan como "el cruce" — solo los partidos normales.
+                    .or('es_revancha.is.null,es_revancha.eq.false');
+
+                const porPar = new Map<string, { id: string; pareja1_id: string; pareja2_id: string }[]>();
+                (matches || []).forEach((m: { id: string; pareja1_id: string | null; pareja2_id: string | null; es_revancha?: boolean | null }) => {
+                    if (!m.pareja1_id || !m.pareja2_id) return;
+                    const key = [m.pareja1_id, m.pareja2_id].sort().join(':');
+                    if (!porPar.has(key)) porPar.set(key, []);
+                    porPar.get(key)!.push(m as { id: string; pareja1_id: string; pareja2_id: string });
+                });
+
+                const nuevosPartidos: Record<string, unknown>[] = [];
+                porPar.forEach(lista => {
+                    // Ya tiene ida y vuelta (2+) o está incompleto: no tocar.
+                    if (lista.length !== 1) return;
+                    const original = lista[0];
+                    nuevosPartidos.push({
+                        torneo_id: torneoId,
+                        torneo_grupo_id: grupo.id,
+                        pareja1_id: original.pareja1_id,
+                        pareja2_id: original.pareja2_id,
+                        nivel: categoria,
+                        club_id: torneo.club_id,
+                        creador_id: user.id,
+                        estado: 'programado',
+                        tipo_partido: 'torneo',
+                        tipo_partido_oficial: 'torneo',
+                        sexo: 'Mixto',
+                        lugar: 'Pendiente',
+                        fecha: torneo.fecha_inicio || new Date().toISOString(),
+                        cupos_totales: 4,
+                        cupos_disponibles: 0,
+                    });
+                });
+
+                if (nuevosPartidos.length > 0) {
+                    const { error: errInsert } = await admin.from('partidos').insert(nuevosPartidos);
+                    if (errInsert) return { success: false, message: "Configuración guardada, pero falló creando partidos de vuelta: " + errInsert.message };
+                    vueltasCreadas += nuevosPartidos.length;
+                }
+            }
+        }
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        revalidatePath(`/torneos/${torneoId}`);
+        return {
+            success: true,
+            message: activar
+                ? `Ida y vuelta activada. Se generaron ${vueltasCreadas} partido${vueltasCreadas === 1 ? '' : 's'} de vuelta.`
+                : "Ida y vuelta desactivada para nuevos sorteos.",
+        };
+    } catch (err: unknown) {
+        const e = err as Error;
+        return { success: false, message: e.message || "Error desconocido" };
     }
 }
 

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Swords, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { generarFaseGrupos, swapParejasDeGrupo, crearGrupoManual, moverParejaAGrupo, actualizarOrdenGrupo, crearRevancha } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { generarFaseGrupos, swapParejasDeGrupo, crearGrupoManual, moverParejaAGrupo, actualizarOrdenGrupo, crearRevancha, actualizarIdaVueltaCategoria } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
@@ -55,6 +55,8 @@ interface Props {
      *  torneo.reglas_puntuacion.orden_grupos). Tie-breaker FINAL del sort: si
      *  pts/sets/games coinciden, este orden decide. */
     ordenGrupos?: Record<string, string[]>;
+    /** Liguilla: qué categorías juegan ida y vuelta (persistido en torneo). */
+    idaVueltaConfig?: Record<string, boolean>;
 }
 
 interface Standing {
@@ -71,7 +73,7 @@ interface Standing {
     revanchas: number; // Revanchas jugadas y confirmadas
 }
 
-export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", tipoDesempatePorCategoria = {}, allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican, setsCantidad, ordenGrupos = {} }: Props) {
+export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", tipoDesempatePorCategoria = {}, allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican, setsCantidad, ordenGrupos = {}, idaVueltaConfig = {} }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const [selectedCat, setSelectedCat] = useState(categorias[0] || "General");
@@ -184,6 +186,24 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
     const partidosConRevancha = new Set(
         partidos.filter(p => p.revancha_de_partido_id).map(p => p.revancha_de_partido_id as string)
     );
+
+    const idaVueltaActiva = !!idaVueltaConfig[selectedCat];
+    const handleToggleIdaVuelta = () => {
+        const activar = !idaVueltaActiva;
+        const msg = activar
+            ? `¿Activar ida y vuelta para ${selectedCat}? Se generará automáticamente el partido de vuelta para cada cruce que ya exista en los grupos de esta categoría.`
+            : `¿Desactivar ida y vuelta para ${selectedCat}? Los partidos de vuelta ya creados NO se borran, solo deja de aplicar a sorteos futuros.`;
+        if (!confirm(msg)) return;
+        startTransition(async () => {
+            const res = await actualizarIdaVueltaCategoria(torneoId, selectedCat, activar);
+            if (res.success) {
+                if (res.message) alert(res.message);
+                router.refresh();
+            } else {
+                alert(res.message);
+            }
+        });
+    };
 
     const handleCrearRevancha = (matchId: string) => {
         if (!confirm('¿Crear revancha de este partido? Se genera un partido extra contra el mismo rival, que vale la mitad de puntos (1.5 / 0.5) y cuenta como 0.5 partidos jugados.')) return;
@@ -404,6 +424,26 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                 <span className="text-olive/50 italic normal-case font-normal">(usa el global)</span>
                             )}
                         </div>
+                        {/* Ida y vuelta — solo liguilla, manual, editable en cualquier momento */}
+                        {esLiguilla && (
+                            <div className="mt-2 flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={handleToggleIdaVuelta}
+                                    disabled={isPending}
+                                    className={cn(
+                                        "flex items-center gap-2 px-2 py-1 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-colors",
+                                        idaVueltaActiva
+                                            ? "bg-purple-700/15 border-purple-700/40 text-purple-700 hover:bg-purple-700/25"
+                                            : "bg-paper-soft border-olive/20 text-olive/60 hover:text-olive"
+                                    )}
+                                    title={idaVueltaActiva ? "Desactivar ida y vuelta" : "Activar ida y vuelta"}
+                                >
+                                    <Repeat className="w-3 h-3" />
+                                    {selectedCat} · Ida y vuelta: {idaVueltaActiva ? "Activado" : "Desactivado"}
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Acción principal del header (solo cuando aún no hay grupos sorteados).

@@ -79,6 +79,15 @@ export async function crearTorneoCentral(formData: FormData) {
                     tipoDesempatePorCategoria[cat] = v;
                 }
             }
+            // Liguilla: qué categorías juegan ida y vuelta (checkbox ausente = no marcado).
+            const ligaIdaVueltaConfig: Record<string, boolean> = {};
+            if (formato === 'liguilla') {
+                categoriasSeleccionadas.forEach(cat => {
+                    // Checkbox no marcado no se incluye en el FormData (comportamiento
+                    // estándar de HTML) — presencia = activado, sin importar el valor.
+                    ligaIdaVueltaConfig[cat] = formData.has(`liga_ida_vuelta_${cat}`);
+                });
+            }
             return {
                 sets: parseInt(formData.get("sets") as string) || 3,
                 juegos: parseInt(formData.get("juegos") as string) || 6,
@@ -88,6 +97,7 @@ export async function crearTorneoCentral(formData: FormData) {
                 categorias_habilitadas: formData.getAll("categorias") as string[],
                 config_duracion: parseInt(formData.get("config_duracion") as string) || 60,
                 config_canchas: parseInt(formData.get("config_canchas") as string) || 1,
+                ...(formato === 'liguilla' ? { liga_ida_vuelta_config: ligaIdaVueltaConfig } : {}),
             };
         })();
 
