@@ -21,6 +21,7 @@ interface Standing {
     gg: number;
     gp: number;
     pts: number;
+    revanchas: number;
 }
 
 interface Match {
@@ -37,6 +38,9 @@ interface Match {
     pareja2?: { nombre_pareja: string | null } | null;
     fecha?: string;
     lugar?: string;
+    /** Revancha: partido extra sobre uno ya jugado, contra el mismo rival. */
+    es_revancha?: boolean | null;
+    revancha_de_partido_id?: string | null;
 }
 
 interface Props {
@@ -72,14 +76,17 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
         matches.forEach(m => {
             if (!m.pareja1_id || !m.pareja2_id) return;
             
-            if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: m.pareja1?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
-            if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: m.pareja2?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
+            if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: m.pareja1?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0, revanchas: 0 });
+            if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: m.pareja2?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0, revanchas: 0 });
 
             if (m.estado === 'jugado' && m.resultado && m.estado_resultado === 'confirmado') {
                 const s1 = map.get(m.pareja1_id)!;
                 const s2 = map.get(m.pareja2_id)!;
-                
-                s1.pj += 1; s2.pj += 1;
+                const esRevancha = !!m.es_revancha;
+                const pesoPartido = esRevancha ? 0.5 : 1;
+
+                s1.pj += pesoPartido; s2.pj += pesoPartido;
+                if (esRevancha) { s1.revanchas += 1; s2.revanchas += 1; }
 
                 const sets = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
                 let setsP1InMatch = 0, setsP2InMatch = 0;
@@ -101,13 +108,16 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                 });
 
                 // Liguilla: ganador 3pts, perdedor 1pt. Otros formatos: ganador 3pts, perdedor 0.
+                // Revancha: vale la mitad de esos puntos.
                 const pointsForLoss = esLiguilla ? 1 : 0;
+                const ptsGanador = esRevancha ? 1.5 : 3;
+                const ptsPerdedor = esRevancha ? pointsForLoss / 2 : pointsForLoss;
                 if (setsP1InMatch > setsP2InMatch) {
-                    s1.pg += 1; s1.pts += 3;
-                    s2.pp += 1; s2.pts += pointsForLoss;
+                    s1.pg += 1; s1.pts += ptsGanador;
+                    s2.pp += 1; s2.pts += ptsPerdedor;
                 } else if (setsP2InMatch > setsP1InMatch) {
-                    s2.pg += 1; s2.pts += 3;
-                    s1.pp += 1; s1.pts += pointsForLoss;
+                    s2.pg += 1; s2.pts += ptsGanador;
+                    s1.pp += 1; s1.pts += ptsPerdedor;
                 }
             }
         });
@@ -197,6 +207,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                             <th className="px-2 py-3 text-center text-[10px] font-black text-olive/70">GP</th>
                                             <th className="px-2 py-3 text-center text-[10px] font-black text-olive">%G</th>
                                             <th className="px-4 py-3 text-center text-[10px] font-black text-ochre-dark">PTS</th>
+                                            {esLiguilla && <th className="px-2 py-3 text-center text-[10px] font-black text-purple-700" title="Revanchas jugadas">REV</th>}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -214,7 +225,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                         {team.nombre}
                                                         {isMyTeam && <span className="ml-2 text-[10px] font-black text-amber-600 bg-ochre/10 px-1 rounded">TÚ</span>}
                                                     </td>
-                                                    <td className="px-2 py-4 text-center text-olive">{team.pj}</td>
+                                                    <td className="px-2 py-4 text-center text-olive">{Number.isInteger(team.pj) ? team.pj : team.pj.toFixed(1)}</td>
                                                     <td className="px-2 py-4 text-center text-olive/70 text-xs">{team.sg}</td>
                                                     <td className="px-2 py-4 text-center text-olive/70 text-xs">{team.sp}</td>
                                                     <td className="px-2 py-4 text-center text-olive/80 font-bold">
@@ -225,7 +236,10 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                     <td className="px-2 py-4 text-center text-olive/80 font-bold">
                                                         {((team.gg * 100) / (team.gg + team.gp || 1)).toFixed(0)}%
                                                     </td>
-                                                    <td className="px-4 py-4 text-center font-black text-ochre-dark">{team.pts}</td>
+                                                    <td className="px-4 py-4 text-center font-black text-ochre-dark">{Number.isInteger(team.pts) ? team.pts : team.pts.toFixed(1)}</td>
+                                                    {esLiguilla && (
+                                                        <td className="px-2 py-4 text-center text-purple-700 font-bold">{team.revanchas || '—'}</td>
+                                                    )}
                                                 </tr>
                                             );
                                         })}
@@ -265,6 +279,13 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                 isMyMatch ? "border-ochre/50 bg-ochre/5 shadow-[0_0_20px_rgba(245,158,11,0.05)]" : "border-olive/15"
                                                             )}
                                                         >
+                                                            {match.es_revancha && (
+                                                                <div className="flex justify-center mb-3">
+                                                                    <span className="bg-purple-700/15 text-purple-700 border border-purple-700/40 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                                                                        🔁 Revancha · vale la mitad
+                                                                    </span>
+                                                                </div>
+                                                            )}
                                                             <div className="flex justify-between items-center mb-4">
                                                                  <div className="flex flex-col gap-2 flex-1">
                                                                     <div className="flex justify-between items-center bg-paper/50 p-2 rounded-lg border border-olive/15">

@@ -4,12 +4,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Swords, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { generarFaseGrupos, swapParejasDeGrupo, crearGrupoManual, moverParejaAGrupo, actualizarOrdenGrupo } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { generarFaseGrupos, swapParejasDeGrupo, crearGrupoManual, moverParejaAGrupo, actualizarOrdenGrupo, crearRevancha } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { confirmarResultado, reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
-import { Check, Plus, RotateCcw, Settings, ChevronDown, ArrowDown, ArrowUp } from "lucide-react";
+import { Check, Plus, RotateCcw, Settings, ChevronDown, ArrowDown, ArrowUp, Repeat } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 import { GrupoMatchesList } from "@/components/GrupoMatchesList";
@@ -37,6 +37,9 @@ interface Props {
         jugador4_id?: string;
         pareja1?: { nombre_pareja?: string | null } | null;
         pareja2?: { nombre_pareja?: string | null } | null;
+        /** Revancha: partido extra sobre uno ya jugado, contra el mismo rival. */
+        es_revancha?: boolean | null;
+        revancha_de_partido_id?: string | null;
     }[];
     tipoDesempate?: string;
     /** Override de tipo_desempate por categoría. Si una categoría está aquí, sobrescribe al global. */
@@ -65,6 +68,7 @@ interface Standing {
     gg: number; // Games ganados
     gp: number; // Games perdidos
     pts: number;
+    revanchas: number; // Revanchas jugadas y confirmadas
 }
 
 export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", tipoDesempatePorCategoria = {}, allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican, setsCantidad, ordenGrupos = {} }: Props) {
@@ -176,6 +180,20 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
 
     const gruposCategoria = gruposExistentes.filter(g => g.categoria === selectedCat);
 
+    // Partidos que YA tienen una revancha creada (para no ofrecer el botón dos veces).
+    const partidosConRevancha = new Set(
+        partidos.filter(p => p.revancha_de_partido_id).map(p => p.revancha_de_partido_id as string)
+    );
+
+    const handleCrearRevancha = (matchId: string) => {
+        if (!confirm('¿Crear revancha de este partido? Se genera un partido extra contra el mismo rival, que vale la mitad de puntos (1.5 / 0.5) y cuenta como 0.5 partidos jugados.')) return;
+        startTransition(async () => {
+            const res = await crearRevancha(matchId);
+            if (res.success) router.refresh();
+            else alert(res.message);
+        });
+    };
+
     // Identificar parejas inscritas en esta categoría que no están en ningún grupo
     const parejasEnGruposSignatures = new Set<string>();
     partidos.filter(p => p.nivel === selectedCat && p.torneo_grupo_id).forEach(p => {
@@ -202,15 +220,18 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
         matches.forEach(m => {
             if (!m.pareja1_id || !m.pareja2_id) return;
             
-            if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: resolvePairName(m.pareja1_id, m.pareja1?.nombre_pareja, parejaPlayers) || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
-            if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: resolvePairName(m.pareja2_id, m.pareja2?.nombre_pareja, parejaPlayers) || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
+            if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: resolvePairName(m.pareja1_id, m.pareja1?.nombre_pareja, parejaPlayers) || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0, revanchas: 0 });
+            if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: resolvePairName(m.pareja2_id, m.pareja2?.nombre_pareja, parejaPlayers) || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0, revanchas: 0 });
 
             if (m.estado === 'jugado' && m.resultado && m.estado_resultado === 'confirmado') {
                 const s1 = map.get(m.pareja1_id)!;
                 const s2 = map.get(m.pareja2_id)!;
-                
-                s1.pj += 1;
-                s2.pj += 1;
+                const esRevancha = !!m.es_revancha;
+                const pesoPartido = esRevancha ? 0.5 : 1;
+
+                s1.pj += pesoPartido;
+                s2.pj += pesoPartido;
+                if (esRevancha) { s1.revanchas += 1; s2.revanchas += 1; }
 
                 const sets = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
                 let setsP1InMatch = 0;
@@ -250,17 +271,20 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                 });
 
                 // Liguilla: ganador 3pts, perdedor 1pt. Otros formatos: ganador 3pts, perdedor 0.
+                // Revancha: vale la mitad de esos puntos.
                 const pointsForLoss = esLiguilla ? 1 : 0;
+                const ptsGanador = esRevancha ? 1.5 : 3;
+                const ptsPerdedor = esRevancha ? pointsForLoss / 2 : pointsForLoss;
                 if (setsP1InMatch > setsP2InMatch) {
                     s1.pg += 1;
-                    s1.pts += 3;
+                    s1.pts += ptsGanador;
                     s2.pp += 1;
-                    s2.pts += pointsForLoss;
+                    s2.pts += ptsPerdedor;
                 } else if (setsP2InMatch > setsP1InMatch) {
                     s2.pg += 1;
-                    s2.pts += 3;
+                    s2.pts += ptsGanador;
                     s1.pp += 1;
-                    s1.pts += pointsForLoss;
+                    s1.pts += ptsPerdedor;
                 }
             }
         });
@@ -514,6 +538,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                     <th className="px-2 py-2 font-black text-center text-olive">%S</th>
                                                     <th className="px-2 py-2 font-black text-center text-olive">%G</th>
                                                     <th className="px-4 py-2 font-black text-center text-olive">PTS</th>
+                                                    {esLiguilla && <th className="px-2 py-2 font-bold text-center text-purple-700" title="Revanchas jugadas">REV</th>}
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -607,7 +632,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                 />
                                                             </div>
                                                         </td>
-                                                        <td className="px-2 py-3 text-center text-ink">{team.pj}</td>
+                                                        <td className="px-2 py-3 text-center text-ink">{Number.isInteger(team.pj) ? team.pj : team.pj.toFixed(1)}</td>
                                                         <td className="px-2 py-3 text-center text-olive text-xs">{team.sg}</td>
                                                         <td className="px-2 py-3 text-center text-olive text-xs">{team.sp}</td>
                                                         <td className="px-2 py-3 text-center text-olive text-xs">{team.gg}</td>
@@ -621,7 +646,10 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                         <td className={cn(
                                                             "px-4 py-3 text-center font-black",
                                                             clasifica ? "text-olive" : "text-olive/70"
-                                                        )}>{team.pts}</td>
+                                                        )}>{Number.isInteger(team.pts) ? team.pts : team.pts.toFixed(1)}</td>
+                                                        {esLiguilla && (
+                                                            <td className="px-2 py-3 text-center text-purple-700 font-bold">{team.revanchas || '—'}</td>
+                                                        )}
                                                     </tr>
                                                     );
                                                 })}
@@ -653,6 +681,13 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                     parejaPlayers={parejaPlayers}
                                                     renderMatch={(match) => (
                                                             <div key={match.id} className="bg-paper-soft border border-olive/20 rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
+                                                                {match.es_revancha && (
+                                                                    <div className="flex items-center justify-center gap-1.5 -mt-1 -mx-1">
+                                                                        <span className="bg-purple-700/15 text-purple-700 border border-purple-700/40 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                                                                            🔁 Revancha · vale la mitad
+                                                                        </span>
+                                                                    </div>
+                                                                )}
                                                                 <div className="flex justify-between items-center bg-paper/50 p-3 rounded-xl border border-olive/15">
                                                                      <div className="flex flex-col gap-1.5 flex-1">
                                                                          <div className="flex justify-between items-center text-xs font-bold text-ink uppercase pr-2">
@@ -763,6 +798,17 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                              className="text-olive/70 hover:text-red-500 hover:bg-red-500/5 font-black text-[9px] uppercase h-7 rounded-lg"
                                                                          >
                                                                              <RotateCcw className="w-2.5 h-2.5 mr-1" /> Reiniciar Score
+                                                                         </Button>
+                                                                     )}
+                                                                     {esLiguilla && match.estado === 'jugado' && match.estado_resultado === 'confirmado' && !match.es_revancha && !partidosConRevancha.has(match.id) && (
+                                                                         <Button
+                                                                             size="sm"
+                                                                             variant="outline"
+                                                                             onClick={() => handleCrearRevancha(match.id)}
+                                                                             disabled={isPending}
+                                                                             className="bg-purple-700/10 border-purple-700/40 text-purple-700 hover:bg-purple-700/20 font-black text-[9px] uppercase h-7 rounded-lg"
+                                                                         >
+                                                                             <Repeat className="w-2.5 h-2.5 mr-1" /> Jugar Revancha
                                                                          </Button>
                                                                      )}
                                                                  </div>

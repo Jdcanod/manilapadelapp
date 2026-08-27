@@ -1151,7 +1151,7 @@ export async function obtenerStandingsPorGrupo(torneoId: string, categoria: stri
         for (const g of grupos) {
             const { data: rawGroupMatches } = await supabaseAdmin
                 .from('partidos')
-                .select('id, pareja1_id, pareja2_id, estado, resultado, estado_resultado')
+                .select('id, pareja1_id, pareja2_id, estado, resultado, estado_resultado, es_revancha')
                 .eq('torneo_grupo_id', g.id);
 
             const allParejaIds = new Set<string>();
@@ -1217,7 +1217,7 @@ export async function obtenerStandingsGlobales(torneoId: string, categoria: stri
         // — por RLS, FK roto, etc. — la query venía null y se interpretaba como 0).
         const { data: rawMatches, error: matchesError } = await supabaseAdmin
             .from('partidos')
-            .select('id, torneo_id, torneo_grupo_id, pareja1_id, pareja2_id, estado, estado_resultado, resultado, lugar, nivel, fecha')
+            .select('id, torneo_id, torneo_grupo_id, pareja1_id, pareja2_id, estado, estado_resultado, resultado, lugar, nivel, fecha, es_revancha')
             .eq('torneo_id', torneoId);
 
         // Resolver nombres de pareja en una segunda query (también opcional)
@@ -1441,9 +1441,9 @@ export async function generarFaseEliminatoriaTopN(
             for (const g of grupos) {
                 const { data: rawGroupMatches } = await supabaseAdmin
                     .from('partidos')
-                    .select('id, pareja1_id, pareja2_id, estado, resultado, estado_resultado')
+                    .select('id, pareja1_id, pareja2_id, estado, resultado, estado_resultado, es_revancha')
                     .eq('torneo_grupo_id', g.id);
-                
+
                 const allParejaIds = new Set<string>();
                 (rawGroupMatches || []).forEach(m => {
                     if (m.pareja1_id) allParejaIds.add(m.pareja1_id);
@@ -1455,7 +1455,7 @@ export async function generarFaseEliminatoriaTopN(
                         .from('parejas').select('id, nombre_pareja').in('id', Array.from(allParejaIds));
                     (parejas || []).forEach(p => nameMap.set(p.id, p.nombre_pareja || 'Pareja'));
                 }
-                const matchesShape = (rawGroupMatches || []).map((m: { id: string; pareja1_id: string | null; pareja2_id: string | null; estado: string; resultado: string | null; estado_resultado: string | null }) => ({
+                const matchesShape = (rawGroupMatches || []).map((m: { id: string; pareja1_id: string | null; pareja2_id: string | null; estado: string; resultado: string | null; estado_resultado: string | null; es_revancha?: boolean | null }) => ({
                     ...m,
                     pareja1: m.pareja1_id ? { nombre_pareja: nameMap.get(m.pareja1_id) || null } : null,
                     pareja2: m.pareja2_id ? { nombre_pareja: nameMap.get(m.pareja2_id) || null } : null,
@@ -2155,6 +2155,87 @@ export async function editarParticipantesInscripcion(
 
     revalidatePath(`/club/torneos/${torneoId}`);
     return { success: true };
+}
+
+/**
+ * Crea un partido de REVANCHA sobre un partido de liguilla ya jugado y
+ * confirmado, contra el mismo rival. Solo el dueño del torneo puede
+ * crearla, y máximo una por partido original (la unique index en BD lo
+ * respalda; aquí se valida antes para dar un mensaje claro).
+ *
+ * La revancha vale la mitad de puntos (ganador 1.5, perdedor 0.5) y cuenta
+ * 0.5 "partidos jugados" — ese cálculo vive en las funciones de standings,
+ * no aquí; este action solo crea el partido marcado como tal.
+ */
+export async function crearRevancha(matchId: string) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado" };
+
+        const admin = createPureAdminClient();
+        const { data: me } = await admin.from('users').select('id, rol').eq('auth_id', user.id).single();
+        if (!me || (me.rol !== 'admin_club' && me.rol !== 'superadmin')) {
+            return { success: false, message: "Sin permisos" };
+        }
+
+        const { data: original } = await admin
+            .from('partidos')
+            .select('id, torneo_id, torneo_grupo_id, pareja1_id, pareja2_id, nivel, club_id, estado, estado_resultado, tipo_partido, es_revancha')
+            .eq('id', matchId)
+            .single();
+        if (!original) return { success: false, message: "Partido no encontrado" };
+        if (original.tipo_partido !== 'torneo') return { success: false, message: "Solo aplica a partidos de torneo" };
+        if (original.es_revancha) return { success: false, message: "No se puede crear una revancha de otra revancha" };
+        if (original.estado !== 'jugado' || original.estado_resultado !== 'confirmado') {
+            return { success: false, message: "El partido original debe estar jugado y confirmado" };
+        }
+        if (!original.pareja1_id || !original.pareja2_id) {
+            return { success: false, message: "El partido original no tiene las dos parejas asignadas" };
+        }
+
+        const { data: torneo } = await admin.from('torneos').select('club_id, formato').eq('id', original.torneo_id).single();
+        if (!torneo) return { success: false, message: "Torneo no encontrado" };
+        if (torneo.formato !== 'liguilla') return { success: false, message: "Las revanchas solo aplican en torneos tipo liguilla" };
+        if (String(torneo.club_id) !== String(me.id) && me.rol !== 'superadmin') {
+            return { success: false, message: "Solo el dueño del torneo puede crear una revancha" };
+        }
+
+        const { data: existente } = await admin
+            .from('partidos')
+            .select('id')
+            .eq('revancha_de_partido_id', matchId)
+            .maybeSingle();
+        if (existente) return { success: false, message: "Este partido ya tiene una revancha" };
+
+        const { data: nueva, error } = await admin
+            .from('partidos')
+            .insert({
+                torneo_id: original.torneo_id,
+                torneo_grupo_id: original.torneo_grupo_id,
+                pareja1_id: original.pareja1_id,
+                pareja2_id: original.pareja2_id,
+                nivel: original.nivel,
+                club_id: original.club_id,
+                creador_id: user.id,
+                estado: 'programado',
+                tipo_partido: 'torneo',
+                lugar: 'Pendiente',
+                fecha: new Date().toISOString(),
+                es_revancha: true,
+                revancha_de_partido_id: matchId,
+            })
+            .select('id')
+            .single();
+        if (error) return { success: false, message: "Error creando la revancha: " + error.message };
+
+        revalidatePath(`/club/torneos/${original.torneo_id}`);
+        revalidatePath(`/torneos/${original.torneo_id}`);
+        return { success: true, revanchaId: nueva.id };
+    } catch (err: unknown) {
+        const e = err as Error;
+        return { success: false, message: e.message || "Error desconocido" };
+    }
 }
 
 export async function darDeBajaPareja(id: string, tipo: 'master' | 'regular', parejaId: string, torneoId: string) {
