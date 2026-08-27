@@ -391,6 +391,8 @@ export async function confirmarResultado(matchId: string) {
 
         const { recalcularNivelPorPartido } = await import("@/lib/ranking/recalcularNivel");
         await recalcularNivelPorPartido(matchId);
+        const { aplicarBonoPosicionSiAplica } = await import("@/lib/ranking/aplicarBonoPosicion");
+        await aplicarBonoPosicionSiAplica(matchId);
 
         // Si se confirma, verificar avance de fase
         if (!match.torneo_grupo_id) {

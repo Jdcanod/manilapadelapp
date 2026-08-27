@@ -15,11 +15,12 @@ export async function saveRankingConfig(formData: FormData) {
         .single();
     if (userData?.rol !== 'admin_club') throw new Error("Sin permisos");
 
+    const clamp = (v: string | null) => Math.min(1, Math.max(0, parseFloat(v || '0') || 0));
     const config = {
-        campeon:      Math.max(0, parseInt(formData.get('campeon') as string) || 0),
-        subcampeon:   Math.max(0, parseInt(formData.get('subcampeon') as string) || 0),
-        tercer_puesto: Math.max(0, parseInt(formData.get('tercer_puesto') as string) || 0),
-        participacion: Math.max(0, parseInt(formData.get('participacion') as string) || 0),
+        campeon:      clamp(formData.get('campeon') as string),
+        subcampeon:   clamp(formData.get('subcampeon') as string),
+        tercer_puesto: clamp(formData.get('tercer_puesto') as string),
+        participacion: clamp(formData.get('participacion') as string),
     };
 
     const { error } = await supabase

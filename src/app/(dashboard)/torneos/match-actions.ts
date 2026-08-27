@@ -38,6 +38,8 @@ export async function confirmarResultadoTorneo(matchId: string, userId: string) 
 
     const { recalcularNivelPorPartido } = await import("@/lib/ranking/recalcularNivel");
     await recalcularNivelPorPartido(matchId);
+    const { aplicarBonoPosicionSiAplica } = await import("@/lib/ranking/aplicarBonoPosicion");
+    await aplicarBonoPosicionSiAplica(matchId);
 
     revalidatePath("/jugador");
     return { success: true };

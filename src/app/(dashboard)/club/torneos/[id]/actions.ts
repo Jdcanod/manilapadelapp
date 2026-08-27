@@ -530,6 +530,8 @@ export async function registrarResultadoPorClub(matchId: string, resultado: stri
 
         const { recalcularNivelPorPartido } = await import("@/lib/ranking/recalcularNivel");
         await recalcularNivelPorPartido(matchId);
+        const { aplicarBonoPosicionSiAplica } = await import("@/lib/ranking/aplicarBonoPosicion");
+        await aplicarBonoPosicionSiAplica(matchId);
 
         // --- Lógica de Avance en Eliminatorias ---
         // 1. Obtener detalles del partido actualizado

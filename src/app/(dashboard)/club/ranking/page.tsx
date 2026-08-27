@@ -8,10 +8,10 @@ import { RankingManager, type JugadorRankingData, type RankingConfig } from "./R
 import { formatPlayerName, isGuestEmail } from "@/lib/display-names";
 
 const DEFAULT_CONFIG: RankingConfig = {
-    campeon: 100,
-    subcampeon: 60,
-    tercer_puesto: 40,
-    participacion: 10,
+    campeon: 0.15,
+    subcampeon: 0.08,
+    tercer_puesto: 0.04,
+    participacion: 0,
 };
 
 /** Dado el resultado "6-3,4-6,10-7" (o "6-3 4-6 10-7", "6-3/4-6/10-7") devuelve qué pareja ganó: 1 o 2 */

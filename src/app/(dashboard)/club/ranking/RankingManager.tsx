@@ -208,10 +208,12 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
                 <CardHeader className="border-b border-olive/20 pb-4">
                     <CardTitle className="text-ink text-base flex items-center gap-2">
                         <Settings className="w-4 h-4 text-olive" />
-                        Puntos por Posición
+                        Bono de Nivel por Posición
                     </CardTitle>
                     <CardDescription>
-                        Define cuántos puntos suma cada resultado en los torneos del club (uso informativo, aún no afecta el nivel 0-5).
+                        Cuánto nivel (escala 0-5) gana cada jugador al terminar un torneo en esa posición.
+                        Se aplica una sola vez, automáticamente, cuando se confirma la final de cada categoría —
+                        además del ±0.05 normal de ese partido. Ajusta los valores según lo que consideres justo.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-5 space-y-4">
@@ -224,15 +226,16 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
                                 <Input
                                     type="number"
                                     min="0"
-                                    max="9999"
+                                    max="1"
+                                    step="0.01"
                                     value={config[key]}
                                     onChange={e => setConfig(prev => ({
                                         ...prev,
-                                        [key]: Math.max(0, parseInt(e.target.value) || 0)
+                                        [key]: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0))
                                     }))}
                                     className="bg-paper border-olive/30 text-ink w-24 text-center font-bold"
                                 />
-                                <span className="text-xs text-olive/50">pts</span>
+                                <span className="text-xs text-olive/50">nivel</span>
                             </div>
                         </div>
                     ))}
