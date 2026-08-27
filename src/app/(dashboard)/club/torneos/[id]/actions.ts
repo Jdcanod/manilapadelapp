@@ -1127,6 +1127,54 @@ export async function actualizarOrdenGrupo(torneoId: string, grupoId: string, pa
     }
 }
 
+export async function actualizarBonoNivelConfig(
+    torneoId: string,
+    config: { activo: boolean; campeon: number; subcampeon: number; tercer_puesto: number; participacion: number }
+) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, error: "No autenticado" };
+
+        const admin = createPureAdminClient();
+        const { data: torneo, error: getErr } = await admin
+            .from('torneos').select('formato, reglas_puntuacion').eq('id', torneoId).single();
+        if (getErr || !torneo) return { success: false, error: "Torneo no encontrado" };
+        if (torneo.formato !== 'liguilla') return { success: false, error: "Solo aplica a torneos tipo liguilla" };
+
+        // Si ya se pagó al menos un bono en este torneo, no se puede modificar la
+        // configuración (evita confundir bonos ya entregados con la nueva escala).
+        const { data: yaPagado } = await admin
+            .from('ranking_bono_historial')
+            .select('id')
+            .eq('torneo_id', torneoId)
+            .limit(1);
+        if (yaPagado && yaPagado.length > 0) {
+            return { success: false, error: "Ya se pagó al menos un bono en este torneo — no se puede modificar." };
+        }
+
+        const clamp = (v: number) => Math.min(1, Math.max(0, v || 0));
+        const reglas = { ...(torneo.reglas_puntuacion || {}) };
+        reglas.liga_bono_nivel_config = {
+            activo: !!config.activo,
+            campeon: clamp(config.campeon),
+            subcampeon: clamp(config.subcampeon),
+            tercer_puesto: clamp(config.tercer_puesto),
+            participacion: clamp(config.participacion),
+        };
+
+        const { error: updErr } = await admin
+            .from('torneos').update({ reglas_puntuacion: reglas }).eq('id', torneoId);
+        if (updErr) return { success: false, error: updErr.message };
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        return { success: true };
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Error";
+        return { success: false, error: msg };
+    }
+}
+
 export async function obtenerStandingsPorGrupo(torneoId: string, categoria: string) {
     try {
         const supabaseAdmin = createSupabaseClient(

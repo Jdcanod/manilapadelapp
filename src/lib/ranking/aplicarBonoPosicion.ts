@@ -58,12 +58,16 @@ export async function aplicarBonoPosicionSiAplica(matchId: string): Promise<void
             && !lugarLower.includes('octavos');
         if (!esFinal || !match.resultado || getWinner(match.resultado) === null) return;
 
-        const { data: torneo } = await admin.from('torneos').select('club_id').eq('id', match.torneo_id).single();
+        const { data: torneo } = await admin.from('torneos').select('club_id, reglas_puntuacion').eq('id', match.torneo_id).single();
         if (!torneo) return;
 
-        const { data: clubUser } = await admin.from('users').select('ranking_config_json').eq('id', torneo.club_id).single();
+        // El bono es propio de este torneo (definido al crearlo, editable mientras
+        // no se haya pagado ninguno). Si el torneo no lo activó, no se otorga nada.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const cfgRaw = (clubUser?.ranking_config_json || {}) as any;
+        const cfgRaw = ((torneo.reglas_puntuacion as any)?.liga_bono_nivel_config || null) as
+            { activo?: boolean; campeon?: number; subcampeon?: number; tercer_puesto?: number; participacion?: number } | null;
+        if (!cfgRaw?.activo) return;
+
         const config: BonoConfig = {
             campeon: typeof cfgRaw.campeon === 'number' ? cfgRaw.campeon : DEFAULT_BONO.campeon,
             subcampeon: typeof cfgRaw.subcampeon === 'number' ? cfgRaw.subcampeon : DEFAULT_BONO.subcampeon,

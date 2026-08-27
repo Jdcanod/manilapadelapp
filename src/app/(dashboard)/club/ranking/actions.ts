@@ -3,37 +3,6 @@
 import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function saveRankingConfig(formData: FormData) {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("No autenticado");
-
-    const { data: userData } = await supabase
-        .from('users')
-        .select('id, rol')
-        .eq('auth_id', user.id)
-        .single();
-    if (userData?.rol !== 'admin_club') throw new Error("Sin permisos");
-
-    const clamp = (v: string | null) => Math.min(1, Math.max(0, parseFloat(v || '0') || 0));
-    const config = {
-        campeon:      clamp(formData.get('campeon') as string),
-        subcampeon:   clamp(formData.get('subcampeon') as string),
-        tercer_puesto: clamp(formData.get('tercer_puesto') as string),
-        participacion: clamp(formData.get('participacion') as string),
-    };
-
-    const { error } = await supabase
-        .from('users')
-        .update({ ranking_config_json: config })
-        .eq('id', userData.id);
-
-    if (error) throw new Error("Error al guardar la configuración: " + error.message);
-
-    revalidatePath("/club/ranking");
-    return { success: true };
-}
-
 export async function saveNivelesJugadores(
     clubId: string,
     updates: Record<string, { categoria: string | null; nivel: number | null }>

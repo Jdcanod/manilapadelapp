@@ -4,10 +4,9 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Save, Loader2, Settings, Users, CheckCircle2, ChevronRight, Gauge } from "lucide-react";
-import { saveRankingConfig, saveNivelesJugadores } from "./actions";
+import { Save, Loader2, Users, CheckCircle2, ChevronRight, Gauge } from "lucide-react";
+import { saveNivelesJugadores } from "./actions";
 import { cn } from "@/lib/utils";
 import { BANDAS_CATEGORIA, nivelInicialPorCategoria } from "@/lib/ranking/nivel";
 
@@ -27,27 +26,14 @@ export interface JugadorRankingData {
     categoria_sugerida: string | null;
 }
 
-export interface RankingConfig {
-    campeon: number;
-    subcampeon: number;
-    tercer_puesto: number;
-    participacion: number;
-}
-
 interface RankingManagerProps {
     clubId: string;
-    initialConfig: RankingConfig;
     jugadores: JugadorRankingData[];
 }
 
 const MEDAL: Record<number, string> = { 0: '🥇', 1: '🥈', 2: '🥉' };
 
-export function RankingManager({ clubId, initialConfig, jugadores }: RankingManagerProps) {
-    const [config, setConfig] = useState<RankingConfig>(initialConfig);
-    const [configPending, startConfigTransition] = useTransition();
-    const [configSaved, setConfigSaved] = useState(false);
-    const [configError, setConfigError] = useState<string | null>(null);
-
+export function RankingManager({ clubId, jugadores }: RankingManagerProps) {
     // Los invitados (sin cuenta real) no participan en el nivel de juego hasta
     // que se les asocie a un usuario registrado — se excluyen de esta tabla.
     const jugadoresRankeables = jugadores.filter(j => !j.es_invitado);
@@ -94,31 +80,6 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
     const rankedPorNivel = jugadoresRankeables
         .filter(j => j.nivel_ranking != null)
         .sort((a, b) => (b.nivel_ranking ?? 0) - (a.nivel_ranking ?? 0));
-
-    const handleSaveConfig = () => {
-        setConfigError(null);
-        startConfigTransition(async () => {
-            try {
-                const fd = new FormData();
-                fd.set('campeon', config.campeon.toString());
-                fd.set('subcampeon', config.subcampeon.toString());
-                fd.set('tercer_puesto', config.tercer_puesto.toString());
-                fd.set('participacion', config.participacion.toString());
-                await saveRankingConfig(fd);
-                setConfigSaved(true);
-                setTimeout(() => setConfigSaved(false), 2500);
-            } catch (e) {
-                setConfigError(e instanceof Error ? e.message : "Error al guardar");
-            }
-        });
-    };
-
-    const configFields = [
-        { key: 'campeon' as const,      label: 'Campeón',     emoji: '🏆', color: 'text-ochre' },
-        { key: 'subcampeon' as const,   label: 'Subcampeón',  emoji: '🥈', color: 'text-ink' },
-        { key: 'tercer_puesto' as const, label: '3er Puesto', emoji: '🥉', color: 'text-amber-700' },
-        { key: 'participacion' as const, label: 'Participación', emoji: '⭐', color: 'text-olive/70' },
-    ];
 
     return (
         <div className="space-y-8">
@@ -200,67 +161,6 @@ export function RankingManager({ clubId, initialConfig, jugadores }: RankingMana
                             </div>
                         </>
                     )}
-                </CardContent>
-            </Card>
-
-            {/* ─── Config de puntos por posición en torneos ──────────────────── */}
-            <Card className="bg-paper-soft border-olive/20">
-                <CardHeader className="border-b border-olive/20 pb-4">
-                    <CardTitle className="text-ink text-base flex items-center gap-2">
-                        <Settings className="w-4 h-4 text-olive" />
-                        Bono de Nivel por Posición
-                    </CardTitle>
-                    <CardDescription>
-                        Cuánto nivel (escala 0-5) gana cada jugador al terminar un torneo en esa posición.
-                        Se aplica una sola vez, automáticamente, cuando se confirma la final de cada categoría —
-                        además del ±0.05 normal de ese partido. Ajusta los valores según lo que consideres justo.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-5 space-y-4">
-                    {configFields.map(({ key, label, emoji, color }) => (
-                        <div key={key} className="flex items-center gap-4">
-                            <Label className={cn("text-sm font-semibold w-36 flex-shrink-0", color)}>
-                                {emoji} {label}
-                            </Label>
-                            <div className="flex items-center gap-2 flex-1">
-                                <Input
-                                    type="number"
-                                    min="0"
-                                    max="1"
-                                    step="0.01"
-                                    value={config[key]}
-                                    onChange={e => setConfig(prev => ({
-                                        ...prev,
-                                        [key]: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0))
-                                    }))}
-                                    className="bg-paper border-olive/30 text-ink w-24 text-center font-bold"
-                                />
-                                <span className="text-xs text-olive/50">nivel</span>
-                            </div>
-                        </div>
-                    ))}
-
-                    {configError && (
-                        <p className="text-xs text-red-400 pt-1">{configError}</p>
-                    )}
-
-                    <Button
-                        onClick={handleSaveConfig}
-                        disabled={configPending}
-                        className={cn(
-                            "w-full mt-2 font-bold transition-all",
-                            configSaved
-                                ? "bg-emerald-700 hover:bg-emerald-700 text-ink"
-                                : "bg-olive hover:bg-olive text-paper"
-                        )}
-                    >
-                        {configPending
-                            ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Guardando...</>
-                            : configSaved
-                                ? <><CheckCircle2 className="w-4 h-4 mr-2" /> ¡Configuración guardada!</>
-                                : <><Save className="w-4 h-4 mr-2" /> Guardar configuración</>
-                        }
-                    </Button>
                 </CardContent>
             </Card>
 

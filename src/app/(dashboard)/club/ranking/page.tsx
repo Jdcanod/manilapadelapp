@@ -4,15 +4,8 @@ import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { ChevronLeft, Trophy } from "lucide-react";
 import Link from "next/link";
-import { RankingManager, type JugadorRankingData, type RankingConfig } from "./RankingManager";
+import { RankingManager, type JugadorRankingData } from "./RankingManager";
 import { formatPlayerName, isGuestEmail } from "@/lib/display-names";
-
-const DEFAULT_CONFIG: RankingConfig = {
-    campeon: 0.15,
-    subcampeon: 0.08,
-    tercer_puesto: 0.04,
-    participacion: 0,
-};
 
 /** Dado el resultado "6-3,4-6,10-7" (o "6-3 4-6 10-7", "6-3/4-6/10-7") devuelve qué pareja ganó: 1 o 2 */
 function getWinner(resultado: string): 1 | 2 | null {
@@ -49,13 +42,6 @@ export default async function ClubRankingPage() {
         .eq('auth_id', user.id)
         .single();
     if (userData?.rol !== 'admin_club') redirect("/jugador");
-
-    const config: RankingConfig = {
-        campeon:      userData?.ranking_config_json?.campeon      ?? DEFAULT_CONFIG.campeon,
-        subcampeon:   userData?.ranking_config_json?.subcampeon   ?? DEFAULT_CONFIG.subcampeon,
-        tercer_puesto: userData?.ranking_config_json?.tercer_puesto ?? DEFAULT_CONFIG.tercer_puesto,
-        participacion: userData?.ranking_config_json?.participacion ?? DEFAULT_CONFIG.participacion,
-    };
 
     // ─── Torneos del club ───────────────────────────────────────────────────────
     const { data: torneos } = await adminSupabase
@@ -228,15 +214,13 @@ export default async function ClubRankingPage() {
             const players = parejaPlayerMap.get(pairId);
             if (!players) return;
 
-            let pts = config.participacion;
             let isChamp = false, isSub = false, isThird = false;
-            if (pairId === championPair)      { pts = config.campeon;       isChamp = true; }
-            else if (pairId === runnerUpPair) { pts = config.subcampeon;    isSub   = true; }
-            else if (pairId === thirdPair)    { pts = config.tercer_puesto; isThird = true; }
+            if (pairId === championPair)      { isChamp = true; }
+            else if (pairId === runnerUpPair) { isSub   = true; }
+            else if (pairId === thirdPair)    { isThird = true; }
 
             [players.j1, players.j2].forEach(jId => {
                 if (!jId) return;
-                earnedMap.set(jId, (earnedMap.get(jId) || 0) + pts);
                 if (isChamp)  campMap.set(jId, (campMap.get(jId) || 0) + 1);
                 if (isSub)    subMap.set(jId,  (subMap.get(jId)  || 0) + 1);
                 if (isThird)  tercMap.set(jId, (tercMap.get(jId) || 0) + 1);
@@ -279,7 +263,6 @@ export default async function ClubRankingPage() {
             <PageHeader />
             <RankingManager
                 clubId={userData.id}
-                initialConfig={config}
                 jugadores={jugadores}
             />
         </div>
