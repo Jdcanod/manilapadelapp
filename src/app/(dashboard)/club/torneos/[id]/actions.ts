@@ -2,9 +2,10 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 import { Participant, distributeParticipantsIntoGroups, generateMatchesForGroup } from "@/lib/tournaments/logic";
-import { createClient, createAdminClient, createPureAdminClient } from "@/utils/supabase/server";
+import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { getOrCreateInvitado } from "@/lib/invitados";
+import { requireClubOwnership } from "@/lib/auth/clubOwnership";
 import { revalidatePath } from "next/cache";
 import { format } from "date-fns";
 
@@ -20,19 +21,11 @@ interface MasterResult {
 }
 
 export async function generarFaseGrupos(torneoId: string, categoria: string, numGrupos?: number, clasificanPorGrupo?: number) {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id;
-
-    if (!userId) {
-        throw new Error("Debes estar autenticado para generar grupos.");
-    }
+    // Verifica sesión + rol admin_club + que el torneo sea de ESE club, antes
+    // de tocar nada — antes solo se chequeaba que hubiera sesión.
+    const { admin: supabaseAdmin, authUserId: userId } = await requireClubOwnership(torneoId);
 
     try {
-        // Pure admin: createAdminClient reenvía cookies y RLS puede bloquear
-        // silenciosamente los DELETE, dejando partidos huérfanos que siguen
-        // ocupando su slot en la parrilla sin ser visibles.
-        const supabaseAdmin = createPureAdminClient();
 
         // Persistir el "clasifican por grupo" en la config del torneo (en reglas_puntuacion)
         // para que la tabla de standings sepa cuántos resaltar como clasificados.
@@ -498,21 +491,16 @@ export async function inscribirParejaManual(torneoId: string, jugador1Sel: strin
 
 export async function registrarResultadoPorClub(matchId: string, resultado: string) {
     try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        const supabaseAdmin = createAdminClient();
-        
-        const authUserId = user?.id;
-        if (!authUserId) throw new Error("No autenticado");
+        // El match no trae el torneoId como parámetro, así que primero lo
+        // resolvemos con un cliente admin puro (sin sesión todavía) y luego
+        // sí exigimos que el torneo sea del club autenticado.
+        const lookupAdmin = createPureAdminClient();
+        const { data: matchRef } = await lookupAdmin
+            .from('partidos').select('torneo_id').eq('id', matchId).single();
+        if (!matchRef) throw new Error("Partido no encontrado");
 
-        // Buscar el perfil público correspondiente al usuario de Auth
-        const { data: profile } = await supabaseAdmin
-            .from('users')
-            .select('id')
-            .or(`id.eq.${authUserId},auth_id.eq.${authUserId}`)
-            .maybeSingle();
-
-        const finalUserId = profile?.id || authUserId;
+        const { admin: supabaseAdmin, userData } = await requireClubOwnership(matchRef.torneo_id);
+        const finalUserId = userData.id;
 
         const { error } = await supabaseAdmin
             .from('partidos')
@@ -1882,7 +1870,7 @@ export async function unscheduleMatch(matchId: string, torneoId: string) {
 
 export async function crearGrupoManual(torneoId: string, categoria: string) {
     try {
-        const supabaseAdmin = createAdminClient();
+        const { admin: supabaseAdmin } = await requireClubOwnership(torneoId);
 
         // Get existing groups to determine next letter
         const { data: existingGroups } = await supabaseAdmin
@@ -1891,7 +1879,7 @@ export async function crearGrupoManual(torneoId: string, categoria: string) {
             .eq('torneo_id', torneoId)
             .eq('categoria', categoria);
 
-        const groupNames = existingGroups?.map(g => g.nombre_grupo) || [];
+        const groupNames = existingGroups?.map((g: { nombre_grupo: string }) => g.nombre_grupo) || [];
         let letterCode = 65; // 'A'
         while (groupNames.includes(`Grupo ${String.fromCharCode(letterCode)}`)) {
             letterCode++;
@@ -1918,7 +1906,7 @@ export async function crearGrupoManual(torneoId: string, categoria: string) {
 
 export async function moverParejaAGrupo(torneoId: string, categoria: string, parejaId: string, nuevoGrupoId: string) {
     try {
-        const supabaseAdmin = createAdminClient();
+        const { admin: supabaseAdmin, authUserId } = await requireClubOwnership(torneoId);
 
         // 1. Check if the pair is currently in any group (by looking at matches)
         const { data: currentMatches } = await supabaseAdmin
@@ -1938,12 +1926,12 @@ export async function moverParejaAGrupo(torneoId: string, categoria: string, par
             }
 
             // Eliminar los partidos NO JUGADOS (estado='programado') y pendientes (sin cancha asignada)
-            const matchesToDelete = currentMatches.filter(m => m.estado === 'programado');
+            const matchesToDelete = currentMatches.filter((m: { estado: string }) => m.estado === 'programado');
             if (matchesToDelete.length > 0) {
                 await supabaseAdmin
                     .from('partidos')
                     .delete()
-                    .in('id', matchesToDelete.map(m => m.id));
+                    .in('id', matchesToDelete.map((m: { id: string }) => m.id));
             }
         }
 
@@ -1957,7 +1945,7 @@ export async function moverParejaAGrupo(torneoId: string, categoria: string, par
         let refMatch = null;
         if (nuevoGrupoMatches && nuevoGrupoMatches.length > 0) {
             refMatch = nuevoGrupoMatches[0];
-            nuevoGrupoMatches.forEach(m => {
+            nuevoGrupoMatches.forEach((m: { pareja1_id: string | null; pareja2_id: string | null }) => {
                 if (m.pareja1_id) parejasEnNuevoGrupo.add(m.pareja1_id);
                 if (m.pareja2_id) parejasEnNuevoGrupo.add(m.pareja2_id);
             });
@@ -1969,10 +1957,8 @@ export async function moverParejaAGrupo(torneoId: string, categoria: string, par
                 .eq('id', torneoId)
                 .single();
             
-            const { data: { user } } = await supabaseAdmin.auth.getUser();
-            
             refMatch = {
-                creador_id: user?.id,
+                creador_id: authUserId,
                 club_id: torneoInfo?.club_id,
                 tipo_partido_oficial: 'torneo',
                 fecha: torneoInfo?.fecha_inicio || new Date().toISOString()
@@ -2036,12 +2022,12 @@ export async function triggerSync(torneoId: string, categoria: string) {
 }
 
 export async function actualizarEstadoPago(id: string, tipo: 'master' | 'regular', nuevoEstado: string, torneoId: string) {
-    const supabase = createClient();
+    const { admin } = await requireClubOwnership(torneoId);
     if (tipo === 'master') {
-        const { error } = await supabase.from('inscripciones_torneo').update({ estado: nuevoEstado }).eq('id', id);
+        const { error } = await admin.from('inscripciones_torneo').update({ estado: nuevoEstado }).eq('id', id);
         if (error) throw new Error(error.message);
     } else {
-        const { error } = await supabase.from('torneo_parejas').update({ estado_pago: nuevoEstado }).eq('id', id);
+        const { error } = await admin.from('torneo_parejas').update({ estado_pago: nuevoEstado }).eq('id', id);
         if (error) throw new Error(error.message);
     }
     revalidatePath(`/club/torneos/${torneoId}`);
@@ -2056,10 +2042,7 @@ export async function editarParticipantesInscripcion(
     jugador2Sel: string,
     torneoId: string
 ) {
-    const supabaseAdmin = createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const { admin: supabaseAdmin } = await requireClubOwnership(torneoId);
 
     let j1Id = jugador1Sel;
     let j2Id = jugador2Sel;
@@ -2086,8 +2069,8 @@ export async function editarParticipantesInscripcion(
         return `${firstName[0]}. ${lastName}`;
     };
 
-    const p1 = players?.find(p => p.id === j1Id);
-    const p2 = players?.find(p => p.id === j2Id);
+    const p1 = players?.find((p: { id: string; nombre: string }) => p.id === j1Id);
+    const p2 = players?.find((p: { id: string; nombre: string }) => p.id === j2Id);
     const nuevoNombre = `${formatName(p1?.nombre || 'J1')} / ${formatName(p2?.nombre || 'J2')}`;
 
     // Verificar si ya existe una pareja con estos integrantes
@@ -2158,10 +2141,7 @@ export async function editarParticipantesInscripcion(
 }
 
 export async function darDeBajaPareja(id: string, tipo: 'master' | 'regular', parejaId: string, torneoId: string) {
-    const supabaseAdmin = createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const { admin: supabaseAdmin } = await requireClubOwnership(torneoId);
 
     const { error: matchError } = await supabaseAdmin
         .from('partidos')
