@@ -1,8 +1,10 @@
-import { createClient } from "@/utils/supabase/server";
+import { createPureAdminClient } from "@/utils/supabase/server";
 
 export async function autocancelarPartidosIncompletos() {
     try {
-        const supabase = createClient();
+        // Rutina de sistema sin sesión de usuario propia — necesita el cliente
+        // de servicio (RLS bloquearía cualquier UPDATE hecho sin auth.uid()).
+        const supabase = createPureAdminClient();
 
         // 1. Get matches that are 'abierto'
         const { data: partidos } = await supabase
@@ -27,7 +29,7 @@ export async function autocancelarPartidosIncompletos() {
             // Match with missing players
             if (p.cupos_disponibles > 0) {
                 // Find matching club settings based on 'lugar' string
-                const club = clubes.find(c => p.lugar.startsWith(c.nombre));
+                const club = clubes.find((c: { nombre: string }) => p.lugar.startsWith(c.nombre));
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const tiempoMinutos = (club?.canchas_activas_json as any)?.tiempo_cancelacion_minutos || 0; // Se cambió el default temporalmente a 0 para pruebas
 

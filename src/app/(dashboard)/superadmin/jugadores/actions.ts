@@ -11,9 +11,8 @@ export async function updatePlayerRanking(authId: string, data: { elo?: number; 
         return { error: "No autorizado" };
     }
 
-    // Opcional: Validar que el usuario que ejecuta esto tenga rol 'superadmin' 
-    // const { data: myUser } = await supabase.from('users').select('rol').eq('auth_id', user.id).single();
-    // if (myUser?.rol !== 'superadmin') return { error: "No tienes permiso" };
+    const { data: myUser } = await supabase.from('users').select('rol').eq('auth_id', user.id).single();
+    if (myUser?.rol !== 'superadmin') return { error: "No tienes permiso" };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = {};
