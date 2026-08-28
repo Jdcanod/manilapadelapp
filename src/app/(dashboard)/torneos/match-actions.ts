@@ -17,7 +17,7 @@ export async function registrarResultadoTorneo(matchId: string, resultado: strin
         .eq('id', matchId);
 
     if (error) throw new Error(error.message);
-    
+
     revalidatePath("/jugador");
     return { success: true };
 }
@@ -58,6 +58,11 @@ export async function confirmarResultadoTorneo(matchId: string, userId: string) 
         .eq('id', matchId);
 
     if (error) throw new Error(error.message);
+
+    const { recalcularNivelPorPartido } = await import("@/lib/ranking/recalcularNivel");
+    await recalcularNivelPorPartido(matchId);
+    const { aplicarBonoPosicionSiAplica } = await import("@/lib/ranking/aplicarBonoPosicion");
+    await aplicarBonoPosicionSiAplica(matchId);
 
     revalidatePath("/jugador");
     return { success: true };

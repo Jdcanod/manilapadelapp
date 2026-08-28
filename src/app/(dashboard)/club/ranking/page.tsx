@@ -4,15 +4,8 @@ import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { ChevronLeft, Trophy } from "lucide-react";
 import Link from "next/link";
-import { RankingManager, type JugadorRankingData, type RankingConfig } from "./RankingManager";
-import { formatPlayerName } from "@/lib/display-names";
-
-const DEFAULT_CONFIG: RankingConfig = {
-    campeon: 100,
-    subcampeon: 60,
-    tercer_puesto: 40,
-    participacion: 10,
-};
+import { RankingManager, type JugadorRankingData } from "./RankingManager";
+import { formatPlayerName, isGuestEmail } from "@/lib/display-names";
 
 /** Dado el resultado "6-3,4-6,10-7" (o "6-3 4-6 10-7", "6-3/4-6/10-7") devuelve qué pareja ganó: 1 o 2 */
 function getWinner(resultado: string): 1 | 2 | null {
@@ -50,18 +43,12 @@ export default async function ClubRankingPage() {
         .single();
     if (userData?.rol !== 'admin_club') redirect("/jugador");
 
-    const config: RankingConfig = {
-        campeon:      userData?.ranking_config_json?.campeon      ?? DEFAULT_CONFIG.campeon,
-        subcampeon:   userData?.ranking_config_json?.subcampeon   ?? DEFAULT_CONFIG.subcampeon,
-        tercer_puesto: userData?.ranking_config_json?.tercer_puesto ?? DEFAULT_CONFIG.tercer_puesto,
-        participacion: userData?.ranking_config_json?.participacion ?? DEFAULT_CONFIG.participacion,
-    };
-
     // ─── Torneos del club ───────────────────────────────────────────────────────
     const { data: torneos } = await adminSupabase
         .from('torneos')
-        .select('id, nombre, formato')
+        .select('id, nombre, formato, fecha_inicio')
         .eq('club_id', userData.id);
+    const torneoFechaMap = new Map((torneos || []).map(t => [t.id, t.fecha_inicio as string | null]));
 
     const torneoIds = (torneos || []).map(t => t.id);
 
@@ -84,7 +71,7 @@ export default async function ClubRankingPage() {
     // ─── Parejas: desde torneo_parejas Y desde partidos (para torneos históricos) ─
     const { data: tParejas } = await adminSupabase
         .from('torneo_parejas')
-        .select('pareja_id')
+        .select('pareja_id, categoria, torneo_id')
         .in('torneo_id', torneoIds);
 
     // Traer parejas directamente desde los partidos (cubre datos históricos
@@ -124,16 +111,40 @@ export default async function ClubRankingPage() {
         allPlayerIds.add(j2);
     });
 
-    const playerMap = new Map<string, { nombre: string; foto?: string }>();
+    const playerMap = new Map<string, { nombre: string; foto?: string; categoria: string | null; nivel: number | null; esInvitado: boolean }>();
     if (allPlayerIds.size > 0) {
         const { data: players } = await adminSupabase
             .from('users')
-            .select('id, nombre, apellido, foto, email')
+            .select('id, nombre, apellido, foto, email, categoria_jugador, nivel_ranking')
             .in('id', Array.from(allPlayerIds));
         (players || []).forEach(p => playerMap.set(p.id, {
             nombre: formatPlayerName({ nombre: p.nombre, apellido: p.apellido, email: p.email }),
             foto: p.foto,
+            categoria: p.categoria_jugador,
+            nivel: p.nivel_ranking,
+            esInvitado: isGuestEmail(p.email),
         }));
+    }
+
+    // ─── Categoría sugerida por jugador = categoría de su torneo más reciente ──
+    const categoriaSugeridaMap = new Map<string, string>();
+    {
+        // jugador_id -> { categoria, fecha } de la inscripción más reciente vista hasta ahora
+        const masReciente = new Map<string, { categoria: string; fecha: number }>();
+        (tParejas || []).forEach(tp => {
+            if (!tp.categoria || !tp.pareja_id) return;
+            const fechaStr = torneoFechaMap.get(tp.torneo_id);
+            const fecha = fechaStr ? new Date(fechaStr).getTime() : 0;
+            const players = parejaPlayerMap.get(tp.pareja_id);
+            if (!players) return;
+            [players.j1, players.j2].forEach(jId => {
+                const actual = masReciente.get(jId);
+                if (!actual || fecha > actual.fecha) {
+                    masReciente.set(jId, { categoria: tp.categoria!, fecha });
+                }
+            });
+        });
+        masReciente.forEach((v, jId) => categoriaSugeridaMap.set(jId, v.categoria));
     }
 
     // ─── Partidos en estos torneos con resultado registrado ────────────────────
@@ -203,15 +214,13 @@ export default async function ClubRankingPage() {
             const players = parejaPlayerMap.get(pairId);
             if (!players) return;
 
-            let pts = config.participacion;
             let isChamp = false, isSub = false, isThird = false;
-            if (pairId === championPair)      { pts = config.campeon;       isChamp = true; }
-            else if (pairId === runnerUpPair) { pts = config.subcampeon;    isSub   = true; }
-            else if (pairId === thirdPair)    { pts = config.tercer_puesto; isThird = true; }
+            if (pairId === championPair)      { isChamp = true; }
+            else if (pairId === runnerUpPair) { isSub   = true; }
+            else if (pairId === thirdPair)    { isThird = true; }
 
             [players.j1, players.j2].forEach(jId => {
                 if (!jId) return;
-                earnedMap.set(jId, (earnedMap.get(jId) || 0) + pts);
                 if (isChamp)  campMap.set(jId, (campMap.get(jId) || 0) + 1);
                 if (isSub)    subMap.set(jId,  (subMap.get(jId)  || 0) + 1);
                 if (isThird)  tercMap.set(jId, (tercMap.get(jId) || 0) + 1);
@@ -243,6 +252,10 @@ export default async function ClubRankingPage() {
         subcampeonatos: subMap.get(id)  || 0,
         terceros:      tercMap.get(id)  || 0,
         participaciones: torneosPorPlayer.get(id)?.size || 0,
+        categoria_jugador: playerMap.get(id)?.categoria ?? null,
+        nivel_ranking: playerMap.get(id)?.nivel ?? null,
+        es_invitado: playerMap.get(id)?.esInvitado ?? false,
+        categoria_sugerida: categoriaSugeridaMap.get(id) ?? null,
     }));
 
     return (
@@ -250,7 +263,6 @@ export default async function ClubRankingPage() {
             <PageHeader />
             <RankingManager
                 clubId={userData.id}
-                initialConfig={config}
                 jugadores={jugadores}
             />
         </div>

@@ -39,6 +39,12 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
     /** Liguilla: categorías que juegan ida y vuelta (cada cruce dos veces). */
     const [idaVueltaConfig, setIdaVueltaConfig] = useState<Record<string, boolean>>({});
 
+    // Liguilla: bono de nivel (0-5) por posición al terminar cada categoría.
+    const [bonoNivelActivo, setBonoNivelActivo] = useState<boolean>(false);
+    const [bonoNivelConfig, setBonoNivelConfig] = useState({
+        campeon: 0.15, subcampeon: 0.08, tercer_puesto: 0.04, participacion: 0,
+    });
+
     // Relámpago con pre-creación de slots TBD
     const [precargarTBD, setPrecargarTBD] = useState<boolean>(false);
     const [relampagoTBDConfig, setRelampagoTBDConfig] = useState<Record<string, number>>({});
@@ -744,6 +750,63 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
                         </div>
                     )}
                 </div>
+
+                {/* Liguilla: bono de nivel (0-5) por posición — opcional, propio de este torneo */}
+                {esLiguilla && (
+                    <div className="pt-4 border-t border-olive/20 space-y-3">
+                        <h3 className="text-sm font-bold text-emerald-700 uppercase tracking-wider">Bono de Nivel por Posición</h3>
+                        <div className="flex items-start gap-3">
+                            <Checkbox
+                                id="bono-nivel-activo"
+                                name="liga_bono_nivel_activo"
+                                checked={bonoNivelActivo}
+                                onCheckedChange={(v) => setBonoNivelActivo(!!v)}
+                                className="mt-0.5 border-olive/30 data-[state=checked]:bg-emerald-600 data-[state=checked]:text-black"
+                            />
+                            <div className="space-y-1">
+                                <Label htmlFor="bono-nivel-activo" className="text-sm font-bold text-ink cursor-pointer">
+                                    ¿Dar bono de nivel al terminar cada categoría?
+                                </Label>
+                                <p className="text-[11px] text-ink0 leading-snug">
+                                    Cuando se confirme la final de una categoría, el campeón/subcampeón/3er puesto
+                                    reciben un bono adicional en su nivel (escala 0-5), una sola vez. Puedes cambiar
+                                    estos valores después mientras el torneo no haya entregado ningún bono todavía.
+                                </p>
+                            </div>
+                        </div>
+
+                        {bonoNivelActivo && (
+                            <div className="space-y-2 bg-paper/40 border border-olive/20 rounded-xl p-4">
+                                {([
+                                    { key: 'campeon' as const, label: 'Campeón', emoji: '🏆' },
+                                    { key: 'subcampeon' as const, label: 'Subcampeón', emoji: '🥈' },
+                                    { key: 'tercer_puesto' as const, label: '3er Puesto', emoji: '🥉' },
+                                    { key: 'participacion' as const, label: 'Resto (participación)', emoji: '⭐' },
+                                ]).map(({ key, label, emoji }) => (
+                                    <div key={key} className="grid grid-cols-[1fr_auto] gap-3 items-center py-1">
+                                        <span className="text-sm font-bold text-ink">{emoji} {label}</span>
+                                        <Input
+                                            type="number"
+                                            min={0}
+                                            max={1}
+                                            step={0.01}
+                                            value={bonoNivelConfig[key]}
+                                            onChange={e => setBonoNivelConfig(prev => ({
+                                                ...prev,
+                                                [key]: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)),
+                                            }))}
+                                            name={`liga_bono_${key}`}
+                                            className="w-20 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"
+                                        />
+                                    </div>
+                                ))}
+                                <p className="text-[10px] text-olive/50 pt-1">
+                                    Valores sugeridos. Ajústalos a lo que consideres justo para este torneo específico.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Copa Davis: solo pedimos canchas (duración fija 60 min) */}
                 {esCopaDavis && (

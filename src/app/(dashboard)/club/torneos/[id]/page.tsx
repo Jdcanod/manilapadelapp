@@ -9,6 +9,7 @@ import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminParticipantActions } from "@/components/AdminParticipantActions";
 
 import { TournamentGroupsManager } from "@/components/TournamentGroupsManager";
+import { BonoNivelConfigControl } from "@/components/BonoNivelConfigControl";
 import { TournamentBracketManager } from "@/components/TournamentBracketManager";
 import { AddTournamentPlayerModal } from "@/components/AddTournamentPlayerModal";
 import { TournamentChronogram } from "@/components/TournamentChronogram";
@@ -737,6 +738,14 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                 </TabsList>
 
                 <TabsContent value="grupos" className="mt-6">
+                    {torneo.formato === 'liguilla' && (
+                        <div className="mb-6">
+                            <BonoNivelConfigControl
+                                torneoId={params.id}
+                                config={torneo.reglas_puntuacion?.liga_bono_nivel_config || null}
+                            />
+                        </div>
+                    )}
                     <TournamentGroupsManager
                         torneoId={params.id}
                         categorias={categoriasConInscritos.length > 0 ? categoriasConInscritos : categoriasHabilitadas}

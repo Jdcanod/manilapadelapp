@@ -67,7 +67,7 @@ export default async function ClubTorneosPage() {
                 <div className="text-center py-12 text-olive/70 border border-olive/20 border-dashed rounded-xl bg-paper-soft/30">
                     <Trophy className="w-12 h-12 text-olive/40 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-ink mb-2">No tienes torneos activos</h3>
-                    <p className="mb-4">Empieza organizando tu primer torneo relámpago o liguilla.</p>
+                    <p className="mb-4">Empieza organizando tu primer torneo relámpago o de liga.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
