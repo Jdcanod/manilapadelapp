@@ -894,6 +894,14 @@ export async function inscribirParejaManual(torneoId: string, jugador1Sel: strin
             }
         }
 
+        // En Liga, si la categoría ya tiene tabla generada, la nueva pareja se
+        // suma directo — se le crean partidos contra todas las que ya estén en
+        // el grupo, sin borrar ni tocar los partidos existentes. Así no hace
+        // falta un paso manual aparte ("Cambiar") para que quede jugando.
+        if (!esMaster) {
+            await unirParejaATablaLigaSiAplica(supabaseAdmin, torneoId, categoria, parejaId);
+        }
+
         revalidatePath(`/club/torneos/${torneoId}`);
         return { success: true };
     } catch (err: unknown) {
@@ -901,6 +909,75 @@ export async function inscribirParejaManual(torneoId: string, jugador1Sel: strin
         const errorMessage = err instanceof Error ? err.message : "Error desconocido";
         return { success: false, error: errorMessage };
     }
+}
+
+/**
+ * Si el torneo es tipo Liga y la categoría ya tiene una tabla generada
+ * (existen grupos/partidos), crea los partidos de la pareja nueva contra
+ * todas las que ya estén en el grupo con menos parejas — sin tocar ni
+ * borrar ningún partido existente. Si la categoría no tiene tabla aún, no
+ * hace nada (la pareja queda solo en "Parejas Inscritas" hasta que el club
+ * genere la tabla la primera vez).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function unirParejaATablaLigaSiAplica(admin: any, torneoId: string, categoria: string, parejaId: string) {
+    const { data: torneoInfo } = await admin.from('torneos').select('formato, club_id, fecha_inicio').eq('id', torneoId).single();
+    if (!torneoInfo || torneoInfo.formato !== 'liguilla') return;
+
+    const { data: grupos } = await admin
+        .from('torneo_grupos')
+        .select('id')
+        .eq('torneo_id', torneoId)
+        .eq('categoria', categoria);
+    if (!grupos || grupos.length === 0) return; // Todavía no se generó la tabla.
+
+    const { data: partidosCat } = await admin
+        .from('partidos')
+        .select('torneo_grupo_id, pareja1_id, pareja2_id, creador_id, fecha')
+        .eq('torneo_id', torneoId)
+        .eq('nivel', categoria)
+        .in('torneo_grupo_id', grupos.map((g: { id: string }) => g.id));
+
+    // Elegir el grupo con menos parejas (balancea si hay más de uno).
+    const parejasPorGrupo = new Map<string, Set<string>>();
+    grupos.forEach((g: { id: string }) => parejasPorGrupo.set(g.id, new Set()));
+    interface PartidoCatRow { torneo_grupo_id: string | null; pareja1_id: string | null; pareja2_id: string | null; creador_id: string | null; fecha: string | null; }
+    (partidosCat as PartidoCatRow[] || []).forEach(p => {
+        if (!p.torneo_grupo_id) return;
+        const set = parejasPorGrupo.get(p.torneo_grupo_id);
+        if (!set) return;
+        if (p.pareja1_id) set.add(p.pareja1_id);
+        if (p.pareja2_id) set.add(p.pareja2_id);
+    });
+    let grupoDestinoId = grupos[0].id;
+    let minParejas = Infinity;
+    parejasPorGrupo.forEach((set, grupoId) => {
+        if (set.size < minParejas) { minParejas = set.size; grupoDestinoId = grupoId; }
+    });
+
+    const oponentes = Array.from(parejasPorGrupo.get(grupoDestinoId) || []).filter(id => id !== parejaId);
+    if (oponentes.length === 0) return;
+
+    const refMatch = (partidosCat as PartidoCatRow[] || []).find(p => p.torneo_grupo_id === grupoDestinoId) || null;
+
+    const nuevosPartidos = oponentes.map(oponenteId => ({
+        torneo_id: torneoId,
+        torneo_grupo_id: grupoDestinoId,
+        pareja1_id: parejaId,
+        pareja2_id: oponenteId,
+        creador_id: refMatch?.creador_id,
+        club_id: torneoInfo.club_id,
+        tipo_partido_oficial: 'torneo',
+        nivel: categoria,
+        sexo: 'Mixto',
+        fecha: refMatch?.fecha || torneoInfo.fecha_inicio || new Date().toISOString(),
+        lugar: 'Pendiente',
+        estado: 'programado',
+        cupos_totales: 4,
+        cupos_disponibles: 0,
+    }));
+
+    await admin.from('partidos').insert(nuevosPartidos);
 }
 
 export async function registrarResultadoPorClub(matchId: string, resultado: string) {
