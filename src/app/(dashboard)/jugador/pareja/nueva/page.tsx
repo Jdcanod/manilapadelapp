@@ -8,7 +8,7 @@ import { UserPlus, Shield, Trophy, Star, CheckCircle2 } from "lucide-react";
 import { crearParejaAction, activarParejaAction } from "./actions";
 import Link from "next/link";
 
-export default async function NuevaParejaPage({ searchParams }: { searchParams?: { error?: string; creada?: string } }) {
+export default async function NuevaParejaPage({ searchParams }: { searchParams?: { error?: string; creada?: string; activada?: string } }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -63,6 +63,13 @@ export default async function NuevaParejaPage({ searchParams }: { searchParams?:
                 <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 text-sm p-3 rounded-lg flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
                     Pareja creada. Actívala abajo cuando quieras jugar con ella.
+                </div>
+            )}
+
+            {searchParams?.activada === '1' && (
+                <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 text-sm p-3 rounded-lg flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                    Pareja activada.
                 </div>
             )}
 

@@ -112,5 +112,5 @@ export async function activarParejaAction(parejaId: string) {
     revalidatePath("/jugador");
     revalidatePath("/jugador/pareja/nueva");
     revalidatePath("/ranking");
-    redirect("/jugador?pareja_activada=1");
+    redirect("/jugador/pareja/nueva?activada=1");
 }
