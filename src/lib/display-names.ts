@@ -109,6 +109,14 @@ export function formatLegacyPairName(stored: string | null | undefined): string 
     return parts.map(p => compactName(p)).join(' / ');
 }
 
+/** El valor interno del formato sigue siendo "liguilla" (DB, checks de código);
+ *  esto solo traduce lo que se le muestra al usuario. */
+export function formatFormatoLabel(formato: string | null | undefined): string {
+    if (!formato) return '';
+    if (formato === 'liguilla') return 'Liga';
+    return formato;
+}
+
 export type PairPlayer = { nombre?: string | null; apellido?: string | null; email?: string | null } | null | undefined;
 export type ParejaPlayersMap = Record<string, [PairPlayer, PairPlayer]>;
 

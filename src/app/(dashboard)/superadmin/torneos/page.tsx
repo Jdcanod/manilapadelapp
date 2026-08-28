@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Trophy, Plus, MapPin, Calendar, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { createAdminClient } from "@/utils/supabase/server";
+import { formatFormatoLabel } from "@/lib/display-names";
 
 export default async function AdminTorneosPage() {
     const supabase = createAdminClient();
@@ -85,7 +86,7 @@ export default async function AdminTorneosPage() {
                                     </TableCell>
                                     <TableCell className="text-center">
                                         <Badge variant="outline" className="border-olive/30 bg-paper-dark text-ink mr-2 uppercase text-xs">
-                                            {t.formato}
+                                            {formatFormatoLabel(t.formato)}
                                         </Badge>
                                         <span className="text-xs text-olive/70">
                                             {(Array.isArray(t.niveles_json) ? t.niveles_json.join(", ") : "Multi")}

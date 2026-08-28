@@ -18,7 +18,7 @@ import { CopaDavisManager } from "@/components/CopaDavisManager";
 import { CrearVueltaCopaDialog } from "@/components/CrearVueltaCopaDialog";
 import { EditarCanchasControl } from "@/components/EditarCanchasControl";
 import { PersistentTabs } from "@/components/PersistentTabs";
-import { formatPairName } from "@/lib/display-names";
+import { formatPairName, formatFormatoLabel } from "@/lib/display-names";
 
 
 
@@ -562,7 +562,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         </div>
                         <div className="flex flex-wrap items-center text-sm text-olive font-medium mt-3 gap-4">
                             <span className="flex items-center"><CalendarDays className="w-4 h-4 mr-1.5 text-olive/70" />{new Date(torneo.fecha_inicio).toLocaleDateString('es-CO')} - {new Date(torneo.fecha_fin).toLocaleDateString('es-CO')}</span>
-                            <span className="flex items-center"><Swords className="w-4 h-4 mr-1.5 text-olive/70" />Modalidad: {torneo.formato}</span>
+                            <span className="flex items-center"><Swords className="w-4 h-4 mr-1.5 text-olive/70" />Modalidad: {formatFormatoLabel(torneo.formato)}</span>
                         </div>
                     </div>
 

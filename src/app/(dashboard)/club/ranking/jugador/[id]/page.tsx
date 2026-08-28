@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { formatPlayerName, isGuestEmail } from "@/lib/display-names";
+import { formatPlayerName, isGuestEmail, formatFormatoLabel } from "@/lib/display-names";
 import { ResetPasswordJugadorButton } from "@/components/ResetPasswordJugadorButton";
 
 function getWinner(resultado: string): 1 | 2 | null {
@@ -267,7 +267,7 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
                                                     <span className="text-[10px] text-olive/50">
                                                         {t.fecha ? new Date(t.fecha).toLocaleDateString('es-CO', { month: 'short', year: 'numeric' }) : ''}
                                                     </span>
-                                                    <span className="text-[10px] text-olive/40 capitalize">{t.formato}</span>
+                                                    <span className="text-[10px] text-olive/40 capitalize">{formatFormatoLabel(t.formato)}</span>
                                                 </div>
                                             </div>
                                             <div className="text-right flex-shrink-0 space-y-1">
