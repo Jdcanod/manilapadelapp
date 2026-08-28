@@ -1,10 +1,10 @@
 "use server";
 
-import { createAdminClient } from "@/utils/supabase/server";
+import { createPureAdminClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
 export async function createTorneoCiudad(formData: FormData) {
-    const supabase = createAdminClient();
+    const supabase = createPureAdminClient();
     
     const nombre = formData.get("nombre") as string;
     const ciudad = formData.get("ciudad") as string;
@@ -46,7 +46,7 @@ export async function createTorneoCiudad(formData: FormData) {
 }
 
 export async function updateTorneoEstado(torneoId: string, newState: string) {
-    const supabase = createAdminClient();
+    const supabase = createPureAdminClient();
     
     const { error } = await supabase
         .from("torneos")
@@ -62,7 +62,7 @@ export async function updateTorneoEstado(torneoId: string, newState: string) {
 }
 
 export async function deleteTorneo(torneoId: string) {
-    const supabase = createAdminClient();
+    const supabase = createPureAdminClient();
     
     const { error } = await supabase
         .from("torneos")

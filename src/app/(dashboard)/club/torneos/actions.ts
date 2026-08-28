@@ -1,12 +1,12 @@
 "use server";
 
-import { createClient, createAdminClient } from "@/utils/supabase/server";
+import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 export async function deleteTorneo(torneoId: string) {
     const supabase = createClient();
-    const adminSupabase = createAdminClient();
+    const adminSupabase = createPureAdminClient();
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("No autenticado");
