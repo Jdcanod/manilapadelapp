@@ -14,9 +14,9 @@ interface ClubRival {
     ciudad?: string | null;
 }
 
-export function CrearTorneoForm() {
+export function CrearTorneoForm({ initialError }: { initialError?: string }) {
     const [isPending, startTransition] = useTransition();
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(initialError || null);
     const [formato, setFormato] = useState<string>("relampago");
     const [clubRivalId, setClubRivalId] = useState<string>("");
     const [clubesRivales, setClubesRivales] = useState<ClubRival[]>([]);

@@ -151,7 +151,10 @@ export async function crearTorneoCentral(formData: FormData) {
         .single();
 
     if (error) {
-        throw new Error("Error creando el torneo: " + error.message);
+        // Se usa redirect (no throw) para que el mensaje real llegue al
+        // formulario — un throw normal en un Server Action se redacta a un
+        // mensaje genérico en producción.
+        redirect("/club/torneos/nuevo?error=" + encodeURIComponent(`[${error.code || '?'}] ${error.message}`));
     }
 
     // Copa Davis: generar partidos placeholder por categoría según la config

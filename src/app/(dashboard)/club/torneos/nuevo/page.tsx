@@ -4,7 +4,7 @@ import { ChevronLeft, Trophy } from "lucide-react";
 import Link from "next/link";
 import { CrearTorneoForm } from "./CrearTorneoForm";
 
-export default async function NuevoTorneoPage() {
+export default async function NuevoTorneoPage({ searchParams }: { searchParams?: { error?: string } }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -41,7 +41,7 @@ export default async function NuevoTorneoPage() {
             </div>
 
             <div className="bg-paper-soft border border-olive/20 rounded-2xl p-6 sm:p-8">
-                <CrearTorneoForm />
+                <CrearTorneoForm initialError={searchParams?.error} />
             </div>
         </div>
     );
