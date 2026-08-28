@@ -106,42 +106,56 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
     // Cuántos clasifican por grupo (persistido en torneo). Default 2.
     const [clasificanPorGrupo, setClasificanPorGrupo] = useState<number>(configClasifican ?? 2);
 
-    // Dialog de sorteo
+    // Dialog de sorteo (solo relámpago — Liga genera directo, ver onGenerate)
     const [sorteoDialogOpen, setSorteoDialogOpen] = useState(false);
-    const [dialogGrupos, setDialogGrupos] = useState<number>(numGrupos);
     const [dialogClasifican, setDialogClasifican] = useState<number>(clasificanPorGrupo);
 
+    const ejecutarGeneracion = (numGruposAUsar: number | undefined, clasificanAUsar: number) => {
+        startTransition(async () => {
+            try {
+                const result = await generarFaseGrupos(
+                    torneoId,
+                    selectedCat,
+                    numGruposAUsar,
+                    clasificanAUsar,
+                );
+                if (result && result.success) {
+                    alert(result.message || "¡Partidos generados con éxito!");
+                    router.refresh();
+                } else {
+                    alert(result?.error || "Error al generar los partidos. Intente nuevamente.");
+                }
+            } catch (err: unknown) {
+                alert(err instanceof Error ? err.message : "Error desconocido");
+            }
+        });
+    };
+
     const onGenerate = () => {
-        // Sincronizar valores actuales en el dialog y abrirlo
-        setDialogGrupos(numGrupos);
+        if (esLiguilla) {
+            // En Liga no hay nada que sortear: todos los inscritos juegan
+            // entre sí en una sola tabla. Se generan los partidos directo,
+            // sin diálogo. Por defecto es 1 sola tabla; si ya existe una y
+            // se está regenerando desde "Configuración Liga" (avanzado), se
+            // respeta el número de grupos configurado ahí.
+            if (gruposCategoria.length > 0) {
+                if (!confirm(`Ya existe una tabla para ${selectedCat}. ¿Regenerarla? Esto borrará los partidos actuales.`)) return;
+                ejecutarGeneracion(numGrupos, clasificanPorGrupo);
+                return;
+            }
+            ejecutarGeneracion(1, clasificanPorGrupo);
+            return;
+        }
+        // Relámpago: sí hay un sorteo real (distribución aleatoria en grupos),
+        // así que se pide confirmar cuántos clasifican por grupo.
         setDialogClasifican(clasificanPorGrupo);
         setSorteoDialogOpen(true);
     };
 
     const handleConfirmSorteo = () => {
         setSorteoDialogOpen(false);
-        // Persistir locales
-        setNumGrupos(dialogGrupos);
         setClasificanPorGrupo(dialogClasifican);
-
-        startTransition(async () => {
-            try {
-                const result = await generarFaseGrupos(
-                    torneoId,
-                    selectedCat,
-                    esLiguilla ? dialogGrupos : undefined,
-                    dialogClasifican,
-                );
-                if (result && result.success) {
-                    alert(result.message || "¡Fase de grupos generada con éxito!");
-                    router.refresh();
-                } else {
-                    alert(result?.error || "Error al generar grupos. Intente nuevamente.");
-                }
-            } catch (err: unknown) {
-                alert(err instanceof Error ? err.message : "Error desconocido");
-            }
-        });
+        ejecutarGeneracion(undefined, dialogClasifican);
     };
 
     const handleSwap = (parejaId1: string, parejaId2: string) => {
@@ -542,7 +556,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                 variant="outline"
                                 className="bg-olive hover:bg-olive text-paper font-bold"
                             >
-                                {isPending ? "Generando..." : (esLiguilla ? "Generar Grupos (Liga)" : "Sorteo Grupos")}
+                                {isPending ? "Generando..." : (esLiguilla ? "Generar Partidos (Liga)" : "Sorteo Grupos")}
                             </Button>
                         )}
                     </div>
@@ -583,7 +597,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                     className="bg-paper-soft border-olive/20 text-olive hover:text-ink hover:border-red-500/40 hover:bg-red-500/5 font-semibold"
                                 >
                                     <RotateCcw className="w-3.5 h-3.5 mr-2" />
-                                    {isPending ? "Limpiando..." : "Reiniciar Sorteo"}
+                                    {isPending ? "Limpiando..." : (esLiguilla ? "Regenerar Tabla" : "Reiniciar Sorteo")}
                                 </Button>
                                 <Button
                                     onClick={handleCrearGrupoVacio}
@@ -996,7 +1010,10 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                 </div>
             )}
 
-            {/* Dialog de configuración del sorteo */}
+            {/* Dialog de configuración del sorteo — solo Relámpago. En Liga no
+                hay nada que sortear (todos juegan contra todos en una sola
+                tabla), así que ese formato genera los partidos directo desde
+                onGenerate, sin pasar por este diálogo. */}
             <Dialog open={sorteoDialogOpen} onOpenChange={setSorteoDialogOpen}>
                 <DialogContent className="bg-paper-soft border-olive/20 text-ink max-w-md">
                     <DialogHeader>
@@ -1007,38 +1024,6 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                     </DialogHeader>
 
                     <div className="space-y-5 py-2">
-                        {esLiguilla && (
-                            <div>
-                                <p className="text-[10px] font-black text-olive/70 uppercase tracking-widest mb-2">
-                                    Número de grupos
-                                </p>
-                                <div className="flex items-center gap-2">
-                                    {[1, 2, 3, 4].map(n => (
-                                        <button
-                                            key={n}
-                                            onClick={() => setDialogGrupos(n)}
-                                            className={cn(
-                                                "w-12 h-12 rounded-lg font-black text-sm border transition-colors",
-                                                dialogGrupos === n
-                                                    ? "bg-olive text-black border-olive"
-                                                    : "bg-paper text-ink border-olive/30 hover:bg-paper-dark"
-                                            )}
-                                        >
-                                            {n}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {esLiguilla ? (
-                            <div className="bg-paper border border-olive/20 rounded-lg p-3 text-[11px] text-olive">
-                                En Liga la clasificación es sobre la tabla general de la categoría
-                                (todos los grupos combinados), no por grupo. Configúrala con el control
-                                <strong> &quot;Clasificación {selectedCat}&quot;</strong> arriba, junto a la tabla
-                                de posiciones — puedes cambiarla en cualquier momento.
-                            </div>
-                        ) : (
                         <div>
                             <p className="text-[10px] font-black text-olive/70 uppercase tracking-widest mb-2">
                                 ¿Cuántas parejas clasifican por grupo?
@@ -1063,7 +1048,6 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                 Los <span className="text-ochre font-bold">{dialogClasifican}</span> mejor{dialogClasifican > 1 ? 'es' : ''} de cada grupo se resaltarán en la tabla.
                             </p>
                         </div>
-                        )}
 
                         <div className="bg-paper border border-olive/20 rounded-lg p-3 text-[11px] text-olive">
                             {gruposCategoria.length > 0 ? (
@@ -1072,7 +1056,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                     Confirmar reiniciará el sorteo y borrará los partidos actuales.
                                 </span>
                             ) : (
-                                <span>Se crearán {esLiguilla ? `${dialogGrupos} grupo${dialogGrupos > 1 ? 's' : ''}` : 'los grupos automáticamente'} con todos los inscritos de {selectedCat}.</span>
+                                <span>Se crearán los grupos automáticamente con todos los inscritos de {selectedCat}.</span>
                             )}
                         </div>
                     </div>
