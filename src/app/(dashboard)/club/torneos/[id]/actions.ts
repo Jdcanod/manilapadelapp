@@ -1697,18 +1697,9 @@ export async function generarFaseEliminatoriaTopN(
 export async function updateMatchSchedule(matchId: string, fecha: string, cancha: string, torneoId: string) {
     try {
         // SEGURIDAD: Solo el admin del club propietario puede programar partidos
-        const supabaseAuth = createClient();
-        const { data: { user } } = await supabaseAuth.auth.getUser();
-        if (!user) return { success: false, message: "No autenticado." };
-
-        const { data: torneoCheck } = await supabaseAuth.from('torneos').select('club_id, reglas_puntuacion').eq('id', torneoId).single();
+        const { admin: supabase } = await requireClubOwnership(torneoId);
+        const { data: torneoCheck } = await supabase.from('torneos').select('club_id, reglas_puntuacion').eq('id', torneoId).single();
         if (!torneoCheck) return { success: false, message: "Torneo no encontrado." };
-        const { data: userData } = await supabaseAuth.from('users').select('id, rol').eq('auth_id', user.id).single();
-        const esAdmin = userData?.rol === 'admin_club' || userData?.rol === 'superadmin';
-        const esDelClub = String(torneoCheck?.club_id) === String(userData?.id);
-        if (!esAdmin || !esDelClub) return { success: false, message: "No tienes permisos para modificar este torneo." };
-
-        const supabase = createPureAdminClient();
 
         // --- VALIDACIÓN DE TRASLAPE ---
         const duracion = (torneoCheck?.reglas_puntuacion as { config_duracion?: number })?.config_duracion || 60;
@@ -1802,31 +1793,7 @@ export async function updateMatchSchedule(matchId: string, fecha: string, cancha
 export async function unscheduleMatch(matchId: string, torneoId: string) {
     try {
         // SEGURIDAD: Verificar que el usuario autenticado es admin del club propietario del torneo
-        const supabaseAuth = createClient();
-        const { data: { user } } = await supabaseAuth.auth.getUser();
-        if (!user) return { success: false, message: "No autenticado." };
-
-        // Verificar que el torneo pertenece al club del usuario
-        const { data: torneoCheck } = await supabaseAuth
-            .from('torneos')
-            .select('club_id')
-            .eq('id', torneoId)
-            .single();
-
-        const { data: userData } = await supabaseAuth
-            .from('users')
-            .select('id, rol')
-            .eq('auth_id', user.id)
-            .single();
-
-        const esAdmin = userData?.rol === 'admin_club' || userData?.rol === 'superadmin';
-        const esDelClub = String(torneoCheck?.club_id) === String(userData?.id);
-
-        if (!esAdmin || !esDelClub) {
-            return { success: false, message: "No tienes permisos para modificar este torneo." };
-        }
-
-        const supabase = createPureAdminClient();
+        const { admin: supabase } = await requireClubOwnership(torneoId);
 
         // 1. Obtener la fecha de inicio del torneo para usarla como fallback (evitar error NOT NULL)
         const { data: torneo } = await supabase
@@ -2164,24 +2131,8 @@ export async function darDeBajaPareja(id: string, tipo: 'master' | 'regular', pa
 
 export async function updateMatchTeams(matchId: string, pareja1Id: string | null, pareja2Id: string | null, torneoId: string) {
     try {
-        const supabaseAuth = createClient();
-        const { data: { user } } = await supabaseAuth.auth.getUser();
-        if (!user) return { success: false, message: "No autenticado." };
+        const { admin: supabaseAdmin } = await requireClubOwnership(torneoId);
 
-        const { data: torneoCheck } = await supabaseAuth.from('torneos').select('club_id').eq('id', torneoId).single();
-        if (!torneoCheck) return { success: false, message: "Torneo no encontrado." };
-        
-        const { data: userData } = await supabaseAuth.from('users').select('id, rol').eq('auth_id', user.id).single();
-        const esAdmin = userData?.rol === 'admin_club' || userData?.rol === 'superadmin';
-        const esDelClub = String(torneoCheck?.club_id) === String(userData?.id);
-        
-        if (!esAdmin || !esDelClub) return { success: false, message: "No tienes permisos." };
-
-        const supabaseAdmin = createSupabaseClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-        
         const { error } = await supabaseAdmin.from('partidos')
             .update({ 
                 pareja1_id: pareja1Id || null, 
@@ -2207,23 +2158,7 @@ export async function swapMatchPlaceholders(
     slot2: 1 | 2
 ) {
     try {
-        const supabaseAuth = createClient();
-        const { data: { user } } = await supabaseAuth.auth.getUser();
-        if (!user) return { success: false, message: "No autenticado." };
-
-        const { data: torneoCheck } = await supabaseAuth.from('torneos').select('club_id').eq('id', torneoId).single();
-        if (!torneoCheck) return { success: false, message: "Torneo no encontrado." };
-        
-        const { data: userData } = await supabaseAuth.from('users').select('id, rol').eq('auth_id', user.id).single();
-        const esAdmin = userData?.rol === 'admin_club' || userData?.rol === 'superadmin';
-        const esDelClub = String(torneoCheck?.club_id) === String(userData?.id);
-        
-        if (!esAdmin || !esDelClub) return { success: false, message: "No tienes permisos." };
-
-        const supabaseAdmin = createSupabaseClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
+        const { admin: supabaseAdmin } = await requireClubOwnership(torneoId);
 
         // Obtener ambos partidos
         const { data: match1 } = await supabaseAdmin.from('partidos').select('lugar, pareja1_id, pareja2_id').eq('id', matchId1).single();
