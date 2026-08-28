@@ -962,7 +962,49 @@ export async function obtenerTodosJugadores() {
         .order('nombre', { ascending: true })
         .limit(1000);
 
-    return data || [];
+    const jugadores = data || [];
+    if (jugadores.length === 0) return jugadores.map(j => ({ ...j, categoriaSugerida: null as string | null }));
+
+    // Categoría sugerida por jugador = categoría de su inscripción más
+    // reciente en torneo_parejas (cualquier club), para poder pre-filtrar
+    // la lista al inscribir manualmente.
+    const jugadorIds = jugadores.map(j => j.id);
+    const admin = createPureAdminClient();
+
+    interface ParejaRow { id: string; jugador1_id: string | null; jugador2_id: string | null; }
+    const [{ data: parejasComoJ1 }, { data: parejasComoJ2 }, { data: torneos }] = await Promise.all([
+        admin.from('parejas').select('id, jugador1_id, jugador2_id').in('jugador1_id', jugadorIds),
+        admin.from('parejas').select('id, jugador1_id, jugador2_id').in('jugador2_id', jugadorIds),
+        admin.from('torneos').select('id, fecha_inicio'),
+    ]);
+    const parejasRows = Array.from(
+        new Map([...(parejasComoJ1 || []), ...(parejasComoJ2 || [])].map((p: ParejaRow) => [p.id, p])).values()
+    );
+    const parejaIds = parejasRows.map(p => p.id);
+    const torneoFechaMap = new Map(((torneos || []) as { id: string; fecha_inicio: string | null }[]).map(t => [t.id, t.fecha_inicio]));
+
+    const { data: torneoParejas } = parejaIds.length > 0
+        ? await admin.from('torneo_parejas').select('pareja_id, categoria, torneo_id').in('pareja_id', parejaIds)
+        : { data: [] as { pareja_id: string; categoria: string | null; torneo_id: string }[] };
+
+    const parejaMap = new Map(parejasRows.map(p => [p.id, p]));
+    const masReciente = new Map<string, { categoria: string; fecha: number }>();
+    (torneoParejas || []).forEach((tp: { pareja_id: string; categoria: string | null; torneo_id: string }) => {
+        if (!tp.categoria) return;
+        const pareja = parejaMap.get(tp.pareja_id);
+        if (!pareja) return;
+        const fechaStr = torneoFechaMap.get(tp.torneo_id);
+        const fecha = fechaStr ? new Date(fechaStr).getTime() : 0;
+        [pareja.jugador1_id, pareja.jugador2_id].forEach(jId => {
+            if (!jId) return;
+            const actual = masReciente.get(jId);
+            if (!actual || fecha > actual.fecha) {
+                masReciente.set(jId, { categoria: tp.categoria!, fecha });
+            }
+        });
+    });
+
+    return jugadores.map(j => ({ ...j, categoriaSugerida: masReciente.get(j.id)?.categoria ?? null }));
 }
 
 export async function eliminarInscripcion(id: string, tipo: 'master' | 'regular', torneoId: string) {

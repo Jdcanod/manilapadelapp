@@ -24,6 +24,7 @@ interface User {
     nombre: string;
     apellido?: string | null;
     email: string;
+    categoriaSugerida?: string | null;
 }
 
 export function AddTournamentPlayerModal({ torneoId, categorias, esMaster, hasStarted = false }: AddTournamentPlayerModalProps) {
@@ -48,6 +49,11 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster, hasSt
     const [categoria, setCategoria] = useState(categorias[0] || "6ta");
     const [error, setError] = useState<string | null>(null);
 
+    // Por defecto filtramos la lista de jugadores a los de la categoría
+    // seleccionada (según su última inscripción registrada). El admin puede
+    // quitar el filtro si quiere buscar en todos los jugadores.
+    const [filtrarPorCategoria, setFiltrarPorCategoria] = useState(true);
+
     // Ordenado alfabéticamente por el nombre formateado para que la búsqueda
     // dentro del select sea predecible.
     const sortedUsers = useMemo(() => {
@@ -57,6 +63,11 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster, hasSt
             return na.localeCompare(nb);
         });
     }, [allUsers]);
+
+    const usersParaSeleccionar = useMemo(() => {
+        if (!filtrarPorCategoria) return sortedUsers;
+        return sortedUsers.filter(u => u.categoriaSugerida === categoria);
+    }, [sortedUsers, filtrarPorCategoria, categoria]);
 
     const checkDisabled = () => {
         if (isPending) return true;
@@ -119,78 +130,6 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster, hasSt
                     </div>
                 )}
                 <div className="space-y-6 pt-4">
-                    {/* Jugador 1 */}
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium text-olive">Jugador 1</label>
-                            <label className="flex items-center gap-2 text-xs text-olive cursor-pointer">
-                                <input type="checkbox" checked={j1Manual} onChange={(e) => setJ1Manual(e.target.checked)} className="rounded border-olive/30 bg-paper-soft text-olive focus:ring-olive" />
-                                Añadir invitado (No Registrado)
-                            </label>
-                        </div>
-                        {j1Manual ? (
-                            <Input 
-                                placeholder="Nombre completo del Jugador 1" 
-                                value={j1Name} 
-                                onChange={(e) => setJ1Name(e.target.value)} 
-                                className="bg-paper border-olive/20" 
-                            />
-                        ) : (
-                            <Select value={selectedJ1Id} onValueChange={setSelectedJ1Id}>
-                                <SelectTrigger className="bg-paper border-olive/20">
-                                    <SelectValue placeholder="Seleccione al primer jugador" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[300px]">
-                                    {sortedUsers.map((u) => (
-                                        <SelectItem key={u.id} value={u.id}>
-                                            {formatPlayerName({ nombre: u.nombre, apellido: u.apellido, email: u.email })}
-                                            {!isGuestEmail(u.email) && (
-                                                <span className="text-olive/70 text-xs ml-2">({u.email})</span>
-                                            )}
-                                        </SelectItem>
-                                    ))}
-                                    {sortedUsers.length === 0 && <SelectItem value="disabled" disabled>Cargando jugadores...</SelectItem>}
-                                </SelectContent>
-                            </Select>
-                        )}
-                    </div>
-
-                    {/* Jugador 2 */}
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium text-olive">Jugador 2</label>
-                            <label className="flex items-center gap-2 text-xs text-olive cursor-pointer">
-                                <input type="checkbox" checked={j2Manual} onChange={(e) => setJ2Manual(e.target.checked)} className="rounded border-olive/30 bg-paper-soft text-olive focus:ring-olive" />
-                                Añadir invitado (No Registrado)
-                            </label>
-                        </div>
-                        {j2Manual ? (
-                            <Input 
-                                placeholder="Nombre completo del Jugador 2" 
-                                value={j2Name} 
-                                onChange={(e) => setJ2Name(e.target.value)} 
-                                className="bg-paper border-olive/20" 
-                            />
-                        ) : (
-                            <Select value={selectedJ2Id} onValueChange={setSelectedJ2Id}>
-                                <SelectTrigger className="bg-paper border-olive/20">
-                                    <SelectValue placeholder="Seleccione al segundo jugador" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[300px]">
-                                    {sortedUsers.map((u) => (
-                                        <SelectItem key={u.id} value={u.id}>
-                                            {formatPlayerName({ nombre: u.nombre, apellido: u.apellido, email: u.email })}
-                                            {!isGuestEmail(u.email) && (
-                                                <span className="text-olive/70 text-xs ml-2">({u.email})</span>
-                                            )}
-                                        </SelectItem>
-                                    ))}
-                                    {sortedUsers.length === 0 && <SelectItem value="disabled" disabled>Cargando jugadores...</SelectItem>}
-                                </SelectContent>
-                            </Select>
-                        )}
-                    </div>
-
                     {/* Categoría */}
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-olive">Categoría</label>
@@ -211,6 +150,95 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster, hasSt
                                 )}
                             </SelectContent>
                         </Select>
+                        <label className="flex items-center gap-2 text-xs text-olive cursor-pointer pt-1">
+                            <input
+                                type="checkbox"
+                                checked={filtrarPorCategoria}
+                                onChange={(e) => setFiltrarPorCategoria(e.target.checked)}
+                                className="rounded border-olive/30 bg-paper-soft text-olive focus:ring-olive"
+                            />
+                            Filtrar jugadores por esta categoría (según su última inscripción)
+                        </label>
+                    </div>
+
+                    {/* Jugador 1 */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium text-olive">Jugador 1</label>
+                            <label className="flex items-center gap-2 text-xs text-olive cursor-pointer">
+                                <input type="checkbox" checked={j1Manual} onChange={(e) => setJ1Manual(e.target.checked)} className="rounded border-olive/30 bg-paper-soft text-olive focus:ring-olive" />
+                                Añadir invitado (No Registrado)
+                            </label>
+                        </div>
+                        {j1Manual ? (
+                            <Input
+                                placeholder="Nombre completo del Jugador 1"
+                                value={j1Name}
+                                onChange={(e) => setJ1Name(e.target.value)}
+                                className="bg-paper border-olive/20"
+                            />
+                        ) : (
+                            <Select value={selectedJ1Id} onValueChange={setSelectedJ1Id}>
+                                <SelectTrigger className="bg-paper border-olive/20">
+                                    <SelectValue placeholder="Seleccione al primer jugador" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[300px]">
+                                    {usersParaSeleccionar.map((u) => (
+                                        <SelectItem key={u.id} value={u.id}>
+                                            {formatPlayerName({ nombre: u.nombre, apellido: u.apellido, email: u.email })}
+                                            {!isGuestEmail(u.email) && (
+                                                <span className="text-olive/70 text-xs ml-2">({u.email})</span>
+                                            )}
+                                        </SelectItem>
+                                    ))}
+                                    {usersParaSeleccionar.length === 0 && (
+                                        <SelectItem value="disabled" disabled>
+                                            {sortedUsers.length === 0 ? "Cargando jugadores..." : "Sin jugadores en esta categoría — quita el filtro para buscar en todos"}
+                                        </SelectItem>
+                                    )}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    </div>
+
+                    {/* Jugador 2 */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium text-olive">Jugador 2</label>
+                            <label className="flex items-center gap-2 text-xs text-olive cursor-pointer">
+                                <input type="checkbox" checked={j2Manual} onChange={(e) => setJ2Manual(e.target.checked)} className="rounded border-olive/30 bg-paper-soft text-olive focus:ring-olive" />
+                                Añadir invitado (No Registrado)
+                            </label>
+                        </div>
+                        {j2Manual ? (
+                            <Input
+                                placeholder="Nombre completo del Jugador 2"
+                                value={j2Name}
+                                onChange={(e) => setJ2Name(e.target.value)}
+                                className="bg-paper border-olive/20"
+                            />
+                        ) : (
+                            <Select value={selectedJ2Id} onValueChange={setSelectedJ2Id}>
+                                <SelectTrigger className="bg-paper border-olive/20">
+                                    <SelectValue placeholder="Seleccione al segundo jugador" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[300px]">
+                                    {usersParaSeleccionar.map((u) => (
+                                        <SelectItem key={u.id} value={u.id}>
+                                            {formatPlayerName({ nombre: u.nombre, apellido: u.apellido, email: u.email })}
+                                            {!isGuestEmail(u.email) && (
+                                                <span className="text-olive/70 text-xs ml-2">({u.email})</span>
+                                            )}
+                                        </SelectItem>
+                                    ))}
+                                    {usersParaSeleccionar.length === 0 && (
+                                        <SelectItem value="disabled" disabled>
+                                            {sortedUsers.length === 0 ? "Cargando jugadores..." : "Sin jugadores en esta categoría — quita el filtro para buscar en todos"}
+                                        </SelectItem>
+                                    )}
+                                </SelectContent>
+                            </Select>
+                        )}
                     </div>
 
                     {error && (
