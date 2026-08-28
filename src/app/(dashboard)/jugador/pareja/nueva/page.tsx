@@ -17,13 +17,13 @@ export default async function NuevaParejaPage({ searchParams }: { searchParams?:
     }
 
     let errorDebug = searchParams?.error || "";
-    let jugadores: { id: string, nombre: string, nivel: string }[] = [];
+    let jugadores: { id: string, nombre: string, apellido: string | null, nivel: string }[] = [];
 
     try {
         // Obtener jugadores disponibles para hacer pareja (que no sean el usuario actual)
         const { data, error } = await supabase
             .from('users')
-            .select('id, auth_id, nombre, nivel')
+            .select('id, auth_id, nombre, apellido, nivel')
             .neq('auth_id', user.id);
 
         if (error) {
@@ -71,10 +71,10 @@ export default async function NuevaParejaPage({ searchParams }: { searchParams?:
                                     <SelectValue placeholder="Busca un jugador..." />
                                 </SelectTrigger>
                                 <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-60">
-                                    {(jugadores || []).map((j: { id: string, nombre: string, nivel: string }) => (
+                                    {(jugadores || []).map((j) => (
                                         <SelectItem key={j.id} value={j.id}>
                                             <div className="flex items-center gap-2">
-                                                <span>{j.nombre}</span>
+                                                <span>{j.nombre} {j.apellido || ''}</span>
                                                 <span className="text-[10px] text-olive/60 uppercase px-1.5 py-0.5 bg-paper-dark rounded">{j.nivel}</span>
                                             </div>
                                         </SelectItem>
