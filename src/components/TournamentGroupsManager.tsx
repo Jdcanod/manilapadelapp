@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { confirmarResultado, reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
-import { Check, Plus, RotateCcw, Settings, ChevronDown, ArrowDown, ArrowUp, Repeat } from "lucide-react";
+import { Check, Plus, RotateCcw, Settings, ChevronDown, ArrowDown, ArrowUp, Repeat, CalendarClock, CalendarX2, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 import { GrupoMatchesList } from "@/components/GrupoMatchesList";
@@ -102,6 +102,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
     // Opciones específicas de liguilla
     const [numGrupos, setNumGrupos] = useState(2);
     const [showSettings, setShowSettings] = useState(false);
+    const [pendientesOpen, setPendientesOpen] = useState(false);
 
     // Cuántos clasifican por grupo (persistido en torneo). Default 2.
     const [clasificanPorGrupo, setClasificanPorGrupo] = useState<number>(configClasifican ?? 2);
@@ -288,6 +289,25 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
         };
         const { clasifican, porcentajePorPareja } = calcularClasificados(globalStandings, requeridos, config, parejasEliminadas);
         return { clasificandoGlobalSet: clasifican, porcentajePorParejaCat: porcentajePorPareja };
+    })();
+
+    // Resumen de avance de la categoría: cuántos partidos ya tienen resultado
+    // vs. cuántos faltan, y esos pendientes separados en "sin programar" (sin
+    // fecha/cancha) y "programados" (ya tienen fecha) — para que el club sepa
+    // rápido a quién empujar y el jugador vea rápido contra quién le falta jugar.
+    const resumenPartidosCat = (() => {
+        const grupoIdsCat = new Set(gruposCategoria.map(g => g.id));
+        const matchesCat = partidos.filter(p => p.torneo_grupo_id && grupoIdsCat.has(p.torneo_grupo_id));
+        const jugados = matchesCat.filter(p => p.estado === 'jugado' && p.resultado).length;
+        const total = matchesCat.length;
+        const pendientes = matchesCat.filter(p => !(p.estado === 'jugado' && p.resultado));
+        const sinProgramar = pendientes.filter(p => !p.fecha || !p.lugar || p.lugar.toLowerCase().includes('pendiente'));
+        const programados = pendientes.filter(p => p.fecha && p.lugar && !p.lugar.toLowerCase().includes('pendiente'));
+        return {
+            jugados, total,
+            pct: total > 0 ? Math.round((jugados / total) * 100) : 0,
+            pendientes, sinProgramar, programados,
+        };
     })();
 
     // Identificar parejas inscritas en esta categoría que no están en ningún grupo
@@ -637,6 +657,85 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                 )}
             </div>
 
+            {/* ─── Resumen de avance de la categoría ──────────────────────────── */}
+            {gruposCategoria.length > 0 && resumenPartidosCat.total > 0 && (
+                <div className="bg-paper-soft border border-olive/20 rounded-2xl p-4 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                            <span className="text-2xl font-black text-ink">{resumenPartidosCat.jugados}</span>
+                            <span className="text-sm text-olive/70">/ {resumenPartidosCat.total} partidos jugados</span>
+                            <Badge variant="outline" className={cn(
+                                "font-black border-olive/30",
+                                resumenPartidosCat.pct >= 80 ? "text-emerald-700 bg-emerald-700/10" :
+                                resumenPartidosCat.pct >= 40 ? "text-ochre-dark bg-ochre/10" : "text-red-700 bg-red-500/10"
+                            )}>
+                                {resumenPartidosCat.pct}% de avance
+                            </Badge>
+                        </div>
+                        {resumenPartidosCat.pendientes.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setPendientesOpen(o => !o)}
+                                className="text-xs font-bold text-olive hover:text-ink flex items-center gap-1"
+                            >
+                                Ver {resumenPartidosCat.pendientes.length} pendiente{resumenPartidosCat.pendientes.length !== 1 ? 's' : ''}
+                                <ChevronRight className={cn("w-3.5 h-3.5 transition-transform", pendientesOpen && "rotate-90")} />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Barra de progreso global */}
+                    <div className="h-2.5 w-full bg-paper rounded-full overflow-hidden border border-olive/10">
+                        <div
+                            className={cn(
+                                "h-full rounded-full transition-all duration-500",
+                                resumenPartidosCat.pct >= 80 ? "bg-emerald-600" :
+                                resumenPartidosCat.pct >= 40 ? "bg-ochre" : "bg-red-500"
+                            )}
+                            style={{ width: `${resumenPartidosCat.pct}%` }}
+                        />
+                    </div>
+
+                    {pendientesOpen && (
+                        <div className="pt-2 space-y-3 animate-in fade-in slide-in-from-top-1 duration-150">
+                            {resumenPartidosCat.sinProgramar.length > 0 && (
+                                <div>
+                                    <p className="text-[10px] font-black text-red-700 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                                        <CalendarX2 className="w-3.5 h-3.5" /> Sin programar ({resumenPartidosCat.sinProgramar.length})
+                                    </p>
+                                    <div className="space-y-1">
+                                        {resumenPartidosCat.sinProgramar.map(p => (
+                                            <div key={p.id} className="text-xs text-ink bg-paper/60 border border-olive/10 rounded-lg px-3 py-2 flex items-center justify-between gap-2">
+                                                <span className="truncate">{p.pareja1?.nombre_pareja || 'TBD'} <span className="text-olive/50">vs</span> {p.pareja2?.nombre_pareja || 'TBD'}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {resumenPartidosCat.programados.length > 0 && (
+                                <div>
+                                    <p className="text-[10px] font-black text-ochre-dark uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                                        <CalendarClock className="w-3.5 h-3.5" /> Programados, falta jugarse ({resumenPartidosCat.programados.length})
+                                    </p>
+                                    <div className="space-y-1">
+                                        {resumenPartidosCat.programados
+                                            .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''))
+                                            .map(p => (
+                                            <div key={p.id} className="text-xs text-ink bg-paper/60 border border-olive/10 rounded-lg px-3 py-2 flex items-center justify-between gap-2 flex-wrap">
+                                                <span className="truncate">{p.pareja1?.nombre_pareja || 'TBD'} <span className="text-olive/50">vs</span> {p.pareja2?.nombre_pareja || 'TBD'}</span>
+                                                <span className="text-[10px] text-olive/60 flex-shrink-0">
+                                                    {p.fecha && new Date(p.fecha).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })} · {p.lugar}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {gruposCategoria.length === 0 ? (
                 <div className="text-center py-12 bg-paper/30 border border-olive/20 border-dashed rounded-xl">
                     <Users className="w-12 h-12 text-olive/30 mx-auto mb-4" />
@@ -810,9 +909,25 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                         {esLiguilla && (
                                                             <td className="px-2 py-3 text-center text-purple-700 font-bold">{team.revanchas || '—'}</td>
                                                         )}
-                                                        {esLiguilla && (
-                                                            <td className="px-2 py-3 text-center text-red-700/80 font-bold">{Math.round(porcentajePorParejaCat.get(team.parejaId) || 0)}%</td>
-                                                        )}
+                                                        {esLiguilla && (() => {
+                                                            const pctJugados = Math.round(porcentajePorParejaCat.get(team.parejaId) || 0);
+                                                            return (
+                                                                <td className="px-2 py-3">
+                                                                    <div className="flex items-center gap-1.5 w-16 mx-auto">
+                                                                        <div className="h-1.5 flex-1 bg-paper rounded-full overflow-hidden border border-olive/10">
+                                                                            <div
+                                                                                className={cn(
+                                                                                    "h-full rounded-full transition-all duration-500",
+                                                                                    pctJugados >= 80 ? "bg-emerald-600" : pctJugados >= 40 ? "bg-ochre" : "bg-red-500"
+                                                                                )}
+                                                                                style={{ width: `${Math.min(100, pctJugados)}%` }}
+                                                                            />
+                                                                        </div>
+                                                                        <span className="text-[10px] font-bold text-olive/70 w-7 text-right">{pctJugados}%</span>
+                                                                    </div>
+                                                                </td>
+                                                            );
+                                                        })()}
                                                     </tr>
                                                     );
                                                 })}
