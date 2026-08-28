@@ -977,7 +977,10 @@ async function unirParejaATablaLigaSiAplica(admin: any, torneoId: string, catego
         cupos_disponibles: 0,
     }));
 
-    await admin.from('partidos').insert(nuevosPartidos);
+    const { error: insertError } = await admin.from('partidos').insert(nuevosPartidos);
+    if (insertError) {
+        console.error("unirParejaATablaLigaSiAplica: error insertando partidos", insertError);
+    }
 }
 
 export async function registrarResultadoPorClub(matchId: string, resultado: string) {

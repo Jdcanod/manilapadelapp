@@ -915,13 +915,19 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                         Eliminada
                                                                     </span>
                                                                 )}
-                                                                <AsignarParejaSlotDialog
-                                                                    torneoId={torneoId}
-                                                                    placeholderParejaId={team.parejaId}
-                                                                    nombreActual={team.nombre}
-                                                                    categoria={selectedCat}
-                                                                    yaAsignada={!esTBD(team.nombre)}
-                                                                />
+                                                                {/* En Liga, una vez la pareja es real (no TBD), mover/quitar
+                                                                    ya se hace arrastrando entre grupos o desde "Parejas
+                                                                    Inscritas" — "Cambiar" solo hace falta para llenar un
+                                                                    TBD (relámpago, o el raro caso de un TBD en liga). */}
+                                                                {(!esLiguilla || esTBD(team.nombre)) && (
+                                                                    <AsignarParejaSlotDialog
+                                                                        torneoId={torneoId}
+                                                                        placeholderParejaId={team.parejaId}
+                                                                        nombreActual={team.nombre}
+                                                                        categoria={selectedCat}
+                                                                        yaAsignada={!esTBD(team.nombre)}
+                                                                    />
+                                                                )}
                                                                 {esLiguilla && !esTBD(team.nombre) && (
                                                                     <Link
                                                                         href={`/club/torneos/${torneoId}/pareja/${team.parejaId}`}
