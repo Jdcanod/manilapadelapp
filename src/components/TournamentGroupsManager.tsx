@@ -103,6 +103,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
     const [numGrupos, setNumGrupos] = useState(2);
     const [showSettings, setShowSettings] = useState(false);
     const [pendientesOpen, setPendientesOpen] = useState(false);
+    const [filtroParejaPendientes, setFiltroParejaPendientes] = useState("");
 
     // Cuántos clasifican por grupo (persistido en torneo). Default 2.
     const [clasificanPorGrupo, setClasificanPorGrupo] = useState<number>(configClasifican ?? 2);
@@ -303,8 +304,19 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
         const pendientes = matchesCat.filter(p => !(p.estado === 'jugado' && p.resultado));
         const sinProgramar = pendientes.filter(p => !p.fecha || !p.lugar || p.lugar.toLowerCase().includes('pendiente'));
         const programados = pendientes.filter(p => p.fecha && p.lugar && !p.lugar.toLowerCase().includes('pendiente'));
+
+        // Opciones para el filtro "¿qué le falta a esta pareja?"
+        const parejaOptionsMap = new Map<string, string>();
+        matchesCat.forEach(p => {
+            if (p.pareja1_id && p.pareja1?.nombre_pareja) parejaOptionsMap.set(p.pareja1_id, p.pareja1.nombre_pareja);
+            if (p.pareja2_id && p.pareja2?.nombre_pareja) parejaOptionsMap.set(p.pareja2_id, p.pareja2.nombre_pareja);
+        });
+        const parejaOptions = Array.from(parejaOptionsMap.entries())
+            .map(([id, nombre]) => ({ id, nombre }))
+            .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
         return {
-            jugados, total,
+            jugados, total, parejaOptions,
             pct: total > 0 ? Math.round((jugados / total) * 100) : 0,
             pendientes, sinProgramar, programados,
         };
@@ -698,39 +710,70 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
 
                     {pendientesOpen && (
                         <div className="pt-2 space-y-3 animate-in fade-in slide-in-from-top-1 duration-150">
-                            {resumenPartidosCat.sinProgramar.length > 0 && (
-                                <div>
-                                    <p className="text-[10px] font-black text-red-700 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                                        <CalendarX2 className="w-3.5 h-3.5" /> Sin programar ({resumenPartidosCat.sinProgramar.length})
-                                    </p>
-                                    <div className="space-y-1">
-                                        {resumenPartidosCat.sinProgramar.map(p => (
-                                            <div key={p.id} className="text-xs text-ink bg-paper/60 border border-olive/10 rounded-lg px-3 py-2 flex items-center justify-between gap-2">
-                                                <span className="truncate">{p.pareja1?.nombre_pareja || 'TBD'} <span className="text-olive/50">vs</span> {p.pareja2?.nombre_pareja || 'TBD'}</span>
-                                            </div>
+                            {resumenPartidosCat.parejaOptions.length > 0 && (
+                                <div className="flex items-center gap-2">
+                                    <label className="text-[10px] font-black text-olive/70 uppercase tracking-widest flex-shrink-0">
+                                        ¿Qué le falta a...?
+                                    </label>
+                                    <select
+                                        value={filtroParejaPendientes}
+                                        onChange={(e) => setFiltroParejaPendientes(e.target.value)}
+                                        className="bg-paper border border-olive/30 rounded-md text-ink text-xs font-bold px-2 py-1.5 flex-1 max-w-xs"
+                                    >
+                                        <option value="">Todas las parejas</option>
+                                        {resumenPartidosCat.parejaOptions.map(p => (
+                                            <option key={p.id} value={p.id}>{p.nombre}</option>
                                         ))}
-                                    </div>
+                                    </select>
                                 </div>
                             )}
-                            {resumenPartidosCat.programados.length > 0 && (
-                                <div>
-                                    <p className="text-[10px] font-black text-ochre-dark uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                                        <CalendarClock className="w-3.5 h-3.5" /> Programados, falta jugarse ({resumenPartidosCat.programados.length})
-                                    </p>
-                                    <div className="space-y-1">
-                                        {resumenPartidosCat.programados
-                                            .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''))
-                                            .map(p => (
-                                            <div key={p.id} className="text-xs text-ink bg-paper/60 border border-olive/10 rounded-lg px-3 py-2 flex items-center justify-between gap-2 flex-wrap">
-                                                <span className="truncate">{p.pareja1?.nombre_pareja || 'TBD'} <span className="text-olive/50">vs</span> {p.pareja2?.nombre_pareja || 'TBD'}</span>
-                                                <span className="text-[10px] text-olive/60 flex-shrink-0">
-                                                    {p.fecha && new Date(p.fecha).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })} · {p.lugar}
-                                                </span>
+                            {(() => {
+                                const filtroActivo = !!filtroParejaPendientes;
+                                const matchIncluyeFiltro = (p: { pareja1_id?: string | null; pareja2_id?: string | null }) =>
+                                    !filtroActivo || p.pareja1_id === filtroParejaPendientes || p.pareja2_id === filtroParejaPendientes;
+                                const sinProgramarFiltrado = resumenPartidosCat.sinProgramar.filter(matchIncluyeFiltro);
+                                const programadosFiltrado = resumenPartidosCat.programados.filter(matchIncluyeFiltro);
+                                return (
+                                    <>
+                                        {sinProgramarFiltrado.length > 0 && (
+                                            <div>
+                                                <p className="text-[10px] font-black text-red-700 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                                                    <CalendarX2 className="w-3.5 h-3.5" /> Sin programar ({sinProgramarFiltrado.length})
+                                                </p>
+                                                <div className="space-y-1">
+                                                    {sinProgramarFiltrado.map(p => (
+                                                        <div key={p.id} className="text-xs text-ink bg-paper/60 border border-olive/10 rounded-lg px-3 py-2 flex items-center justify-between gap-2">
+                                                            <span className="truncate">{p.pareja1?.nombre_pareja || 'TBD'} <span className="text-olive/50">vs</span> {p.pareja2?.nombre_pareja || 'TBD'}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                                        )}
+                                        {programadosFiltrado.length > 0 && (
+                                            <div>
+                                                <p className="text-[10px] font-black text-ochre-dark uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                                                    <CalendarClock className="w-3.5 h-3.5" /> Programados, falta jugarse ({programadosFiltrado.length})
+                                                </p>
+                                                <div className="space-y-1">
+                                                    {programadosFiltrado
+                                                        .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''))
+                                                        .map(p => (
+                                                        <div key={p.id} className="text-xs text-ink bg-paper/60 border border-olive/10 rounded-lg px-3 py-2 flex items-center justify-between gap-2 flex-wrap">
+                                                            <span className="truncate">{p.pareja1?.nombre_pareja || 'TBD'} <span className="text-olive/50">vs</span> {p.pareja2?.nombre_pareja || 'TBD'}</span>
+                                                            <span className="text-[10px] text-olive/60 flex-shrink-0">
+                                                                {p.fecha && new Date(p.fecha).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })} · {p.lugar}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {filtroActivo && sinProgramarFiltrado.length === 0 && programadosFiltrado.length === 0 && (
+                                            <p className="text-xs text-olive/50 text-center py-3">Esa pareja ya jugó todos sus partidos pendientes en esta categoría 🎉</p>
+                                        )}
+                                    </>
+                                );
+                            })()}
                         </div>
                     )}
                 </div>
