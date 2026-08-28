@@ -179,6 +179,14 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
         .select('*')
         .eq('torneo_id', params.id);
 
+    // Parejas marcadas como eliminadas por el corte de participación (liguilla).
+    const { data: inscripcionesElim } = await adminSupabase
+        .from('torneo_parejas')
+        .select('pareja_id, eliminada')
+        .eq('torneo_id', params.id)
+        .eq('eliminada', true);
+    const parejasEliminadasSet = new Set((inscripcionesElim || []).map(i => i.pareja_id as string));
+
     const isPast = new Date(torneo.fecha_fin) < new Date();
 
     // Helper para puntuación
@@ -378,6 +386,9 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                                 formato={torneo.formato}
                                 setsCantidad={torneo.reglas_puntuacion?.sets}
                                 ordenGrupos={torneo.reglas_puntuacion?.orden_grupos || {}}
+                                ligaClasificacionConfig={torneo.reglas_puntuacion?.liga_clasificacion_config || {}}
+                                parejasEliminadas={parejasEliminadasSet}
+                                idaVueltaConfig={torneo.reglas_puntuacion?.liga_ida_vuelta_config || {}}
                             />
                     </TabsContent>
                     <TabsContent value="cuadros" className="mt-8">

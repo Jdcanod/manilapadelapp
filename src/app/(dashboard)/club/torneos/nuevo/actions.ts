@@ -57,6 +57,35 @@ export async function crearTorneoCentral(formData: FormData) {
         });
     }
 
+    // Liguilla: leer la clasificación por categoría (total + modo + mínimo)
+    const ligaClasificacionConfig: Record<string, { total: number; modo: 'absoluto' | 'porcentaje'; minPartidos: number; minPorcentaje: number }> = {};
+    // Corte de participación — único para todo el torneo (no por categoría).
+    let ligaCorteConfig: { fecha: string; porcentaje: number; ejecutado: boolean } | null = null;
+    if (formato === 'liguilla') {
+        categoriasSeleccionadas.forEach(cat => {
+            const total = parseInt(formData.get(`liga_clasifican_${cat}`) as string);
+            const modo = (formData.get(`liga_clasif_modo_${cat}`) as string) === 'porcentaje' ? 'porcentaje' : 'absoluto';
+            const minPartidos = parseInt(formData.get(`liga_min_partidos_${cat}`) as string);
+            const minPorcentaje = parseInt(formData.get(`liga_min_porcentaje_${cat}`) as string);
+            ligaClasificacionConfig[cat] = {
+                total: isNaN(total) ? 8 : Math.max(2, Math.min(64, total)),
+                modo,
+                minPartidos: isNaN(minPartidos) ? 0 : Math.max(0, Math.min(20, minPartidos)),
+                minPorcentaje: isNaN(minPorcentaje) ? 0 : Math.max(0, Math.min(100, minPorcentaje)),
+            };
+        });
+
+        const corteFecha = formData.get("liga_corte_fecha") as string | null;
+        if (corteFecha) {
+            const cortePorcentaje = parseInt(formData.get("liga_corte_porcentaje") as string);
+            ligaCorteConfig = {
+                fecha: corteFecha,
+                porcentaje: isNaN(cortePorcentaje) ? 50 : Math.max(0, Math.min(100, cortePorcentaje)),
+                ejecutado: false,
+            };
+        }
+    }
+
     const reglasPuntuacion = esCopaDavis
         ? {
             sets: parseInt(formData.get("sets") as string) || 3,
@@ -79,6 +108,15 @@ export async function crearTorneoCentral(formData: FormData) {
                     tipoDesempatePorCategoria[cat] = v;
                 }
             }
+            // Liguilla: qué categorías juegan ida y vuelta (checkbox ausente = no marcado).
+            const ligaIdaVueltaConfig: Record<string, boolean> = {};
+            if (formato === 'liguilla') {
+                categoriasSeleccionadas.forEach(cat => {
+                    // Checkbox no marcado no se incluye en el FormData (comportamiento
+                    // estándar de HTML) — presencia = activado, sin importar el valor.
+                    ligaIdaVueltaConfig[cat] = formData.has(`liga_ida_vuelta_${cat}`);
+                });
+            }
             return {
                 sets: parseInt(formData.get("sets") as string) || 3,
                 juegos: parseInt(formData.get("juegos") as string) || 6,
@@ -88,6 +126,11 @@ export async function crearTorneoCentral(formData: FormData) {
                 categorias_habilitadas: formData.getAll("categorias") as string[],
                 config_duracion: parseInt(formData.get("config_duracion") as string) || 60,
                 config_canchas: parseInt(formData.get("config_canchas") as string) || 1,
+                ...(formato === 'liguilla' ? {
+                    liga_ida_vuelta_config: ligaIdaVueltaConfig,
+                    liga_clasificacion_config: ligaClasificacionConfig,
+                    ...(ligaCorteConfig ? { liga_corte_config: ligaCorteConfig } : {}),
+                } : {}),
             };
         })();
 

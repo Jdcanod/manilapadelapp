@@ -36,6 +36,8 @@ export function CrearTorneoForm() {
     const [selectedCats, setSelectedCats] = useState<string[]>(['3ra', '4ta', '5ta', '6ta']);
     const [copaCatConfig, setCopaCatConfig] = useState<Record<string, { parejas: number; partidos: number }>>({});
     const [nuevaCatInput, setNuevaCatInput] = useState("");
+    /** Liguilla: categorías que juegan ida y vuelta (cada cruce dos veces). */
+    const [idaVueltaConfig, setIdaVueltaConfig] = useState<Record<string, boolean>>({});
 
     // Relámpago con pre-creación de slots TBD
     const [precargarTBD, setPrecargarTBD] = useState<boolean>(false);
@@ -56,6 +58,40 @@ export function CrearTorneoForm() {
         const max = Math.max(1, parejas); // no más grupos que parejas
         const v = Math.max(1, Math.min(max, isNaN(value) ? 1 : value));
         setRelampagoGruposConfig(prev => ({ ...prev, [cat]: v }));
+    };
+
+    // Liguilla: clasificación configurable por categoría — cuántas parejas
+    // pasan a la fase final (sobre la tabla GLOBAL, no por grupo), y el modo
+    // de elegibilidad: mínimo ABSOLUTO de partidos jugados, o mínimo en
+    // PORCENTAJE de los partidos que le correspondían. El dueño elige cuál
+    // usar, por categoría. Editable después desde el torneo ya creado.
+    const [ligaClasifConfig, setLigaClasifConfig] = useState<Record<string, { total: number; modo: 'absoluto' | 'porcentaje'; minPartidos: number; minPorcentaje: number }>>({});
+    const updateLigaClasif = (cat: string, key: 'total' | 'minPartidos' | 'minPorcentaje', value: number) => {
+        setLigaClasifConfig(prev => ({
+            ...prev,
+            [cat]: {
+                total: prev[cat]?.total ?? 8,
+                modo: prev[cat]?.modo ?? 'absoluto',
+                minPartidos: prev[cat]?.minPartidos ?? 0,
+                minPorcentaje: prev[cat]?.minPorcentaje ?? 0,
+                [key]: key === 'total'
+                    ? Math.max(2, Math.min(64, isNaN(value) ? 8 : value))
+                    : key === 'minPorcentaje'
+                        ? Math.max(0, Math.min(100, isNaN(value) ? 0 : value))
+                        : Math.max(0, Math.min(20, isNaN(value) ? 0 : value)),
+            },
+        }));
+    };
+    const updateLigaClasifModo = (cat: string, modo: 'absoluto' | 'porcentaje') => {
+        setLigaClasifConfig(prev => ({
+            ...prev,
+            [cat]: {
+                total: prev[cat]?.total ?? 8,
+                minPartidos: prev[cat]?.minPartidos ?? 0,
+                minPorcentaje: prev[cat]?.minPorcentaje ?? 0,
+                modo,
+            },
+        }));
     };
 
     const toggleCat = (cat: string, on: boolean) => {
@@ -447,6 +483,160 @@ export function CrearTorneoForm() {
                                             </p>
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {/* Ida y vuelta por categoría — solo Liguilla */}
+                            {esLiguilla && selectedCats.length > 0 && (
+                                <div className="mt-4 pt-4 border-t border-olive/20 space-y-2">
+                                    <p className="text-[10px] font-black text-olive uppercase tracking-widest">
+                                        ¿Ida y vuelta? (cada cruce se juega dos veces)
+                                    </p>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                        {selectedCats.map(cat => {
+                                            const activo = idaVueltaConfig[cat] ?? false;
+                                            return (
+                                                <label key={cat} className="flex items-center gap-2 text-sm cursor-pointer">
+                                                    <Checkbox
+                                                        checked={activo}
+                                                        onCheckedChange={(v) => setIdaVueltaConfig(prev => ({ ...prev, [cat]: !!v }))}
+                                                        name={`liga_ida_vuelta_${cat}`}
+                                                        className="border-olive/30 data-[state=checked]:bg-olive data-[state=checked]:text-black"
+                                                    />
+                                                    <span className="text-ink">{cat}</span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                    <p className="text-[10px] text-olive/50">
+                                        Puedes activarlo o desactivarlo después, incluso con el torneo ya iniciado.
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Clasificación a la fase final — solo Liguilla */}
+                            {esLiguilla && selectedCats.length > 0 && (
+                                <div className="mt-4 pt-4 border-t border-olive/20 space-y-3">
+                                    <p className="text-sm font-bold text-olive">
+                                        Clasificación a la fase final (por categoría)
+                                    </p>
+                                    <p className="text-[11px] text-ink0 leading-snug">
+                                        Define cuántas parejas clasifican (sobre la tabla general de la categoría,
+                                        combinando todos los grupos) y el mínimo de partidos jugados para ser
+                                        elegibles. Podrás cambiar estos valores en cualquier momento desde el
+                                        torneo ya creado, y la tabla de posiciones irá resaltando en vivo quién
+                                        está clasificando.
+                                    </p>
+                                    <div className="space-y-3 bg-paper/40 border border-olive/20 rounded-xl p-4">
+                                        {selectedCats.map(cat => {
+                                            const cfg = ligaClasifConfig[cat] || { total: 8, modo: 'absoluto' as const, minPartidos: 0, minPorcentaje: 0 };
+                                            return (
+                                                <div key={cat} className="space-y-2 py-2 border-b border-olive/20 last:border-0">
+                                                    <div className="flex items-center gap-3 flex-wrap">
+                                                        <span className="text-sm font-bold text-ink w-14">{cat}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] text-ink0 uppercase tracking-wide">Clasifican</span>
+                                                            <Input
+                                                                type="number"
+                                                                min={2}
+                                                                max={64}
+                                                                value={cfg.total}
+                                                                onChange={e => updateLigaClasif(cat, 'total', parseInt(e.target.value))}
+                                                                name={`liga_clasifican_${cat}`}
+                                                                className="w-16 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"
+                                                            />
+                                                        </div>
+                                                        <div className="flex items-center gap-1 bg-paper-soft border border-olive/20 rounded-lg p-0.5">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => updateLigaClasifModo(cat, 'absoluto')}
+                                                                className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wide transition-colors ${cfg.modo !== 'porcentaje' ? 'bg-olive text-black' : 'text-olive/60'}`}
+                                                            >
+                                                                Nº partidos
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => updateLigaClasifModo(cat, 'porcentaje')}
+                                                                className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wide transition-colors ${cfg.modo === 'porcentaje' ? 'bg-olive text-black' : 'text-olive/60'}`}
+                                                            >
+                                                                % partidos
+                                                            </button>
+                                                        </div>
+                                                        <input type="hidden" name={`liga_clasif_modo_${cat}`} value={cfg.modo === 'porcentaje' ? 'porcentaje' : 'absoluto'} />
+                                                        {cfg.modo === 'porcentaje' ? (
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-[10px] text-ink0 uppercase tracking-wide">Mín. % jugado</span>
+                                                                <Input
+                                                                    type="number"
+                                                                    min={0}
+                                                                    max={100}
+                                                                    value={cfg.minPorcentaje}
+                                                                    onChange={e => updateLigaClasif(cat, 'minPorcentaje', parseInt(e.target.value))}
+                                                                    name={`liga_min_porcentaje_${cat}`}
+                                                                    className="w-16 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"
+                                                                />
+                                                                <span className="text-[10px] text-ink0">%</span>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-[10px] text-ink0 uppercase tracking-wide">Mín. partidos</span>
+                                                                <Input
+                                                                    type="number"
+                                                                    min={0}
+                                                                    max={20}
+                                                                    value={cfg.minPartidos}
+                                                                    onChange={e => updateLigaClasif(cat, 'minPartidos', parseInt(e.target.value))}
+                                                                    name={`liga_min_partidos_${cat}`}
+                                                                    className="w-16 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                        <p className="text-[10px] text-olive/50 pt-1">
+                                            &quot;Nº partidos&quot; en 0 o &quot;% partidos&quot; en 0 significa sin exigencia mínima.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Corte — solo Liguilla: fecha + % mínimo para no ser marcado eliminado */}
+                            {esLiguilla && (
+                                <div className="mt-4 pt-4 border-t border-olive/20 space-y-3">
+                                    <p className="text-sm font-bold text-olive">Corte de participación (opcional)</p>
+                                    <p className="text-[11px] text-ink0 leading-snug">
+                                        En una fecha del calendario, las parejas que no lleguen al % mínimo de
+                                        partidos jugados quedan marcadas como eliminadas — siguen en la tabla,
+                                        pero no cuentan para la clasificación final. El corte no se aplica solo:
+                                        tú lo revisas y lo ejecutas manualmente cuando llegue el momento.
+                                    </p>
+                                    <div className="flex items-center gap-4 flex-wrap bg-paper/40 border border-olive/20 rounded-xl p-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] text-ink0 uppercase tracking-wide">Fecha del corte</span>
+                                            <Input
+                                                type="date"
+                                                name="liga_corte_fecha"
+                                                className="h-8 bg-paper-soft border-olive/20 text-ink text-sm"
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] text-ink0 uppercase tracking-wide">% mínimo de partidos jugados</span>
+                                            <Input
+                                                type="number"
+                                                min={0}
+                                                max={100}
+                                                defaultValue={50}
+                                                name="liga_corte_porcentaje"
+                                                className="w-16 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"
+                                            />
+                                            <span className="text-[10px] text-ink0">%</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-olive/50">
+                                        Déjala vacía si no quieres corte. Puedes definirla o cambiarla después desde el torneo ya creado.
+                                    </p>
                                 </div>
                             )}
                         </>

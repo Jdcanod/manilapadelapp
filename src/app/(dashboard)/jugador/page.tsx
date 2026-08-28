@@ -372,7 +372,15 @@ export default async function JugadorDashboard() {
                                         <div className="space-y-3">
                                             <ValidationTimer startTime={proximoPartido.resultado_registrado_at} />
                                             
-                                            {proximoPartido.resultado_registrado_por !== (userData?.id || user.id) ? (
+                                            {proximoPartido.tipo_partido === 'torneo' ? (
+                                                // Partidos de torneo se oficializan solo por el club — la pareja
+                                                // rival ya no puede auto-confirmarse el resultado.
+                                                <p className="text-[10px] text-ochre-dark text-center italic">
+                                                    {proximoPartido.resultado_registrado_por === (userData?.id || user.id)
+                                                        ? "Esperando confirmación del club..."
+                                                        : "Pendiente por confirmar el club..."}
+                                                </p>
+                                            ) : proximoPartido.resultado_registrado_por !== (userData?.id || user.id) ? (
                                                 <form action={async () => {
                                                     "use server";
                                                     const { confirmarResultadoTorneo } = await import("@/app/(dashboard)/torneos/match-actions");

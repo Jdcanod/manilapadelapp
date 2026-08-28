@@ -4,6 +4,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { Participant, distributeParticipantsIntoGroups, generateMatchesForGroup } from "@/lib/tournaments/logic";
 import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { calculateStandings } from "@/lib/tournaments/standings";
+import { calcularRequeridosPorPareja, calcularClasificados } from "@/lib/tournaments/clasificacion";
 import { getOrCreateInvitado } from "@/lib/invitados";
 import { requireClubOwnership } from "@/lib/auth/clubOwnership";
 import { revalidatePath } from "next/cache";
@@ -18,6 +19,294 @@ interface MasterResult {
     id: string;
     jugador1: { id: string; nombre: string; puntos_ranking: number } | null;
     jugador2: { id: string; nombre: string; puntos_ranking: number } | null;
+}
+
+/**
+ * Actualiza cuántas parejas clasifican a la fase final de una categoría en
+ * formato Liguilla (sobre la tabla GLOBAL de la categoría, no por grupo) y
+ * el mínimo de partidos jugados para ser elegible. Editable en cualquier
+ * momento del torneo por el admin dueño — la tabla de posiciones resalta en
+ * vivo quién está clasificando con este valor.
+ */
+export async function actualizarClasificacionLiga(
+    torneoId: string,
+    categoria: string,
+    total: number,
+    modo: 'absoluto' | 'porcentaje',
+    minPartidos: number,
+    minPorcentaje: number,
+) {
+    try {
+        const supabaseAuth = createClient();
+        const { data: { user } } = await supabaseAuth.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado." };
+
+        const { data: torneo } = await supabaseAuth
+            .from('torneos')
+            .select('club_id, reglas_puntuacion')
+            .eq('id', torneoId)
+            .single();
+        if (!torneo) return { success: false, message: "Torneo no encontrado." };
+
+        const { data: userData } = await supabaseAuth.from('users').select('id, rol').eq('auth_id', user.id).single();
+        const esAdmin = userData?.rol === 'admin_club' || userData?.rol === 'superadmin';
+        const esDelClub = String(torneo.club_id) === String(userData?.id);
+        if (!esAdmin || (!esDelClub && userData?.rol !== 'superadmin')) {
+            return { success: false, message: "No tienes permisos para modificar este torneo." };
+        }
+
+        const totalSano = Math.max(2, Math.min(64, Math.floor(total) || 8));
+        const minSano = Math.max(0, Math.min(20, Math.floor(minPartidos) || 0));
+        const minPorcentajeSano = Math.max(0, Math.min(100, Math.floor(minPorcentaje) || 0));
+        const modoSano: 'absoluto' | 'porcentaje' = modo === 'porcentaje' ? 'porcentaje' : 'absoluto';
+
+        const supabaseAdmin = createPureAdminClient();
+        const nuevasReglas = {
+            ...(torneo.reglas_puntuacion || {}),
+            liga_clasificacion_config: {
+                ...(torneo.reglas_puntuacion?.liga_clasificacion_config || {}),
+                [categoria]: { total: totalSano, modo: modoSano, minPartidos: minSano, minPorcentaje: minPorcentajeSano },
+            },
+        };
+        const { error } = await supabaseAdmin.from('torneos').update({ reglas_puntuacion: nuevasReglas }).eq('id', torneoId);
+        if (error) return { success: false, message: error.message };
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        revalidatePath(`/torneos/${torneoId}`);
+        return { success: true };
+    } catch (err: unknown) {
+        return { success: false, message: (err as Error).message || "Error desconocido" };
+    }
+}
+
+/**
+ * Actualiza la configuración del corte de participación (único para todo el
+ * torneo, no por categoría): fecha objetivo y % mínimo de partidos jugados
+ * para no quedar marcado como eliminado. La fecha es solo informativa — la
+ * ejecución siempre requiere que el dueño la corra manualmente.
+ */
+export async function actualizarCorteConfig(torneoId: string, fecha: string | null, porcentaje: number) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado" };
+
+        const admin = createPureAdminClient();
+        const { data: me } = await admin.from('users').select('id, rol').eq('auth_id', user.id).single();
+        if (!me || (me.rol !== 'admin_club' && me.rol !== 'superadmin')) return { success: false, message: "Sin permisos" };
+
+        const { data: torneo } = await admin.from('torneos').select('club_id, formato, reglas_puntuacion').eq('id', torneoId).single();
+        if (!torneo) return { success: false, message: "Torneo no encontrado" };
+        if (torneo.formato !== 'liguilla') return { success: false, message: "Solo aplica a torneos tipo liguilla" };
+        if (String(torneo.club_id) !== String(me.id) && me.rol !== 'superadmin') {
+            return { success: false, message: "Solo el dueño del torneo puede cambiar esta configuración" };
+        }
+
+        const yaEjecutado = !!torneo.reglas_puntuacion?.liga_corte_config?.ejecutado;
+        const nuevasReglas = {
+            ...(torneo.reglas_puntuacion || {}),
+            liga_corte_config: fecha
+                ? { fecha, porcentaje: Math.max(0, Math.min(100, Math.floor(porcentaje) || 0)), ejecutado: yaEjecutado }
+                : null,
+        };
+        const { error } = await admin.from('torneos').update({ reglas_puntuacion: nuevasReglas }).eq('id', torneoId);
+        if (error) return { success: false, message: error.message };
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        return { success: true };
+    } catch (err: unknown) {
+        return { success: false, message: (err as Error).message || "Error desconocido" };
+    }
+}
+
+/**
+ * Calcula, para cada pareja inscrita en cada categoría del torneo, su % de
+ * partidos jugados (peso de revancha ya aplicado) sobre lo que le
+ * correspondía según el tamaño de su grupo y si la categoría es ida y
+ * vuelta. Compartido entre la vista previa y la ejecución real del corte.
+ */
+async function calcularPorcentajesTorneo(admin: ReturnType<typeof createPureAdminClient>, torneoId: string) {
+    const { data: torneo } = await admin.from('torneos').select('reglas_puntuacion').eq('id', torneoId).single();
+    const idaVueltaPorCategoria = torneo?.reglas_puntuacion?.liga_ida_vuelta_config || {};
+
+    const { data: grupos } = await admin.from('torneo_grupos').select('id, categoria').eq('torneo_id', torneoId);
+    const { data: partidos } = await admin
+        .from('partidos')
+        .select('torneo_grupo_id, pareja1_id, pareja2_id, estado, estado_resultado, resultado, es_revancha, nivel')
+        .eq('torneo_id', torneoId)
+        .not('torneo_grupo_id', 'is', null);
+
+    interface PartidoCorte {
+        torneo_grupo_id: string | null;
+        pareja1_id: string | null;
+        pareja2_id: string | null;
+        estado: string | null;
+        estado_resultado: string | null;
+        resultado: string | null;
+        es_revancha: boolean | null;
+        nivel: string | null;
+    }
+
+    const resultado: { parejaId: string; categoria: string; pj: number; requeridos: number; porcentaje: number }[] = [];
+
+    for (const grupo of grupos || []) {
+        const matchesGrupo = ((partidos || []) as PartidoCorte[]).filter(p => p.torneo_grupo_id === grupo.id);
+        const standings = calculateStandings(
+            matchesGrupo.map((m: PartidoCorte) => ({
+                pareja1_id: m.pareja1_id,
+                pareja2_id: m.pareja2_id,
+                estado: m.estado || '',
+                estado_resultado: m.estado_resultado,
+                resultado: m.resultado,
+                es_revancha: m.es_revancha,
+            })),
+            { pointsForLoss: 1 }
+        );
+
+        const parejasPorGrupo = new Map<string, string[]>();
+        const idsGrupo: string[] = [];
+        matchesGrupo.forEach((m: PartidoCorte) => {
+            if (m.es_revancha) return;
+            if (m.pareja1_id && !idsGrupo.includes(m.pareja1_id)) idsGrupo.push(m.pareja1_id);
+            if (m.pareja2_id && !idsGrupo.includes(m.pareja2_id)) idsGrupo.push(m.pareja2_id);
+        });
+        parejasPorGrupo.set(grupo.id, idsGrupo);
+        const esIdaVuelta = !!idaVueltaPorCategoria[grupo.categoria];
+        const requeridos = calcularRequeridosPorPareja(parejasPorGrupo, esIdaVuelta);
+
+        standings.forEach(s => {
+            const req = requeridos.get(s.parejaId) || 0;
+            resultado.push({
+                parejaId: s.parejaId,
+                categoria: grupo.categoria,
+                pj: s.pj,
+                requeridos: req,
+                porcentaje: req > 0 ? (s.pj / req) * 100 : 100,
+            });
+        });
+    }
+
+    return resultado;
+}
+
+/**
+ * Vista previa del corte: quiénes quedarían marcados como eliminados si se
+ * ejecutara ahora mismo, sin aplicar nada todavía.
+ */
+export async function previsualizarCorte(torneoId: string) {
+    try {
+        const admin = createPureAdminClient();
+        const { data: torneo } = await admin.from('torneos').select('reglas_puntuacion').eq('id', torneoId).single();
+        const corte = torneo?.reglas_puntuacion?.liga_corte_config;
+        if (!corte) return { success: false, message: "No hay un corte configurado para este torneo" };
+
+        const { data: inscripciones } = await admin
+            .from('torneo_parejas')
+            .select('pareja_id, categoria, eliminada, pareja:parejas(nombre_pareja)')
+            .eq('torneo_id', torneoId);
+
+        const porcentajes = await calcularPorcentajesTorneo(admin, torneoId);
+        const porcentajePorPareja = new Map(porcentajes.map(p => [`${p.parejaId}:${p.categoria}`, p]));
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const candidatos = (inscripciones || [])
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .filter((i: any) => !i.eliminada)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .map((i: any) => {
+                const p = porcentajePorPareja.get(`${i.pareja_id}:${i.categoria}`);
+                return {
+                    parejaId: i.pareja_id as string,
+                    categoria: i.categoria as string,
+                    nombre: (i.pareja?.nombre_pareja || 'Pareja') as string,
+                    porcentaje: p ? Math.round(p.porcentaje) : 0,
+                    pj: p?.pj ?? 0,
+                    requeridos: p?.requeridos ?? 0,
+                };
+            })
+            .filter((c: { porcentaje: number }) => c.porcentaje < corte.porcentaje);
+
+        return { success: true, candidatos, porcentajeCorte: corte.porcentaje, fecha: corte.fecha, ejecutado: !!corte.ejecutado };
+    } catch (err: unknown) {
+        return { success: false, message: (err as Error).message || "Error desconocido" };
+    }
+}
+
+/**
+ * Ejecuta el corte: marca como eliminadas (torneo_parejas.eliminada) a las
+ * parejas que hoy están por debajo del % configurado, y cancela sus
+ * partidos pendientes (no toca los ya jugados). Requiere acción explícita
+ * del dueño del torneo — nunca se aplica solo.
+ */
+export async function ejecutarCorte(torneoId: string) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado" };
+
+        const admin = createPureAdminClient();
+        const { data: me } = await admin.from('users').select('id, rol').eq('auth_id', user.id).single();
+        if (!me || (me.rol !== 'admin_club' && me.rol !== 'superadmin')) return { success: false, message: "Sin permisos" };
+
+        const { data: torneo } = await admin.from('torneos').select('club_id, formato, reglas_puntuacion').eq('id', torneoId).single();
+        if (!torneo) return { success: false, message: "Torneo no encontrado" };
+        if (torneo.formato !== 'liguilla') return { success: false, message: "Solo aplica a torneos tipo liguilla" };
+        if (String(torneo.club_id) !== String(me.id) && me.rol !== 'superadmin') {
+            return { success: false, message: "Solo el dueño del torneo puede ejecutar el corte" };
+        }
+        const corte = torneo.reglas_puntuacion?.liga_corte_config;
+        if (!corte) return { success: false, message: "No hay un corte configurado para este torneo" };
+
+        const { data: inscripciones } = await admin
+            .from('torneo_parejas')
+            .select('id, pareja_id, categoria, eliminada')
+            .eq('torneo_id', torneoId)
+            .eq('eliminada', false);
+
+        const porcentajes = await calcularPorcentajesTorneo(admin, torneoId);
+        const porcentajePorPareja = new Map(porcentajes.map(p => [`${p.parejaId}:${p.categoria}`, p.porcentaje]));
+
+        // Filtrado por (pareja_id, categoria) exactos — una pareja puede estar
+        // inscrita en más de una categoría del mismo torneo, y el corte solo
+        // debe afectar la(s) categoría(s) donde realmente falla el %.
+        const inscripcionesAEliminar = (inscripciones || []).filter((i: { pareja_id: string; categoria: string }) => {
+            const pct = porcentajePorPareja.get(`${i.pareja_id}:${i.categoria}`);
+            return pct !== undefined && pct < corte.porcentaje;
+        }) as { id: string; pareja_id: string; categoria: string }[];
+
+        if (inscripcionesAEliminar.length > 0) {
+            const { error: errMarcar } = await admin
+                .from('torneo_parejas')
+                .update({ eliminada: true, eliminada_en: new Date().toISOString() })
+                .in('id', inscripcionesAEliminar.map(i => i.id));
+            if (errMarcar) return { success: false, message: "Error marcando parejas eliminadas: " + errMarcar.message };
+
+            // Cancelar sus partidos pendientes de ESA categoría (no toca los ya jugados
+            // ni los de otras categorías donde la misma pareja siga activa).
+            for (const ins of inscripcionesAEliminar) {
+                await admin.from('partidos').delete()
+                    .eq('torneo_id', torneoId)
+                    .eq('nivel', ins.categoria)
+                    .eq('estado', 'programado')
+                    .or(`pareja1_id.eq.${ins.pareja_id},pareja2_id.eq.${ins.pareja_id}`);
+            }
+        }
+        const idsAEliminar = inscripcionesAEliminar.map(i => i.pareja_id);
+
+        const { error: errCorte } = await admin.from('torneos').update({
+            reglas_puntuacion: {
+                ...(torneo.reglas_puntuacion || {}),
+                liga_corte_config: { ...corte, ejecutado: true, ejecutadoEn: new Date().toISOString() },
+            },
+        }).eq('id', torneoId);
+        if (errCorte) return { success: false, message: "Error registrando el corte: " + errCorte.message };
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        revalidatePath(`/torneos/${torneoId}`);
+        return { success: true, eliminadas: idsAEliminar.length };
+    } catch (err: unknown) {
+        return { success: false, message: (err as Error).message || "Error desconocido" };
+    }
 }
 
 export async function generarFaseGrupos(torneoId: string, categoria: string, numGrupos?: number, clasificanPorGrupo?: number) {
@@ -184,13 +473,16 @@ export async function generarFaseGrupos(torneoId: string, categoria: string, num
         // Get tournament info for inherited fields (debe ir antes del sorteo para detectar formato)
         const { data: torneoInfo } = await supabaseAdmin
             .from('torneos')
-            .select('club_id, fecha_inicio, nombre, formato')
+            .select('club_id, fecha_inicio, nombre, formato, reglas_puntuacion')
             .eq('id', torneoId)
             .single();
 
         // 3. Ejecutar algoritmo de sorteo
         // Para liguilla: grupos grandes configurables; para relámpago: grupos de 3
         const esLiguilla = torneoInfo?.formato === 'liguilla';
+        // Ida y vuelta: la categoría juega cada cruce DOS veces (sin distinción
+        // local/visitante). Configurable por categoría, persistido en el torneo.
+        const esIdaVuelta = esLiguilla && !!(torneoInfo?.reglas_puntuacion?.liga_ida_vuelta_config?.[categoria]);
         const groupDistributions = esLiguilla
             ? distributeParticipantsIntoGroups(participants, numGrupos ?? Math.max(1, Math.ceil(participants.length / 16)))
             : distributeParticipantsIntoGroups(participants);
@@ -216,11 +508,16 @@ export async function generarFaseGrupos(torneoId: string, categoria: string, num
             }
 
             // Generar partidos Round Robin para el grupo (usando pareja_id real)
-            const baseMatches = generateMatchesForGroup(
-                group.id, 
-                groupDistributions[i].map(p => p.id!.toString()), 
+            let baseMatches = generateMatchesForGroup(
+                group.id,
+                groupDistributions[i].map(p => p.id!.toString()),
                 torneoId
             );
+            // Ida y vuelta: duplicar cada cruce (mismo par de parejas, un
+            // segundo partido independiente — sin distinción local/visitante).
+            if (esIdaVuelta) {
+                baseMatches = baseMatches.flatMap(m => [m, { ...m }]);
+            }
 
             // Inyectar campos obligatorios
             const finalMatches = baseMatches.map(m => ({
@@ -251,6 +548,123 @@ export async function generarFaseGrupos(torneoId: string, categoria: string, num
     } catch (err: unknown) {
         console.error("Error en generarFaseGrupos:", err);
         return { success: false, error: err instanceof Error ? err.message : "Error desconocido" };
+    }
+}
+
+/**
+ * Activa o desactiva "ida y vuelta" para una categoría de liguilla — cada
+ * cruce se juega dos veces, sin distinción local/visitante. Es manual,
+ * la elige el dueño del torneo y puede cambiarla en cualquier momento.
+ *
+ * Al ACTIVARLA, genera retroactivamente los partidos de vuelta faltantes
+ * para todos los cruces que ya existían en los grupos de esa categoría
+ * (uno por cada pareja-vs-pareja que hoy solo tiene un partido). Al
+ * DESACTIVARLA solo se apaga el flag para sorteos futuros — no borra
+ * partidos ya creados, para no perder resultados.
+ */
+export async function actualizarIdaVueltaCategoria(torneoId: string, categoria: string, activar: boolean) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado" };
+
+        const admin = createPureAdminClient();
+        const { data: me } = await admin.from('users').select('id, rol').eq('auth_id', user.id).single();
+        if (!me || (me.rol !== 'admin_club' && me.rol !== 'superadmin')) {
+            return { success: false, message: "Sin permisos" };
+        }
+
+        const { data: torneo } = await admin
+            .from('torneos')
+            .select('club_id, formato, reglas_puntuacion, fecha_inicio')
+            .eq('id', torneoId)
+            .single();
+        if (!torneo) return { success: false, message: "Torneo no encontrado" };
+        if (torneo.formato !== 'liguilla') return { success: false, message: "Solo aplica a torneos tipo liguilla" };
+        if (String(torneo.club_id) !== String(me.id) && me.rol !== 'superadmin') {
+            return { success: false, message: "Solo el dueño del torneo puede cambiar esta configuración" };
+        }
+
+        const nuevaConfig = {
+            ...(torneo.reglas_puntuacion || {}),
+            liga_ida_vuelta_config: {
+                ...(torneo.reglas_puntuacion?.liga_ida_vuelta_config || {}),
+                [categoria]: activar,
+            },
+        };
+        const { error: errUpdate } = await admin
+            .from('torneos')
+            .update({ reglas_puntuacion: nuevaConfig })
+            .eq('id', torneoId);
+        if (errUpdate) return { success: false, message: "Error guardando configuración: " + errUpdate.message };
+
+        let vueltasCreadas = 0;
+        if (activar) {
+            const { data: grupos } = await admin
+                .from('torneo_grupos')
+                .select('id')
+                .eq('torneo_id', torneoId)
+                .eq('categoria', categoria);
+
+            for (const grupo of grupos || []) {
+                const { data: matches } = await admin
+                    .from('partidos')
+                    .select('id, pareja1_id, pareja2_id, es_revancha')
+                    .eq('torneo_grupo_id', grupo.id)
+                    // Las revanchas no cuentan como "el cruce" — solo los partidos normales.
+                    .or('es_revancha.is.null,es_revancha.eq.false');
+
+                const porPar = new Map<string, { id: string; pareja1_id: string; pareja2_id: string }[]>();
+                (matches || []).forEach((m: { id: string; pareja1_id: string | null; pareja2_id: string | null; es_revancha?: boolean | null }) => {
+                    if (!m.pareja1_id || !m.pareja2_id) return;
+                    const key = [m.pareja1_id, m.pareja2_id].sort().join(':');
+                    if (!porPar.has(key)) porPar.set(key, []);
+                    porPar.get(key)!.push(m as { id: string; pareja1_id: string; pareja2_id: string });
+                });
+
+                const nuevosPartidos: Record<string, unknown>[] = [];
+                porPar.forEach(lista => {
+                    // Ya tiene ida y vuelta (2+) o está incompleto: no tocar.
+                    if (lista.length !== 1) return;
+                    const original = lista[0];
+                    nuevosPartidos.push({
+                        torneo_id: torneoId,
+                        torneo_grupo_id: grupo.id,
+                        pareja1_id: original.pareja1_id,
+                        pareja2_id: original.pareja2_id,
+                        nivel: categoria,
+                        club_id: torneo.club_id,
+                        creador_id: user.id,
+                        estado: 'programado',
+                        tipo_partido: 'torneo',
+                        tipo_partido_oficial: 'torneo',
+                        sexo: 'Mixto',
+                        lugar: 'Pendiente',
+                        fecha: torneo.fecha_inicio || new Date().toISOString(),
+                        cupos_totales: 4,
+                        cupos_disponibles: 0,
+                    });
+                });
+
+                if (nuevosPartidos.length > 0) {
+                    const { error: errInsert } = await admin.from('partidos').insert(nuevosPartidos);
+                    if (errInsert) return { success: false, message: "Configuración guardada, pero falló creando partidos de vuelta: " + errInsert.message };
+                    vueltasCreadas += nuevosPartidos.length;
+                }
+            }
+        }
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        revalidatePath(`/torneos/${torneoId}`);
+        return {
+            success: true,
+            message: activar
+                ? `Ida y vuelta activada. Se generaron ${vueltasCreadas} partido${vueltasCreadas === 1 ? '' : 's'} de vuelta.`
+                : "Ida y vuelta desactivada para nuevos sorteos.",
+        };
+    } catch (err: unknown) {
+        const e = err as Error;
+        return { success: false, message: e.message || "Error desconocido" };
     }
 }
 
@@ -1139,7 +1553,7 @@ export async function obtenerStandingsPorGrupo(torneoId: string, categoria: stri
         for (const g of grupos) {
             const { data: rawGroupMatches } = await supabaseAdmin
                 .from('partidos')
-                .select('id, pareja1_id, pareja2_id, estado, resultado, estado_resultado')
+                .select('id, pareja1_id, pareja2_id, estado, resultado, estado_resultado, es_revancha')
                 .eq('torneo_grupo_id', g.id);
 
             const allParejaIds = new Set<string>();
@@ -1205,7 +1619,7 @@ export async function obtenerStandingsGlobales(torneoId: string, categoria: stri
         // — por RLS, FK roto, etc. — la query venía null y se interpretaba como 0).
         const { data: rawMatches, error: matchesError } = await supabaseAdmin
             .from('partidos')
-            .select('id, torneo_id, torneo_grupo_id, pareja1_id, pareja2_id, estado, estado_resultado, resultado, lugar, nivel, fecha')
+            .select('id, torneo_id, torneo_grupo_id, pareja1_id, pareja2_id, estado, estado_resultado, resultado, lugar, nivel, fecha, es_revancha')
             .eq('torneo_id', torneoId);
 
         // Resolver nombres de pareja en una segunda query (también opcional)
@@ -1429,9 +1843,9 @@ export async function generarFaseEliminatoriaTopN(
             for (const g of grupos) {
                 const { data: rawGroupMatches } = await supabaseAdmin
                     .from('partidos')
-                    .select('id, pareja1_id, pareja2_id, estado, resultado, estado_resultado')
+                    .select('id, pareja1_id, pareja2_id, estado, resultado, estado_resultado, es_revancha')
                     .eq('torneo_grupo_id', g.id);
-                
+
                 const allParejaIds = new Set<string>();
                 (rawGroupMatches || []).forEach(m => {
                     if (m.pareja1_id) allParejaIds.add(m.pareja1_id);
@@ -1443,7 +1857,7 @@ export async function generarFaseEliminatoriaTopN(
                         .from('parejas').select('id, nombre_pareja').in('id', Array.from(allParejaIds));
                     (parejas || []).forEach(p => nameMap.set(p.id, p.nombre_pareja || 'Pareja'));
                 }
-                const matchesShape = (rawGroupMatches || []).map((m: { id: string; pareja1_id: string | null; pareja2_id: string | null; estado: string; resultado: string | null; estado_resultado: string | null }) => ({
+                const matchesShape = (rawGroupMatches || []).map((m: { id: string; pareja1_id: string | null; pareja2_id: string | null; estado: string; resultado: string | null; estado_resultado: string | null; es_revancha?: boolean | null }) => ({
                     ...m,
                     pareja1: m.pareja1_id ? { nombre_pareja: nameMap.get(m.pareja1_id) || null } : null,
                     pareja2: m.pareja2_id ? { nombre_pareja: nameMap.get(m.pareja2_id) || null } : null,
@@ -1570,14 +1984,55 @@ export async function generarFaseEliminatoriaTopN(
                 return { success: false, message: standingsResult.message || "No se pudieron calcular los standings" };
             }
             const allStandings = standingsResult.standings as Array<{ parejaId: string; nombre: string; pj: number; pg: number; sg: number; sp: number; gg: number; gp: number; pts: number }>;
-            const elegibles = minMatches > 0
-                ? allStandings.filter(s => s.pj >= minMatches)
-                : allStandings;
+
+            // Parejas eliminadas por el corte: nunca clasifican.
+            const { data: inscripcionesElim } = await supabaseAdmin
+                .from('torneo_parejas')
+                .select('pareja_id, eliminada')
+                .eq('torneo_id', torneoId)
+                .eq('categoria', categoria)
+                .eq('eliminada', true);
+            const eliminadas = new Set((inscripcionesElim || []).map(i => i.pareja_id as string));
+
+            // Partidos requeridos por pareja (según tamaño de su grupo y si la
+            // categoría juega ida y vuelta) — para el modo % y para desempatar
+            // los cupos sobrantes (siempre por %, sin importar el modo).
+            const { data: gruposCat } = await supabaseAdmin
+                .from('torneo_grupos').select('id').eq('torneo_id', torneoId).eq('categoria', categoria);
+            const { data: matchesCat } = await supabaseAdmin
+                .from('partidos').select('torneo_grupo_id, pareja1_id, pareja2_id, es_revancha')
+                .eq('torneo_id', torneoId).eq('nivel', categoria).not('torneo_grupo_id', 'is', null);
+            const parejasPorGrupo = new Map<string, string[]>();
+            (gruposCat || []).forEach(g => {
+                const ids: string[] = [];
+                (matchesCat || []).filter(m => m.torneo_grupo_id === g.id && !m.es_revancha).forEach(m => {
+                    if (m.pareja1_id && !ids.includes(m.pareja1_id)) ids.push(m.pareja1_id);
+                    if (m.pareja2_id && !ids.includes(m.pareja2_id)) ids.push(m.pareja2_id);
+                });
+                parejasPorGrupo.set(g.id, ids);
+            });
+            const esIdaVueltaCat = !!torneo?.reglas_puntuacion?.liga_ida_vuelta_config?.[categoria];
+            const requeridosPorPareja = calcularRequeridosPorPareja(parejasPorGrupo, esIdaVueltaCat);
+
+            // Modo/mínimos persistidos (configurados desde el control en vivo);
+            // `totalClasificados` sigue viniendo del dialog para poder ajustarlo
+            // al momento de generar.
+            const configPersistida = torneo?.reglas_puntuacion?.liga_clasificacion_config?.[categoria];
+            const clasifConfig = {
+                total: totalClasificados,
+                modo: (configPersistida?.modo === 'porcentaje' ? 'porcentaje' : 'absoluto') as 'absoluto' | 'porcentaje',
+                minPartidos: configPersistida?.modo === 'porcentaje' ? 0 : (minMatches || configPersistida?.minPartidos || 0),
+                minPorcentaje: configPersistida?.minPorcentaje || 0,
+            };
+
+            const { ordenClasificacion } = calcularClasificados(allStandings, requeridosPorPareja, clasifConfig, eliminadas);
+            const standingsPorId = new Map(allStandings.map(s => [s.parejaId, s]));
+            // Orden real de siembra: primero las que entraron por puntos, al
+            // final las de relleno por % (no deben sembrarse arriba solo por
+            // tener más puntos que no les alcanzaron para clasificar directo).
+            const elegibles = ordenClasificacion.map(id => standingsPorId.get(id)!).filter(Boolean);
             if (elegibles.length < 2) {
-                const msg = minMatches > 0
-                    ? `Solo ${elegibles.length} pareja(s) tienen al menos ${minMatches} partido${minMatches > 1 ? 's' : ''} jugado${minMatches > 1 ? 's' : ''}. Baja el mínimo o espera a que se jueguen más partidos.`
-                    : "No hay suficientes parejas con resultados para generar el cuadro.";
-                return { success: false, message: msg };
+                return { success: false, message: `Solo ${elegibles.length} pareja(s) cumplen los criterios de clasificación. Ajusta el mínimo o espera a que se jueguen más partidos.` };
             }
             const cuantos = Math.min(totalClasificados, elegibles.length);
             topN = elegibles.slice(0, cuantos);
@@ -2105,6 +2560,87 @@ export async function editarParticipantesInscripcion(
 
     revalidatePath(`/club/torneos/${torneoId}`);
     return { success: true };
+}
+
+/**
+ * Crea un partido de REVANCHA sobre un partido de liguilla ya jugado y
+ * confirmado, contra el mismo rival. Solo el dueño del torneo puede
+ * crearla, y máximo una por partido original (la unique index en BD lo
+ * respalda; aquí se valida antes para dar un mensaje claro).
+ *
+ * La revancha vale la mitad de puntos (ganador 1.5, perdedor 0.5) y cuenta
+ * 0.5 "partidos jugados" — ese cálculo vive en las funciones de standings,
+ * no aquí; este action solo crea el partido marcado como tal.
+ */
+export async function crearRevancha(matchId: string) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado" };
+
+        const admin = createPureAdminClient();
+        const { data: me } = await admin.from('users').select('id, rol').eq('auth_id', user.id).single();
+        if (!me || (me.rol !== 'admin_club' && me.rol !== 'superadmin')) {
+            return { success: false, message: "Sin permisos" };
+        }
+
+        const { data: original } = await admin
+            .from('partidos')
+            .select('id, torneo_id, torneo_grupo_id, pareja1_id, pareja2_id, nivel, club_id, estado, estado_resultado, tipo_partido, es_revancha')
+            .eq('id', matchId)
+            .single();
+        if (!original) return { success: false, message: "Partido no encontrado" };
+        if (original.tipo_partido !== 'torneo') return { success: false, message: "Solo aplica a partidos de torneo" };
+        if (original.es_revancha) return { success: false, message: "No se puede crear una revancha de otra revancha" };
+        if (original.estado !== 'jugado' || original.estado_resultado !== 'confirmado') {
+            return { success: false, message: "El partido original debe estar jugado y confirmado" };
+        }
+        if (!original.pareja1_id || !original.pareja2_id) {
+            return { success: false, message: "El partido original no tiene las dos parejas asignadas" };
+        }
+
+        const { data: torneo } = await admin.from('torneos').select('club_id, formato').eq('id', original.torneo_id).single();
+        if (!torneo) return { success: false, message: "Torneo no encontrado" };
+        if (torneo.formato !== 'liguilla') return { success: false, message: "Las revanchas solo aplican en torneos tipo liguilla" };
+        if (String(torneo.club_id) !== String(me.id) && me.rol !== 'superadmin') {
+            return { success: false, message: "Solo el dueño del torneo puede crear una revancha" };
+        }
+
+        const { data: existente } = await admin
+            .from('partidos')
+            .select('id')
+            .eq('revancha_de_partido_id', matchId)
+            .maybeSingle();
+        if (existente) return { success: false, message: "Este partido ya tiene una revancha" };
+
+        const { data: nueva, error } = await admin
+            .from('partidos')
+            .insert({
+                torneo_id: original.torneo_id,
+                torneo_grupo_id: original.torneo_grupo_id,
+                pareja1_id: original.pareja1_id,
+                pareja2_id: original.pareja2_id,
+                nivel: original.nivel,
+                club_id: original.club_id,
+                creador_id: user.id,
+                estado: 'programado',
+                tipo_partido: 'torneo',
+                lugar: 'Pendiente',
+                fecha: new Date().toISOString(),
+                es_revancha: true,
+                revancha_de_partido_id: matchId,
+            })
+            .select('id')
+            .single();
+        if (error) return { success: false, message: "Error creando la revancha: " + error.message };
+
+        revalidatePath(`/club/torneos/${original.torneo_id}`);
+        revalidatePath(`/torneos/${original.torneo_id}`);
+        return { success: true, revanchaId: nueva.id };
+    } catch (err: unknown) {
+        const e = err as Error;
+        return { success: false, message: e.message || "Error desconocido" };
+    }
 }
 
 export async function darDeBajaPareja(id: string, tipo: 'master' | 'regular', parejaId: string, torneoId: string) {

@@ -10,6 +10,8 @@ interface Standing {
     gg: number;
     gp: number;
     pts: number;
+    /** Revanchas jugadas y confirmadas (ya incluidas en pj/pts con su peso reducido). */
+    revanchas: number;
 }
 
 export interface StandingsOptions {
@@ -32,6 +34,9 @@ export function calculateStandings(matches: {
      *   'tiebreak' | 'super_tiebreak' = puntaje de desempate → NO suma.
      *  Si no viene, se aplica la heurística clásica (no sumar si algún score >= 10). */
     tipoDesempate?: string | null;
+    /** Revancha: partido extra sobre uno ya jugado, contra el mismo rival.
+     *  Vale la mitad de puntos y cuenta como 0.5 partidos jugados. */
+    es_revancha?: boolean | null;
 }[], options: StandingsOptions = {}): Standing[] {
     const pointsForWin = options.pointsForWin ?? 3;
     const pointsForLoss = options.pointsForLoss ?? 0;
@@ -40,15 +45,18 @@ export function calculateStandings(matches: {
     matches.forEach(m => {
         if (!m.pareja1_id || !m.pareja2_id) return;
 
-        if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: m.pareja1?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
-        if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: m.pareja2?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0 });
+        if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: m.pareja1?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0, revanchas: 0 });
+        if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: m.pareja2?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0, revanchas: 0 });
 
         if ((m.estado === 'jugado' || m.estado_resultado === 'confirmado') && m.resultado) {
             const s1 = map.get(m.pareja1_id)!;
             const s2 = map.get(m.pareja2_id)!;
+            const esRevancha = !!m.es_revancha;
+            const pesoPartido = esRevancha ? 0.5 : 1;
 
-            s1.pj += 1;
-            s2.pj += 1;
+            s1.pj += pesoPartido;
+            s2.pj += pesoPartido;
+            if (esRevancha) { s1.revanchas += 1; s2.revanchas += 1; }
 
             const sets = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
             let setsP1InMatch = 0;
@@ -94,16 +102,18 @@ export function calculateStandings(matches: {
                 }
             });
 
+            const ptsGanador = esRevancha ? pointsForWin / 2 : pointsForWin;
+            const ptsPerdedor = esRevancha ? pointsForLoss / 2 : pointsForLoss;
             if (setsP1InMatch > setsP2InMatch) {
                 s1.pg += 1;
-                s1.pts += pointsForWin;
+                s1.pts += ptsGanador;
                 s2.pp += 1;
-                s2.pts += pointsForLoss;
+                s2.pts += ptsPerdedor;
             } else if (setsP2InMatch > setsP1InMatch) {
                 s2.pg += 1;
-                s2.pts += pointsForWin;
+                s2.pts += ptsGanador;
                 s1.pp += 1;
-                s1.pts += pointsForLoss;
+                s1.pts += ptsPerdedor;
             }
         }
     });
