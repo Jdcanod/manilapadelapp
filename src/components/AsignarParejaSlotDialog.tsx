@@ -485,7 +485,7 @@ export function AsignarParejaSlotDialog({
                                 )}
                             </div>
                             <p className="text-[10px] text-olive/70">
-                                <span className="text-ochre font-bold">(I)</span> = al menos uno es invitado. La categoría es la del último torneo donde jugaron (o del perfil si nunca jugaron).
+                                <span className="text-ochre font-bold">(I)</span> = al menos uno es invitado. Solo se muestran parejas ya inscritas en este torneo — la categoría es la de su inscripción.
                             </p>
                         </div>
                     ) : (

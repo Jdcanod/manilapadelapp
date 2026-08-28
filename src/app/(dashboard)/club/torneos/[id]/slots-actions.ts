@@ -332,34 +332,46 @@ export async function asignarParejaASlot({
 }
 
 /**
- * Lista parejas existentes (no placeholders) para mostrar en el dialog de
- * asignación. Excluye las que ya están inscritas en este torneo y los
- * placeholders TBD. Trae info de jugadores (con email) para poder mostrar
- * el marcador (I) en invitados.
+ * Lista parejas para mostrar en el dialog de asignación. Solo las que ya
+ * están INSCRITAS en este torneo (en cualquier categoría) — sirve para
+ * mover/reasignar una pareja ya registrada a otro slot o grupo, no para
+ * traer parejas nuevas de todo el club. Excluye placeholders TBD. Trae
+ * info de jugadores (con email) para poder mostrar el marcador (I) en
+ * invitados.
  */
 export async function listarParejasCatalogo(torneoId: string): Promise<ParejaCatalogoEntry[]> {
     const admin = createPureAdminClient();
 
-    // Parejas ya inscritas en el torneo (para excluirlas del catálogo)
+    // Parejas inscritas en ESTE torneo, con su categoría real de inscripción
+    // (más confiable que adivinar por historial de otros torneos).
     const { data: inscritas } = await admin
         .from("torneo_parejas")
-        .select("pareja_id")
+        .select("pareja_id, categoria")
         .eq("torneo_id", torneoId);
-    const inscritasSet = new Set((inscritas || []).map((r: { pareja_id: string }) => r.pareja_id));
+
+    const categoriaPorPareja = new Map<string, string>();
+    (inscritas || []).forEach((r: { pareja_id: string | null; categoria: string | null }) => {
+        if (r.pareja_id && r.categoria && !categoriaPorPareja.has(r.pareja_id)) {
+            categoriaPorPareja.set(r.pareja_id, r.categoria);
+        }
+    });
+    const parejaIdsArr = Array.from(new Set((inscritas || []).map((r: { pareja_id: string | null }) => r.pareja_id).filter((id: string | null): id is string => !!id)));
+    if (parejaIdsArr.length === 0) return [];
 
     const { data: all } = await admin
         .from("parejas")
         .select("id, nombre_pareja, jugador1_id, jugador2_id, activa")
+        .in("id", parejaIdsArr)
         .not("jugador1_id", "is", null)
         .not("jugador2_id", "is", null)
         .order("nombre_pareja", { ascending: true });
 
-    const parejasFiltradas = (all || []).filter((p: { id: string; nombre_pareja: string | null }) =>
-        !inscritasSet.has(p.id) && !esParejaPlaceholder(p.nombre_pareja)
+    const parejasFiltradas = (all || []).filter((p: { nombre_pareja: string | null }) =>
+        !esParejaPlaceholder(p.nombre_pareja)
     );
 
-    // Fetch jugadores con categoría para mostrar (I) y para fallback de categoría sugerida.
-    // Intentamos seleccionar `categoria`; si la columna no existe, caemos al subset básico.
+    // Fetch jugadores con categoría para mostrar (I) y como fallback si la
+    // pareja no tuviera categoría de inscripción por algún motivo.
     const jugadorIds = new Set<string>();
     parejasFiltradas.forEach((p: { jugador1_id: string | null; jugador2_id: string | null }) => {
         if (p.jugador1_id) jugadorIds.add(p.jugador1_id);
@@ -385,43 +397,11 @@ export async function listarParejasCatalogo(torneoId: string): Promise<ParejaCat
         (jugadores || []).forEach((j: JugadorLite) => jugadoresMap.set(j.id, j));
     }
 
-    // Calcular categoria_sugerida por pareja a partir del torneo MÁS RECIENTE
-    // en el que se inscribió (cualquier torneo). Si no tiene ninguno, caemos a
-    // la categoría del jugador1 / jugador2 de su perfil.
-    const parejaIdsArr = parejasFiltradas.map((p: { id: string }) => p.id);
-    const ultimaCatPorPareja = new Map<string, string>();
-    if (parejaIdsArr.length > 0) {
-        const { data: histo } = await admin
-            .from("torneo_parejas")
-            .select("pareja_id, categoria, torneos(fecha_inicio)")
-            .in("pareja_id", parejaIdsArr);
-        // Ordenar por fecha_inicio DESC en JS y quedarse con la primera entrada por pareja
-        const rows = (histo || []) as Array<{
-            pareja_id: string;
-            categoria: string | null;
-            torneos: { fecha_inicio: string | null } | { fecha_inicio: string | null }[] | null;
-        }>;
-        const enriquecidas = rows.map(r => {
-            const t = Array.isArray(r.torneos) ? r.torneos[0] : r.torneos;
-            return { pareja_id: r.pareja_id, categoria: r.categoria, fecha: t?.fecha_inicio ?? null };
-        });
-        enriquecidas.sort((a, b) => {
-            const aT = a.fecha ? new Date(a.fecha).getTime() : 0;
-            const bT = b.fecha ? new Date(b.fecha).getTime() : 0;
-            return bT - aT;
-        });
-        for (const r of enriquecidas) {
-            if (r.categoria && !ultimaCatPorPareja.has(r.pareja_id)) {
-                ultimaCatPorPareja.set(r.pareja_id, r.categoria);
-            }
-        }
-    }
-
     return parejasFiltradas.map((p: { id: string; nombre_pareja: string | null; jugador1_id: string | null; jugador2_id: string | null }) => {
         const j1 = p.jugador1_id ? (jugadoresMap.get(p.jugador1_id) || null) : null;
         const j2 = p.jugador2_id ? (jugadoresMap.get(p.jugador2_id) || null) : null;
         const categoria_sugerida =
-            ultimaCatPorPareja.get(p.id)
+            categoriaPorPareja.get(p.id)
             ?? j1?.categoria
             ?? j2?.categoria
             ?? null;
