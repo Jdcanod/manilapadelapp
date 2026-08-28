@@ -9,7 +9,7 @@ export async function crearParejaAction(formData: FormData) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-        throw new Error("No autenticado");
+        redirect("/jugador/pareja/nueva?error=" + encodeURIComponent("No autenticado"));
     }
 
     // Buscar el ID real de la tabla "users" a partir del auth.users.id
@@ -20,14 +20,14 @@ export async function crearParejaAction(formData: FormData) {
         .single();
 
     if (userError || !dbUser) {
-        throw new Error("No se pudo identificar tu perfil de jugador.");
+        redirect("/jugador/pareja/nueva?error=" + encodeURIComponent("No se pudo identificar tu perfil de jugador: " + (userError?.message || "")));
     }
 
     const jugador2_id = formData.get("jugador2_id") as string;
     const categoria = formData.get("categoria") as string;
 
     if (!jugador2_id || !categoria) {
-        throw new Error("Faltan datos para crear la pareja.");
+        redirect("/jugador/pareja/nueva?error=" + encodeURIComponent("Faltan datos para crear la pareja."));
     }
 
     // Buscar info extendida de jugador 1 y jugador 2
@@ -57,7 +57,7 @@ export async function crearParejaAction(formData: FormData) {
     });
 
     if (error) {
-        throw new Error(error.message);
+        redirect("/jugador/pareja/nueva?error=" + encodeURIComponent(`[${error.code || '?'}] ${error.message}`));
     }
 
     revalidatePath("/ranking");

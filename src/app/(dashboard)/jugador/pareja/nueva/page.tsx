@@ -8,7 +8,7 @@ import { UserPlus, Shield, Trophy } from "lucide-react";
 import { crearParejaAction } from "./actions";
 import Link from "next/link";
 
-export default async function NuevaParejaPage() {
+export default async function NuevaParejaPage({ searchParams }: { searchParams?: { error?: string } }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -16,7 +16,7 @@ export default async function NuevaParejaPage() {
         redirect("/login");
     }
 
-    let errorDebug = "";
+    let errorDebug = searchParams?.error || "";
     let jugadores: { id: string, nombre: string, nivel: string }[] = [];
 
     try {
