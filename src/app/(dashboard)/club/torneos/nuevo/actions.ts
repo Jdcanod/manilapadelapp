@@ -157,6 +157,13 @@ export async function crearTorneoCentral(formData: FormData) {
             fecha_inicio: new Date(fechaInicio).toISOString(),
             fecha_fin: new Date(fechaFin).toISOString(),
             formato,
+            // "regular" = torneo de club normal (parejas en torneo_parejas).
+            // "master" es solo para los Torneos Ciudad que crea el superadmin
+            // (inscripciones_torneo, sin club_id). Sin esto, la columna caía en
+            // su default y CADA torneo de club quedaba marcado como "master"
+            // por error, rompiendo Inscripción Manual (usaba el sistema
+            // equivocado) y dejando "torneo_parejas" vacío.
+            tipo: 'regular',
             participantes: [],
             resultados: {},
             reglas_puntuacion: reglasPuntuacion,
