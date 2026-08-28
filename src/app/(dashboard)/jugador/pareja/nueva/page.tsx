@@ -4,11 +4,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { UserPlus, Shield, Trophy } from "lucide-react";
-import { crearParejaAction } from "./actions";
+import { UserPlus, Shield, Trophy, Star, CheckCircle2 } from "lucide-react";
+import { crearParejaAction, activarParejaAction } from "./actions";
 import Link from "next/link";
 
-export default async function NuevaParejaPage({ searchParams }: { searchParams?: { error?: string } }) {
+export default async function NuevaParejaPage({ searchParams }: { searchParams?: { error?: string; creada?: string } }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -35,6 +35,18 @@ export default async function NuevaParejaPage({ searchParams }: { searchParams?:
         errorDebug = "Server Catch Error: " + (e instanceof Error ? e.message : JSON.stringify(e));
     }
 
+    // ─── Mis parejas (activas e inactivas) ─────────────────────────────────
+    const { data: dbUser } = await supabase.from('users').select('id').eq('auth_id', user.id).single();
+    let misParejas: { id: string; nombre_pareja: string | null; activa: boolean }[] = [];
+    if (dbUser) {
+        const [{ data: comoJ1 }, { data: comoJ2 }] = await Promise.all([
+            supabase.from('parejas').select('id, nombre_pareja, activa').eq('jugador1_id', dbUser.id),
+            supabase.from('parejas').select('id, nombre_pareja, activa').eq('jugador2_id', dbUser.id),
+        ]);
+        const mapa = new Map([...(comoJ1 || []), ...(comoJ2 || [])].map(p => [p.id, p]));
+        misParejas = Array.from(mapa.values()).sort((a, b) => Number(b.activa) - Number(a.activa));
+    }
+
     return (
         <div className="max-w-2xl mx-auto space-y-6">
             <div className="flex items-center gap-3 bg-gradient-to-r from-emerald-900/40 to-paper-soft border border-emerald-900/30 p-4 rounded-2xl">
@@ -46,6 +58,44 @@ export default async function NuevaParejaPage({ searchParams }: { searchParams?:
                     <p className="text-sm text-emerald-700/80">Encuentra a tu compañero ideal y entra al ranking.</p>
                 </div>
             </div>
+
+            {searchParams?.creada === '1' && (
+                <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 text-sm p-3 rounded-lg flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                    Pareja creada. Actívala abajo cuando quieras jugar con ella.
+                </div>
+            )}
+
+            {misParejas.length > 0 && (
+                <Card className="bg-paper-soft border-olive/20">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-base text-ink flex items-center gap-2">
+                            <Star className="w-4 h-4 text-ochre" /> Tus parejas
+                        </CardTitle>
+                        <CardDescription className="text-olive/70 text-xs">
+                            Solo una puede estar activa a la vez. Activar una desactiva la anterior (tuya y la de tu compañero).
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        {misParejas.map(p => (
+                            <div key={p.id} className="flex items-center justify-between gap-3 bg-paper/50 border border-olive/20 rounded-xl px-4 py-3">
+                                <span className="text-sm font-semibold text-ink">{p.nombre_pareja || 'Pareja'}</span>
+                                {p.activa ? (
+                                    <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-700/10 border border-emerald-700/30 rounded-full px-2 py-1 flex-shrink-0">
+                                        Activa
+                                    </span>
+                                ) : (
+                                    <form action={activarParejaAction.bind(null, p.id)}>
+                                        <Button type="submit" size="sm" variant="outline" className="text-xs border-olive/30 text-olive hover:text-ink">
+                                            Activar
+                                        </Button>
+                                    </form>
+                                )}
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+            )}
 
             <Card className="bg-paper-soft border-olive/20 shadow-xl backdrop-blur-sm">
                 <form action={crearParejaAction}>

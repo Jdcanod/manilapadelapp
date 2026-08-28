@@ -308,7 +308,7 @@ export default async function JugadorDashboard() {
                             <div className="text-xs font-bold text-olive/70 uppercase tracking-widest mb-2 flex items-center gap-2"><Star className="w-4 h-4 text-ochre" /> Pareja</div>
                             <div className="text-lg font-black text-olive mt-1 line-clamp-1 truncate">{parejaActual}</div>
                             <Link href="/jugador/pareja/nueva" className="text-[11px] text-olive/70 hover:text-olive underline mt-1 inline-block">
-                                {parejaActual === "Ninguna" ? "Formar pareja" : "Cambiar de pareja"}
+                                {parejaActual === "Ninguna" ? "Formar pareja" : "Gestionar parejas"}
                             </Link>
                         </div>
                         <div className="bg-paper/50 p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
