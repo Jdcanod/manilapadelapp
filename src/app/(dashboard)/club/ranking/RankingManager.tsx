@@ -29,11 +29,15 @@ export interface JugadorRankingData {
 interface RankingManagerProps {
     clubId: string;
     jugadores: JugadorRankingData[];
+    /** Vista de solo lectura (jugadores viendo el ranking de un club): oculta
+     *  la tarjeta editable de "Nivel de Juego" y el link a la ficha interna
+     *  del club por jugador. */
+    readOnly?: boolean;
 }
 
 const MEDAL: Record<number, string> = { 0: '🥇', 1: '🥈', 2: '🥉' };
 
-export function RankingManager({ clubId, jugadores }: RankingManagerProps) {
+export function RankingManager({ clubId, jugadores, readOnly = false }: RankingManagerProps) {
     // Los invitados (sin cuenta real) no participan en el nivel de juego hasta
     // que se les asocie a un usuario registrado — se excluyen de esta tabla.
     const jugadoresRankeables = jugadores.filter(j => !j.es_invitado);
@@ -114,9 +118,12 @@ export function RankingManager({ clubId, jugadores }: RankingManagerProps) {
                                 {rankedPorNivel.map((j, i) => (
                                     <Link
                                         key={j.id}
-                                        href={`/club/ranking/jugador/${j.id}`}
+                                        href={readOnly ? "#" : `/club/ranking/jugador/${j.id}`}
+                                        onClick={(e) => { if (readOnly) e.preventDefault(); }}
                                         className={cn(
-                                            "grid grid-cols-[2rem_1fr_auto_1rem] gap-3 px-5 py-3.5 items-center transition-colors hover:bg-paper-dark/50 group",
+                                            "grid grid-cols-[2rem_1fr_auto_1rem] gap-3 px-5 py-3.5 items-center transition-colors group",
+                                            !readOnly && "hover:bg-paper-dark/50 cursor-pointer",
+                                            readOnly && "cursor-default",
                                             i === 0 && "bg-ochre/5"
                                         )}
                                     >
@@ -155,7 +162,7 @@ export function RankingManager({ clubId, jugadores }: RankingManagerProps) {
                                             <span className="text-xl font-black text-ink">{j.nivel_ranking!.toFixed(2)}</span>
                                         </div>
 
-                                        <ChevronRight className="w-3.5 h-3.5 text-olive/40 group-hover:text-olive transition-colors" />
+                                        {!readOnly && <ChevronRight className="w-3.5 h-3.5 text-olive/40 group-hover:text-olive transition-colors" />}
                                     </Link>
                                 ))}
                             </div>
@@ -164,7 +171,8 @@ export function RankingManager({ clubId, jugadores }: RankingManagerProps) {
                 </CardContent>
             </Card>
 
-            {/* ─── Nivel de Juego (0-5) ───────────────────────────────────────── */}
+            {/* ─── Nivel de Juego (0-5) — solo el club puede editarlo ─────────── */}
+            {!readOnly && (
             <Card className="bg-paper-soft border-olive/20">
                 <CardHeader className="border-b border-olive/20 pb-4">
                     <CardTitle className="text-ink text-base flex items-center gap-2">
@@ -270,6 +278,7 @@ export function RankingManager({ clubId, jugadores }: RankingManagerProps) {
                     </Button>
                 </CardContent>
             </Card>
+            )}
         </div>
     );
 }
