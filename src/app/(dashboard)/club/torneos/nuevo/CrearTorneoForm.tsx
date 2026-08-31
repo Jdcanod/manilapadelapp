@@ -51,19 +51,36 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
     /** Override manual de cantidad de grupos por categoría. Si no está seteado,
      *  se calcula automáticamente como max(1, floor(parejas/3)). */
     const [relampagoGruposConfig, setRelampagoGruposConfig] = useState<Record<string, number>>({});
+    // Nota UX: mientras se escribe, guardamos el valor tal cual (puede ser NaN
+    // si el campo quedó vacío momentáneamente) — clampear en cada tecla hace
+    // que al borrar el campo se "auto-rellene" con 0/1 a mitad de edición,
+    // dejando el cursor mal posicionado y forzando a usar las flechitas del
+    // input para corregirlo. El clamp real ocurre en el blur (ver funciones
+    // clampRelampagoTBD/clampRelampagoGrupos) y el input muestra '' si es NaN.
     const updateRelampagoTBD = (cat: string, value: number) => {
-        const v = Math.max(0, Math.min(50, isNaN(value) ? 0 : value));
-        setRelampagoTBDConfig(prev => ({ ...prev, [cat]: v }));
+        setRelampagoTBDConfig(prev => ({ ...prev, [cat]: value }));
         // Resetear el override de grupos al sugerido cuando cambia parejas, así
         // el usuario ve el valor recalculado y puede reajustarlo si quiere.
-        const sugerido = v >= 2 ? Math.max(1, Math.floor(v / 3)) : 0;
+        const safe = isNaN(value) ? 0 : value;
+        const sugerido = safe >= 2 ? Math.max(1, Math.floor(safe / 3)) : 0;
         setRelampagoGruposConfig(prev => ({ ...prev, [cat]: sugerido }));
     };
+    const clampRelampagoTBD = (cat: string) => {
+        setRelampagoTBDConfig(prev => {
+            const v = prev[cat];
+            return { ...prev, [cat]: Math.max(0, Math.min(50, isNaN(v) ? 0 : v)) };
+        });
+    };
     const updateRelampagoGrupos = (cat: string, value: number) => {
-        const parejas = relampagoTBDConfig[cat] ?? 0;
-        const max = Math.max(1, parejas); // no más grupos que parejas
-        const v = Math.max(1, Math.min(max, isNaN(value) ? 1 : value));
-        setRelampagoGruposConfig(prev => ({ ...prev, [cat]: v }));
+        setRelampagoGruposConfig(prev => ({ ...prev, [cat]: value }));
+    };
+    const clampRelampagoGrupos = (cat: string) => {
+        setRelampagoGruposConfig(prev => {
+            const parejas = relampagoTBDConfig[cat] ?? 0;
+            const max = Math.max(1, parejas); // no más grupos que parejas
+            const v = prev[cat];
+            return { ...prev, [cat]: Math.max(1, Math.min(max, isNaN(v) ? 1 : v)) };
+        });
     };
 
     // Liguilla: clasificación configurable por categoría — cuántas parejas
@@ -80,13 +97,22 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
                 modo: prev[cat]?.modo ?? 'absoluto',
                 minPartidos: prev[cat]?.minPartidos ?? 0,
                 minPorcentaje: prev[cat]?.minPorcentaje ?? 0,
-                [key]: key === 'total'
-                    ? Math.max(2, Math.min(64, isNaN(value) ? 8 : value))
-                    : key === 'minPorcentaje'
-                        ? Math.max(0, Math.min(100, isNaN(value) ? 0 : value))
-                        : Math.max(0, Math.min(20, isNaN(value) ? 0 : value)),
+                [key]: value,
             },
         }));
+    };
+    const clampLigaClasif = (cat: string, key: 'total' | 'minPartidos' | 'minPorcentaje') => {
+        setLigaClasifConfig(prev => {
+            const cur = prev[cat];
+            if (!cur) return prev;
+            const v = cur[key];
+            const clamped = key === 'total'
+                ? Math.max(2, Math.min(64, isNaN(v) ? 8 : v))
+                : key === 'minPorcentaje'
+                    ? Math.max(0, Math.min(100, isNaN(v) ? 0 : v))
+                    : Math.max(0, Math.min(20, isNaN(v) ? 0 : v));
+            return { ...prev, [cat]: { ...cur, [key]: clamped } };
+        });
     };
     const updateLigaClasifModo = (cat: string, modo: 'absoluto' | 'porcentaje') => {
         setLigaClasifConfig(prev => ({
@@ -128,9 +154,17 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
             [cat]: {
                 parejas: prev[cat]?.parejas ?? 2,
                 partidos: prev[cat]?.partidos ?? 2,
-                [key]: Math.max(1, Math.min(20, value)),
+                [key]: value,
             },
         }));
+    };
+    const clampCatConfig = (cat: string, key: 'parejas' | 'partidos') => {
+        setCopaCatConfig(prev => {
+            const cur = prev[cat];
+            if (!cur) return prev;
+            const v = cur[key];
+            return { ...prev, [cat]: { ...cur, [key]: Math.max(1, Math.min(20, isNaN(v) ? 1 : v)) } };
+        });
     };
 
     // Cargar clubes disponibles cuando se elige copa_davis
@@ -457,8 +491,9 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
                                                                 type="number"
                                                                 min={0}
                                                                 max={50}
-                                                                value={n}
+                                                                value={Number.isNaN(n) ? '' : n}
                                                                 onChange={e => updateRelampagoTBD(cat, parseInt(e.target.value))}
+                                                                onBlur={() => clampRelampagoTBD(cat)}
                                                                 name={`relampago_pre_parejas_${cat}`}
                                                                 className="w-16 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"
                                                             />
@@ -470,8 +505,9 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
                                                                 min={1}
                                                                 max={Math.max(1, n)}
                                                                 disabled={n < 2}
-                                                                value={n < 2 ? '' : grupos}
+                                                                value={n < 2 ? '' : (Number.isNaN(grupos) ? '' : grupos)}
                                                                 onChange={e => updateRelampagoGrupos(cat, parseInt(e.target.value))}
+                                                                onBlur={() => clampRelampagoGrupos(cat)}
                                                                 name={`relampago_pre_grupos_${cat}`}
                                                                 className="w-16 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm disabled:opacity-40"
                                                             />
@@ -546,8 +582,9 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
                                                                 type="number"
                                                                 min={2}
                                                                 max={64}
-                                                                value={cfg.total}
+                                                                value={Number.isNaN(cfg.total) ? '' : cfg.total}
                                                                 onChange={e => updateLigaClasif(cat, 'total', parseInt(e.target.value))}
+                                                                onBlur={() => clampLigaClasif(cat, 'total')}
                                                                 name={`liga_clasifican_${cat}`}
                                                                 className="w-16 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"
                                                             />
@@ -576,8 +613,9 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
                                                                     type="number"
                                                                     min={0}
                                                                     max={100}
-                                                                    value={cfg.minPorcentaje}
+                                                                    value={Number.isNaN(cfg.minPorcentaje) ? '' : cfg.minPorcentaje}
                                                                     onChange={e => updateLigaClasif(cat, 'minPorcentaje', parseInt(e.target.value))}
+                                                                    onBlur={() => clampLigaClasif(cat, 'minPorcentaje')}
                                                                     name={`liga_min_porcentaje_${cat}`}
                                                                     className="w-16 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"
                                                                 />
@@ -590,8 +628,9 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
                                                                     type="number"
                                                                     min={0}
                                                                     max={20}
-                                                                    value={cfg.minPartidos}
+                                                                    value={Number.isNaN(cfg.minPartidos) ? '' : cfg.minPartidos}
                                                                     onChange={e => updateLigaClasif(cat, 'minPartidos', parseInt(e.target.value))}
+                                                                    onBlur={() => clampLigaClasif(cat, 'minPartidos')}
                                                                     name={`liga_min_partidos_${cat}`}
                                                                     className="w-16 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"
                                                                 />
@@ -719,8 +758,9 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
                                                         type="number"
                                                         min={1}
                                                         max={20}
-                                                        value={cfg.parejas}
-                                                        onChange={e => updateCatConfig(cat, 'parejas', parseInt(e.target.value) || 1)}
+                                                        value={Number.isNaN(cfg.parejas) ? '' : cfg.parejas}
+                                                        onChange={e => updateCatConfig(cat, 'parejas', parseInt(e.target.value))}
+                                                        onBlur={() => clampCatConfig(cat, 'parejas')}
                                                         name={`copa_parejas_${cat}`}
                                                         className="w-16 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"
                                                     />
@@ -731,8 +771,9 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
                                                         type="number"
                                                         min={1}
                                                         max={20}
-                                                        value={cfg.partidos}
-                                                        onChange={e => updateCatConfig(cat, 'partidos', parseInt(e.target.value) || 1)}
+                                                        value={Number.isNaN(cfg.partidos) ? '' : cfg.partidos}
+                                                        onChange={e => updateCatConfig(cat, 'partidos', parseInt(e.target.value))}
+                                                        onBlur={() => clampCatConfig(cat, 'partidos')}
                                                         name={`copa_partidos_${cat}`}
                                                         className="w-16 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"
                                                     />
@@ -790,10 +831,14 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
                                             min={0}
                                             max={1}
                                             step={0.01}
-                                            value={bonoNivelConfig[key]}
-                                            onChange={e => setBonoNivelConfig(prev => ({
+                                            value={Number.isNaN(bonoNivelConfig[key]) ? '' : bonoNivelConfig[key]}
+                                            onChange={e => {
+                                                const v = parseFloat(e.target.value);
+                                                setBonoNivelConfig(prev => ({ ...prev, [key]: v }));
+                                            }}
+                                            onBlur={() => setBonoNivelConfig(prev => ({
                                                 ...prev,
-                                                [key]: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)),
+                                                [key]: Math.min(1, Math.max(0, isNaN(prev[key]) ? 0 : prev[key])),
                                             }))}
                                             name={`liga_bono_${key}`}
                                             className="w-20 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"

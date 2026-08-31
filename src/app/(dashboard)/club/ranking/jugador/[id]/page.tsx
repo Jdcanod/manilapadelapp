@@ -9,6 +9,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { formatPlayerName, isGuestEmail, formatFormatoLabel } from "@/lib/display-names";
 import { ResetPasswordJugadorButton } from "@/components/ResetPasswordJugadorButton";
+import { VincularInvitadoButton } from "@/components/VincularInvitadoButton";
 
 function getWinner(resultado: string): 1 | 2 | null {
     try {
@@ -211,6 +212,15 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
                     <ResetPasswordJugadorButton
                         jugadorUserId={params.id}
                         jugadorNombre={jugador.nombre}
+                    />
+                )}
+                {/* Fusionar invitado con un jugador registrado, fuera del contexto
+                    de un torneo puntual (ver AdminParticipantActions para el caso
+                    "solo en este torneo"). */}
+                {isGuestEmail(jugadorRaw.email) && (
+                    <VincularInvitadoButton
+                        invitadoId={params.id}
+                        invitadoNombre={jugador.nombre}
                     />
                 )}
             </div>
