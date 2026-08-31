@@ -23,8 +23,10 @@ function getWinner(resultado: string): 1 | 2 | null {
 
 /**
  * Recalcula el nivel_ranking (escala 0-5) de los 4 jugadores de un partido
- * ya confirmado. Se debe llamar justo después de marcar un partido como
- * `estado_resultado = 'confirmado'`.
+ * ya confirmado, EN EL CLUB dueño del torneo — el nivel es propio de cada
+ * club (users.nivel_ranking global ya no se usa), así que el mismo jugador
+ * puede tener un nivel distinto en cada club donde juega. Se debe llamar
+ * justo después de marcar un partido como `estado_resultado = 'confirmado'`.
  *
  * Idempotente: si ya existe una fila en ranking_nivel_historial para este
  * partido+jugador, no se vuelve a aplicar (evita doble conteo si la acción
@@ -39,13 +41,18 @@ export async function recalcularNivelPorPartido(matchId: string): Promise<void> 
 
         const { data: match } = await admin
             .from('partidos')
-            .select('id, resultado, pareja1_id, pareja2_id')
+            .select('id, torneo_id, resultado, pareja1_id, pareja2_id')
             .eq('id', matchId)
             .single();
-        if (!match || !match.resultado || !match.pareja1_id || !match.pareja2_id) return;
+        if (!match || !match.torneo_id || !match.resultado || !match.pareja1_id || !match.pareja2_id) return;
 
         const winner = getWinner(match.resultado);
         if (winner === null) return;
+
+        const { data: torneo } = await admin
+            .from('torneos').select('club_id').eq('id', match.torneo_id).single();
+        const clubId = torneo?.club_id;
+        if (!clubId) return;
 
         const { data: yaAplicado } = await admin
             .from('ranking_nivel_historial')
@@ -68,20 +75,31 @@ export async function recalcularNivelPorPartido(matchId: string): Promise<void> 
             .filter((id): id is string => !!id);
         if (jugadorIds.length !== 4) return;
 
-        interface UserNivelRow { id: string; nivel_ranking: number | null; email: string | null; }
+        interface UserRow { id: string; email: string | null; }
         const { data: jugadores } = await admin
             .from('users')
-            .select('id, nivel_ranking, email')
+            .select('id, email')
             .in('id', jugadorIds);
+        const jugadoresRows = (jugadores || []) as UserRow[];
 
-        const jugadoresRows = (jugadores || []) as UserNivelRow[];
         // Los invitados (sin cuenta real, email 'invitado_%') nunca deben afectar
         // ni recibir nivel: si alguno de los 4 es invitado, se omite el partido.
         if (jugadoresRows.some(j => isGuestEmail(j.email))) return;
 
-        const nivelMap = new Map<string, number | null>(jugadoresRows.map(j => [j.id, j.nivel_ranking]));
-        // Si a alguno de los 4 le falta nivel_ranking (el club aún no lo asignó),
-        // no podemos calcular la diferencia de forma confiable: se omite el partido.
+        // Nivel de cada jugador EN ESTE CLUB (no el global).
+        const { data: nivelesClub } = await admin
+            .from('ranking_club_jugador')
+            .select('jugador_id, nivel_ranking')
+            .eq('club_id', clubId)
+            .in('jugador_id', jugadorIds);
+        interface NivelClubRow { jugador_id: string; nivel_ranking: number | null; }
+        const nivelesClubRows = (nivelesClub || []) as NivelClubRow[];
+        const nivelMap = new Map<string, number | null>(
+            jugadorIds.map(id => [id, nivelesClubRows.find(n => n.jugador_id === id)?.nivel_ranking ?? null])
+        );
+
+        // Si a alguno de los 4 le falta nivel_ranking EN ESTE CLUB (el club aún
+        // no lo asignó), no podemos calcular la diferencia de forma confiable.
         if (jugadorIds.some(id => nivelMap.get(id) == null)) return;
 
         const nivelP1J1 = nivelMap.get(pareja1.jugador1_id!)!;
@@ -93,14 +111,14 @@ export async function recalcularNivelPorPartido(matchId: string): Promise<void> 
 
         const ganoPareja1 = winner === 1;
 
-        const historialRows: { jugador_id: string; partido_id: string; nivel_antes: number; nivel_despues: number; delta: number }[] = [];
-        const updates: { id: string; nivel_ranking: number }[] = [];
+        const historialRows: { jugador_id: string; partido_id: string; club_id: string; nivel_antes: number; nivel_despues: number; delta: number }[] = [];
+        const updates: { jugadorId: string; nivel_ranking: number }[] = [];
 
         const procesarJugador = (jugadorId: string, nivelPropio: number, nivelRivalPromedio: number, gano: boolean) => {
             const delta = calcularDeltaNivel({ nivelJugador: nivelPropio, nivelRivalPromedio, gano });
             const nivelDespues = aplicarDeltaNivel(nivelPropio, delta);
-            historialRows.push({ jugador_id: jugadorId, partido_id: matchId, nivel_antes: nivelPropio, nivel_despues: nivelDespues, delta });
-            updates.push({ id: jugadorId, nivel_ranking: nivelDespues });
+            historialRows.push({ jugador_id: jugadorId, partido_id: matchId, club_id: clubId, nivel_antes: nivelPropio, nivel_despues: nivelDespues, delta });
+            updates.push({ jugadorId, nivel_ranking: nivelDespues });
         };
 
         procesarJugador(pareja1.jugador1_id!, nivelP1J1, promedioPareja2, ganoPareja1);
@@ -116,10 +134,14 @@ export async function recalcularNivelPorPartido(matchId: string): Promise<void> 
 
         for (const u of updates) {
             const { error: updError } = await admin
-                .from('users')
-                .update({ nivel_ranking: u.nivel_ranking })
-                .eq('id', u.id);
-            if (updError) console.error("recalcularNivelPorPartido: error actualizando nivel", u.id, updError);
+                .from('ranking_club_jugador')
+                .upsert({
+                    club_id: clubId,
+                    jugador_id: u.jugadorId,
+                    nivel_ranking: u.nivel_ranking,
+                    actualizado_en: new Date().toISOString(),
+                }, { onConflict: 'club_id,jugador_id' });
+            if (updError) console.error("recalcularNivelPorPartido: error actualizando nivel", u.jugadorId, updError);
         }
     } catch (err) {
         console.error("recalcularNivelPorPartido: error inesperado", err);

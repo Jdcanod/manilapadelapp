@@ -2,6 +2,7 @@
 
 import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { obtenerRankingClub } from "@/lib/ranking/obtenerRankingClub";
 
 export async function saveNivelesJugadores(
     clubId: string,
@@ -23,12 +24,28 @@ export async function saveNivelesJugadores(
     const entries = Object.entries(updates);
     if (entries.length === 0) return { success: true };
 
+    // El nivel es propio de este club (ranking_club_jugador) — antes de
+    // escribir, confirmamos que cada jugadorId realmente jugó un torneo de
+    // ESTE club (nadie puede editar el nivel de un jugador que nunca ha
+    // pisado su club).
+    const { jugadores: rosterClub } = await obtenerRankingClub(clubId);
+    const rosterIds = new Set(rosterClub.map(j => j.id));
+    const idsInvalidos = entries.map(([id]) => id).filter(id => !rosterIds.has(id));
+    if (idsInvalidos.length > 0) {
+        throw new Error("Uno o más jugadores no pertenecen a este club");
+    }
+
     for (const [jugadorId, { categoria, nivel }] of entries) {
         const nivelClamped = nivel == null ? null : Math.min(5, Math.max(0, nivel));
         const { error } = await adminSupabase
-            .from('users')
-            .update({ categoria_jugador: categoria, nivel_ranking: nivelClamped })
-            .eq('id', jugadorId);
+            .from('ranking_club_jugador')
+            .upsert({
+                club_id: clubId,
+                jugador_id: jugadorId,
+                categoria_jugador: categoria,
+                nivel_ranking: nivelClamped,
+                actualizado_en: new Date().toISOString(),
+            }, { onConflict: 'club_id,jugador_id' });
         if (error) throw new Error(`Error al guardar nivel de jugador ${jugadorId}: ` + error.message);
     }
 

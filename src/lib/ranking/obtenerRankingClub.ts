@@ -90,18 +90,31 @@ export async function obtenerRankingClub(clubId: string): Promise<{ jugadores: J
         allPlayerIds.add(j2);
     });
 
-    const playerMap = new Map<string, { nombre: string; foto?: string; categoria: string | null; nivel: number | null; esInvitado: boolean }>();
+    const playerMap = new Map<string, { nombre: string; foto?: string; esInvitado: boolean }>();
+    // Nivel/categoría son propios de ESTE club (ranking_club_jugador), no un
+    // valor global — el mismo jugador puede tener un nivel distinto en cada
+    // club donde juega.
+    const nivelClubMap = new Map<string, { categoria: string | null; nivel: number | null }>();
     if (allPlayerIds.size > 0) {
-        const { data: players } = await adminSupabase
-            .from('users')
-            .select('id, nombre, apellido, foto, email, categoria_jugador, nivel_ranking')
-            .in('id', Array.from(allPlayerIds));
+        const [{ data: players }, { data: nivelesClub }] = await Promise.all([
+            adminSupabase
+                .from('users')
+                .select('id, nombre, apellido, foto, email')
+                .in('id', Array.from(allPlayerIds)),
+            adminSupabase
+                .from('ranking_club_jugador')
+                .select('jugador_id, categoria_jugador, nivel_ranking')
+                .eq('club_id', clubId)
+                .in('jugador_id', Array.from(allPlayerIds)),
+        ]);
         (players || []).forEach(p => playerMap.set(p.id, {
             nombre: formatPlayerName({ nombre: p.nombre, apellido: p.apellido, email: p.email }),
             foto: p.foto,
-            categoria: p.categoria_jugador,
-            nivel: p.nivel_ranking,
             esInvitado: isGuestEmail(p.email),
+        }));
+        (nivelesClub || []).forEach(n => nivelClubMap.set(n.jugador_id, {
+            categoria: n.categoria_jugador,
+            nivel: n.nivel_ranking,
         }));
     }
 
@@ -219,11 +232,13 @@ export async function obtenerRankingClub(clubId: string): Promise<{ jugadores: J
             adminSupabase
                 .from('ranking_nivel_historial')
                 .select('jugador_id, delta')
+                .eq('club_id', clubId)
                 .in('jugador_id', playerIdsArr)
                 .gte('creado_en', cortesISO),
             adminSupabase
                 .from('ranking_bono_historial')
                 .select('jugador_id, delta')
+                .eq('club_id', clubId)
                 .in('jugador_id', playerIdsArr)
                 .gte('creado_en', cortesISO),
         ]);
@@ -242,8 +257,8 @@ export async function obtenerRankingClub(clubId: string): Promise<{ jugadores: J
         subcampeonatos: subMap.get(id) || 0,
         terceros: tercMap.get(id) || 0,
         participaciones: torneosPorPlayer.get(id)?.size || 0,
-        categoria_jugador: playerMap.get(id)?.categoria ?? null,
-        nivel_ranking: playerMap.get(id)?.nivel ?? null,
+        categoria_jugador: nivelClubMap.get(id)?.categoria ?? null,
+        nivel_ranking: nivelClubMap.get(id)?.nivel ?? null,
         es_invitado: playerMap.get(id)?.esInvitado ?? false,
         categoria_sugerida: categoriaSugeridaMap.get(id) ?? null,
         tendencia_semana: tendenciaMap.get(id) ?? 0,

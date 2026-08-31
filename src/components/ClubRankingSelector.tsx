@@ -17,6 +17,9 @@ export function ClubRankingSelector({ clubes, selectedClubId }: { clubes: ClubOp
                 <SelectValue placeholder="Selecciona un club" />
             </SelectTrigger>
             <SelectContent className="bg-paper-soft border-olive/20 text-ink">
+                <SelectItem value="global" className="font-bold text-emerald-700">
+                    🌎 Ranking Global
+                </SelectItem>
                 {clubes.map((club) => (
                     <SelectItem key={club.id} value={club.id}>
                         {club.nombre}

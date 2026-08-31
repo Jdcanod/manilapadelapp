@@ -38,9 +38,9 @@ const DEFAULT_BONO: BonoConfig = {
 /**
  * Al confirmarse el partido FINAL de una categoría (lugar contiene "final",
  * sin "semi"/"cuartos"/"octavos"), otorga una sola vez el bono de nivel por
- * posición (campeón/subcampeón/3er puesto/participación) a cada jugador de
- * la categoría, usando la escala configurada por el club en
- * `users.ranking_config_json`.
+ * posición (campeón/subcampeón/3er puesto/participación/etc) a cada jugador
+ * de la categoría, EN EL CLUB dueño del torneo — el nivel es propio de cada
+ * club, así que el bono también.
  *
  * No lanza excepciones — efecto secundario best-effort, nunca bloquea la
  * confirmación del resultado. Idempotente vía `ranking_bono_historial`
@@ -65,7 +65,8 @@ export async function aplicarBonoPosicionSiAplica(matchId: string): Promise<void
         if (!esFinal || !match.resultado || getWinner(match.resultado) === null) return;
 
         const { data: torneo } = await admin.from('torneos').select('club_id, reglas_puntuacion').eq('id', match.torneo_id).single();
-        if (!torneo) return;
+        if (!torneo || !torneo.club_id) return;
+        const clubId = torneo.club_id;
 
         // El bono es propio de este torneo (definido al crearlo, editable mientras
         // no se haya pagado ninguno). Si el torneo no lo activó, no se otorga nada.
@@ -172,12 +173,22 @@ export async function aplicarBonoPosicionSiAplica(matchId: string): Promise<void
         });
         if (jugadorIds.size === 0) return;
 
-        interface UserRow { id: string; nivel_ranking: number | null; email: string | null; }
+        interface UserRow { id: string; email: string | null; }
         const { data: jugadoresData } = await admin
             .from('users')
-            .select('id, nivel_ranking, email')
+            .select('id, email')
             .in('id', Array.from(jugadorIds));
         const jugadorMap = new Map<string, UserRow>(((jugadoresData || []) as UserRow[]).map(j => [j.id, j]));
+
+        const { data: nivelesClubData } = await admin
+            .from('ranking_club_jugador')
+            .select('jugador_id, nivel_ranking')
+            .eq('club_id', clubId)
+            .in('jugador_id', Array.from(jugadorIds));
+        interface NivelClubRow { jugador_id: string; nivel_ranking: number | null; }
+        const nivelClubMap = new Map<string, number | null>(
+            ((nivelesClubData || []) as NivelClubRow[]).map(n => [n.jugador_id, n.nivel_ranking])
+        );
 
         for (const pairId of Array.from(allPairs)) {
             const pareja = parejasRows.find(p => p.id === pairId);
@@ -197,7 +208,9 @@ export async function aplicarBonoPosicionSiAplica(matchId: string): Promise<void
             for (const jugadorId of [pareja.jugador1_id, pareja.jugador2_id]) {
                 if (!jugadorId) continue;
                 const jugador = jugadorMap.get(jugadorId);
-                if (!jugador || isGuestEmail(jugador.email) || jugador.nivel_ranking == null) continue;
+                if (!jugador || isGuestEmail(jugador.email)) continue;
+                const nivelActual = nivelClubMap.get(jugadorId);
+                if (nivelActual == null) continue;
                 if (delta === 0) continue;
 
                 const { data: yaAplicado } = await admin
@@ -209,12 +222,13 @@ export async function aplicarBonoPosicionSiAplica(matchId: string): Promise<void
                     .limit(1);
                 if (yaAplicado && yaAplicado.length > 0) continue;
 
-                const nivelAntes = jugador.nivel_ranking;
+                const nivelAntes = nivelActual;
                 const nivelDespues = Math.min(5, Math.max(0, nivelAntes + delta));
 
                 const { error: bonoError } = await admin.from('ranking_bono_historial').insert({
                     jugador_id: jugadorId,
                     torneo_id: match.torneo_id,
+                    club_id: clubId,
                     categoria: match.nivel,
                     tipo,
                     delta,
@@ -227,11 +241,15 @@ export async function aplicarBonoPosicionSiAplica(matchId: string): Promise<void
                 }
 
                 const { error: updError } = await admin
-                    .from('users')
-                    .update({ nivel_ranking: nivelDespues })
-                    .eq('id', jugadorId);
+                    .from('ranking_club_jugador')
+                    .upsert({
+                        club_id: clubId,
+                        jugador_id: jugadorId,
+                        nivel_ranking: nivelDespues,
+                        actualizado_en: new Date().toISOString(),
+                    }, { onConflict: 'club_id,jugador_id' });
                 if (updError) console.error("aplicarBonoPosicionSiAplica: error actualizando nivel", jugadorId, updError);
-                else jugadorMap.set(jugadorId, { ...jugador, nivel_ranking: nivelDespues });
+                else nivelClubMap.set(jugadorId, nivelDespues);
             }
         }
     } catch (err) {

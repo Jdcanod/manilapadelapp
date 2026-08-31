@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { Trophy } from "lucide-react";
 import { RankingManager } from "@/app/(dashboard)/club/ranking/RankingManager";
 import { obtenerRankingClub } from "@/lib/ranking/obtenerRankingClub";
+import { obtenerRankingGlobal } from "@/lib/ranking/obtenerRankingGlobal";
+import { RankingGlobalTable } from "@/components/RankingGlobalTable";
 import { ClubRankingSelector } from "@/components/ClubRankingSelector";
 
 interface ClubOption {
@@ -33,7 +35,6 @@ export default async function RankingPage({ searchParams }: { searchParams?: { c
     const clubes: ClubOption[] = clubesData || [];
 
     const clubIdSeleccionado = searchParams?.club || userData?.club_id || clubes[0]?.id || null;
-    const clubActual = clubes.find(c => c.id === clubIdSeleccionado);
 
     if (!clubIdSeleccionado || clubes.length === 0) {
         return (
@@ -44,6 +45,21 @@ export default async function RankingPage({ searchParams }: { searchParams?: { c
         );
     }
 
+    if (clubIdSeleccionado === 'global') {
+        const jugadoresGlobal = await obtenerRankingGlobal();
+        return (
+            <div className="space-y-6 pb-20">
+                <PageHeader clubes={clubes} clubIdSeleccionado={clubIdSeleccionado} />
+                {jugadoresGlobal.length === 0 ? (
+                    <EmptyState mensaje="Todavía no hay jugadores con nivel asignado en ningún club." />
+                ) : (
+                    <RankingGlobalTable jugadores={jugadoresGlobal} />
+                )}
+            </div>
+        );
+    }
+
+    const clubActual = clubes.find(c => c.id === clubIdSeleccionado);
     const { jugadores, sinTorneos } = await obtenerRankingClub(clubIdSeleccionado);
 
     return (
@@ -68,16 +84,21 @@ function EmptyState({ mensaje }: { mensaje: string }) {
 }
 
 function PageHeader({ clubes, clubIdSeleccionado }: { clubes: ClubOption[]; clubIdSeleccionado: string }) {
+    const esGlobal = clubIdSeleccionado === 'global';
     return (
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-paper to-paper-soft p-6 rounded-3xl border border-olive/20 shadow-xl">
             <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ochre/10 border border-ochre/20 mb-3 text-ochre-dark text-xs font-bold uppercase tracking-wider">
-                    <Trophy className="w-4 h-4" /> Ranking del Club
+                    <Trophy className="w-4 h-4" /> {esGlobal ? "Ranking Global" : "Ranking del Club"}
                 </div>
                 <h1 className="text-3xl font-black tracking-tight text-ink mb-1">
-                    {clubes.find(c => c.id === clubIdSeleccionado)?.nombre || 'Ranking'}
+                    {esGlobal ? "Todos los clubes" : (clubes.find(c => c.id === clubIdSeleccionado)?.nombre || 'Ranking')}
                 </h1>
-                <p className="text-olive">Nivel de juego (0-5) de los jugadores, calculado con cada partido.</p>
+                <p className="text-olive">
+                    {esGlobal
+                        ? "Promedio del nivel (0-5) de cada jugador entre los clubes donde ya tiene nivel asignado."
+                        : "Nivel de juego (0-5) de los jugadores, calculado con cada partido."}
+                </p>
             </div>
             {clubes.length > 0 && (
                 <ClubRankingSelector clubes={clubes} selectedClubId={clubIdSeleccionado} />
