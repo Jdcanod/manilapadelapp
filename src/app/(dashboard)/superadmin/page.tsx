@@ -1,28 +1,56 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ShieldAlert, UserCheck, TrendingUp, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { ShieldAlert, UserCheck, Building2 } from "lucide-react";
+import Link from "next/link";
+import { createAdminClient } from "@/utils/supabase/server";
 
-export default function SuperAdminPage() {
-    const pendingClubs = [
-        { id: "1", name: "La Enea Padel Zone", owner: "Carlos (club@laenea.com)", requested: "Hace 2 días" },
-        { id: "2", name: "Padel x Tres", owner: "Santiago M.", requested: "Ayer" },
-    ];
+export default async function SuperAdminPage({ searchParams }: { searchParams?: { q?: string; rol?: string } }) {
+    const supabase = createAdminClient();
 
-    const recentUsers = [
-        { id: "101", name: "Felipe Ruiz", role: "Jugador", rankPoints: 1200, status: "Activo" },
-        { id: "102", name: "Club Owner Manizales", role: "Admin Club", rankPoints: null, status: "Verificado" },
-        { id: "103", name: "Andrés B.", role: "Jugador", rankPoints: 1450, status: "Activo" },
-    ];
+    const inicioMes = new Date();
+    inicioMes.setDate(1);
+    inicioMes.setHours(0, 0, 0, 0);
+
+    const [
+        { count: jugadoresCount },
+        { count: clubesCount },
+        { count: partidosMesCount },
+        { data: clubesRecientes },
+    ] = await Promise.all([
+        supabase.from('users').select('id', { count: 'exact', head: true })
+            .eq('rol', 'jugador').not('email', 'ilike', 'invitado_%'),
+        supabase.from('users').select('id', { count: 'exact', head: true })
+            .eq('rol', 'admin_club'),
+        supabase.from('partidos').select('id', { count: 'exact', head: true })
+            .gte('fecha', inicioMes.toISOString()),
+        supabase.from('users').select('id, nombre, email, fecha_registro')
+            .eq('rol', 'admin_club')
+            .order('fecha_registro', { ascending: false })
+            .limit(5),
+    ]);
 
     const systemStats = [
-        { label: "Jugadores Manizales", val: "450", color: "text-blue-400" },
-        { label: "Partidos (Mes)", val: "324", color: "text-olive" },
-        { label: "Alertas ELO", val: "0", color: "text-olive/70" },
+        { label: "Jugadores Registrados", val: String(jugadoresCount ?? 0), color: "text-blue-400" },
+        { label: "Clubes Activos", val: String(clubesCount ?? 0), color: "text-olive" },
+        { label: "Partidos (Mes)", val: String(partidosMesCount ?? 0), color: "text-olive/70" },
     ];
+
+    // Directorio de usuarios: búsqueda + filtro por rol (server-side, vía GET).
+    const q = (searchParams?.q || "").trim();
+    const rolFiltro = searchParams?.rol || "todos";
+    let usersQuery = supabase
+        .from('users')
+        .select('id, nombre, apellido, email, rol, ciudad')
+        .not('email', 'ilike', 'invitado_%')
+        .order('fecha_registro', { ascending: false })
+        .limit(15);
+    if (rolFiltro !== "todos") usersQuery = usersQuery.eq('rol', rolFiltro);
+    if (q) usersQuery = usersQuery.or(`nombre.ilike.%${q}%,apellido.ilike.%${q}%,email.ilike.%${q}%`);
+    const { data: recentUsers } = await usersQuery;
 
     return (
         <div className="space-y-6">
@@ -53,44 +81,44 @@ export default function SuperAdminPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Validar Clubes Nuevos */}
+                {/* Clubes recientes — la creación de un club es inmediata (superadmin
+                    la hace desde /superadmin/clubes), no hay flujo de "solicitud
+                    pendiente" que validar todavía. */}
                 <Card className="bg-paper-soft border-olive/20 shadow-xl overflow-hidden">
                     <div className="h-1 w-full bg-ochre" />
                     <CardHeader>
                         <div className="flex justify-between items-center">
                             <CardTitle className="text-ink text-lg flex items-center gap-2">
-                                <AlertTriangle className="w-5 h-5 text-ochre-dark" /> Validación de Clubes
+                                <Building2 className="w-5 h-5 text-ochre-dark" /> Últimos Clubes Creados
                             </CardTitle>
-                            <Badge variant="secondary" className="bg-ochre/20 text-ochre-dark border-ochre/50">2 Pendientes</Badge>
+                            <Badge variant="secondary" className="bg-ochre/20 text-ochre-dark border-ochre/50">{clubesCount ?? 0} total</Badge>
                         </div>
-                        <CardDescription className="text-olive">Revisa la documentación antes de publicarlos en la plataforma.</CardDescription>
+                        <CardDescription className="text-olive">Los 5 clubes más recientes de la plataforma.</CardDescription>
                     </CardHeader>
                     <CardContent className="p-0">
                         <Table>
                             <TableHeader className="bg-paper/50">
                                 <TableRow className="border-olive/20 hover:bg-paper-soft/50">
                                     <TableHead className="text-ink">Club</TableHead>
-                                    <TableHead className="text-ink">Solicitante</TableHead>
-                                    <TableHead className="text-right text-ink">Acción</TableHead>
+                                    <TableHead className="text-ink">Correo</TableHead>
+                                    <TableHead className="text-right text-ink">Creado</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {pendingClubs.map((club) => (
-                                    <TableRow key={club.id} className="border-olive/20 hover:bg-paper-dark/50">
-                                        <TableCell className="font-medium text-ink">{club.name}</TableCell>
-                                        <TableCell className="text-olive text-sm">
-                                            {club.owner} <br />
-                                            <span className="text-xs text-olive/70">{club.requested}</span>
+                                {(!clubesRecientes || clubesRecientes.length === 0) ? (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="text-center py-8 text-olive/70">
+                                            No hay clubes registrados todavía.
                                         </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <Button size="icon" variant="outline" className="h-8 w-8 bg-paper border-red-500/30 hover:bg-red-500/10 hover:text-red-400 text-olive transition-colors">
-                                                    <XCircle className="w-4 h-4" />
-                                                </Button>
-                                                <Button size="icon" className="h-8 w-8 bg-olive hover:bg-olive text-paper shadow-lg">
-                                                    <CheckCircle className="w-4 h-4" />
-                                                </Button>
-                                            </div>
+                                    </TableRow>
+                                ) : clubesRecientes.map((club) => (
+                                    <TableRow key={club.id} className="border-olive/20 hover:bg-paper-dark/50">
+                                        <TableCell className="font-medium text-ink">
+                                            <Link href="/superadmin/clubes" className="hover:underline">{club.nombre}</Link>
+                                        </TableCell>
+                                        <TableCell className="text-olive text-sm">{club.email}</TableCell>
+                                        <TableCell className="text-right text-xs text-olive/70">
+                                            {club.fecha_registro ? new Date(club.fecha_registro).toLocaleDateString('es-CO') : '—'}
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -106,19 +134,22 @@ export default function SuperAdminPage() {
                         <CardTitle className="text-ink text-lg flex items-center gap-2">
                             <UserCheck className="w-5 h-5 text-blue-500" /> Directorio de Usuarios
                         </CardTitle>
-                        <div className="mt-4 flex gap-2">
-                            <Input placeholder="Buscar por email, nombre o ID..." className="bg-paper border-olive/20 text-ink" />
-                            <Select defaultValue="todos">
+                        <form method="GET" className="mt-4 flex gap-2">
+                            <Input name="q" defaultValue={q} placeholder="Buscar por email, nombre..." className="bg-paper border-olive/20 text-ink" />
+                            <Select name="rol" defaultValue={rolFiltro}>
                                 <SelectTrigger className="w-[120px] bg-paper border-olive/20 text-ink">
                                     <SelectValue placeholder="Rol" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-paper-soft border-olive/20 text-ink">
                                     <SelectItem value="todos">Todos</SelectItem>
                                     <SelectItem value="jugador">Jugador</SelectItem>
-                                    <SelectItem value="club">Club</SelectItem>
+                                    <SelectItem value="admin_club">Club</SelectItem>
                                 </SelectContent>
                             </Select>
-                        </div>
+                            <Button type="submit" size="sm" variant="outline" className="bg-paper border-olive/20 text-ink hover:bg-paper-dark">
+                                Buscar
+                            </Button>
+                        </form>
                     </CardHeader>
                     <CardContent className="p-0">
                         <Table>
@@ -126,26 +157,28 @@ export default function SuperAdminPage() {
                                 <TableRow className="border-olive/20 hover:bg-paper-soft/50">
                                     <TableHead className="text-ink">Usuario</TableHead>
                                     <TableHead className="text-ink">Rol</TableHead>
-                                    <TableHead className="text-right text-ink">Estado</TableHead>
+                                    <TableHead className="text-right text-ink">Ciudad</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {recentUsers.map((u) => (
+                                {(!recentUsers || recentUsers.length === 0) ? (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="text-center py-8 text-olive/70">
+                                            Sin resultados.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : recentUsers.map((u) => (
                                     <TableRow key={u.id} className="border-olive/20 hover:bg-paper-dark/50">
                                         <TableCell className="font-medium text-ink">
-                                            {u.name}
-                                            {u.rankPoints && <span className="text-xs text-olive/70 flex items-center mt-1"><TrendingUp className="w-3 h-3 mr-1" /> {u.rankPoints} pts</span>}
+                                            {[u.nombre, u.apellido].filter(Boolean).join(' ') || u.email}
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant="outline" className={`text-xs ${u.role === 'Jugador' ? 'text-blue-400 border-blue-400/30' : 'text-olive border-olive/30'
-                                                }`}>
-                                                {u.role}
+                                            <Badge variant="outline" className={`text-xs ${u.rol === 'jugador' ? 'text-blue-400 border-blue-400/30' : 'text-olive border-olive/30'}`}>
+                                                {u.rol === 'jugador' ? 'Jugador' : u.rol === 'admin_club' ? 'Admin Club' : u.rol}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-right">
-                                            <span className={`text-sm font-medium ${u.status === 'Verificado' ? 'text-olive' : 'text-ink'}`}>
-                                                {u.status}
-                                            </span>
+                                        <TableCell className="text-right text-sm text-olive/70">
+                                            {u.ciudad || '—'}
                                         </TableCell>
                                     </TableRow>
                                 ))}
