@@ -1653,7 +1653,10 @@ export async function actualizarOrdenGrupo(torneoId: string, grupoId: string, pa
 
 export async function actualizarBonoNivelConfig(
     torneoId: string,
-    config: { activo: boolean; campeon: number; subcampeon: number; tercer_puesto: number; participacion: number }
+    config: {
+        activo: boolean; campeon: number; subcampeon: number; tercer_puesto: number;
+        semifinalista: number; cuartofinalista: number; participacion: number; no_clasificado: number;
+    }
 ) {
     try {
         const supabase = createClient();
@@ -1678,13 +1681,17 @@ export async function actualizarBonoNivelConfig(
         }
 
         const clamp = (v: number) => Math.min(1, Math.max(0, v || 0));
+        const clampPenalty = (v: number) => Math.min(0, Math.max(-1, v || 0));
         const reglas = { ...(torneo.reglas_puntuacion || {}) };
         reglas.liga_bono_nivel_config = {
             activo: !!config.activo,
             campeon: clamp(config.campeon),
             subcampeon: clamp(config.subcampeon),
             tercer_puesto: clamp(config.tercer_puesto),
+            semifinalista: clamp(config.semifinalista),
+            cuartofinalista: clamp(config.cuartofinalista),
             participacion: clamp(config.participacion),
+            no_clasificado: clampPenalty(config.no_clasificado),
         };
 
         const { error: updErr } = await admin

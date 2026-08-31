@@ -24,10 +24,16 @@ interface BonoConfig {
     campeon: number;
     subcampeon: number;
     tercer_puesto: number;
+    semifinalista: number;
+    cuartofinalista: number;
     participacion: number;
+    no_clasificado: number;
 }
 
-const DEFAULT_BONO: BonoConfig = { campeon: 0.15, subcampeon: 0.08, tercer_puesto: 0.04, participacion: 0 };
+const DEFAULT_BONO: BonoConfig = {
+    campeon: 0.15, subcampeon: 0.08, tercer_puesto: 0.04,
+    semifinalista: 0.02, cuartofinalista: 0.01, participacion: 0, no_clasificado: 0,
+};
 
 /**
  * Al confirmarse el partido FINAL de una categoría (lugar contiene "final",
@@ -65,14 +71,17 @@ export async function aplicarBonoPosicionSiAplica(matchId: string): Promise<void
         // no se haya pagado ninguno). Si el torneo no lo activó, no se otorga nada.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const cfgRaw = ((torneo.reglas_puntuacion as any)?.liga_bono_nivel_config || null) as
-            { activo?: boolean; campeon?: number; subcampeon?: number; tercer_puesto?: number; participacion?: number } | null;
+            (Partial<BonoConfig> & { activo?: boolean }) | null;
         if (!cfgRaw?.activo) return;
 
         const config: BonoConfig = {
             campeon: typeof cfgRaw.campeon === 'number' ? cfgRaw.campeon : DEFAULT_BONO.campeon,
             subcampeon: typeof cfgRaw.subcampeon === 'number' ? cfgRaw.subcampeon : DEFAULT_BONO.subcampeon,
             tercer_puesto: typeof cfgRaw.tercer_puesto === 'number' ? cfgRaw.tercer_puesto : DEFAULT_BONO.tercer_puesto,
+            semifinalista: typeof cfgRaw.semifinalista === 'number' ? cfgRaw.semifinalista : DEFAULT_BONO.semifinalista,
+            cuartofinalista: typeof cfgRaw.cuartofinalista === 'number' ? cfgRaw.cuartofinalista : DEFAULT_BONO.cuartofinalista,
             participacion: typeof cfgRaw.participacion === 'number' ? cfgRaw.participacion : DEFAULT_BONO.participacion,
+            no_clasificado: typeof cfgRaw.no_clasificado === 'number' ? cfgRaw.no_clasificado : DEFAULT_BONO.no_clasificado,
         };
 
         interface PartidoCat { id: string; pareja1_id: string | null; pareja2_id: string | null; lugar: string | null; resultado: string | null; }
@@ -117,6 +126,38 @@ export async function aplicarBonoPosicionSiAplica(matchId: string): Promise<void
             thirdPair = winner === 1 ? thirdMatch.pareja1_id : thirdMatch.pareja2_id;
         }
 
+        // Parejas que jugaron una Semifinal (ganadora o perdedora — el ganador
+        // termina siendo campeón/subcampeón, que pesa más en la prioridad de abajo).
+        const semifinalPairs = new Set<string>();
+        partidos
+            .filter(p => p.lugar?.toLowerCase().includes('semifinal'))
+            .forEach(p => {
+                if (p.pareja1_id) semifinalPairs.add(p.pareja1_id);
+                if (p.pareja2_id) semifinalPairs.add(p.pareja2_id);
+            });
+
+        // Parejas que jugaron unos Cuartos de Final.
+        const cuartosPairs = new Set<string>();
+        partidos
+            .filter(p => p.lugar?.toLowerCase().includes('cuartos'))
+            .forEach(p => {
+                if (p.pareja1_id) cuartosPairs.add(p.pareja1_id);
+                if (p.pareja2_id) cuartosPairs.add(p.pareja2_id);
+            });
+
+        // Parejas que llegaron a la fase final (cualquier ronda de cuadro: desde
+        // Dieciseisavos hasta Tercer Puesto/Final). Las que jugaron partidos en
+        // la categoría pero nunca aparecen aquí solo jugaron todos-contra-todos
+        // y no clasificaron.
+        const bracketPairs = new Set<string>();
+        const RONDA_BRACKET = /final|semifinal|cuartos|octavos|dieciseisavos|tercer/;
+        partidos
+            .filter(p => p.lugar && RONDA_BRACKET.test(p.lugar.toLowerCase()))
+            .forEach(p => {
+                if (p.pareja1_id) bracketPairs.add(p.pareja1_id);
+                if (p.pareja2_id) bracketPairs.add(p.pareja2_id);
+            });
+
         interface ParejaRow { id: string; jugador1_id: string | null; jugador2_id: string | null; }
         const { data: parejasData } = await admin
             .from('parejas')
@@ -142,10 +183,14 @@ export async function aplicarBonoPosicionSiAplica(matchId: string): Promise<void
             const pareja = parejasRows.find(p => p.id === pairId);
             if (!pareja) continue;
 
-            let tipo: keyof BonoConfig = 'participacion';
+            let tipo: keyof BonoConfig;
             if (pairId === championPair) tipo = 'campeon';
             else if (pairId === runnerUpPair) tipo = 'subcampeon';
             else if (pairId === thirdPair) tipo = 'tercer_puesto';
+            else if (semifinalPairs.has(pairId)) tipo = 'semifinalista';
+            else if (cuartosPairs.has(pairId)) tipo = 'cuartofinalista';
+            else if (bracketPairs.has(pairId)) tipo = 'participacion';
+            else tipo = 'no_clasificado';
 
             const delta = config[tipo];
 

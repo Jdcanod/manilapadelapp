@@ -14,14 +14,20 @@ interface BonoConfig {
     campeon: number;
     subcampeon: number;
     tercer_puesto: number;
+    semifinalista: number;
+    cuartofinalista: number;
     participacion: number;
+    no_clasificado: number;
 }
 
-const DEFAULT_CONFIG: BonoConfig = { activo: false, campeon: 0.15, subcampeon: 0.08, tercer_puesto: 0.04, participacion: 0 };
+const DEFAULT_CONFIG: BonoConfig = {
+    activo: false, campeon: 0.15, subcampeon: 0.08, tercer_puesto: 0.04,
+    semifinalista: 0.02, cuartofinalista: 0.01, participacion: 0, no_clasificado: -0.03,
+};
 
 export function BonoNivelConfigControl({ torneoId, config }: { torneoId: string; config: BonoConfig | null }) {
     const router = useRouter();
-    const [local, setLocal] = useState<BonoConfig>(config || DEFAULT_CONFIG);
+    const [local, setLocal] = useState<BonoConfig>({ ...DEFAULT_CONFIG, ...(config || {}) });
     const [isPending, startTransition] = useTransition();
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -41,10 +47,13 @@ export function BonoNivelConfigControl({ torneoId, config }: { torneoId: string;
     };
 
     const fields = [
-        { key: 'campeon' as const, label: 'Campeón', emoji: '🏆' },
-        { key: 'subcampeon' as const, label: 'Subcampeón', emoji: '🥈' },
-        { key: 'tercer_puesto' as const, label: '3er Puesto', emoji: '🥉' },
-        { key: 'participacion' as const, label: 'Resto (participación)', emoji: '⭐' },
+        { key: 'campeon' as const, label: 'Campeón', emoji: '🏆', min: 0, max: 1 },
+        { key: 'subcampeon' as const, label: 'Subcampeón', emoji: '🥈', min: 0, max: 1 },
+        { key: 'tercer_puesto' as const, label: '3er Puesto', emoji: '🥉', min: 0, max: 1 },
+        { key: 'semifinalista' as const, label: 'Semifinalista', emoji: '🎯', min: 0, max: 1 },
+        { key: 'cuartofinalista' as const, label: 'Cuartofinalista', emoji: '🔹', min: 0, max: 1 },
+        { key: 'participacion' as const, label: 'Clasificó, resto', emoji: '⭐', min: 0, max: 1 },
+        { key: 'no_clasificado' as const, label: 'No clasificó a fase final', emoji: '📉', min: -1, max: 0 },
     ];
 
     return (
@@ -67,20 +76,30 @@ export function BonoNivelConfigControl({ torneoId, config }: { torneoId: string;
 
             {local.activo && (
                 <div className="space-y-2 pt-1">
-                    {fields.map(({ key, label, emoji }) => (
+                    {fields.map(({ key, label, emoji, min, max }) => (
                         <div key={key} className="grid grid-cols-[1fr_auto] gap-3 items-center">
                             <span className="text-sm font-bold text-ink">{emoji} {label}</span>
                             <Input
                                 type="number"
-                                min={0}
-                                max={1}
+                                min={min}
+                                max={max}
                                 step={0.01}
-                                value={local[key]}
-                                onChange={e => setLocal(prev => ({ ...prev, [key]: Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)) }))}
+                                value={Number.isNaN(local[key]) ? '' : local[key]}
+                                onChange={e => {
+                                    const v = parseFloat(e.target.value);
+                                    setLocal(prev => ({ ...prev, [key]: v }));
+                                }}
+                                onBlur={() => setLocal(prev => ({
+                                    ...prev,
+                                    [key]: Math.min(max, Math.max(min, isNaN(prev[key]) ? 0 : prev[key])),
+                                }))}
                                 className="w-20 h-8 bg-paper border-olive/20 text-ink text-center text-sm"
                             />
                         </div>
                     ))}
+                    <p className="text-[10px] text-olive/50 pt-1">
+                        &quot;No clasificó a fase final&quot; se resta (usa valores negativos o 0).
+                    </p>
                 </div>
             )}
 

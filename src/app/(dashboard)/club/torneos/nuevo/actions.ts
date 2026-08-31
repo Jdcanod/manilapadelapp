@@ -120,15 +120,22 @@ export async function crearTorneoCentral(formData: FormData) {
 
             // Liguilla: bono de nivel (0-5) por posición al terminar cada categoría.
             // Propio de este torneo — no un default global del club.
-            let ligaBonoNivelConfig: { activo: boolean; campeon: number; subcampeon: number; tercer_puesto: number; participacion: number } | null = null;
+            let ligaBonoNivelConfig: {
+                activo: boolean; campeon: number; subcampeon: number; tercer_puesto: number;
+                semifinalista: number; cuartofinalista: number; participacion: number; no_clasificado: number;
+            } | null = null;
             if (formato === 'liguilla' && formData.has('liga_bono_nivel_activo')) {
                 const clamp = (v: string | null) => Math.min(1, Math.max(0, parseFloat(v || '0') || 0));
+                const clampPenalty = (v: string | null) => Math.min(0, Math.max(-1, parseFloat(v || '0') || 0));
                 ligaBonoNivelConfig = {
                     activo: true,
                     campeon: clamp(formData.get('liga_bono_campeon') as string),
                     subcampeon: clamp(formData.get('liga_bono_subcampeon') as string),
                     tercer_puesto: clamp(formData.get('liga_bono_tercer_puesto') as string),
+                    semifinalista: clamp(formData.get('liga_bono_semifinalista') as string),
+                    cuartofinalista: clamp(formData.get('liga_bono_cuartofinalista') as string),
                     participacion: clamp(formData.get('liga_bono_participacion') as string),
+                    no_clasificado: clampPenalty(formData.get('liga_bono_no_clasificado') as string),
                 };
             }
             return {

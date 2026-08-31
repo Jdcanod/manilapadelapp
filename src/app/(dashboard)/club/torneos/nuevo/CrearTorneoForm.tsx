@@ -42,7 +42,8 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
     // Liguilla: bono de nivel (0-5) por posición al terminar cada categoría.
     const [bonoNivelActivo, setBonoNivelActivo] = useState<boolean>(false);
     const [bonoNivelConfig, setBonoNivelConfig] = useState({
-        campeon: 0.15, subcampeon: 0.08, tercer_puesto: 0.04, participacion: 0,
+        campeon: 0.15, subcampeon: 0.08, tercer_puesto: 0.04,
+        semifinalista: 0.02, cuartofinalista: 0.01, participacion: 0, no_clasificado: -0.03,
     });
 
     // Relámpago con pre-creación de slots TBD
@@ -819,17 +820,20 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
                         {bonoNivelActivo && (
                             <div className="space-y-2 bg-paper/40 border border-olive/20 rounded-xl p-4">
                                 {([
-                                    { key: 'campeon' as const, label: 'Campeón', emoji: '🏆' },
-                                    { key: 'subcampeon' as const, label: 'Subcampeón', emoji: '🥈' },
-                                    { key: 'tercer_puesto' as const, label: '3er Puesto', emoji: '🥉' },
-                                    { key: 'participacion' as const, label: 'Resto (participación)', emoji: '⭐' },
-                                ]).map(({ key, label, emoji }) => (
+                                    { key: 'campeon' as const, label: 'Campeón', emoji: '🏆', min: 0, max: 1 },
+                                    { key: 'subcampeon' as const, label: 'Subcampeón', emoji: '🥈', min: 0, max: 1 },
+                                    { key: 'tercer_puesto' as const, label: '3er Puesto', emoji: '🥉', min: 0, max: 1 },
+                                    { key: 'semifinalista' as const, label: 'Semifinalista', emoji: '🎯', min: 0, max: 1 },
+                                    { key: 'cuartofinalista' as const, label: 'Cuartofinalista', emoji: '🔹', min: 0, max: 1 },
+                                    { key: 'participacion' as const, label: 'Clasificó, resto', emoji: '⭐', min: 0, max: 1 },
+                                    { key: 'no_clasificado' as const, label: 'No clasificó a fase final', emoji: '📉', min: -1, max: 0 },
+                                ]).map(({ key, label, emoji, min, max }) => (
                                     <div key={key} className="grid grid-cols-[1fr_auto] gap-3 items-center py-1">
                                         <span className="text-sm font-bold text-ink">{emoji} {label}</span>
                                         <Input
                                             type="number"
-                                            min={0}
-                                            max={1}
+                                            min={min}
+                                            max={max}
                                             step={0.01}
                                             value={Number.isNaN(bonoNivelConfig[key]) ? '' : bonoNivelConfig[key]}
                                             onChange={e => {
@@ -838,13 +842,16 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
                                             }}
                                             onBlur={() => setBonoNivelConfig(prev => ({
                                                 ...prev,
-                                                [key]: Math.min(1, Math.max(0, isNaN(prev[key]) ? 0 : prev[key])),
+                                                [key]: Math.min(max, Math.max(min, isNaN(prev[key]) ? 0 : prev[key])),
                                             }))}
                                             name={`liga_bono_${key}`}
                                             className="w-20 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"
                                         />
                                     </div>
                                 ))}
+                                <p className="text-[10px] text-olive/50 pt-1">
+                                    &quot;No clasificó a fase final&quot; se resta (usa valores negativos o 0).
+                                </p>
                                 <p className="text-[10px] text-olive/50 pt-1">
                                     Valores sugeridos. Ajústalos a lo que consideres justo para este torneo específico.
                                 </p>
