@@ -10,6 +10,7 @@ import { Users, Save } from "lucide-react";
 import { updatePlayerRanking } from "./actions";
 import { ResetPasswordJugadorButton } from "@/components/ResetPasswordJugadorButton";
 import { EditarJugadorButton } from "@/components/EditarJugadorButton";
+import { coincideBusqueda } from "@/lib/display-names";
 
 export default async function AdminJugadoresPage({ searchParams }: { searchParams?: { q?: string } }) {
     const supabase = createClient();
@@ -27,9 +28,11 @@ export default async function AdminJugadoresPage({ searchParams }: { searchParam
 
     const clubes = clubesData || [];
 
-    // Traer jugadores — sin invitados (ghost users con email invitado_*)
+    // Traer jugadores — sin invitados (ghost users con email invitado_*).
+    // El filtro de texto se aplica en memoria (no con ILIKE) para que
+    // ignore tildes/mayúsculas y busque nombre+apellido+correo a la vez.
     const q = (searchParams?.q || "").trim();
-    let query = supabase
+    const { data: jugadoresData } = await supabase
         .from("users")
         .select(`
             id, auth_id, nombre, apellido, email, ciudad, elo, club_id
@@ -37,12 +40,10 @@ export default async function AdminJugadoresPage({ searchParams }: { searchParam
         .eq("rol", "jugador")
         .not("email", "ilike", "invitado_%")
         .order("elo", { ascending: false });
-    if (q) {
-        query = query.or(`nombre.ilike.%${q}%,apellido.ilike.%${q}%,email.ilike.%${q}%`);
-    }
-    const { data: jugadoresData } = await query;
 
-    const jugadores = jugadoresData || [];
+    const jugadores = q
+        ? (jugadoresData || []).filter(j => coincideBusqueda(`${j.nombre || ""} ${j.apellido || ""} ${j.email || ""}`, q))
+        : (jugadoresData || []);
 
     return (
         <div className="space-y-6">

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ShieldAlert, UserCheck, Building2 } from "lucide-react";
 import Link from "next/link";
 import { createAdminClient } from "@/utils/supabase/server";
+import { coincideBusqueda } from "@/lib/display-names";
 
 export default async function SuperAdminPage({ searchParams }: { searchParams?: { q?: string; rol?: string } }) {
     const supabase = createAdminClient();
@@ -40,17 +41,20 @@ export default async function SuperAdminPage({ searchParams }: { searchParams?: 
     ];
 
     // Directorio de usuarios: búsqueda + filtro por rol (server-side, vía GET).
+    // El texto se filtra en memoria (no ILIKE) para ignorar tildes/mayúsculas.
     const q = (searchParams?.q || "").trim();
     const rolFiltro = searchParams?.rol || "todos";
     let usersQuery = supabase
         .from('users')
         .select('id, nombre, apellido, email, rol, ciudad')
         .not('email', 'ilike', 'invitado_%')
-        .order('fecha_registro', { ascending: false })
-        .limit(15);
+        .order('fecha_registro', { ascending: false });
     if (rolFiltro !== "todos") usersQuery = usersQuery.eq('rol', rolFiltro);
-    if (q) usersQuery = usersQuery.or(`nombre.ilike.%${q}%,apellido.ilike.%${q}%,email.ilike.%${q}%`);
-    const { data: recentUsers } = await usersQuery;
+    if (!q) usersQuery = usersQuery.limit(15);
+    const { data: usersData } = await usersQuery;
+    const recentUsers = q
+        ? (usersData || []).filter(u => coincideBusqueda(`${u.nombre || ""} ${u.apellido || ""} ${u.email || ""}`, q)).slice(0, 15)
+        : (usersData || []);
 
     return (
         <div className="space-y-6">

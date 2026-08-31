@@ -12,6 +12,33 @@ export function isGuestEmail(email: string | null | undefined): boolean {
 }
 
 /**
+ * Normaliza texto para búsqueda: minúsculas, sin tildes/diacríticos, espacios
+ * colapsados. "José Niño" y "JOSE NINO" quedan iguales ("jose nino"). Se usa
+ * en todos los buscadores de jugadores para que da igual cómo el usuario
+ * escriba las tildes.
+ */
+export function normalizarBusqueda(s: string | null | undefined): string {
+    return (s || '')
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/**
+ * ¿El texto (nombre completo, email, etc.) contiene TODOS los tokens de la
+ * consulta, ignorando tildes/mayúsculas y sin importar el orden? Así
+ * "cano juan" encuentra a "Juan David Cano" igual que "juan cano".
+ */
+export function coincideBusqueda(texto: string, query: string): boolean {
+    const textoNorm = normalizarBusqueda(texto);
+    const tokens = normalizarBusqueda(query).split(' ').filter(Boolean);
+    if (tokens.length === 0) return true;
+    return tokens.every(t => textoNorm.includes(t));
+}
+
+/**
  * Compone "Nombre PrimerApellido" priorizando el campo `apellido` cuando
  * viene separado en DB. Evita duplicados: si el nombre ya termina con el
  * apellido (datos legacy), no lo repite.

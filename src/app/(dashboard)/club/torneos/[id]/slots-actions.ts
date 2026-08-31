@@ -3,6 +3,7 @@
 import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { getOrCreateInvitado } from "@/lib/invitados";
 import { TBD_PREFIX, esParejaPlaceholder, type JugadorLite, type ParejaCatalogoEntry } from "@/lib/tbd";
+import { coincideBusqueda } from "@/lib/display-names";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -417,8 +418,9 @@ export async function listarParejasCatalogo(torneoId: string): Promise<ParejaCat
 
 /**
  * Busca jugadores por nombre y/o apellido. Soporta consultas con múltiples
- * tokens — cada palabra debe coincidir en `nombre` OR `apellido` (case-insensitive).
- * Ejemplo: "juan cano" → encuentra al jugador {nombre:"Juan David", apellido:"Cano"}.
+ * tokens en cualquier orden y sin importar tildes/mayúsculas — "jose nino"
+ * o "niño jose" encuentran igual a "José Niño". Ejemplo: "juan cano" →
+ * encuentra al jugador {nombre:"Juan David", apellido:"Cano"}.
  *
  * Devuelve hasta 20 resultados, mezclando registrados e invitados existentes.
  */
@@ -428,41 +430,25 @@ export async function buscarJugadores(query: string): Promise<JugadorLite[]> {
 
     const admin = createPureAdminClient();
 
-    // Tokenizar la búsqueda. Cada token debe matchear nombre o apellido.
-    // Limitamos a 4 tokens para evitar abusos.
-    const tokens = q
-        .split(/\s+/)
-        .map(t => t.replace(/[%_]/g, ""))
-        .filter(Boolean)
-        .slice(0, 4);
-
-    if (tokens.length === 0) return [];
-
-    // PostgREST/Supabase `.or` no compone fácilmente con AND a nivel de query
-    // builder. Pero como tenemos pocos tokens, traemos por el PRIMER token
-    // (que ya recorta bastante) y filtramos en memoria por los siguientes.
-    const primary = tokens[0];
-    const pattern = `%${primary}%`;
-
+    // ILIKE de Postgres no ignora tildes (Niño vs nino no matchean), así que
+    // traemos todos los jugadores y filtramos en memoria con texto
+    // normalizado — a la escala de un club/ciudad esto es rápido y es lo
+    // único que da resultados correctos con acentos.
     const { data, error } = await admin
         .from("users")
         .select("id, nombre, apellido, email")
         .eq("rol", "jugador")
-        .or(`nombre.ilike.${pattern},apellido.ilike.${pattern}`)
         .order("nombre", { ascending: true })
-        .limit(200);
+        .limit(2000);
 
     if (error) {
         console.error("[buscarJugadores] error:", error);
         return [];
     }
 
-    const restantes = tokens.slice(1).map(t => t.toLowerCase());
-    const filtrado = (data || []).filter((j: JugadorLite) => {
-        const n = (j.nombre || "").toLowerCase();
-        const a = (j.apellido || "").toLowerCase();
-        return restantes.every(t => n.includes(t) || a.includes(t));
-    });
+    const filtrado = (data || []).filter((j: JugadorLite) =>
+        coincideBusqueda(`${j.nombre || ""} ${j.apellido || ""}`, q)
+    );
 
     return filtrado.slice(0, 20) as JugadorLite[];
 }
