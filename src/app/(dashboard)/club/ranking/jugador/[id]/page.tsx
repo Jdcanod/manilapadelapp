@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { formatPlayerName, isGuestEmail, formatFormatoLabel } from "@/lib/display-names";
-import { ResetPasswordJugadorButton } from "@/components/ResetPasswordJugadorButton";
 import { VincularInvitadoButton } from "@/components/VincularInvitadoButton";
 
 function getWinner(resultado: string): 1 | 2 | null {
@@ -206,14 +205,9 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
                         </div>
                     </div>
                 </div>
-                {/* Restablecer contraseña sin correo (solo cuentas reales, no invitados).
-                    Editar datos del jugador es exclusivo del superadmin. */}
-                {!isGuestEmail(jugadorRaw.email) && (
-                    <ResetPasswordJugadorButton
-                        jugadorUserId={params.id}
-                        jugadorNombre={jugador.nombre}
-                    />
-                )}
+                {/* Restablecer contraseña ahora es exclusivo del superadmin (ver
+                    /superadmin/jugadores) — con la recuperación por correo
+                    deshabilitada, el club ya no puede resetearla él mismo. */}
                 {/* Fusionar invitado con un jugador registrado, fuera del contexto
                     de un torneo puntual (ver AdminParticipantActions para el caso
                     "solo en este torneo"). */}

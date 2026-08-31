@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Building2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { crearClubAction } from "./actions";
+import { ResetPasswordClubButton } from "@/components/ResetPasswordClubButton";
 
 export default function SuperAdminClubesPage() {
     const supabase = createClient();
@@ -117,12 +118,13 @@ export default function SuperAdminClubesPage() {
                                 <TableRow className="border-olive/20 hover:bg-paper-soft/50">
                                     <TableHead className="text-ink">Nombre</TableHead>
                                     <TableHead className="text-ink text-right">Correo de Acceso</TableHead>
+                                    <TableHead className="text-ink text-right w-[60px]">Acción</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {clubes.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={2} className="text-center py-6 text-olive/70">
+                                        <TableCell colSpan={3} className="text-center py-6 text-olive/70">
                                             No hay clubes registrados aún.
                                         </TableCell>
                                     </TableRow>
@@ -131,6 +133,9 @@ export default function SuperAdminClubesPage() {
                                         <TableRow key={c.id} className="border-olive/20 hover:bg-paper-dark/50">
                                             <TableCell className="font-medium text-ink">{c.nombre}</TableCell>
                                             <TableCell className="text-olive text-right text-sm">{c.email}</TableCell>
+                                            <TableCell className="text-right">
+                                                <ResetPasswordClubButton clubId={c.id} clubNombre={c.nombre} />
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 )}

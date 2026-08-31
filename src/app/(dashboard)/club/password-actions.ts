@@ -86,10 +86,9 @@ export async function editarDatosJugador({
  * temporal y la devuelve para que el admin se la entregue al jugador
  * (WhatsApp, en persona). El jugador luego la cambia desde su perfil.
  *
- * Permisos:
- *   - superadmin: cualquier jugador
- *   - admin_club: solo jugadores cuyo club base (users.club_id) es su club
- * Nunca aplica sobre cuentas admin_club o superadmin.
+ * Solo superadmin — mientras la recuperación por correo esté deshabilitada,
+ * los clubes ya no pueden resetear contraseñas de sus jugadores; deben
+ * pedírselo al superadmin. Nunca aplica sobre cuentas admin_club o superadmin.
  */
 export async function resetPasswordJugador(jugadorUserId: string) {
     try {
@@ -100,8 +99,8 @@ export async function resetPasswordJugador(jugadorUserId: string) {
         const admin = createPureAdminClient();
         const { data: me } = await admin
             .from('users').select('id, rol').eq('auth_id', user.id).single();
-        if (!me || (me.rol !== 'admin_club' && me.rol !== 'superadmin')) {
-            return { success: false as const, message: "Sin permisos" };
+        if (!me || me.rol !== 'superadmin') {
+            return { success: false as const, message: "Solo el superadmin puede restablecer contraseñas" };
         }
 
         const { data: jugador } = await admin
@@ -115,12 +114,6 @@ export async function resetPasswordJugador(jugadorUserId: string) {
         }
         if (!jugador.auth_id) {
             return { success: false as const, message: "Este jugador es un invitado sin cuenta — no tiene contraseña" };
-        }
-        if (me.rol === 'admin_club' && String(jugador.club_id) !== String(user.id)) {
-            return {
-                success: false as const,
-                message: "Este jugador no pertenece a tu club. Pide al superadmin que restablezca su contraseña.",
-            };
         }
 
         // Contraseña temporal legible: padel-XXXXXX (sin caracteres ambiguos)
