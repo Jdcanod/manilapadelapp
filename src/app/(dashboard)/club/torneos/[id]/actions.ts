@@ -1773,11 +1773,16 @@ export async function obtenerStandingsPorGrupo(torneoId: string, categoria: stri
         const tipoDesempatePorCat = torneo?.reglas_puntuacion?.tipo_desempate_por_categoria || {};
         const tipoDesempateCat = tipoDesempatePorCat[categoria] || tipoDesempateGlobal || null;
 
+        // En Liga, "por grupo" siempre se refiere a los Grupos Finales (las
+        // parejas ya clasificadas de Todos contra Todos armadas en grupos
+        // nuevos) — nunca a los grupos de la fase inicial.
+        const faseGruposPG = torneo?.formato === 'liguilla' ? 'finales' : 'inicial';
         const { data: grupos } = await supabaseAdmin
             .from('torneo_grupos')
             .select('id, nombre_grupo')
             .eq('torneo_id', torneoId)
             .eq('categoria', categoria)
+            .eq('fase', faseGruposPG)
             .order('nombre_grupo', { ascending: true });
 
         if (!grupos || grupos.length === 0) {
@@ -1841,14 +1846,21 @@ export async function obtenerStandingsGlobales(torneoId: string, categoria: stri
         const tipoDesempatePorCatGS = torneo?.reglas_puntuacion?.tipo_desempate_por_categoria || {};
         const tipoDesempateCatGS = tipoDesempatePorCatGS[categoria] || tipoDesempateGlobalGS || null;
 
-        // Grupos de la categoría
+        // Grupos de la categoría. En Liga hay dos fases posibles de grupos:
+        // 'inicial' (Todos contra Todos) y 'finales' (Grupos Finales, armados
+        // con las parejas ya clasificadas). Esta función calcula SIEMPRE la
+        // tabla de Todos contra Todos, así que en Liga se excluyen los grupos
+        // finales — de lo contrario sus partidos se sumarían dos veces.
         const { data: grupos } = await supabaseAdmin
             .from('torneo_grupos')
-            .select('id')
+            .select('id, fase')
             .eq('torneo_id', torneoId)
             .eq('categoria', categoria);
 
-        const grupoIds = (grupos || []).map(g => g.id);
+        const esLiguillaGS = torneo?.formato === 'liguilla';
+        const gruposIniciales = esLiguillaGS ? (grupos || []).filter(g => g.fase !== 'finales') : (grupos || []);
+        const grupoIdsFinalesSet = new Set((grupos || []).filter(g => g.fase === 'finales').map(g => g.id));
+        const grupoIds = gruposIniciales.map(g => g.id);
         const grupoIdsSet = new Set(grupoIds);
 
         // Traer todos los partidos SIN joins (más confiable: si el join falla
@@ -1897,7 +1909,8 @@ export async function obtenerStandingsGlobales(torneoId: string, categoria: stri
         const matchesB = allTorneoMatches.filter((m: any) =>
             m.pareja1_id && m.pareja2_id &&
             (m.nivel || '').toString().toLowerCase().trim() === categoria.toLowerCase().trim() &&
-            !isBracketMatch(m)
+            !isBracketMatch(m) &&
+            !(m.torneo_grupo_id && grupoIdsFinalesSet.has(m.torneo_grupo_id))
         );
 
         // Combinar y deduplicar (A tiene prioridad)
@@ -2061,14 +2074,26 @@ export async function generarFaseEliminatoriaTopN(
         let topN: Array<{ parejaId: string; nombre: string; pts: number; sg: number; sp: number; gg: number; gp: number; pj: number; pg: number }> = [];
         
         if (porGrupo && porGrupo > 0) {
+            // En Liga, el cuadro sale de los Grupos Finales (fase='finales'),
+            // generados a partir de las parejas ya clasificadas de Todos
+            // contra Todos — nunca de los grupos de esa fase inicial. En
+            // Relámpago/Copa Davis los grupos siguen siendo los únicos que
+            // existen (fase='inicial' por default).
+            const faseGrupos = torneo?.formato === 'liguilla' ? 'finales' : 'inicial';
             const { data: grupos } = await supabaseAdmin
                 .from('torneo_grupos')
                 .select('id, nombre_grupo')
                 .eq('torneo_id', torneoId)
                 .eq('categoria', categoria)
+                .eq('fase', faseGrupos)
                 .order('nombre_grupo', { ascending: true });
             if (!grupos || grupos.length === 0) {
-                return { success: false, message: "No hay grupos para clasificar por grupo." };
+                return {
+                    success: false,
+                    message: torneo?.formato === 'liguilla'
+                        ? "No hay Grupos Finales generados para esta categoría todavía."
+                        : "No hay grupos para clasificar por grupo.",
+                };
             }
 
             // Calculamos placeholders fijos
@@ -2382,6 +2407,162 @@ export async function generarFaseEliminatoriaTopN(
         const error = err as Error;
         console.error("Error en generarFaseEliminatoriaTopN:", error);
         return { success: false, message: error.message || "Error al generar eliminatorias" };
+    }
+}
+
+/**
+ * Genera la fase de "Grupos Finales" de una categoría de Liga: toma las
+ * parejas ya clasificadas de la fase Todos contra Todos (mismo cálculo que
+ * usa la tabla en vivo y "Generar Cuadro"), las reparte en grupos nuevos
+ * (torneo_grupos con fase='finales') y arma un mini round-robin entre ellas.
+ * El Cuadro de eliminación se genera después, sobre ESTOS grupos (modo
+ * "clasifican por grupo" de generarFaseEliminatoriaTopN).
+ *
+ * Si ya existían grupos finales para la categoría, se borran junto con sus
+ * partidos antes de regenerar (no se pueden mezclar dos generaciones).
+ */
+export async function generarGruposFinales(torneoId: string, categoria: string, numGrupos: number, totalClasificados?: number) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado." };
+
+        const supabaseAdmin = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+        const userId = user.id;
+
+        const { data: torneo } = await supabaseAdmin
+            .from('torneos').select('club_id, fecha_inicio, reglas_puntuacion, formato').eq('id', torneoId).single();
+        if (!torneo) return { success: false, message: "Torneo no encontrado" };
+        if (torneo.formato !== 'liguilla') return { success: false, message: "Solo aplica a torneos tipo liguilla" };
+        if (!numGrupos || numGrupos < 1) return { success: false, message: "Define al menos 1 grupo" };
+
+        // 1) Calcular clasificados de la fase Todos contra Todos — mismo
+        // algoritmo que la tabla en vivo y el modo GLOBAL de generar cuadro.
+        const standingsResult = await obtenerStandingsGlobales(torneoId, categoria);
+        if (!standingsResult.success) {
+            return { success: false, message: standingsResult.message || "No se pudieron calcular los standings" };
+        }
+        const allStandings = standingsResult.standings as Array<{ parejaId: string; nombre: string; pj: number; pts: number }>;
+
+        const { data: inscripcionesElim } = await supabaseAdmin
+            .from('torneo_parejas')
+            .select('pareja_id, eliminada')
+            .eq('torneo_id', torneoId)
+            .eq('categoria', categoria)
+            .eq('eliminada', true);
+        const eliminadas = new Set((inscripcionesElim || []).map(i => i.pareja_id as string));
+
+        const { data: gruposIniciales } = await supabaseAdmin
+            .from('torneo_grupos').select('id').eq('torneo_id', torneoId).eq('categoria', categoria).eq('fase', 'inicial');
+        const { data: matchesIniciales } = await supabaseAdmin
+            .from('partidos').select('torneo_grupo_id, pareja1_id, pareja2_id, es_revancha')
+            .eq('torneo_id', torneoId).eq('nivel', categoria).not('torneo_grupo_id', 'is', null);
+        const parejasPorGrupo = new Map<string, string[]>();
+        (gruposIniciales || []).forEach(g => {
+            const ids: string[] = [];
+            (matchesIniciales || []).filter(m => m.torneo_grupo_id === g.id && !m.es_revancha).forEach(m => {
+                if (m.pareja1_id && !ids.includes(m.pareja1_id)) ids.push(m.pareja1_id);
+                if (m.pareja2_id && !ids.includes(m.pareja2_id)) ids.push(m.pareja2_id);
+            });
+            parejasPorGrupo.set(g.id, ids);
+        });
+        const esIdaVueltaCat = !!torneo?.reglas_puntuacion?.liga_ida_vuelta_config?.[categoria];
+        const requeridosPorPareja = calcularRequeridosPorPareja(parejasPorGrupo, esIdaVueltaCat);
+
+        // El dueño del torneo puede confirmar/ajustar aquí mismo cuántas
+        // parejas clasifican — si no manda un valor, se usa el ya
+        // configurado en "Todos contra Todos" como sugerencia por defecto.
+        const configPersistida = torneo?.reglas_puntuacion?.liga_clasificacion_config?.[categoria];
+        const totalFinal = totalClasificados && totalClasificados >= 2 ? totalClasificados : configPersistida?.total;
+        if (!totalFinal || totalFinal < 2) {
+            return { success: false, message: "Define cuántas parejas clasifican (mínimo 2)." };
+        }
+        const clasifConfig = {
+            total: totalFinal,
+            modo: (configPersistida?.modo === 'porcentaje' ? 'porcentaje' : 'absoluto') as 'absoluto' | 'porcentaje',
+            minPartidos: configPersistida?.modo === 'porcentaje' ? 0 : (configPersistida?.minPartidos || 0),
+            minPorcentaje: configPersistida?.minPorcentaje || 0,
+        };
+
+        const { ordenClasificacion } = calcularClasificados(allStandings, requeridosPorPareja, clasifConfig, eliminadas);
+        const standingsPorId = new Map(allStandings.map(s => [s.parejaId, s]));
+        const clasificados = ordenClasificacion.map(id => standingsPorId.get(id)!).filter(Boolean);
+        if (clasificados.length < 2) {
+            return { success: false, message: `Solo ${clasificados.length} pareja(s) clasifican todavía — espera a que se jueguen más partidos.` };
+        }
+
+        // 2) Borrar grupos finales previos de esta categoría (y sus partidos).
+        const { data: gruposFinalesPrevios } = await supabaseAdmin
+            .from('torneo_grupos').select('id').eq('torneo_id', torneoId).eq('categoria', categoria).eq('fase', 'finales');
+        const idsGruposPrevios = (gruposFinalesPrevios || []).map(g => g.id);
+        if (idsGruposPrevios.length > 0) {
+            await supabaseAdmin.from('partidos').delete().in('torneo_grupo_id', idsGruposPrevios);
+            await supabaseAdmin.from('torneo_grupos').delete().in('id', idsGruposPrevios);
+        }
+        // También limpiar cualquier cuadro ya armado desde una generación anterior.
+        await supabaseAdmin
+            .from('partidos').delete()
+            .eq('torneo_id', torneoId).eq('nivel', categoria)
+            .is('torneo_grupo_id', null).not('lugar', 'is', null);
+
+        // 3) Crear los grupos finales nuevos.
+        const nGrupos = Math.max(1, Math.min(numGrupos, clasificados.length));
+        const gruposData = Array.from({ length: nGrupos }, (_, i) => ({
+            torneo_id: torneoId,
+            nombre_grupo: `Grupo Final ${String.fromCharCode(65 + i)}`,
+            categoria,
+            fase: 'finales',
+        }));
+        const { data: gruposCreados, error: gErr } = await supabaseAdmin
+            .from('torneo_grupos').insert(gruposData).select('id, nombre_grupo');
+        if (gErr || !gruposCreados) {
+            return { success: false, message: "Error creando grupos finales: " + (gErr?.message || "desconocido") };
+        }
+
+        // 4) Repartir clasificados por bombos (mejor puntaje primero, un grupo
+        // cada uno) y generar el round-robin de cada grupo.
+        const participants: Participant[] = clasificados.map(c => ({
+            id: c.parejaId, nombre: c.nombre, ranking: c.pts, pareja_id: c.parejaId,
+        }));
+        const buckets = distributeParticipantsIntoGroups(participants, nGrupos);
+
+        const partidosACrear: Record<string, unknown>[] = [];
+        buckets.forEach((grupo, i) => {
+            const grupoId = gruposCreados[i]?.id;
+            if (!grupoId) return;
+            const ids = grupo.map(p => String(p.id));
+            const matches = generateMatchesForGroup(grupoId, ids, torneoId);
+            matches.forEach(m => partidosACrear.push({
+                ...m,
+                club_id: torneo.club_id,
+                creador_id: userId,
+                nivel: categoria,
+                sexo: 'Mixto',
+                lugar: 'Pendiente',
+                fecha: torneo.fecha_inicio || new Date().toISOString(),
+                cupos_totales: 4,
+                cupos_disponibles: 0,
+            }));
+        });
+
+        if (partidosACrear.length > 0) {
+            const { error: matchErr } = await supabaseAdmin.from('partidos').insert(partidosACrear);
+            if (matchErr) return { success: false, message: "Error creando partidos: " + matchErr.message };
+        }
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        revalidatePath(`/torneos/${torneoId}`);
+        return {
+            success: true,
+            message: `Grupos Finales generados: ${clasificados.length} pareja(s) en ${nGrupos} grupo(s).`,
+        };
+    } catch (err: unknown) {
+        const error = err as Error;
+        console.error("Error en generarGruposFinales:", error);
+        return { success: false, message: error.message || "Error al generar grupos finales" };
     }
 }
 

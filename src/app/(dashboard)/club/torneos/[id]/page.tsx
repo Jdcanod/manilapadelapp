@@ -9,6 +9,7 @@ import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminParticipantActions } from "@/components/AdminParticipantActions";
 
 import { TournamentGroupsManager } from "@/components/TournamentGroupsManager";
+import { FaseGruposFinalesManager } from "@/components/FaseGruposFinalesManager";
 import { BonoNivelConfigControl } from "@/components/BonoNivelConfigControl";
 import { TournamentBracketManager } from "@/components/TournamentBracketManager";
 import { AddTournamentPlayerModal } from "@/components/AddTournamentPlayerModal";
@@ -74,11 +75,15 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         `)
         .eq('torneo_id', params.id);
 
-    // Cargar grupos existentes
-    const { data: gruposExistentes } = await supabase
+    // Cargar grupos existentes — separados por fase: 'inicial' (Todos contra
+    // Todos / Relámpago normal) y 'finales' (Grupos Finales de Liga, armados
+    // con las parejas ya clasificadas de Todos contra Todos).
+    const { data: gruposExistentesAll } = await supabase
         .from('torneo_grupos')
         .select('*')
         .eq('torneo_id', params.id);
+    const gruposExistentes = (gruposExistentesAll || []).filter(g => g.fase !== 'finales');
+    const gruposFinalesExistentes = (gruposExistentesAll || []).filter(g => g.fase === 'finales');
 
     const adminSupabase = createAdminClient();
     const pureAdmin = createPureAdminClient();
@@ -473,6 +478,12 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         } as MatchReal;
     });
 
+    // Parrilla de Liga: el club solo programa Grupos Finales y Cuadros
+    // Finales (se juegan en 2-3 días) — Todos contra Todos lo coordinan las
+    // parejas por su cuenta durante meses, así que se excluye de la parrilla.
+    const gruposInicialesIdsSet = new Set((gruposExistentes || []).map(g => g.id));
+    const partidosParaCronogramaLiga = partidosReales.filter(p => !(p.torneo_grupo_id && gruposInicialesIdsSet.has(p.torneo_grupo_id)));
+
     // Identificar Campeones y estado de finalización
     const campeonesPorCategoria = categoriasAMostrar.map((cat: string) => {
         const matchesCat = partidosReales.filter(p => p.nivel?.toLowerCase() === cat.toLowerCase());
@@ -726,8 +737,13 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
             <PersistentTabs defaultValue="participantes" className="w-full mt-8">
                 <TabsList className="bg-paper-soft border border-olive/20 p-1 w-full flex overflow-x-auto justify-start sm:w-auto overflow-y-hidden">
                     <TabsTrigger value="participantes" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Parejas Inscritas <Badge variant="secondary" className="ml-2 bg-paper-dark text-olive border-none">{allParticipants.length}</Badge></TabsTrigger>
-                    <TabsTrigger value="grupos" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Fase de Grupos</TabsTrigger>
-                    <TabsTrigger value="eliminatorias" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Fases Finales (Llaves)</TabsTrigger>
+                    <TabsTrigger value="grupos" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">
+                        {torneo.formato === 'liguilla' ? "Todos contra Todos" : "Fase de Grupos"}
+                    </TabsTrigger>
+                    {torneo.formato === 'liguilla' && (
+                        <TabsTrigger value="grupos_finales" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Grupos Finales</TabsTrigger>
+                    )}
+                    <TabsTrigger value="eliminatorias" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Cuadros Finales</TabsTrigger>
                     <TabsTrigger value="resultados" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">
                         Resultados
                         {pendientesCount > 0 && (
@@ -767,6 +783,18 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                     />
                 </TabsContent>
 
+                {torneo.formato === 'liguilla' && (
+                    <TabsContent value="grupos_finales" className="mt-6">
+                        <FaseGruposFinalesManager
+                            torneoId={params.id}
+                            categorias={categoriasConInscritos.length > 0 ? categoriasConInscritos : categoriasHabilitadas}
+                            gruposFinales={gruposFinalesExistentes || []}
+                            partidos={partidosReales || []}
+                            ligaClasificacionConfig={torneo.reglas_puntuacion?.liga_clasificacion_config || {}}
+                        />
+                    </TabsContent>
+                )}
+
                 <TabsContent value="resultados" className="mt-6">
                     <TournamentResultsManager
                         torneoId={params.id}
@@ -780,6 +808,13 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                 </TabsContent>
 
                 <TabsContent value="cronograma" className="mt-6">
+                    {torneo.formato === 'liguilla' && (
+                        <p className="text-[11px] text-olive/60 mb-3 leading-snug">
+                            Solo se programan los partidos de Grupos Finales y Cuadros Finales —
+                            se juegan en 2-3 días, así que aquí sí gestiona el club la cancha y el
+                            horario. Todos contra Todos lo coordinan las parejas entre ellas.
+                        </p>
+                    )}
                     <div className="mb-4 flex justify-end">
                         <EditarCanchasControl
                             torneoId={params.id}
@@ -788,7 +823,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                     </div>
                     <TournamentChronogram
                         torneoId={params.id}
-                        matches={partidosReales}
+                        matches={torneo.formato === 'liguilla' ? partidosParaCronogramaLiga : partidosReales}
                         config={{
                             duracion: torneo.reglas_puntuacion?.config_duracion || 60,
                             canchas: torneo.reglas_puntuacion?.config_canchas || 1
@@ -873,6 +908,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                             clasificanPorGrupoDefault={torneo.reglas_puntuacion?.config_clasifican_por_grupo}
                             ligaClasificacionConfig={torneo.reglas_puntuacion?.liga_clasificacion_config || {}}
                             allParticipants={allParticipants}
+                            gruposFinalesCategorias={Array.from(new Set((gruposFinalesExistentes || []).map(g => g.categoria)))}
                         />
 
                         {/* SECCIÓN HISTORIAL DE GRUPOS */}

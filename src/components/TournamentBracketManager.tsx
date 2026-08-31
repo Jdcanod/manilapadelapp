@@ -344,7 +344,7 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPla
     );
 }
 
-export function TournamentBracketManager({ categorias, partidos, tipoDesempate, parejaPlayers, setsCantidad, formato = 'relampago', clasificanPorGrupoDefault, ligaClasificacionConfig, allParticipants = [] }: { categorias: string[], partidos: MatchItem[], tipoDesempate?: string, parejaPlayers?: ParejaPlayersMap, setsCantidad?: number, formato?: string, clasificanPorGrupoDefault?: number, ligaClasificacionConfig?: Record<string, { total: number; minPartidos: number }>, allParticipants?: any[] }) {
+export function TournamentBracketManager({ categorias, partidos, tipoDesempate, parejaPlayers, setsCantidad, formato = 'relampago', clasificanPorGrupoDefault, ligaClasificacionConfig, allParticipants = [], gruposFinalesCategorias = [] }: { categorias: string[], partidos: MatchItem[], tipoDesempate?: string, parejaPlayers?: ParejaPlayersMap, setsCantidad?: number, formato?: string, clasificanPorGrupoDefault?: number, ligaClasificacionConfig?: Record<string, { total: number; minPartidos: number }>, allParticipants?: any[], /** Liguilla: categorías que ya tienen Grupos Finales generados. */ gruposFinalesCategorias?: string[] }) {
     const [selectedCat, setSelectedCat] = useState(categorias[0] || '');
     const [loading, setLoading] = useState(false);
     const params = useParams();
@@ -423,6 +423,7 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate, 
                         formato={formato}
                         clasificanPorGrupoDefault={clasificanPorGrupoDefault}
                         ligaClasificacionConfig={ligaClasificacionConfig}
+                        tieneGruposFinales={gruposFinalesCategorias.includes(selectedCat)}
                     />
 
                     {eliminatoriasPartidos.filter(p => p.nivel === selectedCat).length > 0 && (

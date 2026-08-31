@@ -49,13 +49,17 @@ interface Props {
      *  partidos), la misma que resalta ★ en la tabla de posiciones. Se usa
      *  como default al abrir este dialog, para no tener que reconfigurar. */
     ligaClasificacionConfig?: Record<string, { total: number; minPartidos: number }>;
+    /** Liguilla: si ya se generó la fase de Grupos Finales para esta
+     *  categoría, el cuadro sale de ahí (modo por grupo) en vez de saltar
+     *  directo desde la tabla de Todos contra Todos. */
+    tieneGruposFinales?: boolean;
 }
 
 const OPCIONES_CLASIFICADOS = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20];
 const OPCIONES_POR_GRUPO = [1, 2, 3, 4];
 
-export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket, formato = "relampago", clasificanPorGrupoDefault, ligaClasificacionConfig = {} }: Props) {
-    const esRelampago = formato === "relampago";
+export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket, formato = "relampago", clasificanPorGrupoDefault, ligaClasificacionConfig = {}, tieneGruposFinales = false }: Props) {
+    const esRelampago = formato === "relampago" || (formato === "liguilla" && tieneGruposFinales);
     const ligaDefault = ligaClasificacionConfig[categoria];
     const [open, setOpen] = useState(false);
     const [selectedN, setSelectedN] = useState<number>(ligaDefault?.total ?? 8);
@@ -126,8 +130,12 @@ export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket
         ? standings
         : (minMatches > 0 ? standings.filter(s => s.pj >= minMatches) : standings);
 
-    // En relámpago: N efectivo = porGrupo × nº de grupos.
-    const grupos = diag?.grupos ?? 0;
+    // En relámpago: N efectivo = porGrupo × nº de grupos. Nota: `diag.grupos`
+    // viene de obtenerStandingsGlobales (Todos contra Todos) y en Liga NO
+    // cuenta los Grupos Finales — el conteo real de grupos "por grupo" es
+    // el de obtenerStandingsPorGrupo (grupoStandings), que sí apunta a la
+    // fase correcta en ambos formatos.
+    const grupos = esRelampago ? grupoStandings.length : (diag?.grupos ?? 0);
     const totalRelampago = esRelampago ? porGrupo * grupos : 0;
     const effectiveN = esRelampago ? totalRelampago : selectedN;
 
@@ -167,7 +175,7 @@ export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket
 
                 <div className="space-y-5 py-2">
                     {esRelampago ? (
-                        // === Modo Relámpago: clasifican por grupo ===
+                        // === Modo por grupo: Relámpago, o Liga con Grupos Finales ya generados ===
                         <div>
                             <p className="text-[10px] font-black text-olive/70 uppercase tracking-widest mb-2">
                                 ¿Cuántos clasifican por grupo?

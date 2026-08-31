@@ -173,11 +173,14 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
 
     const campeonParaHeader = (categoriasAMostrar.length === 1) ? campeonesPorCategoria[0].ganador : null;
 
-    // Obtener grupos del torneo con admin client
-    const { data: grupos } = await adminSupabase
+    // Obtener grupos del torneo con admin client. Se excluyen los Grupos
+    // Finales de Liga (fase='finales') — esta vista es la de Todos contra
+    // Todos; mezclar ambas fases duplicaría los partidos en la tabla.
+    const { data: gruposAll } = await adminSupabase
         .from('torneo_grupos')
         .select('*')
         .eq('torneo_id', params.id);
+    const grupos = (gruposAll || []).filter(g => g.fase !== 'finales');
 
     // Parejas marcadas como eliminadas por el corte de participación (liguilla).
     const { data: inscripcionesElim } = await adminSupabase
