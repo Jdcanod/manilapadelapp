@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Save, Loader2, Users, CheckCircle2, ChevronRight, Gauge } from "lucide-react";
+import { Save, Loader2, Users, CheckCircle2, ChevronRight, Gauge, TrendingUp, TrendingDown } from "lucide-react";
 import { saveNivelesJugadores } from "./actions";
 import { cn } from "@/lib/utils";
 import { BANDAS_CATEGORIA, nivelInicialPorCategoria } from "@/lib/ranking/nivel";
@@ -24,6 +24,8 @@ export interface JugadorRankingData {
     nivel_ranking: number | null;
     es_invitado: boolean;
     categoria_sugerida: string | null;
+    /** Suma de deltas de nivel (partidos + bonos) desde el lunes de esta semana. */
+    tendencia_semana: number;
 }
 
 interface RankingManagerProps {
@@ -81,8 +83,13 @@ export function RankingManager({ clubId, jugadores, readOnly = false }: RankingM
 
     // Ranking Actual = nivel de juego (0-5). Los invitados y los jugadores sin
     // nivel asignado todavía no tienen posición.
-    const rankedPorNivel = jugadoresRankeables
-        .filter(j => j.nivel_ranking != null)
+    const [filtroCategoria, setFiltroCategoria] = useState<string>("all");
+    const rankeablesConNivel = jugadoresRankeables.filter(j => j.nivel_ranking != null);
+    const categoriasDisponibles = Array.from(
+        new Set(rankeablesConNivel.map(j => j.categoria_jugador).filter((c): c is string => !!c))
+    ).sort();
+    const rankedPorNivel = rankeablesConNivel
+        .filter(j => filtroCategoria === "all" || j.categoria_jugador === filtroCategoria)
         .sort((a, b) => (b.nivel_ranking ?? 0) - (a.nivel_ranking ?? 0));
 
     return (
@@ -97,14 +104,52 @@ export function RankingManager({ clubId, jugadores, readOnly = false }: RankingM
                     </CardTitle>
                     <CardDescription>
                         Posición calculada por nivel de juego (0-5). Sube/baja con cada partido confirmado.
+                        La flecha muestra el cambio desde el lunes de esta semana.
                     </CardDescription>
+                    {categoriasDisponibles.length > 1 && (
+                        <div className="flex flex-wrap gap-1.5 pt-2">
+                            <button
+                                type="button"
+                                onClick={() => setFiltroCategoria("all")}
+                                className={cn(
+                                    "px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border transition-colors",
+                                    filtroCategoria === "all"
+                                        ? "bg-ochre/15 border-ochre/60 text-ochre-soft"
+                                        : "bg-paper border-olive/20 text-olive/70 hover:text-ink"
+                                )}
+                            >
+                                Todas
+                            </button>
+                            {categoriasDisponibles.map(cat => (
+                                <button
+                                    key={cat}
+                                    type="button"
+                                    onClick={() => setFiltroCategoria(cat)}
+                                    className={cn(
+                                        "px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border transition-colors",
+                                        filtroCategoria === cat
+                                            ? "bg-ochre/15 border-ochre/60 text-ochre-soft"
+                                            : "bg-paper border-olive/20 text-olive/70 hover:text-ink"
+                                    )}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </CardHeader>
                 <CardContent className="p-0">
                     {rankedPorNivel.length === 0 ? (
                         <div className="py-16 text-center">
                             <Users className="w-12 h-12 mx-auto mb-3 text-olive/30" />
-                            <p className="text-olive/70 text-sm">Todavía no hay jugadores con nivel asignado</p>
-                            <p className="text-olive/50 text-xs mt-1">Asígnales categoría y nivel más abajo para que aparezcan aquí.</p>
+                            {rankeablesConNivel.length === 0 ? (
+                                <>
+                                    <p className="text-olive/70 text-sm">Todavía no hay jugadores con nivel asignado</p>
+                                    <p className="text-olive/50 text-xs mt-1">Asígnales categoría y nivel más abajo para que aparezcan aquí.</p>
+                                </>
+                            ) : (
+                                <p className="text-olive/70 text-sm">Nadie en la categoría {filtroCategoria}</p>
+                            )}
                         </div>
                     ) : (
                         <>
@@ -159,7 +204,19 @@ export function RankingManager({ clubId, jugadores, readOnly = false }: RankingM
 
                                         {/* Nivel */}
                                         <div className="text-right">
-                                            <span className="text-xl font-black text-ink">{j.nivel_ranking!.toFixed(2)}</span>
+                                            <div className="flex items-center justify-end gap-1">
+                                                {j.tendencia_semana > 0.001 && (
+                                                    <span title={`+${j.tendencia_semana.toFixed(2)} esta semana`}>
+                                                        <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+                                                    </span>
+                                                )}
+                                                {j.tendencia_semana < -0.001 && (
+                                                    <span title={`${j.tendencia_semana.toFixed(2)} esta semana`}>
+                                                        <TrendingDown className="w-3.5 h-3.5 text-red-500" />
+                                                    </span>
+                                                )}
+                                                <span className="text-xl font-black text-ink">{j.nivel_ranking!.toFixed(2)}</span>
+                                            </div>
                                         </div>
 
                                         {!readOnly && <ChevronRight className="w-3.5 h-3.5 text-olive/40 group-hover:text-olive transition-colors" />}

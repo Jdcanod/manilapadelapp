@@ -22,6 +22,16 @@ function getWinner(resultado: string): 1 | 2 | null {
     }
 }
 
+/** 00:00 del lunes de la semana actual (corte semanal del ranking). */
+function inicioSemanaActual(): Date {
+    const now = new Date();
+    const day = now.getDay(); // 0=domingo, 1=lunes, ...
+    const diasDesdeLunes = day === 0 ? 6 : day - 1;
+    const lunes = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diasDesdeLunes);
+    lunes.setHours(0, 0, 0, 0);
+    return lunes;
+}
+
 /**
  * Construye la lista de jugadores + su nivel 0-5 para el ranking de un club.
  * Compartido entre la vista del club (/club/ranking, editable) y la del
@@ -197,6 +207,31 @@ export async function obtenerRankingClub(clubId: string): Promise<{ jugadores: J
     const basePointsMap = new Map<string, number>();
     (basePointsData || []).forEach(bp => basePointsMap.set(bp.jugador_id, bp.puntos));
 
+    // Tendencia semanal: suma de los deltas de nivel (por partido + por bono
+    // de posición) desde el último corte (00:00 del lunes actual). Sumar los
+    // deltas es equivalente a comparar contra el nivel de hace una semana,
+    // pero no depende de reconstruir un snapshot histórico.
+    const tendenciaMap = new Map<string, number>();
+    if (allPlayerIds.size > 0) {
+        const cortesISO = inicioSemanaActual().toISOString();
+        const playerIdsArr = Array.from(allPlayerIds);
+        const [{ data: historialNivel }, { data: historialBono }] = await Promise.all([
+            adminSupabase
+                .from('ranking_nivel_historial')
+                .select('jugador_id, delta')
+                .in('jugador_id', playerIdsArr)
+                .gte('creado_en', cortesISO),
+            adminSupabase
+                .from('ranking_bono_historial')
+                .select('jugador_id, delta')
+                .in('jugador_id', playerIdsArr)
+                .gte('creado_en', cortesISO),
+        ]);
+        [...(historialNivel || []), ...(historialBono || [])].forEach(row => {
+            tendenciaMap.set(row.jugador_id, (tendenciaMap.get(row.jugador_id) || 0) + row.delta);
+        });
+    }
+
     const jugadores: JugadorRankingData[] = Array.from(allPlayerIds).map(id => ({
         id,
         nombre: playerMap.get(id)?.nombre || 'Jugador',
@@ -211,6 +246,7 @@ export async function obtenerRankingClub(clubId: string): Promise<{ jugadores: J
         nivel_ranking: playerMap.get(id)?.nivel ?? null,
         es_invitado: playerMap.get(id)?.esInvitado ?? false,
         categoria_sugerida: categoriaSugeridaMap.get(id) ?? null,
+        tendencia_semana: tendenciaMap.get(id) ?? 0,
     }));
 
     return { jugadores, sinTorneos: false };
