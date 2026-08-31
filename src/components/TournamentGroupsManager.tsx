@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Swords, Users, History } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { generarFaseGrupos, swapParejasDeGrupo, crearGrupoManual, moverParejaAGrupo, actualizarOrdenGrupo, crearRevancha, actualizarIdaVueltaCategoria } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { generarFaseGrupos, swapParejasDeGrupo, crearGrupoManual, moverParejaAGrupo, actualizarOrdenGrupo, crearRevancha, actualizarIdaVueltaCategoria, actualizarRevanchaCategoria } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
@@ -62,6 +62,9 @@ interface Props {
     ordenGrupos?: Record<string, string[]>;
     /** Liguilla: qué categorías juegan ida y vuelta (persistido en torneo). */
     idaVueltaConfig?: Record<string, boolean>;
+    /** Liguilla: qué categorías permiten pedir revancha (persistido en
+     *  torneo). Independiente de ida y vuelta. */
+    revanchaConfig?: Record<string, boolean>;
     /** Liguilla: clasificación por categoría (persistida en
      *  torneo.reglas_puntuacion.liga_clasificacion_config) — cuántas parejas
      *  clasifican sobre la tabla GLOBAL de la categoría (todos los grupos
@@ -90,7 +93,7 @@ interface Standing {
     revanchas: number; // Revanchas jugadas y confirmadas
 }
 
-export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", tipoDesempatePorCategoria = {}, allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican, setsCantidad, ordenGrupos = {}, idaVueltaConfig = {}, ligaClasificacionConfig = {}, parejasEliminadas = new Set(), corteConfig = null }: Props) {
+export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", tipoDesempatePorCategoria = {}, allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican, setsCantidad, ordenGrupos = {}, idaVueltaConfig = {}, revanchaConfig = {}, ligaClasificacionConfig = {}, parejasEliminadas = new Set(), corteConfig = null }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const [selectedCat, setSelectedCat] = useState(categorias[0] || "General");
@@ -229,6 +232,24 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
         if (!confirm(msg)) return;
         startTransition(async () => {
             const res = await actualizarIdaVueltaCategoria(torneoId, selectedCat, activar);
+            if (res.success) {
+                if (res.message) alert(res.message);
+                router.refresh();
+            } else {
+                alert(res.message);
+            }
+        });
+    };
+
+    const revanchaActiva = !!revanchaConfig[selectedCat];
+    const handleToggleRevancha = () => {
+        const activar = !revanchaActiva;
+        const msg = activar
+            ? `¿Permitir revancha para ${selectedCat}? Podrás pedir un partido extra (mitad de puntos) sobre cualquier cruce ya jugado y confirmado de esta categoría.`
+            : `¿Desactivar revancha para ${selectedCat}? Las revanchas ya jugadas NO se borran, solo deja de poder pedirse nuevas.`;
+        if (!confirm(msg)) return;
+        startTransition(async () => {
+            const res = await actualizarRevanchaCategoria(torneoId, selectedCat, activar);
             if (res.success) {
                 if (res.message) alert(res.message);
                 router.refresh();
@@ -554,6 +575,21 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                 >
                                     <Repeat className="w-3 h-3" />
                                     {selectedCat} · Ida y vuelta: {idaVueltaActiva ? "Activado" : "Desactivado"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleToggleRevancha}
+                                    disabled={isPending}
+                                    className={cn(
+                                        "flex items-center gap-2 px-2 py-1 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-colors",
+                                        revanchaActiva
+                                            ? "bg-purple-700/15 border-purple-700/40 text-purple-700 hover:bg-purple-700/25"
+                                            : "bg-paper-soft border-olive/20 text-olive/60 hover:text-olive"
+                                    )}
+                                    title={revanchaActiva ? "Desactivar revancha" : "Activar revancha"}
+                                >
+                                    <RotateCcw className="w-3 h-3" />
+                                    {selectedCat} · Revancha: {revanchaActiva ? "Activada" : "Desactivada"}
                                 </button>
                             </div>
                         )}
@@ -1127,17 +1163,26 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                              <RotateCcw className="w-2.5 h-2.5 mr-1" /> Reiniciar Score
                                                                          </Button>
                                                                      )}
-                                                                     {esLiguilla && match.estado === 'jugado' && match.estado_resultado === 'confirmado' && !match.es_revancha && !partidosConRevancha.has(match.id) && (
-                                                                         <Button
-                                                                             size="sm"
-                                                                             variant="outline"
-                                                                             onClick={() => handleCrearRevancha(match.id)}
-                                                                             disabled={isPending}
-                                                                             className="bg-purple-700/10 border-purple-700/40 text-purple-700 hover:bg-purple-700/20 font-black text-[9px] uppercase h-7 rounded-lg"
-                                                                         >
-                                                                             <Repeat className="w-2.5 h-2.5 mr-1" /> Jugar Revancha
-                                                                         </Button>
-                                                                     )}
+                                                                     {esLiguilla && revanchaActiva && !match.es_revancha && !partidosConRevancha.has(match.id) && (() => {
+                                                                         const confirmado = match.estado === 'jugado' && match.estado_resultado === 'confirmado';
+                                                                         return (
+                                                                             <Button
+                                                                                 size="sm"
+                                                                                 variant="outline"
+                                                                                 onClick={() => handleCrearRevancha(match.id)}
+                                                                                 disabled={isPending || !confirmado}
+                                                                                 title={confirmado ? undefined : "Disponible cuando se confirme el resultado de este partido"}
+                                                                                 className={cn(
+                                                                                     "font-black text-[9px] uppercase h-7 rounded-lg",
+                                                                                     confirmado
+                                                                                         ? "bg-purple-700/10 border-purple-700/40 text-purple-700 hover:bg-purple-700/20"
+                                                                                         : "bg-paper-soft border-olive/20 text-olive/40 cursor-not-allowed"
+                                                                                 )}
+                                                                             >
+                                                                                 <Repeat className="w-2.5 h-2.5 mr-1" /> Jugar Revancha
+                                                                             </Button>
+                                                                         );
+                                                                     })()}
                                                                  </div>
                                                             </div>
                                                     )}

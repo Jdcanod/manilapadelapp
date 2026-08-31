@@ -38,6 +38,9 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
     const [nuevaCatInput, setNuevaCatInput] = useState("");
     /** Liguilla: categorías que juegan ida y vuelta (cada cruce dos veces). */
     const [idaVueltaConfig, setIdaVueltaConfig] = useState<Record<string, boolean>>({});
+    /** Liguilla: categorías donde se puede pedir revancha de un cruce ya
+     *  jugado. Independiente de ida y vuelta — una no requiere la otra. */
+    const [revanchaConfig, setRevanchaConfig] = useState<Record<string, boolean>>({});
 
     // Liguilla: bono de nivel (0-5) por posición al terminar cada categoría.
     const [bonoNivelActivo, setBonoNivelActivo] = useState<boolean>(false);
@@ -545,6 +548,39 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
                                                         onCheckedChange={(v) => setIdaVueltaConfig(prev => ({ ...prev, [cat]: !!v }))}
                                                         name={`liga_ida_vuelta_${cat}`}
                                                         className="border-olive/30 data-[state=checked]:bg-olive data-[state=checked]:text-black"
+                                                    />
+                                                    <span className="text-ink">{cat}</span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                    <p className="text-[10px] text-olive/50">
+                                        Puedes activarlo o desactivarlo después, incluso con el torneo ya iniciado.
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Revancha — solo Liguilla, independiente de ida y vuelta */}
+                            {esLiguilla && selectedCats.length > 0 && (
+                                <div className="mt-4 pt-4 border-t border-olive/20 space-y-2">
+                                    <p className="text-[10px] font-black text-olive uppercase tracking-widest">
+                                        ¿Permitir revancha? (partido extra contra el mismo rival, vale la mitad de puntos)
+                                    </p>
+                                    <p className="text-[10px] text-olive/50">
+                                        Es independiente de ida y vuelta: una categoría puede tener revancha sin jugar
+                                        ida y vuelta, y viceversa. La revancha siempre la pide el club después de que
+                                        el cruce original ya se jugó y se confirmó el resultado.
+                                    </p>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                        {selectedCats.map(cat => {
+                                            const activo = revanchaConfig[cat] ?? false;
+                                            return (
+                                                <label key={cat} className="flex items-center gap-2 text-sm cursor-pointer">
+                                                    <Checkbox
+                                                        checked={activo}
+                                                        onCheckedChange={(v) => setRevanchaConfig(prev => ({ ...prev, [cat]: !!v }))}
+                                                        name={`liga_revancha_${cat}`}
+                                                        className="border-olive/30 data-[state=checked]:bg-purple-700 data-[state=checked]:text-white"
                                                     />
                                                     <span className="text-ink">{cat}</span>
                                                 </label>

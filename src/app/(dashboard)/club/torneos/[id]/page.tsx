@@ -760,6 +760,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         setsCantidad={torneo.reglas_puntuacion?.sets}
                         ordenGrupos={torneo.reglas_puntuacion?.orden_grupos || {}}
                         idaVueltaConfig={torneo.reglas_puntuacion?.liga_ida_vuelta_config || {}}
+                        revanchaConfig={torneo.reglas_puntuacion?.liga_revancha_config || {}}
                         ligaClasificacionConfig={torneo.reglas_puntuacion?.liga_clasificacion_config || {}}
                         parejasEliminadas={parejasEliminadasSet}
                         corteConfig={torneo.reglas_puntuacion?.liga_corte_config || null}

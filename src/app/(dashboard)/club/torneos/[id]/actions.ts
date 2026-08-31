@@ -668,6 +668,60 @@ export async function actualizarIdaVueltaCategoria(torneoId: string, categoria: 
     }
 }
 
+/**
+ * Activa/desactiva si una categoría puede pedir revancha. A diferencia de
+ * ida y vuelta, no crea ningún partido — solo habilita el botón "Jugar
+ * Revancha" sobre cruces ya jugados y confirmados. Independiente de ida y
+ * vuelta: no requiere que la categoría también la tenga activada.
+ */
+export async function actualizarRevanchaCategoria(torneoId: string, categoria: string, activar: boolean) {
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "No autenticado" };
+
+        const admin = createPureAdminClient();
+        const { data: me } = await admin.from('users').select('id, rol').eq('auth_id', user.id).single();
+        if (!me || (me.rol !== 'admin_club' && me.rol !== 'superadmin')) {
+            return { success: false, message: "Sin permisos" };
+        }
+
+        const { data: torneo } = await admin
+            .from('torneos')
+            .select('club_id, formato, reglas_puntuacion')
+            .eq('id', torneoId)
+            .single();
+        if (!torneo) return { success: false, message: "Torneo no encontrado" };
+        if (torneo.formato !== 'liguilla') return { success: false, message: "Solo aplica a torneos tipo liguilla" };
+        if (String(torneo.club_id) !== String(me.id) && me.rol !== 'superadmin') {
+            return { success: false, message: "Solo el dueño del torneo puede cambiar esta configuración" };
+        }
+
+        const nuevaConfig = {
+            ...(torneo.reglas_puntuacion || {}),
+            liga_revancha_config: {
+                ...(torneo.reglas_puntuacion?.liga_revancha_config || {}),
+                [categoria]: activar,
+            },
+        };
+        const { error: errUpdate } = await admin
+            .from('torneos')
+            .update({ reglas_puntuacion: nuevaConfig })
+            .eq('id', torneoId);
+        if (errUpdate) return { success: false, message: "Error guardando configuración: " + errUpdate.message };
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        revalidatePath(`/torneos/${torneoId}`);
+        return {
+            success: true,
+            message: activar ? "Revancha activada para esta categoría." : "Revancha desactivada para esta categoría.",
+        };
+    } catch (err: unknown) {
+        const e = err as Error;
+        return { success: false, message: e.message || "Error desconocido" };
+    }
+}
+
 export async function swapParejasDeGrupo(torneoId: string, categoria: string, parejaId1: string, parejaId2: string) {
     try {
         const supabaseAdmin = createSupabaseClient(
@@ -2781,11 +2835,15 @@ export async function crearRevancha(matchId: string) {
             return { success: false, message: "El partido original no tiene las dos parejas asignadas" };
         }
 
-        const { data: torneo } = await admin.from('torneos').select('club_id, formato').eq('id', original.torneo_id).single();
+        const { data: torneo } = await admin.from('torneos').select('club_id, formato, reglas_puntuacion').eq('id', original.torneo_id).single();
         if (!torneo) return { success: false, message: "Torneo no encontrado" };
         if (torneo.formato !== 'liguilla') return { success: false, message: "Las revanchas solo aplican en torneos tipo liguilla" };
         if (String(torneo.club_id) !== String(me.id) && me.rol !== 'superadmin') {
             return { success: false, message: "Solo el dueño del torneo puede crear una revancha" };
+        }
+        const revanchaHabilitada = !!(original.nivel && torneo.reglas_puntuacion?.liga_revancha_config?.[original.nivel]);
+        if (!revanchaHabilitada) {
+            return { success: false, message: `La revancha no está habilitada para la categoría ${original.nivel || ''}` };
         }
 
         const { data: existente } = await admin

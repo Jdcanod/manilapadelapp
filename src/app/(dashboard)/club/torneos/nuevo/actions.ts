@@ -110,11 +110,16 @@ export async function crearTorneoCentral(formData: FormData) {
             }
             // Liguilla: qué categorías juegan ida y vuelta (checkbox ausente = no marcado).
             const ligaIdaVueltaConfig: Record<string, boolean> = {};
+            // Liguilla: qué categorías permiten pedir revancha de un cruce ya jugado.
+            // Independiente de ida y vuelta — una categoría puede tener revancha
+            // habilitada sin jugar ida y vuelta, y viceversa.
+            const ligaRevanchaConfig: Record<string, boolean> = {};
             if (formato === 'liguilla') {
                 categoriasSeleccionadas.forEach(cat => {
                     // Checkbox no marcado no se incluye en el FormData (comportamiento
                     // estándar de HTML) — presencia = activado, sin importar el valor.
                     ligaIdaVueltaConfig[cat] = formData.has(`liga_ida_vuelta_${cat}`);
+                    ligaRevanchaConfig[cat] = formData.has(`liga_revancha_${cat}`);
                 });
             }
 
@@ -149,6 +154,7 @@ export async function crearTorneoCentral(formData: FormData) {
                 config_canchas: parseInt(formData.get("config_canchas") as string) || 1,
                 ...(formato === 'liguilla' ? {
                     liga_ida_vuelta_config: ligaIdaVueltaConfig,
+                    liga_revancha_config: ligaRevanchaConfig,
                     liga_clasificacion_config: ligaClasificacionConfig,
                     ...(ligaCorteConfig ? { liga_corte_config: ligaCorteConfig } : {}),
                     ...(ligaBonoNivelConfig ? { liga_bono_nivel_config: ligaBonoNivelConfig } : {}),

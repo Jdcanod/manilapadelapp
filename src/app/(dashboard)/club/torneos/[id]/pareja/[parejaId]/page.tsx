@@ -51,10 +51,11 @@ export default async function ParejaHistorialPage({ params }: { params: { id: st
 
     // ─── Torneo actual (para saber si el visitante es el dueño y si es liguilla) ──
     const { data: torneoActual } = await adminSupabase
-        .from('torneos').select('id, nombre, club_id, formato').eq('id', params.id).single();
+        .from('torneos').select('id, nombre, club_id, formato, reglas_puntuacion').eq('id', params.id).single();
     if (!torneoActual) notFound();
     const esDuenoDelTorneo = String(torneoActual.club_id) === String(adminUser.id);
     const esLiguilla = torneoActual.formato === 'liguilla';
+    const revanchaConfigPorCategoria = (torneoActual.reglas_puntuacion?.liga_revancha_config || {}) as Record<string, boolean>;
 
     // ─── Pareja ─────────────────────────────────────────────────────────────────
     const { data: pareja } = await adminSupabase
@@ -129,7 +130,8 @@ export default async function ParejaHistorialPage({ params }: { params: { id: st
             && m.torneo_id === params.id
             && !m.es_revancha
             && m.estado === 'jugado' && m.estado_resultado === 'confirmado'
-            && !partidosConRevancha.has(m.id);
+            && !partidosConRevancha.has(m.id)
+            && !!(m.nivel && revanchaConfigPorCategoria[m.nivel]);
 
         return (
             <div key={m.id} className="flex items-center gap-4 px-4 py-3 border-b border-olive/10 last:border-0">
