@@ -7,7 +7,7 @@ import { calculateStandings } from "@/lib/tournaments/standings";
 import { calcularRequeridosPorPareja, calcularClasificados } from "@/lib/tournaments/clasificacion";
 import { getOrCreateInvitado } from "@/lib/invitados";
 import { requireClubOwnership } from "@/lib/auth/clubOwnership";
-import { formatPlayerName } from "@/lib/display-names";
+import { formatPlayerName, isGuestEmail } from "@/lib/display-names";
 import { revalidatePath } from "next/cache";
 import { format } from "date-fns";
 
@@ -1092,7 +1092,15 @@ export async function registrarResultadoPorClub(matchId: string, resultado: stri
     }
 }
 
-export async function obtenerTodosJugadores() {
+/**
+ * Lista de jugadores para los selectores de inscripción manual / cambio de
+ * pareja. Si se pasa `torneoId`, además de la categoría sugerida se marca
+ * `esDelClub` (jugó alguna vez en un torneo de ESE club, según sus parejas
+ * inscritas) para que el frontend pueda mostrar por defecto solo los
+ * jugadores del club dueño del torneo, con la opción de buscar en otros
+ * clubes. `esInvitado` permite ocultar invitados por defecto también.
+ */
+export async function obtenerTodosJugadores(torneoId?: string) {
     const supabase = createClient();
     const { data } = await supabase
         .from('users')
@@ -1103,31 +1111,36 @@ export async function obtenerTodosJugadores() {
         .limit(1000);
 
     const jugadores = data || [];
-    if (jugadores.length === 0) return jugadores.map(j => ({ ...j, categoriaSugerida: null as string | null }));
+    if (jugadores.length === 0) {
+        return jugadores.map(j => ({ ...j, categoriaSugerida: null as string | null, esInvitado: false, esDelClub: false }));
+    }
 
     // Categoría sugerida por jugador = categoría de su inscripción más
-    // reciente en torneo_parejas (cualquier club), para poder pre-filtrar
-    // la lista al inscribir manualmente.
-    const jugadorIds = jugadores.map(j => j.id);
+    // reciente en torneo_parejas (cualquier club), para poder pre-filtrar la
+    // lista al inscribir manualmente. IMPORTANTE: no filtramos `parejas` con
+    // `.in('jugador1_id', jugadorIds)` — con cientos de usuarios esa lista
+    // de IDs desborda el límite de headers HTTP (~16KB) y la consulta falla
+    // en silencio (Supabase no lanza error, devuelve `data: null`). En vez
+    // de eso partimos de `torneo_parejas` (tabla pequeña) y de ahí sacamos
+    // solo las parejas que realmente están inscritas en algún torneo.
     const admin = createPureAdminClient();
 
     interface ParejaRow { id: string; jugador1_id: string | null; jugador2_id: string | null; }
-    const [{ data: parejasComoJ1 }, { data: parejasComoJ2 }, { data: torneos }] = await Promise.all([
-        admin.from('parejas').select('id, jugador1_id, jugador2_id').in('jugador1_id', jugadorIds),
-        admin.from('parejas').select('id, jugador1_id, jugador2_id').in('jugador2_id', jugadorIds),
-        admin.from('torneos').select('id, fecha_inicio'),
+    const [{ data: torneoParejas }, { data: torneos }] = await Promise.all([
+        admin.from('torneo_parejas').select('pareja_id, categoria, torneo_id'),
+        admin.from('torneos').select('id, fecha_inicio, club_id'),
     ]);
-    const parejasRows = Array.from(
-        new Map([...(parejasComoJ1 || []), ...(parejasComoJ2 || [])].map((p: ParejaRow) => [p.id, p])).values()
-    );
-    const parejaIds = parejasRows.map(p => p.id);
-    const torneoFechaMap = new Map(((torneos || []) as { id: string; fecha_inicio: string | null }[]).map(t => [t.id, t.fecha_inicio]));
+    type TorneoRow = { id: string; fecha_inicio: string | null; club_id: string | null };
+    const torneoFechaMap = new Map(((torneos || []) as TorneoRow[]).map(t => [t.id, t.fecha_inicio]));
 
-    const { data: torneoParejas } = parejaIds.length > 0
-        ? await admin.from('torneo_parejas').select('pareja_id, categoria, torneo_id').in('pareja_id', parejaIds)
-        : { data: [] as { pareja_id: string; categoria: string | null; torneo_id: string }[] };
+    const parejaIdsInscritas = Array.from(new Set((torneoParejas || []).map((tp: { pareja_id: string }) => tp.pareja_id)));
+    let parejasRows: ParejaRow[] = [];
+    if (parejaIdsInscritas.length > 0) {
+        const { data } = await admin.from('parejas').select('id, jugador1_id, jugador2_id').in('id', parejaIdsInscritas);
+        parejasRows = data || [];
+    }
 
-    const parejaMap = new Map(parejasRows.map(p => [p.id, p]));
+    const parejaMap = new Map(parejasRows.map((p: ParejaRow) => [p.id, p]));
     const masReciente = new Map<string, { categoria: string; fecha: number }>();
     (torneoParejas || []).forEach((tp: { pareja_id: string; categoria: string | null; torneo_id: string }) => {
         if (!tp.categoria) return;
@@ -1144,7 +1157,31 @@ export async function obtenerTodosJugadores() {
         });
     });
 
-    return jugadores.map(j => ({ ...j, categoriaSugerida: masReciente.get(j.id)?.categoria ?? null }));
+    // Jugadores "del club" dueño de ESTE torneo: aparecen en torneo_parejas
+    // de algún torneo con el mismo club_id.
+    const clubJugadorIds = new Set<string>();
+    if (torneoId) {
+        const clubIdDelTorneo = ((torneos || []) as TorneoRow[]).find(t => t.id === torneoId)?.club_id;
+        if (clubIdDelTorneo) {
+            const torneoIdsDelClub = new Set(
+                ((torneos || []) as TorneoRow[]).filter(t => t.club_id === clubIdDelTorneo).map(t => t.id)
+            );
+            (torneoParejas || []).forEach((tp: { pareja_id: string; torneo_id: string }) => {
+                if (!torneoIdsDelClub.has(tp.torneo_id)) return;
+                const pareja = parejaMap.get(tp.pareja_id);
+                if (!pareja) return;
+                if (pareja.jugador1_id) clubJugadorIds.add(pareja.jugador1_id);
+                if (pareja.jugador2_id) clubJugadorIds.add(pareja.jugador2_id);
+            });
+        }
+    }
+
+    return jugadores.map(j => ({
+        ...j,
+        categoriaSugerida: masReciente.get(j.id)?.categoria ?? null,
+        esInvitado: isGuestEmail(j.email),
+        esDelClub: torneoId ? clubJugadorIds.has(j.id) : false,
+    }));
 }
 
 export async function eliminarInscripcion(id: string, tipo: 'master' | 'regular', torneoId: string) {

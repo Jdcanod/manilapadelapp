@@ -25,6 +25,8 @@ interface User {
     apellido?: string | null;
     email: string;
     categoriaSugerida?: string | null;
+    esInvitado?: boolean;
+    esDelClub?: boolean;
 }
 
 export function AddTournamentPlayerModal({ torneoId, categorias, esMaster, hasStarted = false }: AddTournamentPlayerModalProps) {
@@ -33,11 +35,17 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster, hasSt
     const router = useRouter();
 
     const [allUsers, setAllUsers] = useState<User[]>([]);
-    
+
     // Cargar todos los jugadores al montar
     useEffect(() => {
-        obtenerTodosJugadores().then(setAllUsers);
-    }, []);
+        obtenerTodosJugadores(torneoId).then(setAllUsers);
+    }, [torneoId]);
+
+    // Por defecto solo se muestran jugadores REALES (no invitados) del club
+    // dueño de este torneo. Ambos filtros se pueden desactivar para buscar
+    // invitados existentes o jugadores de otros clubes.
+    const [soloClub, setSoloClub] = useState(true);
+    const [incluirInvitados, setIncluirInvitados] = useState(false);
 
     const [selectedJ1Id, setSelectedJ1Id] = useState<string>("");
     const [selectedJ2Id, setSelectedJ2Id] = useState<string>("");
@@ -65,9 +73,12 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster, hasSt
     }, [allUsers]);
 
     const usersParaSeleccionar = useMemo(() => {
-        if (!filtrarPorCategoria) return sortedUsers;
-        return sortedUsers.filter(u => u.categoriaSugerida === categoria);
-    }, [sortedUsers, filtrarPorCategoria, categoria]);
+        let list = sortedUsers;
+        if (!incluirInvitados) list = list.filter(u => !u.esInvitado);
+        if (soloClub) list = list.filter(u => u.esDelClub);
+        if (filtrarPorCategoria) list = list.filter(u => u.categoriaSugerida === categoria);
+        return list;
+    }, [sortedUsers, filtrarPorCategoria, categoria, soloClub, incluirInvitados]);
 
     const checkDisabled = () => {
         if (isPending) return true;
@@ -159,6 +170,24 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster, hasSt
                             />
                             Filtrar jugadores por esta categoría (según su última inscripción)
                         </label>
+                        <label className="flex items-center gap-2 text-xs text-olive cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={soloClub}
+                                onChange={(e) => setSoloClub(e.target.checked)}
+                                className="rounded border-olive/30 bg-paper-soft text-olive focus:ring-olive"
+                            />
+                            Solo jugadores de este club (desmarca para buscar en todos los clubes)
+                        </label>
+                        <label className="flex items-center gap-2 text-xs text-olive cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={incluirInvitados}
+                                onChange={(e) => setIncluirInvitados(e.target.checked)}
+                                className="rounded border-olive/30 bg-paper-soft text-olive focus:ring-olive"
+                            />
+                            Incluir invitados existentes en la lista
+                        </label>
                     </div>
 
                     {/* Jugador 1 */}
@@ -193,7 +222,7 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster, hasSt
                                     ))}
                                     {usersParaSeleccionar.length === 0 && (
                                         <SelectItem value="disabled" disabled>
-                                            {sortedUsers.length === 0 ? "Cargando jugadores..." : "Sin jugadores en esta categoría — quita el filtro para buscar en todos"}
+                                            {sortedUsers.length === 0 ? "Cargando jugadores..." : "Sin resultados — prueba quitando alguno de los filtros de arriba"}
                                         </SelectItem>
                                     )}
                                 </SelectContent>
@@ -233,7 +262,7 @@ export function AddTournamentPlayerModal({ torneoId, categorias, esMaster, hasSt
                                     ))}
                                     {usersParaSeleccionar.length === 0 && (
                                         <SelectItem value="disabled" disabled>
-                                            {sortedUsers.length === 0 ? "Cargando jugadores..." : "Sin jugadores en esta categoría — quita el filtro para buscar en todos"}
+                                            {sortedUsers.length === 0 ? "Cargando jugadores..." : "Sin resultados — prueba quitando alguno de los filtros de arriba"}
                                         </SelectItem>
                                     )}
                                 </SelectContent>

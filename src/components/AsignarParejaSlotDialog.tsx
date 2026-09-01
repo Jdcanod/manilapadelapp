@@ -48,11 +48,13 @@ function JugadorAutocomplete({
     placeholder,
     value,
     onChange,
+    torneoId,
 }: {
     label: string;
     placeholder: string;
     value: JugadorSlot;
     onChange: (s: JugadorSlot) => void;
+    torneoId: string;
 }) {
     const initialText = value
         ? (value.type === "user" ? formatPlayerNameFull(value.jugador) : value.nombre)
@@ -61,6 +63,8 @@ function JugadorAutocomplete({
     const [results, setResults] = useState<JugadorLite[]>([]);
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
+    const [soloClub, setSoloClub] = useState(true);
+    const [incluirInvitados, setIncluirInvitados] = useState(false);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -91,6 +95,21 @@ function JugadorAutocomplete({
         return () => document.removeEventListener("mousedown", onDoc);
     }, []);
 
+    const runSearch = (trimmed: string) => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        if (trimmed.length < 1) {
+            setResults([]);
+            return;
+        }
+        setLoading(true);
+        debounceRef.current = setTimeout(async () => {
+            const r = await buscarJugadores(trimmed, { torneoId, incluirInvitados });
+            setResults(soloClub ? r.filter(j => j.esDelClub) : r);
+            setLoading(false);
+            setOpen(true);
+        }, 200);
+    };
+
     const handleTextChange = (v: string) => {
         setText(v);
         // Mientras editan, el valor es "manual" con lo que vayan escribiendo
@@ -101,19 +120,15 @@ function JugadorAutocomplete({
             onChange({ type: "manual", nombre: trimmed });
         }
         // Buscar candidatos
-        if (debounceRef.current) clearTimeout(debounceRef.current);
-        if (trimmed.length < 1) {
-            setResults([]);
-            return;
-        }
-        setLoading(true);
-        debounceRef.current = setTimeout(async () => {
-            const r = await buscarJugadores(trimmed);
-            setResults(r);
-            setLoading(false);
-            setOpen(true);
-        }, 200);
+        runSearch(trimmed);
     };
+
+    // Re-buscar cuando cambian los filtros, con el texto actual.
+    useEffect(() => {
+        const trimmed = text.trim();
+        if (trimmed.length >= 1) runSearch(trimmed);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [soloClub, incluirInvitados]);
 
     const handleSelectUser = (j: JugadorLite) => {
         onChange({ type: "user", jugador: j });
@@ -151,6 +166,17 @@ function JugadorAutocomplete({
                         <X className="w-3.5 h-3.5" />
                     </button>
                 )}
+            </div>
+
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
+                <label className="flex items-center gap-1.5 text-[10px] text-olive/70 cursor-pointer hover:text-ink transition-colors">
+                    <input type="checkbox" checked={soloClub} onChange={(e) => setSoloClub(e.target.checked)} className="rounded border-olive/20 bg-paper-soft text-olive focus:ring-olive" />
+                    Solo este club
+                </label>
+                <label className="flex items-center gap-1.5 text-[10px] text-olive/70 cursor-pointer hover:text-ink transition-colors">
+                    <input type="checkbox" checked={incluirInvitados} onChange={(e) => setIncluirInvitados(e.target.checked)} className="rounded border-olive/20 bg-paper-soft text-olive focus:ring-olive" />
+                    Incluir invitados
+                </label>
             </div>
 
             {/* Estado seleccionado */}
@@ -495,12 +521,14 @@ export function AsignarParejaSlotDialog({
                                 placeholder="Busca o escribe Nombre Apellido…"
                                 value={jugador1}
                                 onChange={setJugador1}
+                                torneoId={torneoId}
                             />
                             <JugadorAutocomplete
                                 label="Jugador 2"
                                 placeholder="Busca o escribe Nombre Apellido…"
                                 value={jugador2}
                                 onChange={setJugador2}
+                                torneoId={torneoId}
                             />
                             <p className="text-[10px] text-olive/70 leading-snug">
                                 Puedes mezclar usuarios <span className="text-olive font-bold">registrados</span> con

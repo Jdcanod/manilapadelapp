@@ -3,7 +3,7 @@
 import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { getOrCreateInvitado } from "@/lib/invitados";
 import { TBD_PREFIX, esParejaPlaceholder, type JugadorLite, type ParejaCatalogoEntry } from "@/lib/tbd";
-import { coincideBusqueda, formatPlayerName } from "@/lib/display-names";
+import { coincideBusqueda, formatPlayerName, isGuestEmail } from "@/lib/display-names";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -415,13 +415,28 @@ export async function listarParejasCatalogo(torneoId: string): Promise<ParejaCat
  * o "niño jose" encuentran igual a "José Niño". Ejemplo: "juan cano" →
  * encuentra al jugador {nombre:"Juan David", apellido:"Cano"}.
  *
- * Devuelve hasta 20 resultados, mezclando registrados e invitados existentes.
+ * Por defecto solo devuelve jugadores REALES (no invitados) — pasar
+ * `incluirInvitados: true` para buscar también entre invitados existentes.
+ * Si se pasa `torneoId`, cada resultado trae `esDelClub` (jugó alguna vez en
+ * un torneo del club dueño de ESE torneo) para que el frontend pueda
+ * priorizar/filtrar por club sin necesidad de otra consulta.
+ *
+ * Devuelve hasta 20 resultados.
  */
-export async function buscarJugadores(query: string): Promise<JugadorLite[]> {
+export async function buscarJugadores(
+    query: string,
+    opts?: { torneoId?: string; incluirInvitados?: boolean }
+): Promise<JugadorLite[]> {
     const q = (query || "").trim();
     if (q.length < 1) return [];
 
     const admin = createPureAdminClient();
+
+    let clubId: string | null = null;
+    if (opts?.torneoId) {
+        const { data: torneo } = await admin.from("torneos").select("club_id").eq("id", opts.torneoId).maybeSingle();
+        clubId = torneo?.club_id || null;
+    }
 
     // ILIKE de Postgres no ignora tildes (Niño vs nino no matchean), así que
     // traemos todos los jugadores y filtramos en memoria con texto
@@ -439,11 +454,58 @@ export async function buscarJugadores(query: string): Promise<JugadorLite[]> {
         return [];
     }
 
-    const filtrado = (data || []).filter((j: JugadorLite) =>
+    let filtrado = (data || []).filter((j: JugadorLite) =>
         coincideBusqueda(`${j.nombre || ""} ${j.apellido || ""}`, q)
     );
 
-    return filtrado.slice(0, 20) as JugadorLite[];
+    if (!opts?.incluirInvitados) {
+        filtrado = filtrado.filter((j: JugadorLite) => !isGuestEmail(j.email));
+    }
+
+    // Nota: NO filtramos `parejas` con `.in('jugador1_id', jugadorIds)` a
+    // partir de los resultados de búsqueda — para queries de un par de
+    // letras `filtrado` puede tener cientos de coincidencias y esa lista de
+    // IDs desborda el límite de headers HTTP (~16KB), fallando en silencio.
+    // En vez de eso partimos de los torneos del club (tabla pequeña) hacia
+    // `torneo_parejas` y de ahí a `parejas` — todo acotado al club.
+    let clubJugadorIds: Set<string> | null = null;
+    if (clubId) {
+        const { data: torneosClub } = await admin.from("torneos").select("id").eq("club_id", clubId);
+        const torneoIdsDelClub = (torneosClub || []).map((t: { id: string }) => t.id);
+        clubJugadorIds = new Set<string>();
+        if (torneoIdsDelClub.length > 0) {
+            const { data: torneoParejas } = await admin
+                .from("torneo_parejas")
+                .select("pareja_id")
+                .in("torneo_id", torneoIdsDelClub);
+            const parejaIds = Array.from(new Set((torneoParejas || []).map((tp: { pareja_id: string }) => tp.pareja_id)));
+            if (parejaIds.length > 0) {
+                const { data: parejasClub } = await admin
+                    .from("parejas")
+                    .select("jugador1_id, jugador2_id")
+                    .in("id", parejaIds);
+                (parejasClub || []).forEach((p: { jugador1_id: string | null; jugador2_id: string | null }) => {
+                    if (p.jugador1_id) clubJugadorIds!.add(p.jugador1_id);
+                    if (p.jugador2_id) clubJugadorIds!.add(p.jugador2_id);
+                });
+            }
+        }
+    }
+
+    const conFlags = filtrado.map((j: JugadorLite) => ({
+        ...j,
+        esInvitado: isGuestEmail(j.email),
+        esDelClub: clubJugadorIds ? clubJugadorIds.has(j.id) : false,
+    }));
+
+    // Jugadores del club dueño de la búsqueda primero, para que si el
+    // frontend filtra "solo este club" del lado cliente, no se quede vacío
+    // por haber cortado el top-20 con gente de otros clubes.
+    if (clubJugadorIds) {
+        conFlags.sort((a: JugadorLite, b: JugadorLite) => Number(b.esDelClub) - Number(a.esDelClub));
+    }
+
+    return conFlags.slice(0, 20) as JugadorLite[];
 }
 
 /**

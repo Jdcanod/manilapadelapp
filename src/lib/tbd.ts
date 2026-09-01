@@ -20,6 +20,10 @@ export interface JugadorLite {
     email: string | null;
     /** Categoría del jugador en su perfil (cuando se registró). Puede ser null. */
     categoria?: string | null;
+    /** true si es un invitado (no registrado) — ver isGuestEmail. */
+    esInvitado?: boolean;
+    /** true si jugó alguna vez en un torneo del club dueño de la búsqueda. */
+    esDelClub?: boolean;
 }
 
 export interface ParejaCatalogoEntry {

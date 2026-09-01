@@ -16,6 +16,8 @@ interface User {
     nombre: string;
     apellido?: string | null;
     email: string;
+    esInvitado?: boolean;
+    esDelClub?: boolean;
 }
 
 interface AdminParticipantActionsProps {
@@ -34,7 +36,7 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
     const router = useRouter();
     const [editOpen, setEditOpen] = useState(false);
     const [allUsers, setAllUsers] = useState<User[]>([]);
-    
+
     // Estado para edición
     const [selectedJ1, setSelectedJ1] = useState(j1Id || "");
     const [selectedJ2, setSelectedJ2] = useState(j2Id || "");
@@ -44,11 +46,22 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
     const [j2Name, setJ2Name] = useState("");
     const [error, setError] = useState<string | null>(null);
 
+    // Por defecto solo jugadores REALES (no invitados) del club dueño del
+    // torneo. Se pueden desactivar para buscar invitados u otros clubes.
+    const [soloClub, setSoloClub] = useState(true);
+    const [incluirInvitados, setIncluirInvitados] = useState(false);
+
     useEffect(() => {
         if (editOpen && allUsers.length === 0) {
-            obtenerTodosJugadores().then(setAllUsers);
+            obtenerTodosJugadores(torneoId).then(setAllUsers);
         }
-    }, [editOpen, allUsers.length]);
+    }, [editOpen, allUsers.length, torneoId]);
+
+    const usersParaSeleccionar = allUsers.filter(u => {
+        if (!incluirInvitados && u.esInvitado) return false;
+        if (soloClub && !u.esDelClub) return false;
+        return true;
+    });
 
     const handleTogglePago = () => {
         const nuevoEstado = estadoPago === 'pagado' ? 'pendiente' : 'pagado';
@@ -151,6 +164,17 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                             </p>
                         </div>
 
+                        <div className="flex flex-col gap-1.5 px-1">
+                            <label className="flex items-center gap-2 text-[10px] text-olive/70 cursor-pointer hover:text-ink transition-colors">
+                                <input type="checkbox" checked={soloClub} onChange={(e) => setSoloClub(e.target.checked)} className="rounded border-olive/20 bg-paper-soft text-olive focus:ring-olive" />
+                                Solo jugadores de este club (desmarca para buscar en todos los clubes)
+                            </label>
+                            <label className="flex items-center gap-2 text-[10px] text-olive/70 cursor-pointer hover:text-ink transition-colors">
+                                <input type="checkbox" checked={incluirInvitados} onChange={(e) => setIncluirInvitados(e.target.checked)} className="rounded border-olive/20 bg-paper-soft text-olive focus:ring-olive" />
+                                Incluir invitados existentes en la lista
+                            </label>
+                        </div>
+
                         <div className="space-y-4">
                             {/* Jugador 1 */}
                             <div className="space-y-2">
@@ -174,7 +198,7 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                                             <SelectValue placeholder="Seleccionar jugador" />
                                         </SelectTrigger>
                                         <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[300px]">
-                                            {allUsers.map(u => {
+                                            {usersParaSeleccionar.map(u => {
                                                 const inv = isGuestEmail(u.email);
                                                 return (
                                                     <SelectItem key={u.id} value={u.id} className="focus:bg-ochre/10 focus:text-ochre-dark">
@@ -189,6 +213,11 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                                                     </SelectItem>
                                                 );
                                             })}
+                                            {usersParaSeleccionar.length === 0 && (
+                                                <SelectItem value="disabled" disabled>
+                                                    {allUsers.length === 0 ? "Cargando jugadores..." : "Sin resultados — prueba quitando alguno de los filtros de arriba"}
+                                                </SelectItem>
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 )}
@@ -216,7 +245,7 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                                             <SelectValue placeholder="Seleccionar jugador" />
                                         </SelectTrigger>
                                         <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[300px]">
-                                            {allUsers.map(u => {
+                                            {usersParaSeleccionar.map(u => {
                                                 const inv = isGuestEmail(u.email);
                                                 return (
                                                     <SelectItem key={u.id} value={u.id} className="focus:bg-ochre/10 focus:text-ochre-dark">
@@ -231,6 +260,11 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                                                     </SelectItem>
                                                 );
                                             })}
+                                            {usersParaSeleccionar.length === 0 && (
+                                                <SelectItem value="disabled" disabled>
+                                                    {allUsers.length === 0 ? "Cargando jugadores..." : "Sin resultados — prueba quitando alguno de los filtros de arriba"}
+                                                </SelectItem>
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 )}
