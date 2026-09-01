@@ -3,6 +3,7 @@
 import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { formatPlayerName } from "@/lib/display-names";
 
 export async function crearParejaAction(formData: FormData) {
     const supabase = createClient();
@@ -33,7 +34,7 @@ export async function crearParejaAction(formData: FormData) {
     // Buscar info extendida de jugador 1 y jugador 2
     const { data: usersInfo } = await supabase
         .from("users")
-        .select("id, elo, nombre")
+        .select("id, elo, nombre, apellido, email")
         .in("id", [dbUser.id, jugador2_id]);
 
     const u1 = usersInfo?.find(u => u.id === dbUser.id);
@@ -43,7 +44,7 @@ export async function crearParejaAction(formData: FormData) {
     const elo2 = u2?.elo || 1450;
     const initialEloPair = Math.round((elo1 + elo2) / 2);
 
-    const autoNombrePareja = `${u1?.nombre?.split(' ')[0] || 'Jugador'} & ${u2?.nombre?.split(' ')[0] || 'Jugador'}`;
+    const autoNombrePareja = `${formatPlayerName(u1)} / ${formatPlayerName(u2)}`;
 
     // Insertar la nueva pareja en la base de datos. Se crea INACTIVA a
     // propósito — un jugador solo puede tener una pareja activa a la vez

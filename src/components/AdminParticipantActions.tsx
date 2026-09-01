@@ -82,6 +82,8 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                 if (res.success) {
                     setEditOpen(false);
                     router.refresh();
+                } else {
+                    setError(res.message || "Error al editar integrantes");
                 }
             } catch (err: unknown) {
                 setError(err instanceof Error ? err.message : "Error al editar integrantes");

@@ -779,7 +779,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                 <div className="space-y-1">
                                                     {sinProgramarFiltrado.map(p => (
                                                         <div key={p.id} className="text-xs text-ink bg-paper/60 border border-olive/10 rounded-lg px-3 py-2 flex items-center justify-between gap-2">
-                                                            <span className="truncate">{p.pareja1?.nombre_pareja || 'TBD'} <span className="text-olive/50">vs</span> {p.pareja2?.nombre_pareja || 'TBD'}</span>
+                                                            <span className="truncate">{resolvePairName(p.pareja1_id, p.pareja1?.nombre_pareja, parejaPlayers)} <span className="text-olive/50">vs</span> {resolvePairName(p.pareja2_id, p.pareja2?.nombre_pareja, parejaPlayers)}</span>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -795,7 +795,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                         .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''))
                                                         .map(p => (
                                                         <div key={p.id} className="text-xs text-ink bg-paper/60 border border-olive/10 rounded-lg px-3 py-2 flex items-center justify-between gap-2 flex-wrap">
-                                                            <span className="truncate">{p.pareja1?.nombre_pareja || 'TBD'} <span className="text-olive/50">vs</span> {p.pareja2?.nombre_pareja || 'TBD'}</span>
+                                                            <span className="truncate">{resolvePairName(p.pareja1_id, p.pareja1?.nombre_pareja, parejaPlayers)} <span className="text-olive/50">vs</span> {resolvePairName(p.pareja2_id, p.pareja2?.nombre_pareja, parejaPlayers)}</span>
                                                             <span className="text-[10px] text-olive/60 flex-shrink-0">
                                                                 {p.fecha && new Date(p.fecha).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })} · {p.lugar}
                                                             </span>
@@ -1054,7 +1054,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                 <div className="flex justify-between items-center bg-paper/50 p-3 rounded-xl border border-olive/15">
                                                                      <div className="flex flex-col gap-1.5 flex-1">
                                                                          <div className="flex justify-between items-center text-xs font-bold text-ink uppercase pr-2">
-                                                                             <span>{match.pareja1?.nombre_pareja || "TBD"}</span>
+                                                                             <span>{resolvePairName(match.pareja1_id, match.pareja1?.nombre_pareja, parejaPlayers)}</span>
                                                                             {match.resultado && (
                                                                                 <div className="flex gap-1">
                                                                                     {match.resultado.split(',').map((setStr: string, idx: number) => (
@@ -1066,7 +1066,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                             )}
                                                                         </div>
                                                                          <div className="flex justify-between items-center text-xs font-bold text-ink uppercase pr-2">
-                                                                             <span>{match.pareja2?.nombre_pareja || "TBD"}</span>
+                                                                             <span>{resolvePairName(match.pareja2_id, match.pareja2?.nombre_pareja, parejaPlayers)}</span>
                                                                             {match.resultado && (
                                                                                 <div className="flex gap-1">
                                                                                     {match.resultado.split(',').map((setStr: string, idx: number) => (
@@ -1112,8 +1112,8 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                  <div className="flex flex-col gap-2">
                                                                      <AdminTournamentResultModal
                                                                         matchId={match.id}
-                                                                        pareja1Nombre={match.pareja1?.nombre_pareja || "Pareja 1"}
-                                                                        pareja2Nombre={match.pareja2?.nombre_pareja || "Pareja 2"}
+                                                                        pareja1Nombre={resolvePairName(match.pareja1_id, match.pareja1?.nombre_pareja, parejaPlayers)}
+                                                                        pareja2Nombre={resolvePairName(match.pareja2_id, match.pareja2?.nombre_pareja, parejaPlayers)}
                                                                         initialResult={match.resultado}
                                                                         tipoDesempate={tipoDesempateActivo}
                                                                         disabled={!esLiguilla && (!match.fecha || !match.lugar)}

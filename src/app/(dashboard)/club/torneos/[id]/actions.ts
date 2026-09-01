@@ -7,6 +7,7 @@ import { calculateStandings } from "@/lib/tournaments/standings";
 import { calcularRequeridosPorPareja, calcularClasificados } from "@/lib/tournaments/clasificacion";
 import { getOrCreateInvitado } from "@/lib/invitados";
 import { requireClubOwnership } from "@/lib/auth/clubOwnership";
+import { formatPlayerName } from "@/lib/display-names";
 import { revalidatePath } from "next/cache";
 import { format } from "date-fns";
 
@@ -2874,109 +2875,113 @@ export async function actualizarEstadoPago(id: string, tipo: 'master' | 'regular
 }
 
 export async function editarParticipantesInscripcion(
-    id: string, 
-    tipo: 'master' | 'regular', 
+    id: string,
+    tipo: 'master' | 'regular',
     parejaIdOriginal: string,
-    jugador1Sel: string, 
+    jugador1Sel: string,
     jugador2Sel: string,
     torneoId: string
 ) {
-    const { admin: supabaseAdmin } = await requireClubOwnership(torneoId);
+    try {
+        const { admin: supabaseAdmin } = await requireClubOwnership(torneoId);
 
-    let j1Id = jugador1Sel;
-    let j2Id = jugador2Sel;
+        let j1Id = jugador1Sel;
+        let j2Id = jugador2Sel;
 
-    // 1. Resolver invitados reutilizando si ya existe uno con el mismo nombre.
-    if (j1Id.startsWith("manual:")) {
-        j1Id = await getOrCreateInvitado(supabaseAdmin, j1Id);
-    }
-    if (j2Id.startsWith("manual:")) {
-        j2Id = await getOrCreateInvitado(supabaseAdmin, j2Id);
-    }
+        // 1. Resolver invitados reutilizando si ya existe uno con el mismo nombre.
+        if (j1Id.startsWith("manual:")) {
+            j1Id = await getOrCreateInvitado(supabaseAdmin, j1Id);
+        }
+        if (j2Id.startsWith("manual:")) {
+            j2Id = await getOrCreateInvitado(supabaseAdmin, j2Id);
+        }
 
-    // 2. Buscar o crear la nueva pareja (para obtener su ID real)
-    const { data: players } = await supabaseAdmin
-        .from('users')
-        .select('id, nombre')
-        .in('id', [j1Id, j2Id]);
-    
-    const formatName = (fullName: string) => {
-        const parts = (fullName || '').trim().split(' ');
-        if (parts.length < 2) return fullName;
-        const firstName = parts[0];
-        const lastName = parts[parts.length - 1];
-        return `${firstName[0]}. ${lastName}`;
-    };
+        if (j1Id === j2Id) {
+            return { success: false, message: "Los dos jugadores deben ser distintos" };
+        }
 
-    const p1 = players?.find((p: { id: string; nombre: string }) => p.id === j1Id);
-    const p2 = players?.find((p: { id: string; nombre: string }) => p.id === j2Id);
-    const nuevoNombre = `${formatName(p1?.nombre || 'J1')} / ${formatName(p2?.nombre || 'J2')}`;
+        // 2. Buscar o crear la nueva pareja (para obtener su ID real)
+        const { data: players } = await supabaseAdmin
+            .from('users')
+            .select('id, nombre, apellido, email')
+            .in('id', [j1Id, j2Id]);
 
-    // Verificar si ya existe una pareja con estos integrantes
-    const { data: existingPareja } = await supabaseAdmin
-        .from('parejas')
-        .select('id')
-        .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
-        .maybeSingle();
+        interface PlayerRow { id: string; nombre: string | null; apellido: string | null; email: string | null; }
+        const p1 = (players as PlayerRow[] | null)?.find(p => p.id === j1Id);
+        const p2 = (players as PlayerRow[] | null)?.find(p => p.id === j2Id);
+        const nuevoNombre = `${formatPlayerName(p1)} / ${formatPlayerName(p2)}`;
 
-    let nuevaParejaId = existingPareja?.id;
-
-    if (!nuevaParejaId) {
-        const { data: newP, error: pErr } = await supabaseAdmin
+        // Verificar si ya existe una pareja con estos integrantes
+        const { data: existingPareja } = await supabaseAdmin
             .from('parejas')
-            .insert({
-                jugador1_id: j1Id,
-                jugador2_id: j2Id,
-                nombre_pareja: nuevoNombre
-            })
             .select('id')
-            .single();
-        if (pErr) throw new Error("Error al crear nueva pareja: " + pErr.message);
-        nuevaParejaId = newP.id;
-    } else {
-        // Actualizar el nombre por si acaso (ej. si era un formato viejo)
-        await supabaseAdmin.from('parejas').update({ nombre_pareja: nuevoNombre }).eq('id', nuevaParejaId);
+            .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
+            .maybeSingle();
+
+        let nuevaParejaId = existingPareja?.id;
+
+        if (!nuevaParejaId) {
+            const { data: newP, error: pErr } = await supabaseAdmin
+                .from('parejas')
+                .insert({
+                    jugador1_id: j1Id,
+                    jugador2_id: j2Id,
+                    nombre_pareja: nuevoNombre,
+                    activa: false,
+                })
+                .select('id')
+                .single();
+            if (pErr) return { success: false, message: "Error al crear nueva pareja: " + pErr.message };
+            nuevaParejaId = newP.id;
+        } else {
+            // Actualizar el nombre por si acaso (ej. si era un formato viejo)
+            await supabaseAdmin.from('parejas').update({ nombre_pareja: nuevoNombre }).eq('id', nuevaParejaId);
+        }
+
+        // 3. Actualizar la inscripción del torneo
+        if (tipo === 'master') {
+            const { error: insError } = await supabaseAdmin
+                .from('inscripciones_torneo')
+                .update({
+                    jugador1_id: j1Id,
+                    jugador2_id: j2Id
+                })
+                .eq('id', id);
+            if (insError) return { success: false, message: insError.message };
+        } else {
+            const { error: tpError } = await supabaseAdmin
+                .from('torneo_parejas')
+                .update({ pareja_id: nuevaParejaId })
+                .eq('id', id);
+            if (tpError) return { success: false, message: tpError.message };
+        }
+
+        // 4. ¡CRÍTICO!: Actualizar todos los partidos existentes del torneo para esta pareja
+        // Reemplazamos parejaIdOriginal por nuevaParejaId en pareja1_id
+        const { error: m1Error } = await supabaseAdmin
+            .from('partidos')
+            .update({ pareja1_id: nuevaParejaId })
+            .eq('torneo_id', torneoId)
+            .eq('pareja1_id', parejaIdOriginal);
+
+        if (m1Error) console.error("Error actualizando pareja1 en partidos:", m1Error);
+
+        // Reemplazamos parejaIdOriginal por nuevaParejaId en pareja2_id
+        const { error: m2Error } = await supabaseAdmin
+            .from('partidos')
+            .update({ pareja2_id: nuevaParejaId })
+            .eq('torneo_id', torneoId)
+            .eq('pareja2_id', parejaIdOriginal);
+
+        if (m2Error) console.error("Error actualizando pareja2 en partidos:", m2Error);
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        return { success: true };
+    } catch (err: unknown) {
+        const e = err as Error;
+        console.error("editarParticipantesInscripcion: error inesperado", e);
+        return { success: false, message: e.message || "Error desconocido" };
     }
-
-    // 3. Actualizar la inscripción del torneo
-    if (tipo === 'master') {
-        const { error: insError } = await supabaseAdmin
-            .from('inscripciones_torneo')
-            .update({ 
-                jugador1_id: j1Id, 
-                jugador2_id: j2Id
-            })
-            .eq('id', id);
-        if (insError) throw new Error(insError.message);
-    } else {
-        const { error: tpError } = await supabaseAdmin
-            .from('torneo_parejas')
-            .update({ pareja_id: nuevaParejaId })
-            .eq('id', id);
-        if (tpError) throw new Error(tpError.message);
-    }
-
-    // 4. ¡CRÍTICO!: Actualizar todos los partidos existentes del torneo para esta pareja
-    // Reemplazamos parejaIdOriginal por nuevaParejaId en pareja1_id
-    const { error: m1Error } = await supabaseAdmin
-        .from('partidos')
-        .update({ pareja1_id: nuevaParejaId })
-        .eq('torneo_id', torneoId)
-        .eq('pareja1_id', parejaIdOriginal);
-
-    if (m1Error) console.error("Error actualizando pareja1 en partidos:", m1Error);
-
-    // Reemplazamos parejaIdOriginal por nuevaParejaId en pareja2_id
-    const { error: m2Error } = await supabaseAdmin
-        .from('partidos')
-        .update({ pareja2_id: nuevaParejaId })
-        .eq('torneo_id', torneoId)
-        .eq('pareja2_id', parejaIdOriginal);
-
-    if (m2Error) console.error("Error actualizando pareja2 en partidos:", m2Error);
-
-    revalidatePath(`/club/torneos/${torneoId}`);
-    return { success: true };
 }
 
 /**

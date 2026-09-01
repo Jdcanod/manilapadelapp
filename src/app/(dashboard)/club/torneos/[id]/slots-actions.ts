@@ -3,7 +3,7 @@
 import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { getOrCreateInvitado } from "@/lib/invitados";
 import { TBD_PREFIX, esParejaPlaceholder, type JugadorLite, type ParejaCatalogoEntry } from "@/lib/tbd";
-import { coincideBusqueda } from "@/lib/display-names";
+import { coincideBusqueda, formatPlayerName } from "@/lib/display-names";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -237,19 +237,12 @@ export async function asignarParejaASlot({
                 await admin.from("parejas").update({ activa: false }).in("jugador1_id", [j1Id, j2Id]);
                 await admin.from("parejas").update({ activa: false }).in("jugador2_id", [j1Id, j2Id]);
 
-                // Crear pareja real con nombre corto
+                // Crear pareja real con el nombre estándar "Nombre PrimerApellido"
                 const { data: jugadores } = await admin
-                    .from("users").select("id, nombre, apellido").in("id", [j1Id, j2Id]);
-                const nombreCorto = (u?: { nombre?: string | null; apellido?: string | null }) => {
-                    if (!u) return "?";
-                    const n = (u.nombre || "").trim();
-                    const a = (u.apellido || "").trim();
-                    if (n && a) return `${n.charAt(0).toUpperCase()}. ${a.split(/\s+/)[0]}`;
-                    return n || "?";
-                };
+                    .from("users").select("id, nombre, apellido, email").in("id", [j1Id, j2Id]);
                 const u1 = (jugadores || []).find((u: { id: string }) => u.id === j1Id);
                 const u2 = (jugadores || []).find((u: { id: string }) => u.id === j2Id);
-                const nombrePareja = `${nombreCorto(u1)} / ${nombreCorto(u2)}`;
+                const nombrePareja = `${formatPlayerName(u1)} / ${formatPlayerName(u2)}`;
 
                 const { data: nueva, error: nErr } = await admin.from("parejas").insert({
                     jugador1_id: j1Id,

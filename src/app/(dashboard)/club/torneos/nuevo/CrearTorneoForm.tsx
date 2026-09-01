@@ -595,11 +595,13 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
 
                             {/* Clasificación a la fase final — solo Liguilla */}
                             {esLiguilla && selectedCats.length > 0 && (
-                                <div className="mt-4 pt-4 border-t border-olive/20 space-y-3">
-                                    <p className="text-sm font-bold text-olive">
+                                <details className="group mt-4 pt-4 border-t border-olive/20 space-y-3">
+                                    <summary className="cursor-pointer text-sm font-bold text-olive flex items-center gap-2">
+                                        <span className="group-open:rotate-90 transition-transform text-[11px]">▶</span>
                                         Clasificación a la fase final (por categoría)
-                                    </p>
-                                    <p className="text-[11px] text-ink0 leading-snug">
+                                        <span className="text-ink0 font-normal normal-case text-[11px]">(opcional, usa valores por defecto si no lo abres)</span>
+                                    </summary>
+                                    <p className="text-[11px] text-ink0 leading-snug mt-3">
                                         Define cuántas parejas clasifican (sobre la tabla general de la categoría,
                                         combinando todos los grupos) y el mínimo de partidos jugados para ser
                                         elegibles. Podrás cambiar estos valores en cualquier momento desde el
@@ -681,14 +683,17 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
                                             &quot;Nº partidos&quot; en 0 o &quot;% partidos&quot; en 0 significa sin exigencia mínima.
                                         </p>
                                     </div>
-                                </div>
+                                </details>
                             )}
 
                             {/* Corte — solo Liguilla: fecha + % mínimo para no ser marcado eliminado */}
                             {esLiguilla && (
-                                <div className="mt-4 pt-4 border-t border-olive/20 space-y-3">
-                                    <p className="text-sm font-bold text-olive">Corte de participación (opcional)</p>
-                                    <p className="text-[11px] text-ink0 leading-snug">
+                                <details className="group mt-4 pt-4 border-t border-olive/20 space-y-3">
+                                    <summary className="cursor-pointer text-sm font-bold text-olive flex items-center gap-2">
+                                        <span className="group-open:rotate-90 transition-transform text-[11px]">▶</span>
+                                        Corte de participación <span className="text-ink0 font-normal normal-case text-[11px]">(opcional)</span>
+                                    </summary>
+                                    <p className="text-[11px] text-ink0 leading-snug mt-3">
                                         En una fecha del calendario, las parejas que no lleguen al % mínimo de
                                         partidos jugados quedan marcadas como eliminadas — siguen en la tabla,
                                         pero no cuentan para la clasificación final. El corte no se aplica solo:
@@ -719,7 +724,7 @@ export function CrearTorneoForm({ initialError }: { initialError?: string }) {
                                     <p className="text-[10px] text-olive/50">
                                         Déjala vacía si no quieres corte. Puedes definirla o cambiarla después desde el torneo ya creado.
                                     </p>
-                                </div>
+                                </details>
                             )}
                         </>
                     ) : (

@@ -1,7 +1,7 @@
 /**
  * Helpers para mostrar nombres de jugadores con formato estándar:
- *   "Inicial. PrimerApellido"           → registrados
- *   "Inicial. PrimerApellido (I)"       → invitados (no registrados)
+ *   "Nombre PrimerApellido"           → registrados
+ *   "Nombre PrimerApellido (I)"       → invitados (no registrados)
  *
  * Un invitado se identifica porque su email empieza con `invitado_`
  * (ver actions.ts donde el club inscribe ghost users).
@@ -73,9 +73,9 @@ function compactName(nombre: string | null | undefined, apellido?: string | null
 /**
  * Formatea un jugador para display.
  *   formatPlayerName({ nombre: "Juan David", apellido: "Cano", email: "jdc@x.com" })
- *     → "J. Cano"
+ *     → "Juan David Cano"
  *   formatPlayerName({ nombre: "Pedro Perez", email: "invitado_123@manilapadel.app" })
- *     → "P. Perez (I)"
+ *     → "Pedro Perez (I)"
  */
 export function formatPlayerName(player: { nombre?: string | null; apellido?: string | null; email?: string | null } | null | undefined): string {
     if (!player) return 'Jugador';
