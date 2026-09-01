@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { createClient, createAdminClient, createPureAdminClient } from "@/utils/supabase/server";
 import { format, addHours } from "date-fns";
 import { redirect } from "next/navigation";
-import { ChevronLeft, CalendarDays, Users, Swords, Trophy } from "lucide-react";
+import { ChevronLeft, ChevronDown, CalendarDays, Users, Swords, Trophy, Settings } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -755,12 +755,21 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
 
                 <TabsContent value="grupos" className="mt-6">
                     {torneo.formato === 'liguilla' && (
-                        <div className="mb-6">
-                            <BonoNivelConfigControl
-                                torneoId={params.id}
-                                config={torneo.reglas_puntuacion?.liga_bono_nivel_config || null}
-                            />
-                        </div>
+                        <details className="group mb-6 bg-paper-soft border border-olive/20 rounded-xl">
+                            <summary className="cursor-pointer select-none flex items-center justify-between px-4 py-3 font-black text-olive uppercase text-xs tracking-widest">
+                                <span className="flex items-center gap-2">
+                                    <Settings className="w-4 h-4" />
+                                    Ajustes: Bono de Nivel por Posición
+                                </span>
+                                <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
+                            </summary>
+                            <div className="px-4 pb-4">
+                                <BonoNivelConfigControl
+                                    torneoId={params.id}
+                                    config={torneo.reglas_puntuacion?.liga_bono_nivel_config || null}
+                                />
+                            </div>
+                        </details>
                     )}
                     <TournamentGroupsManager
                         torneoId={params.id}

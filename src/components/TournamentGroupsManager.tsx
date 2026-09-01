@@ -500,11 +500,6 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
 
     return (
         <div className="space-y-6">
-            {/* Corte de participación — único para todo el torneo, no por categoría */}
-            {esLiguilla && (
-                <CorteParticipacionControl torneoId={torneoId} corteActual={corteConfig} />
-            )}
-
             <div className="flex flex-col gap-4 bg-paper-soft p-4 border border-olive/20 rounded-xl">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start gap-4">
@@ -558,58 +553,68 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                 <span className="text-olive/50 italic normal-case font-normal">(usa el global)</span>
                             )}
                         </div>
-                        {/* Ida y vuelta — solo liguilla, manual, editable en cualquier momento */}
+                        {/* Ajustes de liga — corte, ida y vuelta, revancha, clasificación. Colapsado por defecto. */}
                         {esLiguilla && (
-                            <div className="mt-2 flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={handleToggleIdaVuelta}
-                                    disabled={isPending}
-                                    className={cn(
-                                        "flex items-center gap-2 px-2 py-1 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-colors",
-                                        idaVueltaActiva
-                                            ? "bg-purple-700/15 border-purple-700/40 text-purple-700 hover:bg-purple-700/25"
-                                            : "bg-paper-soft border-olive/20 text-olive/60 hover:text-olive"
-                                    )}
-                                    title={idaVueltaActiva ? "Desactivar ida y vuelta" : "Activar ida y vuelta"}
-                                >
-                                    <Repeat className="w-3 h-3" />
-                                    {selectedCat} · Ida y vuelta: {idaVueltaActiva ? "Activado" : "Desactivado"}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleToggleRevancha}
-                                    disabled={isPending}
-                                    className={cn(
-                                        "flex items-center gap-2 px-2 py-1 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-colors",
-                                        revanchaActiva
-                                            ? "bg-purple-700/15 border-purple-700/40 text-purple-700 hover:bg-purple-700/25"
-                                            : "bg-paper-soft border-olive/20 text-olive/60 hover:text-olive"
-                                    )}
-                                    title={revanchaActiva ? "Desactivar revancha" : "Activar revancha"}
-                                >
-                                    <RotateCcw className="w-3 h-3" />
-                                    {selectedCat} · Revancha: {revanchaActiva ? "Activada" : "Desactivada"}
-                                </button>
-                            </div>
-                        )}
+                            <details className="group mt-3 bg-paper border border-olive/20 rounded-xl">
+                                <summary className="cursor-pointer select-none flex items-center justify-between px-3 py-2 text-[10px] font-black text-olive uppercase tracking-widest">
+                                    <span className="flex items-center gap-1.5">
+                                        <Settings className="w-3.5 h-3.5" />
+                                        Ajustes de {selectedCat}
+                                    </span>
+                                    <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
+                                </summary>
+                                <div className="px-3 pb-3 space-y-3">
+                                    <CorteParticipacionControl torneoId={torneoId} corteActual={corteConfig} />
 
-                        {/* Clasificación a la fase final — solo Liguilla, editable en cualquier momento */}
-                        {esLiguilla && (
-                            <div className="mt-3 space-y-1.5">
-                                <EditarClasificacionLigaControl
-                                    torneoId={torneoId}
-                                    categoria={selectedCat}
-                                    totalActual={ligaConfigCat.total}
-                                    modoActual={ligaConfigCat.modo === 'porcentaje' ? 'porcentaje' : 'absoluto'}
-                                    minPartidosActual={ligaConfigCat.minPartidos}
-                                    minPorcentajeActual={ligaConfigCat.minPorcentaje || 0}
-                                />
-                                <p className="text-[10px] text-olive/60">
-                                    Clasificando ahora: <span className="font-black text-olive">{clasificandoGlobalSet.size}</span> de {ligaConfigCat.total} — resaltadas con ★ en la tabla de posiciones.
-                                    {parejasEliminadas.size > 0 && <> · <span className="text-red-600 font-bold">{parejasEliminadas.size}</span> eliminada{parejasEliminadas.size > 1 ? 's' : ''} por el corte.</>}
-                                </p>
-                            </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleToggleIdaVuelta}
+                                            disabled={isPending}
+                                            className={cn(
+                                                "flex items-center gap-2 px-2 py-1 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-colors",
+                                                idaVueltaActiva
+                                                    ? "bg-purple-700/15 border-purple-700/40 text-purple-700 hover:bg-purple-700/25"
+                                                    : "bg-paper-soft border-olive/20 text-olive/60 hover:text-olive"
+                                            )}
+                                            title={idaVueltaActiva ? "Desactivar ida y vuelta" : "Activar ida y vuelta"}
+                                        >
+                                            <Repeat className="w-3 h-3" />
+                                            {selectedCat} · Ida y vuelta: {idaVueltaActiva ? "Activado" : "Desactivado"}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleToggleRevancha}
+                                            disabled={isPending}
+                                            className={cn(
+                                                "flex items-center gap-2 px-2 py-1 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-colors",
+                                                revanchaActiva
+                                                    ? "bg-purple-700/15 border-purple-700/40 text-purple-700 hover:bg-purple-700/25"
+                                                    : "bg-paper-soft border-olive/20 text-olive/60 hover:text-olive"
+                                            )}
+                                            title={revanchaActiva ? "Desactivar revancha" : "Activar revancha"}
+                                        >
+                                            <RotateCcw className="w-3 h-3" />
+                                            {selectedCat} · Revancha: {revanchaActiva ? "Activada" : "Desactivada"}
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <EditarClasificacionLigaControl
+                                            torneoId={torneoId}
+                                            categoria={selectedCat}
+                                            totalActual={ligaConfigCat.total}
+                                            modoActual={ligaConfigCat.modo === 'porcentaje' ? 'porcentaje' : 'absoluto'}
+                                            minPartidosActual={ligaConfigCat.minPartidos}
+                                            minPorcentajeActual={ligaConfigCat.minPorcentaje || 0}
+                                        />
+                                        <p className="text-[10px] text-olive/60">
+                                            Clasificando ahora: <span className="font-black text-olive">{clasificandoGlobalSet.size}</span> de {ligaConfigCat.total} — resaltadas con ★ en la tabla de posiciones.
+                                            {parejasEliminadas.size > 0 && <> · <span className="text-red-600 font-bold">{parejasEliminadas.size}</span> eliminada{parejasEliminadas.size > 1 ? 's' : ''} por el corte.</>}
+                                        </p>
+                                    </div>
+                                </div>
+                            </details>
                         )}
                     </div>
 
