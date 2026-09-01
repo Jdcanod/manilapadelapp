@@ -50,7 +50,11 @@ interface Props<M extends MatchRow> {
 export function GrupoMatchesList<M extends MatchRow>({ matches, grupoId, mode, playerPairIds = [], parejaPlayers = {}, renderMatch }: Props<M>) {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<'todos' | 'pendientes' | 'sin_resultado' | 'confirmados'>('todos');
-    const [playerView, setPlayerView] = useState<PlayerView>('todos');
+    // Por defecto mostramos "mis partidos" — es lo que el jugador quiere ver
+    // primero al entrar (contra quién le falta jugar), no la lista completa
+    // del grupo. Si no tiene pareja en este grupo (playerPairIds vacío) el
+    // filtro no tiene efecto de todas formas.
+    const [playerView, setPlayerView] = useState<PlayerView>('mis');
 
     const grupoMatches = useMemo(
         () => matches.filter(m => m.torneo_grupo_id === grupoId),
@@ -157,14 +161,15 @@ export function GrupoMatchesList<M extends MatchRow>({ matches, grupoId, mode, p
             {/* Filtro de estado */}
             <div className="flex flex-wrap gap-1.5">
                 {([
-                    { key: 'todos', label: 'Todos', count: counts.todos },
-                    { key: 'pendientes', label: 'Pendientes', count: counts.pendientes },
-                    { key: 'sin_resultado', label: 'Sin score', count: counts.sin_resultado },
-                    { key: 'confirmados', label: 'Confirmados', count: counts.confirmados },
+                    { key: 'todos', label: 'Todos', count: counts.todos, title: undefined },
+                    { key: 'sin_resultado', label: 'Por jugar', count: counts.sin_resultado, title: 'Partidos que todavía no se han jugado' },
+                    { key: 'pendientes', label: 'Por confirmar', count: counts.pendientes, title: 'Ya se jugaron y se registró el resultado, pero el club aún no lo confirma' },
+                    { key: 'confirmados', label: 'Confirmados', count: counts.confirmados, title: 'Resultado ya confirmado por el club' },
                 ] as const).map(opt => (
                     <button
                         key={opt.key}
                         onClick={() => setStatusFilter(opt.key)}
+                        title={opt.title}
                         className={cn(
                             "px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5 transition-colors border",
                             statusFilter === opt.key

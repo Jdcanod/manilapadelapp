@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { GrupoMatchesList } from "@/components/GrupoMatchesList";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { calcularClasificados, calcularRequeridosPorPareja, type ClasifConfig } from "@/lib/tournaments/clasificacion";
+import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 
 
 interface Standing {
@@ -68,9 +69,13 @@ interface Props {
     /** Liguilla: qué categorías juegan ida y vuelta (afecta cuántos partidos
      *  le correspondían a cada pareja para el cálculo de %). */
     idaVueltaConfig?: Record<string, boolean>;
+    /** Nombre + apellido de cada jugador por pareja, para mostrar siempre
+     *  "Nombre Apellido / Nombre Apellido" en vez de depender del
+     *  `nombre_pareja` guardado (a veces incompleto). */
+    parejaPlayers?: ParejaPlayersMap;
 }
 
-export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId, tipoDesempate = "tercer_set", formato = "relampago", setsCantidad = 3, ordenGrupos = {}, ligaClasificacionConfig = {}, parejasEliminadas = new Set(), idaVueltaConfig = {} }: Props) {
+export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId, tipoDesempate = "tercer_set", formato = "relampago", setsCantidad = 3, ordenGrupos = {}, ligaClasificacionConfig = {}, parejasEliminadas = new Set(), idaVueltaConfig = {}, parejaPlayers = {} }: Props) {
     const esLiguilla = formato === 'liguilla';
 
     const uniqueCategorias = Array.from(new Set(grupos.map(g => g.categoria))).sort();
@@ -90,8 +95,8 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
         matches.forEach(m => {
             if (!m.pareja1_id || !m.pareja2_id) return;
             
-            if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: m.pareja1?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0, revanchas: 0 });
-            if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: m.pareja2?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0, revanchas: 0 });
+            if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: resolvePairName(m.pareja1_id, m.pareja1?.nombre_pareja, parejaPlayers), pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0, revanchas: 0 });
+            if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: resolvePairName(m.pareja2_id, m.pareja2?.nombre_pareja, parejaPlayers), pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0, revanchas: 0 });
 
             if (m.estado === 'jugado' && m.resultado && m.estado_resultado === 'confirmado') {
                 const s1 = map.get(m.pareja1_id)!;
@@ -312,8 +317,8 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                         {resumenPartidosCat.sinProgramar.map(p => {
                                             const esMio = (p.pareja1_id && playerPairIds.includes(p.pareja1_id)) || (p.pareja2_id && playerPairIds.includes(p.pareja2_id));
                                             return (
-                                                <div key={p.id} className={cn("text-xs bg-paper/60 border rounded-lg px-3 py-2 flex items-center justify-between gap-2", esMio ? "border-ochre/40 bg-ochre/5 text-ochre-dark font-bold" : "border-olive/10 text-ink")}>
-                                                    <span className="truncate">{p.pareja1?.nombre_pareja || 'TBD'} <span className="text-olive/50">vs</span> {p.pareja2?.nombre_pareja || 'TBD'}</span>
+                                                <div key={p.id} className={cn("text-xs bg-paper/60 border rounded-lg px-3 py-2 flex items-center justify-between gap-2 flex-wrap", esMio ? "border-ochre/40 bg-ochre/5 text-ochre-dark font-bold" : "border-olive/10 text-ink")}>
+                                                    <span>{resolvePairName(p.pareja1_id, p.pareja1?.nombre_pareja, parejaPlayers)} <span className="text-olive/50">vs</span> {resolvePairName(p.pareja2_id, p.pareja2?.nombre_pareja, parejaPlayers)}</span>
                                                     {esMio && <span className="text-[9px] font-black uppercase flex-shrink-0">Tu partido</span>}
                                                 </div>
                                             );
@@ -334,7 +339,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                 const esMio = (p.pareja1_id && playerPairIds.includes(p.pareja1_id)) || (p.pareja2_id && playerPairIds.includes(p.pareja2_id));
                                                 return (
                                                     <div key={p.id} className={cn("text-xs bg-paper/60 border rounded-lg px-3 py-2 flex items-center justify-between gap-2 flex-wrap", esMio ? "border-ochre/40 bg-ochre/5 text-ochre-dark font-bold" : "border-olive/10 text-ink")}>
-                                                        <span className="truncate">{p.pareja1?.nombre_pareja || 'TBD'} <span className="text-olive/50">vs</span> {p.pareja2?.nombre_pareja || 'TBD'}</span>
+                                                        <span>{resolvePairName(p.pareja1_id, p.pareja1?.nombre_pareja, parejaPlayers)} <span className="text-olive/50">vs</span> {resolvePairName(p.pareja2_id, p.pareja2?.nombre_pareja, parejaPlayers)}</span>
                                                         <span className="text-[10px] text-olive/60 flex-shrink-0">
                                                             {p.fecha && new Date(p.fecha).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })} · {p.lugar}
                                                         </span>
@@ -394,9 +399,9 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                             : "hover:bg-paper-soft/30"
                                                 )}>
                                                     <td className={cn(
-                                                        "px-4 py-4 font-bold max-w-[150px] truncate",
+                                                        "px-4 py-4 font-bold whitespace-nowrap",
                                                         isMyTeam ? "text-ochre-dark" : "text-ink"
-                                                    )}>
+                                                    )} title={team.nombre}>
                                                         {clasifica && <span className="mr-1 text-emerald-600">★</span>}
                                                         <span className={parejasEliminadas.has(team.parejaId) ? "line-through opacity-70" : ""}>{team.nombre}</span>
                                                         {isMyTeam && <span className="ml-2 text-[10px] font-black text-amber-600 bg-ochre/10 px-1 rounded">TÚ</span>}
@@ -465,11 +470,14 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                             grupoId={grupo.id}
                                             mode="player"
                                             playerPairIds={playerPairIds}
+                                            parejaPlayers={parejaPlayers}
                                             renderMatch={(match) => {
                                                     const isMyMatch = (match.pareja1_id && playerPairIds.includes(match.pareja1_id)) ||
                                                                    (match.pareja2_id && playerPairIds.includes(match.pareja2_id));
 
                                                     const isPending = match.estado === 'jugado' && !!match.resultado && match.estado_resultado === 'pendiente';
+                                                    const nombre1 = resolvePairName(match.pareja1_id, match.pareja1?.nombre_pareja, parejaPlayers);
+                                                    const nombre2 = resolvePairName(match.pareja2_id, match.pareja2?.nombre_pareja, parejaPlayers);
 
                                                     return (
                                                         <div
@@ -490,10 +498,10 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                  <div className="flex flex-col gap-2 flex-1">
                                                                     <div className="flex justify-between items-center bg-paper/50 p-2 rounded-lg border border-olive/15">
                                                                         <span className={cn(
-                                                                            "text-xs font-bold uppercase truncate pr-2",
+                                                                            "text-xs font-bold uppercase pr-2",
                                                                             match.pareja1_id && playerPairIds.includes(match.pareja1_id) ? "text-ochre-dark" : "text-ink"
                                                                         )}>
-                                                                            {match.pareja1?.nombre_pareja || "TBD"}
+                                                                            {nombre1}
                                                                         </span>
                                                                         {match.resultado && (
                                                                             <div className="flex gap-1">
@@ -510,10 +518,10 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                     </div>
                                                                     <div className="flex justify-between items-center bg-paper/50 p-2 rounded-lg border border-olive/15">
                                                                         <span className={cn(
-                                                                            "text-xs font-bold uppercase truncate pr-2",
+                                                                            "text-xs font-bold uppercase pr-2",
                                                                             match.pareja2_id && playerPairIds.includes(match.pareja2_id) ? "text-ochre-dark" : "text-ink"
                                                                         )}>
-                                                                            {match.pareja2?.nombre_pareja || "TBD"}
+                                                                            {nombre2}
                                                                         </span>
                                                                         {match.resultado && (
                                                                             <div className="flex gap-1">
@@ -539,8 +547,8 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                         {match.estado !== 'jugado' && (
                                                                             <PlayerTournamentResultModal
                                                                                 matchId={match.id}
-                                                                                pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"}
-                                                                                pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
+                                                                                pareja1Nombre={nombre1}
+                                                                                pareja2Nombre={nombre2}
                                                                                 initialResult={match.resultado}
                                                                                 tipoDesempate={tipoDesempate}
                                                                                 disabled={!esLiguilla && (!match.fecha || !match.lugar || match.lugar.toLowerCase().includes('pendiente'))}
@@ -595,8 +603,8 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                         <div className="flex-1">
                                                                             <PlayerTournamentResultModal
                                                                                 matchId={match.id}
-                                                                                pareja1Nombre={match.pareja1?.nombre_pareja || "TBD"}
-                                                                                pareja2Nombre={match.pareja2?.nombre_pareja || "TBD"}
+                                                                                pareja1Nombre={nombre1}
+                                                                                pareja2Nombre={nombre2}
                                                                                 buttonText="Corregir"
                                                                                 initialResult={match.resultado}
                                                                                 setsCantidad={setsCantidad}

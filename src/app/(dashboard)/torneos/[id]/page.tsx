@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlayerTournamentGroups } from "@/components/PlayerTournamentGroups";
 
 import { cn } from "@/lib/utils";
+import type { ParejaPlayersMap } from "@/lib/display-names";
 import { TournamentChronogram } from "@/components/TournamentChronogram";
 import { PlayerBracketManager } from "@/components/PlayerBracketManager";
 
@@ -73,12 +74,36 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const parejaDataMap = new Map<string, any>();
+    // Nombre + apellido de cada jugador (para armar "Nombre Apellido / Nombre
+    // Apellido" en vez del `nombre_pareja` legacy, que a veces solo trae
+    // nombres de pila sueltos). Ver [id]/page.tsx (vista club) para el mismo
+    // patrón con `parejaPlayersMap`.
+    const parejaPlayersMap: ParejaPlayersMap = {};
     if (pairIds.size > 0) {
         const { data: namesData } = await adminSupabase
             .from('parejas')
             .select('id, nombre_pareja, jugador1_id, jugador2_id')
             .in('id', Array.from(pairIds));
         namesData?.forEach(n => parejaDataMap.set(n.id, n));
+
+        const jugadorIds = new Set<string>();
+        (namesData || []).forEach(n => {
+            if (n.jugador1_id) jugadorIds.add(n.jugador1_id);
+            if (n.jugador2_id) jugadorIds.add(n.jugador2_id);
+        });
+        if (jugadorIds.size > 0) {
+            const { data: jugadoresData } = await adminSupabase
+                .from('users')
+                .select('id, nombre, apellido, email')
+                .in('id', Array.from(jugadorIds));
+            const jugadorInfoMap = new Map((jugadoresData || []).map(j => [j.id, j]));
+            (namesData || []).forEach(n => {
+                parejaPlayersMap[n.id] = [
+                    n.jugador1_id ? jugadorInfoMap.get(n.jugador1_id) || null : null,
+                    n.jugador2_id ? jugadorInfoMap.get(n.jugador2_id) || null : null,
+                ];
+            });
+        }
     }
 
     let isLocalClubPlayer = false;
@@ -387,6 +412,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                                 currentUserId={typeof finalUserId !== 'undefined' ? finalUserId : undefined}
                                 tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                                 formato={torneo.formato}
+                                parejaPlayers={parejaPlayersMap}
                                 setsCantidad={torneo.reglas_puntuacion?.sets}
                                 ordenGrupos={torneo.reglas_puntuacion?.orden_grupos || {}}
                                 ligaClasificacionConfig={torneo.reglas_puntuacion?.liga_clasificacion_config || {}}
