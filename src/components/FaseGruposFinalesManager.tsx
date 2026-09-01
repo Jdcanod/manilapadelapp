@@ -187,15 +187,15 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                                     <thead>
                                         <tr className="text-[9px] text-olive/50 uppercase tracking-widest border-b border-olive/10">
                                             <th className="px-3 py-2 text-left">Pareja</th>
-                                            <th className="px-2 py-2 text-center">PJ</th>
-                                            <th className="px-2 py-2 text-center">PG</th>
-                                            <th className="px-2 py-2 text-center">Pts</th>
+                                            <th className="px-2 py-2 text-center cursor-help" title="Partidos Jugados">PJ</th>
+                                            <th className="px-2 py-2 text-center cursor-help" title="Partidos Ganados">PG</th>
+                                            <th className="px-2 py-2 text-center cursor-help" title="Puntos acumulados según el sistema de puntuación del torneo">Pts</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-olive/10">
                                         {standings.map((s, i) => (
                                             <tr key={s.parejaId} className={i === 0 ? "bg-ochre/5" : ""}>
-                                                <td className="px-3 py-2 font-semibold text-ink truncate max-w-[160px]">{s.nombre}</td>
+                                                <td className="px-3 py-2 font-semibold text-ink whitespace-nowrap" title={s.nombre}>{s.nombre}</td>
                                                 <td className="px-2 py-2 text-center text-olive">{s.pj}</td>
                                                 <td className="px-2 py-2 text-center text-olive">{s.pg}</td>
                                                 <td className="px-2 py-2 text-center font-black text-olive">{s.pts}</td>

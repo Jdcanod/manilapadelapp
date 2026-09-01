@@ -750,7 +750,14 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                             <Badge variant="secondary" className="ml-2 bg-ochre/15 text-ochre-soft border border-ochre/30">{pendientesCount}</Badge>
                         )}
                     </TabsTrigger>
-                    <TabsTrigger value="cronograma" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Parrilla (Programación)</TabsTrigger>
+                    <TabsTrigger
+                        value="cronograma"
+                        disabled={torneo.formato === 'liguilla' && partidosParaCronogramaLiga.length === 0}
+                        title={torneo.formato === 'liguilla' && partidosParaCronogramaLiga.length === 0 ? "Se habilita cuando se sorteen Grupos Finales o Cuadros Finales" : undefined}
+                        className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark"
+                    >
+                        Parrilla (Programación)
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="grupos" className="mt-6">

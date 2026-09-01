@@ -852,16 +852,16 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                 <tr>
                                                     <th className="px-4 py-2 font-bold w-10 text-center">#</th>
                                                     <th className="px-4 py-2 font-bold">Pareja</th>
-                                                    <th className="px-2 py-2 font-bold text-center">PJ</th>
-                                                    <th className="px-2 py-2 font-bold text-center">SG</th>
-                                                    <th className="px-2 py-2 font-bold text-center">SP</th>
-                                                    <th className="px-2 py-2 font-bold text-center">GG</th>
-                                                    <th className="px-2 py-2 font-bold text-center">GP</th>
-                                                    <th className="px-2 py-2 font-black text-center text-olive">%S</th>
-                                                    <th className="px-2 py-2 font-black text-center text-olive">%G</th>
-                                                    <th className="px-4 py-2 font-black text-center text-olive">PTS</th>
-                                                    {esLiguilla && <th className="px-2 py-2 font-bold text-center text-purple-700" title="Revanchas jugadas">REV</th>}
-                                                    {esLiguilla && <th className="px-2 py-2 font-bold text-center text-red-700" title="% de partidos jugados sobre los requeridos — criterio del corte y de clasificación">% JUG.</th>}
+                                                    <th className="px-2 py-2 font-bold text-center cursor-help" title="Partidos Jugados">PJ</th>
+                                                    <th className="px-2 py-2 font-bold text-center cursor-help" title="Sets Ganados">SG</th>
+                                                    <th className="px-2 py-2 font-bold text-center cursor-help" title="Sets Perdidos">SP</th>
+                                                    <th className="px-2 py-2 font-bold text-center cursor-help" title="Games (juegos) Ganados">GG</th>
+                                                    <th className="px-2 py-2 font-bold text-center cursor-help" title="Games (juegos) Perdidos">GP</th>
+                                                    <th className="px-2 py-2 font-black text-center text-olive cursor-help" title="Porcentaje de Sets ganados">%S</th>
+                                                    <th className="px-2 py-2 font-black text-center text-olive cursor-help" title="Porcentaje de Games ganados">%G</th>
+                                                    <th className="px-4 py-2 font-black text-center text-olive cursor-help" title="Puntos acumulados según el sistema de puntuación del torneo (define la posición en la tabla)">PTS</th>
+                                                    {esLiguilla && <th className="px-2 py-2 font-bold text-center text-purple-700 cursor-help" title="Revanchas jugadas">REV</th>}
+                                                    {esLiguilla && <th className="px-2 py-2 font-bold text-center text-red-700 cursor-help" title="% de partidos jugados sobre los requeridos — criterio del corte y de clasificación">% JUG.</th>}
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -940,12 +940,11 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                             })()}
                                                         </td>
                                                         <td className={cn(
-                                                            "px-4 py-3 font-bold max-w-[200px]",
+                                                            "px-4 py-3 font-bold whitespace-nowrap",
                                                             clasifica ? "text-ink" : "text-olive"
                                                         )} title={team.nombre}>
                                                             <div className="flex items-center gap-2">
                                                                 <span className={cn(
-                                                                    "truncate",
                                                                     esTBD(team.nombre) && "italic text-olive/70 font-normal",
                                                                     parejasEliminadas.has(team.parejaId) && "line-through opacity-70"
                                                                 )}>
