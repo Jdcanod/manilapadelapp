@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { PlayerTournamentGroups } from "@/components/PlayerTournamentGroups";
+import { TorneoMuroView } from "@/components/TorneoMuroView";
+import type { MuroPost } from "@/app/(dashboard)/club/torneos/[id]/muro-actions";
 
 import { cn } from "@/lib/utils";
 import type { ParejaPlayersMap } from "@/lib/display-names";
@@ -215,6 +217,18 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
         .eq('eliminada', true);
     const parejasEliminadasSet = new Set((inscripcionesElim || []).map(i => i.pareja_id as string));
 
+    // Muro del torneo (reglas / fechas importantes / anuncios) — solo lectura
+    // acá, el club los administra desde /club/torneos/[id]. Tolerante a que
+    // la migración aún no se haya corrido en producción.
+    const { data: muroPostsData, error: muroError } = await adminSupabase
+        .from('torneo_muro_posts')
+        .select('*')
+        .eq('torneo_id', params.id)
+        .order('orden', { ascending: true })
+        .order('created_at', { ascending: false });
+    if (muroError) console.error("[torneos/[id]] error cargando muro (¿falta correr la migración?):", muroError.message);
+    const muroPosts = (muroPostsData || []) as MuroPost[];
+
     const isPast = new Date(torneo.fecha_fin) < new Date();
 
     // Helper para puntuación
@@ -397,9 +411,10 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                 </div>
             ) : (
                 <Tabs defaultValue="grupos" className="w-full">
-                    <TabsList className="bg-paper border border-olive/20 p-1 h-auto w-full max-w-2xl mx-auto flex flex-wrap sm:grid sm:grid-cols-3 rounded-2xl">
+                    <TabsList className="bg-paper border border-olive/20 p-1 h-auto w-full max-w-2xl mx-auto flex flex-wrap sm:grid sm:grid-cols-4 rounded-2xl">
                         <TabsTrigger value="grupos" className="data-[state=active]:bg-paper-dark flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Fase de Grupos</TabsTrigger>
                         <TabsTrigger value="cuadros" className="data-[state=active]:bg-paper-dark flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Cuadros de Juego</TabsTrigger>
+                        <TabsTrigger value="muro" className="data-[state=active]:bg-paper-dark flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Muro</TabsTrigger>
                         <TabsTrigger value="cronograma" className="data-[state=active]:bg-paper-dark flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Cronograma</TabsTrigger>
                     </TabsList>
 
@@ -431,8 +446,12 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                         />
                     </TabsContent>
 
+                    <TabsContent value="muro" className="mt-8">
+                        <TorneoMuroView posts={muroPosts} />
+                    </TabsContent>
+
                     <TabsContent value="cronograma" className="mt-6">
-                        <TournamentChronogram 
+                        <TournamentChronogram
                             torneoId={torneo.id}
                             matches={partidosReales}
                             config={{

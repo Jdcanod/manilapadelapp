@@ -17,6 +17,8 @@ import { TournamentChronogram } from "@/components/TournamentChronogram";
 import { TournamentExportButton } from "@/components/TournamentExportButton";
 import { TournamentResultsManager } from "@/components/TournamentResultsManager";
 import { CopaDavisManager } from "@/components/CopaDavisManager";
+import { TorneoMuroManager } from "@/components/TorneoMuroManager";
+import { listarMuroPosts } from "@/app/(dashboard)/club/torneos/[id]/muro-actions";
 import { CrearVueltaCopaDialog } from "@/components/CrearVueltaCopaDialog";
 import { EditarCanchasControl } from "@/components/EditarCanchasControl";
 import { PersistentTabs } from "@/components/PersistentTabs";
@@ -255,6 +257,8 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
     const pendientesCount = (rawPartidos || []).filter((p: any) =>
         p.pareja1_id && p.pareja2_id && p.resultado && p.estado_resultado !== 'confirmado'
     ).length;
+
+    const muroPosts = await listarMuroPosts(params.id);
 
     // Cargar nombres de quien reportó cada resultado pendiente
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -750,6 +754,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                             <Badge variant="secondary" className="ml-2 bg-ochre/15 text-ochre-soft border border-ochre/30">{pendientesCount}</Badge>
                         )}
                     </TabsTrigger>
+                    <TabsTrigger value="muro" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Muro</TabsTrigger>
                     <TabsTrigger
                         value="cronograma"
                         disabled={torneo.formato === 'liguilla' && partidosParaCronogramaLiga.length === 0}
@@ -821,6 +826,10 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         parejaPlayers={parejaPlayersMap}
                         setsCantidad={torneo.reglas_puntuacion?.sets}
                     />
+                </TabsContent>
+
+                <TabsContent value="muro" className="mt-6">
+                    <TorneoMuroManager torneoId={params.id} posts={muroPosts} />
                 </TabsContent>
 
                 <TabsContent value="cronograma" className="mt-6">

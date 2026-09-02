@@ -219,13 +219,21 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
         return { clasificandoGlobalSet: clasifican, porcentajePorParejaCat: porcentajePorPareja };
     })();
 
-    // Resumen de avance de la categoría (mismo cálculo que ve el club): cuántos
-    // partidos ya tienen resultado vs. cuántos faltan, separados en "sin
-    // programar" y "programados" para que el jugador vea rápido contra quién
-    // le falta jugar.
+    // Resumen de avance: cuántos partidos ya tienen resultado vs. cuántos
+    // faltan, separados en "sin programar" y "programados". A diferencia de
+    // la vista del club (que necesita el avance de TODA la categoría), al
+    // jugador solo le interesa el avance de SU PROPIA pareja — si tiene
+    // pareja en esta categoría filtramos a solo sus partidos; si no (está
+    // mirando sin jugar), mostramos el de la categoría completa como
+    // referencia general.
     const resumenPartidosCat = (() => {
         const grupoIdsCat = new Set(filteredGrupos.map(g => g.id));
-        const matchesCat = partidos.filter(p => p.torneo_grupo_id && grupoIdsCat.has(p.torneo_grupo_id));
+        const matchesCatCompleta = partidos.filter(p => p.torneo_grupo_id && grupoIdsCat.has(p.torneo_grupo_id));
+        const misMatchesCat = matchesCatCompleta.filter(p =>
+            (p.pareja1_id && playerPairIds.includes(p.pareja1_id)) ||
+            (p.pareja2_id && playerPairIds.includes(p.pareja2_id))
+        );
+        const matchesCat = misMatchesCat.length > 0 ? misMatchesCat : matchesCatCompleta;
         const jugados = matchesCat.filter(p => p.estado === 'jugado' && p.resultado).length;
         const total = matchesCat.length;
         const pendientes = matchesCat.filter(p => !(p.estado === 'jugado' && p.resultado));
@@ -235,6 +243,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
             jugados, total,
             pct: total > 0 ? Math.round((jugados / total) * 100) : 0,
             pendientes, sinProgramar, programados,
+            esMio: misMatchesCat.length > 0,
         };
     })();
 
@@ -274,7 +283,9 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                     <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
                             <span className="text-2xl font-black text-ink">{resumenPartidosCat.jugados}</span>
-                            <span className="text-sm text-olive/70">/ {resumenPartidosCat.total} partidos jugados</span>
+                            <span className="text-sm text-olive/70">
+                                / {resumenPartidosCat.total} partidos jugados{resumenPartidosCat.esMio ? " (tu pareja)" : " (categoría completa)"}
+                            </span>
                             <Badge variant="outline" className={cn(
                                 "font-black border-olive/20",
                                 resumenPartidosCat.pct >= 80 ? "text-emerald-700 bg-emerald-700/10" :
@@ -372,6 +383,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                 <table className="w-full text-sm text-left">
                                     <thead className="bg-paper-soft/20 border-b border-olive/15">
                                         <tr>
+                                            <th className="px-3 py-3 text-[10px] font-black text-olive/70 uppercase tracking-widest text-center w-8">#</th>
                                             <th className="px-4 py-3 text-[10px] font-black text-olive/70 uppercase tracking-widest">Pareja</th>
                                             <th className="px-2 py-3 text-center text-[10px] font-black text-olive/70">PJ</th>
                                             <th className="px-2 py-3 text-center text-[10px] font-black text-olive/70">SG</th>
@@ -386,7 +398,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {standings.map((team) => {
+                                        {standings.map((team, idx) => {
                                             const isMyTeam = playerPairIds.includes(team.parejaId);
                                             const clasifica = esLiguilla && clasificandoGlobalSet.has(team.parejaId);
                                             return (
@@ -398,6 +410,12 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                             ? "bg-olive/5 border-l-2 border-l-emerald-500 hover:bg-olive/10"
                                                             : "hover:bg-paper-soft/30"
                                                 )}>
+                                                    <td className={cn(
+                                                        "px-3 py-4 text-center font-black",
+                                                        clasifica ? "text-emerald-700" : "text-olive/70"
+                                                    )}>
+                                                        {idx + 1}
+                                                    </td>
                                                     <td className={cn(
                                                         "px-4 py-4 font-bold whitespace-nowrap",
                                                         isMyTeam ? "text-ochre-dark" : "text-ink"
