@@ -33,8 +33,8 @@ export function DeleteTournamentButton({ torneoId, torneoNombre }: DeleteTournam
                 <div className="flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-ink-soft leading-relaxed">
-                        ¿Eliminar <span className="font-bold text-ink">{torneoNombre}</span>?{" "}
-                        Se borrarán todos los grupos, partidos e inscripciones. Esta acción no se puede deshacer.
+                        ¿Mover <span className="font-bold text-ink">{torneoNombre}</span> a la papelera?{" "}
+                        Desaparece de tu lista de torneos, pero queda todo intacto (grupos, partidos, inscripciones) por 30 días — puedes restaurarlo desde la Papelera.
                     </p>
                 </div>
                 {error && <p className="text-xs text-red-400">{error}</p>}
@@ -47,8 +47,8 @@ export function DeleteTournamentButton({ torneoId, torneoNombre }: DeleteTournam
                         className="flex-1 text-xs h-8"
                     >
                         {isPending
-                            ? <><Loader2 className="w-3 h-3 animate-spin mr-1" /> Eliminando...</>
-                            : "Sí, eliminar"}
+                            ? <><Loader2 className="w-3 h-3 animate-spin mr-1" /> Moviendo...</>
+                            : "Sí, mover a la papelera"}
                     </Button>
                     <Button
                         size="sm"

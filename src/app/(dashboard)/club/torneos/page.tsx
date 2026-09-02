@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { Trophy, CalendarDays, Plus, Users, Settings } from "lucide-react";
+import { Trophy, CalendarDays, Plus, Users, Settings, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ export default async function ClubTorneosPage() {
             torneo_fases(count)
         `)
         .or(`club_id.eq.${clubData.id},club_rival_id.eq.${clubData.id}`)
+        .is('borrado_en', null)
         .order('fecha_inicio', { ascending: false });
 
     console.log("torneos:", torneos, "error:", error);
@@ -52,9 +53,14 @@ export default async function ClubTorneosPage() {
                     </h1>
                     <p className="text-olive">Publica torneos, maneja las inscripciones y organiza las llaves.</p>
                 </div>
-                <div className="w-full sm:w-auto">
-                    {/* Placeholder for Crear Torneo, implement next */}
-                    <Button className="w-full sm:w-auto bg-ochre-dark hover:bg-ochre text-paper font-bold" asChild>
+                <div className="w-full sm:w-auto flex gap-2">
+                    <Button variant="outline" className="flex-1 sm:flex-none border-olive/20 text-olive hover:text-ink" asChild>
+                        <Link href="/club/torneos/papelera">
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Papelera
+                        </Link>
+                    </Button>
+                    <Button className="flex-1 sm:flex-none bg-ochre-dark hover:bg-ochre text-paper font-bold" asChild>
                         <Link href="/club/torneos/nuevo">
                             <Plus className="w-4 h-4 mr-2" />
                             Nuevo Torneo

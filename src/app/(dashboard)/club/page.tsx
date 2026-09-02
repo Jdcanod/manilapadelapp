@@ -61,6 +61,7 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
         .from('torneos')
         .select('id, nombre, fecha_inicio, fecha_fin, formato, estado')
         .or(`club_id.eq.${userData.id},club_rival_id.eq.${userData.id}`)
+        .is('borrado_en', null)
         .order('fecha_inicio', { ascending: false });
 
     const tournamentIds = (clubTournaments || []).map(t => t.id);

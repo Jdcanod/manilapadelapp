@@ -45,7 +45,8 @@ export default async function EstadisticasClubPage({ searchParams }: { searchPar
     const { data: torneos } = await adminSupabase
         .from('torneos')
         .select('id, nombre, fecha_inicio, fecha_fin, formato')
-        .eq('club_id', userData.id);
+        .eq('club_id', userData.id)
+        .is('borrado_en', null);
 
     const torneoIds = (torneos || []).map(t => t.id);
 

@@ -64,6 +64,20 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         return <div className="p-8 text-center text-red-500">Error: Torneo no encontrado o sin permisos.</div>;
     }
 
+    if (torneo.borrado_en) {
+        return (
+            <div className="max-w-lg mx-auto py-16 text-center space-y-4">
+                <p className="text-lg font-bold text-ink">&quot;{torneo.nombre}&quot; está en la papelera</p>
+                <p className="text-sm text-olive/70">
+                    Se puede restaurar (con todo intacto) o se borra definitivo automáticamente 30 días después de moverlo.
+                </p>
+                <Link href="/club/torneos/papelera" className="inline-block text-sm font-bold text-ochre-dark hover:underline">
+                    Ir a la Papelera →
+                </Link>
+            </div>
+        );
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const clubInfo = userData.id === torneo.club_rival_id ? (torneo as any).club_rival : (torneo as any).club;
 

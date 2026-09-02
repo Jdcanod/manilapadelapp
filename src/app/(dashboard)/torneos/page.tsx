@@ -29,6 +29,7 @@ export default async function TorneosPage() {
             club:users!torneos_club_id_fkey(nombre),
             partidos(id, estado, lugar, estado_resultado)
         `)
+        .is('borrado_en', null)
         .order('fecha_inicio', { ascending: true });
 
     // Conteos de inscritos por torneo (query separado, más confiable).

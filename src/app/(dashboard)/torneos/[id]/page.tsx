@@ -59,7 +59,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
         .eq('id', params.id)
         .single();
 
-    if (!torneo) notFound();
+    if (!torneo || torneo.borrado_en) notFound();
 
     // Obtener partidos y nombres de parejas con permisos elevados para asegurar visibilidad
     const { data: rawPartidos } = await adminSupabase
