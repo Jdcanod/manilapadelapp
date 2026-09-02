@@ -33,9 +33,12 @@ export default function LoginPage() {
             });
 
             if (authError) {
+                const esCorreoSinConfirmar = authError.message.toLowerCase().includes("email not confirmed");
                 toast({
                     title: "Error al entrar",
-                    description: authError.message,
+                    description: esCorreoSinConfirmar
+                        ? "Todavía no confirmas tu correo. Revisa tu bandeja de entrada (y spam) por el enlace de activación."
+                        : authError.message,
                     variant: "destructive"
                 });
                 setLoading(false);

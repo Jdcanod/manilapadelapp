@@ -18,6 +18,7 @@ export default function RegistroPage() {
     const { toast } = useToast();
     const supabase = createClient();
     const [clubs, setClubs] = useState<{id: string, nombre: string, ciudad: string}[]>([]);
+    const [confirmacionPendiente, setConfirmacionPendiente] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchClubs = async () => {
@@ -63,6 +64,7 @@ export default function RegistroPage() {
             }
 
             // 1. Crear el usuario en Authentication de Supabase
+            const nextPath = userRole === 'admin_club' ? '/club' : '/jugador';
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
@@ -74,7 +76,12 @@ export default function RegistroPage() {
                         telefono: telefono,
                         categoria: categoria,
                         nivel: nivelValidado
-                    }
+                    },
+                    // Si "Confirm email" está activo en Supabase, este es el link al
+                    // que llega el correo de confirmación — pasa por /auth/callback
+                    // (mismo que usa recuperar contraseña) y de ahí a `nextPath` ya
+                    // con sesión iniciada.
+                    emailRedirectTo: `${window.location.origin}/auth/callback?next=${nextPath}`,
                 }
             });
 
@@ -123,18 +130,24 @@ export default function RegistroPage() {
                         description: "Cuenta creada pero hubo un problema configurando tu perfil: " + dbError,
                         variant: "destructive"
                     });
-                } else {
-                    toast({
-                        title: "¡Bienvenido a Pádel Manía!",
-                        description: "Tu cuenta fue creada con éxito.",
-                    });
                 }
 
-                if (userRole === 'admin_club') {
-                    router.push("/club");
-                } else {
-                    router.push("/jugador");
+                // Con "Confirm email" activo en Supabase, signUp() crea la cuenta
+                // pero NO abre sesión hasta que el usuario confirme por correo —
+                // authData.session viene null. En ese caso no lo mandamos a /jugador
+                // o /club (ahí lo rebotaría el login), mostramos el aviso de
+                // "revisa tu correo" en su lugar.
+                if (!authData.session) {
+                    setConfirmacionPendiente(email);
+                    setLoading(false);
+                    return;
                 }
+
+                toast({
+                    title: "¡Bienvenido a Pádel Manía!",
+                    description: "Tu cuenta fue creada con éxito.",
+                });
+                router.push(nextPath);
             } else {
                 toast({
                     title: "Aviso",
@@ -155,6 +168,32 @@ export default function RegistroPage() {
             setLoading(false);
         }
     };
+
+    if (confirmacionPendiente) {
+        return (
+            <div className="flex flex-col items-center">
+                <Card className="w-full max-w-md bg-paper-soft border-olive/20 shadow-xl">
+                    <CardHeader className="space-y-3 text-center">
+                        <div className="flex justify-center mb-2">
+                            <div className="w-20 h-20 rounded-full overflow-hidden shadow-md ring-4 ring-paper">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src="/logo.png" alt="Pádel Manía" className="w-full h-full object-cover" />
+                            </div>
+                        </div>
+                        <CardTitle className="font-display tracking-[0.08em] uppercase text-2xl text-olive">Confirma tu correo</CardTitle>
+                        <CardDescription className="text-ink-soft text-sm">
+                            Te enviamos un enlace a <strong>{confirmacionPendiente}</strong> — ábrelo para activar tu cuenta (revisa también spam/promociones).
+                        </CardDescription>
+                    </CardHeader>
+                    <CardFooter className="flex justify-center">
+                        <Link href="/login" className="text-sm text-ochre-dark hover:text-ochre hover:underline transition-colors font-bold">
+                            Volver al login
+                        </Link>
+                    </CardFooter>
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col items-center">
