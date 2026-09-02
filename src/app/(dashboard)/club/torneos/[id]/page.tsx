@@ -2,11 +2,11 @@ export const dynamic = 'force-dynamic';
 import { createClient, createAdminClient, createPureAdminClient } from "@/utils/supabase/server";
 import { format, addHours } from "date-fns";
 import { redirect } from "next/navigation";
-import { ChevronLeft, ChevronDown, CalendarDays, Users, Swords, Trophy, Settings } from "lucide-react";
+import { ChevronLeft, ChevronDown, CalendarDays, Swords, Trophy, Settings } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AdminParticipantActions } from "@/components/AdminParticipantActions";
+import { ParejasInscritasTable } from "@/components/ParejasInscritasTable";
 
 import { TournamentGroupsManager } from "@/components/TournamentGroupsManager";
 import { FaseGruposFinalesManager } from "@/components/FaseGruposFinalesManager";
@@ -884,55 +884,11 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                             hasStarted={hasStarted}
                         />
                     </div>
-                    {allParticipants.length === 0 ? (
-                        <div className="text-center py-12 text-olive/70 border border-olive/20 border-dashed rounded-xl bg-paper-soft/30">
-                            <Users className="w-12 h-12 text-olive/40 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-ink mb-2 font-bold uppercase">Aún no hay inscritos</h3>
-                            <p className="max-w-md mx-auto text-xs opacity-70">Comparte este torneo con los jugadores. Pronto verás aquí la lista de parejas confirmadas.</p>
-                        </div>
-                    ) : (
-                        <div className="bg-paper-soft border border-olive/20 rounded-xl overflow-hidden">
-                            <table className="w-full text-sm text-left rtl:text-right text-olive">
-                                <thead className="text-xs text-ink uppercase bg-paper-dark/50">
-                                    <tr>
-                                        <th scope="col" className="px-6 py-3">Pareja</th>
-                                        <th scope="col" className="px-6 py-3">Categoría</th>
-                                        <th scope="col" className="px-6 py-3">Estado de Pago</th>
-                                        <th scope="col" className="px-6 py-3 text-right">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {allParticipants.map((tp) => (
-                                        <tr key={tp.id} className="bg-paper-soft border-b border-olive/20 hover:bg-paper-dark/30">
-                                            <td className="px-6 py-4 font-bold text-ink">
-                                                {tp.nombre}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                {tp.categoria}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <Badge variant="outline" className={tp.estado_pago === 'pagado' ? 'text-olive border-olive/30 bg-olive-light/10' : 'text-ochre border-ochre-soft/30 bg-amber-400/10'}>
-                                                    {tp.estado_pago}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <AdminParticipantActions 
-                                                    id={tp.id.toString()} 
-                                                    parejaId={tp.pareja_id}
-                                                    tipo={tp.tipo} 
-                                                    torneoId={params.id} 
-                                                    hasStarted={hasStarted} 
-                                                    j1Id={tp.jugador1_id}
-                                                    j2Id={tp.jugador2_id}
-                                                    estadoPago={tp.estado_pago}
-                                                />
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                    <ParejasInscritasTable
+                        participants={allParticipants}
+                        torneoId={params.id}
+                        hasStarted={hasStarted}
+                    />
                 </TabsContent>
 
                 <TabsContent value="eliminatorias" className="mt-6">
