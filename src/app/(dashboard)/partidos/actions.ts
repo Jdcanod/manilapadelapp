@@ -4,6 +4,7 @@ import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { ESTADO_AMISTOSO, describirNivel, puedeUnirsePorCategoria } from "@/lib/amistosos";
 import { obtenerCategoriaJugador } from "@/lib/ranking/categoriaJugador";
+import { ESTADO_BLOQUEADO, TIPO_BLOQUEO, MOTIVO_POR_DEFECTO } from "@/lib/canchas/bloqueos";
 import {
     TIPO_NOTIFICACION,
     audienciaDelClub,
@@ -496,6 +497,50 @@ export async function obtenerMiCategoria(): Promise<string | null> {
 
     const { categoria } = await obtenerCategoriaJugador(admin, perfil.id, perfil.club_id);
     return categoria;
+}
+
+/**
+ * El club bloquea una cancha por algo que no pasó por la app (una reserva
+ * telefónica, mantenimiento). NO crea un partido: la fila queda con estado
+ * 'bloqueado', sin cupos y fuera de toda lista de partidos.
+ */
+export async function bloquearCancha(datos: {
+    fecha: string;
+    lugar: string;
+    motivo: string;
+}): Promise<ResultadoAccion> {
+    const supabase = createClient();
+    const admin = createPureAdminClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { ok: false, mensaje: "Tienes que iniciar sesión." };
+
+    const { data: club } = await admin
+        .from('users')
+        .select('id, rol')
+        .eq('auth_id', user.id)
+        .single();
+    if (club?.rol !== 'admin_club') return { ok: false, mensaje: "Solo un club puede bloquear sus canchas." };
+
+    const { error } = await admin.from('partidos').insert({
+        creador_id: user.id,
+        club_id: club.id,
+        fecha: datos.fecha,
+        lugar: datos.lugar,
+        estado: ESTADO_BLOQUEADO,
+        tipo_partido: TIPO_BLOQUEO,
+        bloqueo_motivo: datos.motivo.trim() || MOTIVO_POR_DEFECTO,
+        nivel: 'no_aplica',
+        sexo: 'no_aplica',
+        cupos_totales: 4,
+        cupos_disponibles: 0,
+        precio_por_persona: 0,
+    });
+
+    if (error) return { ok: false, mensaje: "No pudimos bloquear la cancha: " + error.message };
+
+    revalidatePath('/club');
+    return { ok: true, mensaje: "La cancha queda bloqueada en ese horario." };
 }
 
 export interface JugadorDelClub {

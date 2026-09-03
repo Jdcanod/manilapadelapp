@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { esBloqueo, etiquetaBloqueo } from "@/lib/canchas/bloqueos";
 import { cn } from "@/lib/utils";
 import { FollowersModal } from "@/components/social/FollowersModal";
 
@@ -237,13 +238,23 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
             const lugarStr = p.lugar || "";
             const matches = lugarStr.match(/cancha[_\s](\d+)/i);
             const courtIndex = matches ? parseInt(matches[1]) - 1 : -1;
-            let playerName = "Partido";
             let span = 3;
             if (lugarStr.includes("60 min")) span = 2;
             else if (lugarStr.includes("90 min")) span = 3;
-            if (lugarStr.includes("a nombre de ")) playerName = lugarStr.split("a nombre de ")[1];
-            else if (p.estado === 'abierto') playerName = "Partido Abierto";
-            return { id: p.id, courtIndex, timeIndex, span, player: playerName, type: p.tipo_partido?.toLowerCase().includes('amistoso') ? 'partido_app' : 'manual', status: p.estado };
+
+            // Un bloqueo no es un partido: se muestra con su motivo. Los
+            // bloqueos viejos traían el nombre embutido en `lugar`, así que se
+            // sigue leyendo de ahí como respaldo.
+            let playerName = "Partido";
+            if (esBloqueo(p)) {
+                playerName = etiquetaBloqueo(p.bloqueo_motivo);
+            } else if (lugarStr.includes("a nombre de ")) {
+                playerName = lugarStr.split("a nombre de ")[1];
+            } else if (p.estado === 'abierto') {
+                playerName = "Partido Abierto";
+            }
+
+            return { id: p.id, courtIndex, timeIndex, span, player: playerName, type: esBloqueo(p) ? 'bloqueo' : (p.tipo_partido?.toLowerCase().includes('amistoso') ? 'partido_app' : 'manual'), status: p.estado };
         }),
         ...(torneoPartidosData || []).map(tp => {
             const dt = new Date(tp.fecha || new Date());

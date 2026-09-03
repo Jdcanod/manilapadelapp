@@ -7,14 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createClient } from "@/utils/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
 import { CATEGORIAS_ORDENADAS, RANGO } from "@/lib/amistosos";
-import { crearAmistosoComoClub, listarJugadoresDelClub, type JugadorDelClub } from "@/app/(dashboard)/partidos/actions";
+import { crearAmistosoComoClub, bloquearCancha, listarJugadoresDelClub, type JugadorDelClub } from "@/app/(dashboard)/partidos/actions";
 
 interface Props {
-    userId: string;
+    /** @deprecated Ya no se usa: las server actions sacan el club de la sesión.
+     *  Se mantiene para no tocar los sitios que lo pasan. */
+    userId?: string;
     clubNombre: string;
     courts: string[];
     timeSlots: string[];
@@ -43,7 +44,7 @@ interface Props {
     }[];
 }
 
-export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, trigger, openState, onOpenChange, defaultCourt, defaultTime, defaultDate, horariosPrime, reservations }: Props) {
+export function ReservaManualDialog({ clubNombre, courts, timeSlots, trigger, openState, onOpenChange, defaultCourt, defaultTime, defaultDate, horariosPrime, reservations }: Props) {
     const [internalOpen, setInternalOpen] = useState(false);
 
     const open = openState !== undefined ? openState : internalOpen;
@@ -61,7 +62,6 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
     const [selectedIdCancha, setSelectedIdCancha] = useState(defaultCourt || "cancha_1");
     const [selectedDia, setSelectedDia] = useState(defaultDate || new Date().toLocaleString("en-CA", { timeZone: "America/Bogota" }).split(',')[0]);
     const [selectedDuracion, setSelectedDuracion] = useState("90");
-    const [users, setUsers] = useState<{ id: string, nombre: string }[]>([]);
     // Partido abierto: categoría real del ranking, rango, cupos por llenar y
     // jugadores que el club inscribe de una vez.
     const [categoriaPartido, setCategoriaPartido] = useState<string>("6ta");
@@ -84,7 +84,6 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
     };
     const router = useRouter();
     const { toast } = useToast();
-    const supabase = createClient();
 
     // Si el club baja los cupos, no puede quedar con más jugadores inscritos
     // que puestos disponibles.
@@ -102,15 +101,8 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
             if (defaultTime) setSelectedHora(defaultTime);
             if (defaultCourt) setSelectedIdCancha(defaultCourt);
             if (defaultDate) setSelectedDia(defaultDate);
-
-            // Load players when dialog opens
-            supabase.from('users').select('auth_id, nombre').eq('rol', 'jugador').then(({ data }) => {
-                if (data) {
-                    setUsers(data.map(u => ({ id: u.auth_id, nombre: u.nombre })));
-                }
-            });
         }
-    }, [open, supabase, defaultTime, defaultCourt, defaultDate]);
+    }, [open, defaultTime, defaultCourt, defaultDate]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -124,22 +116,8 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
         const isPrime = checkIsPrime(horaForm, dia, cancha_id);
         const duracion = isPrime ? "90" : ((formData.get("duracion") as string) || selectedDuracion);
 
-        // Determinar nombre del jugador, categoria o id
-        let playerName = "Comunidad";
-        let categoria = "mixto";
-        let nivel = "no_especificado";
-
-        if (abrirPartido) {
-            categoria = formData.get("categoria") as string || "mixto";
-            nivel = formData.get("nivel") as string || "intermedio";
-        } else {
-            // Si el nombre viene del select, tratamos de sacar el texto
-            const isSelect = formData.get("nombre_select");
-            if (isSelect) {
-                const userObj = users.find(u => u.id === isSelect);
-                if (userObj) playerName = userObj.nombre;
-            }
-        }
+        const categoria = abrirPartido ? (formData.get("categoria") as string || "mixto") : "no_aplica";
+        const motivoBloqueo = (formData.get("bloqueo_motivo") as string || "").trim();
 
         // Validar Solapamiento de Horarios
         if (reservations && Array.isArray(reservations)) {
@@ -179,7 +157,9 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
             if (checkIsPrime(horaForm, dia, cancha_id)) {
                 is90Min = true;
             }
-            const lugar_formateado = `${clubNombre} - ${cancha_id} (${is90Min ? '90' : '60'} min)${!abrirPartido ? ` - a nombre de ${playerName}` : ''}`;
+            // El motivo del bloqueo ya no se embute en `lugar`: vive en su
+            // propia columna (ver src/lib/canchas/bloqueos.ts).
+            const lugar_formateado = `${clubNombre} - ${cancha_id} (${is90Min ? '90' : '60'} min)`;
 
             if (abrirPartido) {
                 // Los partidos abiertos van por server action para poder avisar
@@ -206,24 +186,20 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                 return;
             }
 
-            const { error } = await supabase.from('partidos').insert({
-                creador_id: userId,
-                fecha: fecha,
-                estado: 'pendiente',
+            const resBloqueo = await bloquearCancha({
+                fecha,
                 lugar: lugar_formateado,
-                tipo_partido: 'Reserva Manual',
-                nivel: nivel,
-                sexo: categoria,
-                cupos_totales: 4,
-                cupos_disponibles: 0,
-                precio_por_persona: 0
+                motivo: motivoBloqueo,
             });
-
-            if (error) throw error;
+            if (!resBloqueo.ok) {
+                toast({ title: "No se pudo bloquear", description: resBloqueo.mensaje, variant: "destructive" });
+                setLoading(false);
+                return;
+            }
 
             toast({
-                title: "Partido agendado",
-                description: "La cancha queda ocupada a nombre del jugador.",
+                title: "Cancha bloqueada",
+                description: resBloqueo.mensaje,
             });
 
             setOpen(false);
@@ -253,43 +229,51 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] bg-paper-soft border-olive/20 text-ink">
                 <DialogHeader>
-                    <DialogTitle className="text-xl">Nuevo Partido</DialogTitle>
+                    <DialogTitle className="text-xl">{abrirPartido ? "Nuevo Partido" : "Bloquear Cancha"}</DialogTitle>
                     <DialogDescription className="text-olive">
-                        Agenda un partido en tu cancha: ábrelo a la comunidad o déjalo a nombre de alguien.
+                        {abrirPartido ? "Publica un partido para que los jugadores de tu club se anoten." : "Marca la cancha como ocupada por algo que no pasó por la app."}
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 pt-4">
 
-                    <div className="flex items-start space-x-3 bg-paper p-3 rounded-lg border border-olive/20">
-                        <input
-                            type="checkbox"
-                            name="abrir_partido"
-                            id="abrir_partido_chk"
-                            checked={abrirPartido}
-                            onChange={(e) => setAbrirPartido(e.target.checked)}
-                            className="w-5 h-5 mt-0.5 rounded border border-olive/30 bg-paper-soft checked:bg-olive appearance-none shrink-0 relative
-                            after:content-[''] after:absolute after:top-[3px] after:left-[7px] after:w-1.5 after:h-2.5 after:border-r-2 after:border-b-2 after:border-white after:rotate-45 after:opacity-0 checked:after:opacity-100 cursor-pointer"
-                        />
-                        <label htmlFor="abrir_partido_chk" className="text-sm font-medium text-ink cursor-pointer leading-tight">
-                            <span className="block text-ink mb-0.5 mt-0.5">Abrir partido a la comunidad</span>
-                            <span className="text-xs text-olive/70 font-normal">Otros jugadores podrán anotarse por la app en lugar de ingresar un nombre manual.</span>
-                        </label>
+                    {/* Dos cosas distintas, elegidas explícitamente: abrir un
+                        partido a la comunidad, o marcar la cancha como ocupada
+                        por algo que no pasó por la app. */}
+                    <div className="grid grid-cols-2 gap-2 bg-paper p-1.5 rounded-xl border border-olive/20">
+                        <button
+                            type="button"
+                            onClick={() => setAbrirPartido(true)}
+                            className={`rounded-lg px-3 py-2.5 text-left transition-colors ${abrirPartido ? 'bg-olive text-paper' : 'text-ink hover:bg-olive/10'}`}
+                        >
+                            <span className="block text-sm font-bold">Partido</span>
+                            <span className={`block text-[11px] leading-tight mt-0.5 ${abrirPartido ? 'text-paper/80' : 'text-olive/70'}`}>
+                                Abierto para que se anoten
+                            </span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setAbrirPartido(false)}
+                            className={`rounded-lg px-3 py-2.5 text-left transition-colors ${!abrirPartido ? 'bg-olive text-paper' : 'text-ink hover:bg-olive/10'}`}
+                        >
+                            <span className="block text-sm font-bold">Bloquear cancha</span>
+                            <span className={`block text-[11px] leading-tight mt-0.5 ${!abrirPartido ? 'text-paper/80' : 'text-olive/70'}`}>
+                                Ocupada, sin partido
+                            </span>
+                        </button>
                     </div>
 
                     {!abrirPartido ? (
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <Label className="text-ink">Seleccionar Jugador Registrado</Label>
-                                <Select name="nombre_select" required>
-                                    <SelectTrigger className="bg-paper border-olive/20 text-ink w-full">
-                                        <SelectValue placeholder="O elige un jugador..." />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[150px]">
-                                        {users.map((u) => (
-                                            <SelectItem key={u.id} value={u.id}>{u.nombre}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Label className="text-ink">¿A nombre de quién o por qué?</Label>
+                                <Input
+                                    name="bloqueo_motivo"
+                                    placeholder="Ej. Juan Pérez · Mantenimiento · Clase"
+                                    className="bg-paper border-olive/20 text-ink"
+                                />
+                                <p className="text-[11px] text-olive/60">
+                                    Nadie podrá anotarse: el horario queda marcado como ocupado en tu grilla.
+                                </p>
                             </div>
                         </div>
                     ) : (
@@ -465,7 +449,7 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                     </div>
 
                     <Button type="submit" disabled={loading} className="w-full bg-olive hover:bg-olive text-paper font-semibold shadow-lg shadow-emerald-900/20 active:scale-95 transition-all mt-4">
-                        {loading ? "Confirmando..." : "Confirmar Partido"}
+                        {loading ? "Confirmando..." : abrirPartido ? "Publicar Partido" : "Bloquear Cancha"}
                     </Button>
                 </form>
             </DialogContent>
