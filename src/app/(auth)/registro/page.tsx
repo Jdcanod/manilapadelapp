@@ -17,12 +17,14 @@ export default function RegistroPage() {
     const [showPassword, setShowPassword] = useState(false);
     const { toast } = useToast();
     const supabase = createClient();
-    const [clubs, setClubs] = useState<{id: string, nombre: string, ciudad: string}[]>([]);
+    const [clubs, setClubs] = useState<{id: string, auth_id: string, nombre: string, ciudad: string}[]>([]);
     const [confirmacionPendiente, setConfirmacionPendiente] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchClubs = async () => {
-            const { data } = await supabase.from('users').select('id, nombre, ciudad').eq('rol', 'admin_club');
+            // Ojo: `users.club_id` (más abajo) guarda el auth_id del club, no
+            // su id — hay que traer los dos.
+            const { data } = await supabase.from('users').select('id, auth_id, nombre, ciudad').eq('rol', 'admin_club');
             if (data) {
                 setClubs(data);
             }
@@ -41,7 +43,11 @@ export default function RegistroPage() {
         const password = formData.get("password") as string;
         const telefono = formData.get("telefono") as string;
         const fecha_nacimiento = formData.get("fecha_nacimiento") as string;
-        const club_preferencia = formData.get("club_preferencia") as string;
+        // `users.club_id` guarda el auth_id del club (no su id) — el <select>
+        // ya manda el auth_id como value.
+        const club_id = formData.get("club_id") as string;
+        const clubSeleccionado = clubs.find(c => c.auth_id === club_id);
+        const club_preferencia = clubSeleccionado?.nombre || null;
         const categoria = formData.get("categoria") as string;
         const ciudad = formData.get("ciudad") as string || "Manizales";
         const userRole = formData.get("role") as string || "jugador";
@@ -112,7 +118,8 @@ export default function RegistroPage() {
                         rol: userRole,
                         telefono: telefono,
                         fecha_nacimiento: fecha_nacimiento || null,
-                        club_preferencia: club_preferencia || null,
+                        club_preferencia,
+                        club_id: club_id || null,
                         categoria: categoria,
                         nivel: nivelValidado,
                     }),
@@ -302,13 +309,13 @@ export default function RegistroPage() {
                             <Label htmlFor="club_preferencia" className="text-olive-dark text-xs font-black uppercase tracking-widest">Club de Preferencia (Opcional)</Label>
                             <select
                                 id="club_preferencia"
-                                name="club_preferencia"
+                                name="club_id"
                                 className="flex h-10 w-full rounded-md border border-olive/30 bg-paper px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-olive/20 focus:border-olive disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 <option value="" disabled selected>Selecciona tu club...</option>
                                 <option value="">Ninguno</option>
                                 {clubs.map(club => (
-                                    <option key={club.id} value={club.nombre}>
+                                    <option key={club.id} value={club.auth_id}>
                                         {club.nombre} ({club.ciudad || 'Sin ciudad'})
                                     </option>
                                 ))}

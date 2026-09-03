@@ -1095,16 +1095,18 @@ export async function registrarResultadoPorClub(matchId: string, resultado: stri
 /**
  * Lista de jugadores para los selectores de inscripción manual / cambio de
  * pareja. Si se pasa `torneoId`, además de la categoría sugerida se marca
- * `esDelClub` (jugó alguna vez en un torneo de ESE club, según sus parejas
- * inscritas) para que el frontend pueda mostrar por defecto solo los
- * jugadores del club dueño del torneo, con la opción de buscar en otros
- * clubes. `esInvitado` permite ocultar invitados por defecto también.
+ * `esDelClub` — true si (a) jugó alguna vez un torneo de ESE club, o (b)
+ * eligió ese club como "club de preferencia" al registrarse (`users.club_id`),
+ * aunque todavía no haya jugado ahí — para que el frontend pueda mostrar por
+ * defecto solo los jugadores del club dueño del torneo, con la opción de
+ * buscar en otros clubes. `esInvitado` permite ocultar invitados por defecto
+ * también.
  */
 export async function obtenerTodosJugadores(torneoId?: string) {
     const supabase = createClient();
     const { data } = await supabase
         .from('users')
-        .select('id, nombre, apellido, email')
+        .select('id, nombre, apellido, email, club_id')
         .neq('rol', 'admin_club')
         .neq('rol', 'superadmin')
         .order('nombre', { ascending: true })
@@ -1176,11 +1178,24 @@ export async function obtenerTodosJugadores(torneoId?: string) {
         }
     }
 
+    // `users.club_id` (lo que el jugador eligió como "club de preferencia" al
+    // registrarse) guarda el auth_id del club, no su id — a diferencia de
+    // `torneos.club_id`, que sí es el id. Hay que resolver esa diferencia
+    // antes de poder comparar los dos.
+    const clubIdDelTorneo = torneoId ? ((torneos || []) as TorneoRow[]).find(t => t.id === torneoId)?.club_id : null;
+    let clubAuthIdDelTorneo: string | null = null;
+    if (clubIdDelTorneo) {
+        const { data: clubRow } = await admin.from('users').select('auth_id').eq('id', clubIdDelTorneo).maybeSingle();
+        clubAuthIdDelTorneo = clubRow?.auth_id ?? null;
+    }
+
     return jugadores.map(j => ({
         ...j,
         categoriaSugerida: masReciente.get(j.id)?.categoria ?? null,
         esInvitado: isGuestEmail(j.email),
-        esDelClub: torneoId ? clubJugadorIds.has(j.id) : false,
+        esDelClub: torneoId
+            ? clubJugadorIds.has(j.id) || (!!clubAuthIdDelTorneo && j.club_id === clubAuthIdDelTorneo)
+            : false,
     }));
 }
 

@@ -433,9 +433,17 @@ export async function buscarJugadores(
     const admin = createPureAdminClient();
 
     let clubId: string | null = null;
+    // `users.club_id` (club de preferencia elegido al registrarse) guarda el
+    // auth_id del club, no su id — a diferencia de `torneos.club_id`. Se
+    // resuelve aparte para poder comparar contra el `club_id` de cada jugador.
+    let clubAuthId: string | null = null;
     if (opts?.torneoId) {
         const { data: torneo } = await admin.from("torneos").select("club_id").eq("id", opts.torneoId).maybeSingle();
         clubId = torneo?.club_id || null;
+        if (clubId) {
+            const { data: clubRow } = await admin.from("users").select("auth_id").eq("id", clubId).maybeSingle();
+            clubAuthId = clubRow?.auth_id ?? null;
+        }
     }
 
     // ILIKE de Postgres no ignora tildes (Niño vs nino no matchean), así que
@@ -444,7 +452,7 @@ export async function buscarJugadores(
     // único que da resultados correctos con acentos.
     const { data, error } = await admin
         .from("users")
-        .select("id, nombre, apellido, email")
+        .select("id, nombre, apellido, email, club_id")
         .eq("rol", "jugador")
         .order("nombre", { ascending: true })
         .limit(2000);
@@ -492,16 +500,18 @@ export async function buscarJugadores(
         }
     }
 
-    const conFlags = filtrado.map((j: JugadorLite) => ({
+    const conFlags = filtrado.map((j: JugadorLite & { club_id?: string | null }) => ({
         ...j,
         esInvitado: isGuestEmail(j.email),
-        esDelClub: clubJugadorIds ? clubJugadorIds.has(j.id) : false,
+        // "Del club" si ya jugó ahí, o si eligió este club al registrarse
+        // (aunque todavía no haya jugado ningún torneo).
+        esDelClub: !!clubId && (clubJugadorIds?.has(j.id) || (!!clubAuthId && j.club_id === clubAuthId)),
     }));
 
     // Jugadores del club dueño de la búsqueda primero, para que si el
     // frontend filtra "solo este club" del lado cliente, no se quede vacío
     // por haber cortado el top-20 con gente de otros clubes.
-    if (clubJugadorIds) {
+    if (clubId) {
         conFlags.sort((a: JugadorLite, b: JugadorLite) => Number(b.esDelClub) - Number(a.esDelClub));
     }
 
