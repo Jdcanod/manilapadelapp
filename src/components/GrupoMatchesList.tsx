@@ -55,11 +55,27 @@ export function GrupoMatchesList<M extends MatchRow>({ matches, grupoId, mode, p
     // del grupo. Si no tiene pareja en este grupo (playerPairIds vacío) el
     // filtro no tiene efecto de todas formas.
     const [playerView, setPlayerView] = useState<PlayerView>('mis');
+    // Filtro explícito por una pareja específica — para que cualquiera (club
+    // o jugador) pueda ver "qué le falta jugar / qué ha jugado" a CUALQUIER
+    // pareja del grupo, no solo la propia.
+    const [parejaFiltro, setParejaFiltro] = useState<string>('');
 
     const grupoMatches = useMemo(
         () => matches.filter(m => m.torneo_grupo_id === grupoId),
         [matches, grupoId]
     );
+
+    const parejasDelGrupo = useMemo(() => {
+        const map = new Map<string, string>();
+        grupoMatches.forEach(m => {
+            if (m.pareja1_id) map.set(m.pareja1_id, resolvePairName(m.pareja1_id, m.pareja1?.nombre_pareja, parejaPlayers));
+            if (m.pareja2_id) map.set(m.pareja2_id, resolvePairName(m.pareja2_id, m.pareja2?.nombre_pareja, parejaPlayers));
+        });
+        return Array.from(map.entries())
+            .map(([id, nombre]) => ({ id, nombre }))
+            .sort((a, b) => a.nombre.localeCompare(b.nombre));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [grupoMatches, parejaPlayers]);
 
     const isMine = (m: M) =>
         playerPairIds.length > 0 &&
@@ -69,8 +85,13 @@ export function GrupoMatchesList<M extends MatchRow>({ matches, grupoId, mode, p
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();
         return grupoMatches.filter(m => {
-            // Vista del jugador: mis vs todos
-            if (mode === 'player' && playerView === 'mis' && !isMine(m)) return false;
+            // Filtro por pareja específica (tiene prioridad sobre "mis partidos")
+            if (parejaFiltro) {
+                if (m.pareja1_id !== parejaFiltro && m.pareja2_id !== parejaFiltro) return false;
+            } else if (mode === 'player' && playerView === 'mis' && !isMine(m)) {
+                // Vista del jugador: mis vs todos (solo aplica si no hay pareja elegida)
+                return false;
+            }
 
             // Filtro de estado
             const hasResult = !!m.resultado;
@@ -93,12 +114,14 @@ export function GrupoMatchesList<M extends MatchRow>({ matches, grupoId, mode, p
             return true;
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [grupoMatches, search, statusFilter, playerView, mode, playerPairIds, parejaPlayers]);
+    }, [grupoMatches, search, statusFilter, playerView, mode, playerPairIds, parejaPlayers, parejaFiltro]);
 
     const counts = useMemo(() => {
-        const base = mode === 'player' && playerView === 'mis'
-            ? grupoMatches.filter(isMine)
-            : grupoMatches;
+        const base = parejaFiltro
+            ? grupoMatches.filter(m => m.pareja1_id === parejaFiltro || m.pareja2_id === parejaFiltro)
+            : mode === 'player' && playerView === 'mis'
+                ? grupoMatches.filter(isMine)
+                : grupoMatches;
         return {
             todos: base.length,
             pendientes: base.filter(m => m.resultado && m.estado_resultado !== 'confirmado').length,
@@ -106,13 +129,13 @@ export function GrupoMatchesList<M extends MatchRow>({ matches, grupoId, mode, p
             confirmados: base.filter(m => m.estado_resultado === 'confirmado').length,
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [grupoMatches, mode, playerView, playerPairIds]);
+    }, [grupoMatches, mode, playerView, playerPairIds, parejaFiltro]);
 
     return (
         <div className="space-y-3">
             {/* Pestañas (solo player, y solo si está en el grupo) */}
             {mode === 'player' && playerPairIds.length > 0 && (
-                <div className="flex gap-2 border-b border-olive/20 pb-2">
+                <div className={cn("flex gap-2 border-b border-olive/20 pb-2", parejaFiltro && "opacity-40 pointer-events-none")}>
                     <button
                         onClick={() => setPlayerView('todos')}
                         className={cn(
@@ -135,6 +158,23 @@ export function GrupoMatchesList<M extends MatchRow>({ matches, grupoId, mode, p
                     >
                         Mis Partidos
                     </button>
+                </div>
+            )}
+
+            {/* Filtrar por una pareja específica del grupo */}
+            {parejasDelGrupo.length > 0 && (
+                <div className="space-y-1">
+                    <label className="text-[10px] font-black text-olive/70 uppercase tracking-widest">Filtrar por pareja</label>
+                    <select
+                        value={parejaFiltro}
+                        onChange={e => setParejaFiltro(e.target.value)}
+                        className="w-full bg-paper-soft border border-olive/20 rounded-lg px-3 py-2 text-xs text-ink focus:outline-none focus:border-olive/40 transition-colors"
+                    >
+                        <option value="">Todas las parejas</option>
+                        {parejasDelGrupo.map(p => (
+                            <option key={p.id} value={p.id}>{p.nombre}</option>
+                        ))}
+                    </select>
                 </div>
             )}
 
