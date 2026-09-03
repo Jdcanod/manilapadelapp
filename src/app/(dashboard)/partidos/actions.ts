@@ -25,6 +25,36 @@ function revalidarListas(partidoId: string) {
 }
 
 /**
+ * Sincroniza `estado` con los cupos que quedaron y devuelve esos cupos.
+ *
+ * OJO: `partidos.cupos_disponibles` lo maneja un TRIGGER de la base, que lo
+ * descuenta al insertar en `partido_jugadores` y lo devuelve al borrar. El
+ * código NO debe tocar ese contador — hacerlo descontaba dos veces por una
+ * sola inscripción (bug observado: 1 inscrito y cupos 3 -> 1). Acá solo se
+ * lee lo que el trigger dejó y se ajusta el estado, que el trigger no toca.
+ */
+async function sincronizarEstado(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    admin: any,
+    partidoId: string
+): Promise<number> {
+    const { data: actual } = await admin
+        .from('partidos')
+        .select('cupos_disponibles, estado')
+        .eq('id', partidoId)
+        .single();
+
+    const cupos = actual?.cupos_disponibles ?? 0;
+    if (actual?.estado === ESTADO_AMISTOSO.CANCELADO) return cupos;
+
+    const esperado = cupos === 0 ? ESTADO_AMISTOSO.COMPLETO : ESTADO_AMISTOSO.ABIERTO;
+    if (actual?.estado !== esperado) {
+        await admin.from('partidos').update({ estado: esperado }).eq('id', partidoId);
+    }
+    return cupos;
+}
+
+/**
  * auth_ids de todos los involucrados en un partido: el creador más los
  * inscritos. `partido_jugadores.jugador_id` guarda auth_id (ver src/lib/amistosos).
  */
@@ -80,15 +110,6 @@ export async function unirseAPartido(partidoId: string): Promise<ResultadoAccion
     if (new Date(partido.fecha) < new Date()) return { ok: false, mensaje: "Este partido ya pasó." };
     if (partido.cupos_disponibles <= 0) return { ok: false, mensaje: "Ya se llenaron los cupos." };
 
-    // ¿Ya estaba apuntado? (el índice único no existe, así que validamos acá)
-    const { data: yaInscrito } = await admin
-        .from('partido_jugadores')
-        .select('id')
-        .eq('partido_id', partidoId)
-        .eq('jugador_id', user.id)
-        .maybeSingle();
-    if (yaInscrito) return { ok: false, mensaje: "Ya estás apuntado a este partido." };
-
     // Filtro por categoría: un jugador sin categoría asignada puede entrar a
     // cualquiera (no lo bloqueamos por falta de datos).
     const { categoria: miCategoria } = await obtenerCategoriaJugador(admin, perfil.id, perfil.club_id);
@@ -96,36 +117,25 @@ export async function unirseAPartido(partidoId: string): Promise<ResultadoAccion
         return { ok: false, mensaje: `Este partido es para ${partido.nivel} y tu categoría es ${miCategoria}.` };
     }
 
-    // Bajar el cupo con bloqueo optimista: el UPDATE solo aplica si nadie más
-    // cambió `cupos_disponibles` entre la lectura y la escritura. Sin esto, dos
-    // jugadores entrando al mismo tiempo podrían tomar el mismo cupo.
-    const cuposRestantes = partido.cupos_disponibles - 1;
-    const { data: actualizado } = await admin
-        .from('partidos')
-        .update({
-            cupos_disponibles: cuposRestantes,
-            estado: cuposRestantes === 0 ? ESTADO_AMISTOSO.COMPLETO : ESTADO_AMISTOSO.ABIERTO,
-        })
-        .eq('id', partidoId)
-        .eq('cupos_disponibles', partido.cupos_disponibles)
-        .select('id');
-
-    if (!actualizado || actualizado.length === 0) {
-        return { ok: false, mensaje: "Alguien tomó el cupo justo antes que tú. Vuelve a intentarlo." };
-    }
-
+    // La inscripción va PRIMERO y es la que manda: el índice único
+    // (partido_id, jugador_id) es lo que garantiza que una sola persona ocupe
+    // un solo cupo. Si descontáramos el cupo antes, una doble ejecución de
+    // esta acción descontaría dos veces por una sola inscripción — que es
+    // exactamente el bug que se vio en pruebas (1 inscrito, cupos 3 -> 1).
     const { error: errInsert } = await admin
         .from('partido_jugadores')
         .insert({ partido_id: partidoId, jugador_id: user.id });
 
     if (errInsert) {
-        // Devolvemos el cupo para no dejar el partido con un cupo fantasma.
-        await admin
-            .from('partidos')
-            .update({ cupos_disponibles: partido.cupos_disponibles, estado: ESTADO_AMISTOSO.ABIERTO })
-            .eq('id', partidoId);
-        return { ok: false, mensaje: "No pudimos apuntarte: " + errInsert.message };
+        const duplicado = errInsert.code === '23505' || /duplicate|unique/i.test(errInsert.message);
+        return duplicado
+            ? { ok: false, mensaje: "Ya estás apuntado a este partido." }
+            : { ok: false, mensaje: "No pudimos apuntarte: " + errInsert.message };
     }
+
+    // El trigger de la base ya descontó el cupo al insertar; acá solo se
+    // sincroniza el estado (abierto/completo) con lo que quedó.
+    const cuposRestantes = await sincronizarEstado(admin, partidoId);
 
     // ─── Avisos ────────────────────────────────────────────────────────────
     const { data: yo } = await admin.from('users').select('nombre').eq('id', perfil.id).single();
@@ -187,27 +197,23 @@ export async function salirseDePartido(partidoId: string): Promise<ResultadoAcci
         return { ok: false, mensaje: "Faltan menos de 2 horas: avísale directamente a los demás jugadores." };
     }
 
-    const { data: inscripcion } = await admin
-        .from('partido_jugadores')
-        .select('id')
-        .eq('partido_id', partidoId)
-        .eq('jugador_id', user.id)
-        .maybeSingle();
-    if (!inscripcion) return { ok: false, mensaje: "No estabas apuntado a este partido." };
-
-    const { error: errDelete } = await admin
+    // El DELETE es el que manda: solo devolvemos el cupo si realmente se borró
+    // una inscripción. Si consultáramos primero y borráramos después, una doble
+    // ejecución devolvería el cupo dos veces (el mismo patrón del bug al unirse).
+    const { data: borradas, error: errDelete } = await admin
         .from('partido_jugadores')
         .delete()
-        .eq('id', inscripcion.id);
+        .eq('partido_id', partidoId)
+        .eq('jugador_id', user.id)
+        .select('id');
     if (errDelete) return { ok: false, mensaje: "No pudimos darte de baja: " + errDelete.message };
+    if (!borradas || borradas.length === 0) {
+        return { ok: false, mensaje: "No estabas apuntado a este partido." };
+    }
 
-    // Liberar el cupo y, si estaba completo, volver a abrirlo. Tope en
-    // cupos_totales - 1 porque el creador siempre ocupa un puesto.
-    const cuposLiberados = Math.min(partido.cupos_disponibles + 1, Math.max(partido.cupos_totales - 1, 1));
-    await admin
-        .from('partidos')
-        .update({ cupos_disponibles: cuposLiberados, estado: ESTADO_AMISTOSO.ABIERTO })
-        .eq('id', partidoId);
+    // El trigger de la base ya devolvió el cupo al borrar la inscripción; acá
+    // solo se reabre el partido si estaba completo.
+    const cuposLiberados = await sincronizarEstado(admin, partidoId);
 
     // Al creador le urge saberlo: le volvió a quedar un cupo por llenar.
     const { data: perfilQueSale } = await admin.from('users').select('nombre').eq('auth_id', user.id).maybeSingle();

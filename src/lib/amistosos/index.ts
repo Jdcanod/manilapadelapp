@@ -7,6 +7,14 @@
  * en la base, así que los ~664 partidos de torneo existentes heredaron esa
  * etiqueta y el campo quedó inservible como discriminador.
  *
+ * ─── `cupos_disponibles` lo maneja la BASE, no el código ───────────────────
+ * Hay un TRIGGER sobre `partido_jugadores` que descuenta `cupos_disponibles`
+ * al insertar una inscripción y lo devuelve al borrarla (verificado contra la
+ * base 2026-09-03; no está en ninguna migración del repo). El código NO debe
+ * sumar ni restar ese contador: hacerlo descontaba dos veces por una sola
+ * inscripción. Lo que el trigger NO toca es `estado`, así que pasar a
+ * 'completo' / 'abierto' sí le corresponde al código.
+ *
  * ─── Convención de IDs (ojo, no es uniforme) ───────────────────────────────
  *   partidos.creador_id            → users.auth_id
  *   partido_jugadores.jugador_id   → users.auth_id
