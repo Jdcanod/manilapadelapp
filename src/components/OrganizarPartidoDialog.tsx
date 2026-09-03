@@ -311,7 +311,9 @@ export function OrganizarPartidoDialog({ openState, onOpenChange, trigger, defau
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-ink-soft">Categoría</Label>
+                            {/* Ojo: este campo es el género, no la categoría de
+                                juego — antes ambos decían "Categoría". */}
+                            <Label className="text-ink-soft">Modalidad</Label>
                             <Select name="sexo" defaultValue="mixto">
                                 <SelectTrigger className="bg-paper border-olive/20">
                                     <SelectValue placeholder="Categoría" />

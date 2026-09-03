@@ -16,6 +16,7 @@ import { obtenerRankingClub } from "@/lib/ranking/obtenerRankingClub";
 import { obtenerRankingGlobal } from "@/lib/ranking/obtenerRankingGlobal";
 import { resolveClubPublicId } from "@/lib/club/resolveClubPublicId";
 import { ESTADO_AMISTOSO, describirNivel } from "@/lib/amistosos";
+import { obtenerCategoriaJugador } from "@/lib/ranking/categoriaJugador";
 
 /** Dado el resultado "6-3,4-6,10-7" (o con espacios/barras) devuelve qué pareja ganó: 1 o 2 */
 function getWinner(resultado: string | null | undefined): 1 | 2 | null {
@@ -188,16 +189,23 @@ export default async function JugadorDashboard() {
     let totalCategoria = 0;
 
     if (miClubPublicId && userData?.id) {
-        const [{ jugadores: rankingClub }, { data: clubRow }] = await Promise.all([
+        // Mi nivel y categoría salen de `ranking_club_jugador` directo, NO del
+        // ranking del club: `obtenerRankingClub` arma su lista a partir de los
+        // TORNEOS del club, así que un club que todavía no ha corrido ninguno
+        // devuelve vacío y el jugador veía "sin nivel asignado" aunque el club
+        // ya se lo hubiera puesto.
+        const [{ categoria, nivel }, { jugadores: rankingClub }, { data: clubRow }] = await Promise.all([
+            obtenerCategoriaJugador(adminSupabase, userData.id, userData.club_id),
             obtenerRankingClub(miClubPublicId),
             adminSupabase.from('users').select('nombre').eq('id', miClubPublicId).single(),
         ]);
         miClubNombre = clubRow?.nombre || null;
+        miNivel = nivel;
+        miCategoria = categoria;
 
+        // El ranking del club (posición) sí depende de que haya torneos: sin
+        // ellos no hay contra quién compararse, y queda en 0 (no se muestra).
         const conNivel = rankingClub.filter(j => j.nivel_ranking != null).sort((a, b) => (b.nivel_ranking ?? 0) - (a.nivel_ranking ?? 0));
-        const yo = rankingClub.find(j => j.id === userData.id);
-        miNivel = yo?.nivel_ranking ?? null;
-        miCategoria = yo?.categoria_jugador ?? null;
         totalClub = conNivel.length;
         miRankClub = conNivel.findIndex(j => j.id === userData.id) + 1;
 
