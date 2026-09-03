@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { UserPlus, Users, LogOut, XCircle, Megaphone } from "lucide-react";
+import { UserPlus, Users, LogOut, XCircle, Megaphone, Newspaper, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { marcarLeida } from "./actions";
 import { TIPO_NOTIFICACION, type Notificacion } from "@/lib/notificaciones";
@@ -13,6 +13,8 @@ const ICONO: Record<string, { Icon: typeof UserPlus; color: string }> = {
     [TIPO_NOTIFICACION.PARTIDO_COMPLETO]: { Icon: Users, color: 'text-olive' },
     [TIPO_NOTIFICACION.PARTIDO_SALIDA]: { Icon: LogOut, color: 'text-ochre-dark' },
     [TIPO_NOTIFICACION.PARTIDO_CANCELADO]: { Icon: XCircle, color: 'text-red-500' },
+    [TIPO_NOTIFICACION.CLUB_NOVEDAD]: { Icon: Newspaper, color: 'text-blue-600' },
+    [TIPO_NOTIFICACION.TORNEO_MURO]: { Icon: Trophy, color: 'text-ochre-dark' },
 };
 
 export function NotificacionItem({ notificacion }: { notificacion: Notificacion }) {

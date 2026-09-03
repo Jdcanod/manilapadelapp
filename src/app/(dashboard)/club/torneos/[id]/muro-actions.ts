@@ -2,8 +2,25 @@
 
 import { requireClubOwnership } from "@/lib/auth/clubOwnership";
 import { revalidatePath } from "next/cache";
+import { TIPO_NOTIFICACION, audienciaDelTorneo, crearNotificaciones } from "@/lib/notificaciones";
 
 export type MuroTipo = 'regla' | 'fecha_importante' | 'anuncio';
+
+/**
+ * Qué publicaciones del muro generan aviso a los inscritos.
+ *
+ * Las REGLAS se cargan típicamente en lote al montar el torneo: notificarlas
+ * mandaría una ráfaga de avisos a ~100 personas, que es la forma más rápida
+ * de que la gente aprenda a ignorar la campana. Quedan consultables en el
+ * muro, que es donde se buscan. Anuncios y fechas sí son eventos puntuales.
+ */
+const TIPOS_QUE_NOTIFICAN: MuroTipo[] = ['anuncio', 'fecha_importante'];
+
+const ETIQUETA_TIPO: Record<MuroTipo, string> = {
+    anuncio: 'Anuncio',
+    fecha_importante: 'Fecha importante',
+    regla: 'Regla',
+};
 
 export interface MuroPost {
     id: string;
@@ -66,6 +83,20 @@ export async function crearMuroPost(
             created_by: userData.id,
         });
         if (error) return { success: false, error: error.message };
+
+        // Avisar a los inscritos del torneo — no a todo el club: a quien no
+        // juega este torneo no le sirven sus anuncios.
+        if (TIPOS_QUE_NOTIFICAN.includes(input.tipo)) {
+            const destinatarios = await audienciaDelTorneo(admin, torneoId);
+            await crearNotificaciones(admin, destinatarios.map(jugador_id => ({
+                jugador_id,
+                tipo: TIPO_NOTIFICACION.TORNEO_MURO,
+                titulo: `${ETIQUETA_TIPO[input.tipo]} en ${torneo.nombre}`,
+                mensaje: titulo,
+                link: `/torneos/${torneoId}`,
+            })));
+            revalidatePath('/notificaciones');
+        }
 
         revalidatePath(`/club/torneos/${torneoId}`);
         revalidatePath(`/torneos/${torneoId}`);

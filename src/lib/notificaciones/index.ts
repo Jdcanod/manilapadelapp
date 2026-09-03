@@ -29,6 +29,10 @@ export const TIPO_NOTIFICACION = {
     PARTIDO_SALIDA: 'partido_salida',
     /** Se canceló un partido en el que estabas. */
     PARTIDO_CANCELADO: 'partido_cancelado',
+    /** Tu club publicó una novedad. */
+    CLUB_NOVEDAD: 'club_novedad',
+    /** El club publicó algo en el muro de un torneo donde estás inscrito. */
+    TORNEO_MURO: 'torneo_muro',
 } as const;
 
 export type TipoNotificacion = typeof TIPO_NOTIFICACION[keyof typeof TIPO_NOTIFICACION];
@@ -96,6 +100,85 @@ export async function authIdsAJugadorIds(
         .in('auth_id', ids);
 
     return (data || []).map((u: { id: string }) => u.id);
+}
+
+/**
+ * A quién le importa lo que publica un club: sus seguidores MÁS los jugadores
+ * que lo tienen como club de preferencia.
+ *
+ * No basta con los seguidores: en Padel del Río eran 16 seguidores contra 88
+ * jugadores del club, así que avisar solo a los seguidores dejaría por fuera a
+ * 75 personas que sí se consideran del club.
+ *
+ * Ojo con las dos convenciones: `club_seguidores.club_id` usa el `users.id`
+ * del club, mientras que `users.club_id` de un jugador guarda el `auth_id`.
+ */
+export async function audienciaDelClub(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    adminSupabase: SupabaseClient<any, any, any>,
+    clubPublicId: string,
+    clubAuthId: string | null | undefined
+): Promise<string[]> {
+    const [{ data: seguidores }, { data: miembros }] = await Promise.all([
+        adminSupabase
+            .from('club_seguidores')
+            .select('jugador_id')
+            .eq('club_id', clubPublicId),
+        clubAuthId
+            ? adminSupabase
+                .from('users')
+                .select('id')
+                .eq('rol', 'jugador')
+                .eq('club_id', clubAuthId)
+                .not('email', 'ilike', 'invitado_%')
+            : Promise.resolve({ data: [] as { id: string }[] }),
+    ]);
+
+    return Array.from(new Set([
+        ...(seguidores || []).map((s: { jugador_id: string }) => s.jugador_id),
+        ...(miembros || []).map((m: { id: string }) => m.id),
+    ]));
+}
+
+/**
+ * Jugadores inscritos en un torneo (users.id). Es la audiencia natural del
+ * muro de ESE torneo: a quien no lo juega no le sirven sus reglas ni fechas.
+ */
+export async function audienciaDelTorneo(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    adminSupabase: SupabaseClient<any, any, any>,
+    torneoId: string
+): Promise<string[]> {
+    const { data: tParejas } = await adminSupabase
+        .from('torneo_parejas')
+        .select('pareja_id')
+        .eq('torneo_id', torneoId);
+
+    const parejaIds = Array.from(new Set(
+        (tParejas || []).map((tp: { pareja_id: string }) => tp.pareja_id).filter(Boolean)
+    ));
+    if (parejaIds.length === 0) return [];
+
+    const { data: parejas } = await adminSupabase
+        .from('parejas')
+        .select('jugador1_id, jugador2_id')
+        .in('id', parejaIds);
+
+    const jugadores = new Set<string>();
+    (parejas || []).forEach((p: { jugador1_id: string | null; jugador2_id: string | null }) => {
+        if (p.jugador1_id) jugadores.add(p.jugador1_id);
+        if (p.jugador2_id) jugadores.add(p.jugador2_id);
+    });
+
+    // Los invitados no tienen cuenta con la que entrar a leer el aviso.
+    if (jugadores.size === 0) return [];
+    const { data: reales } = await adminSupabase
+        .from('users')
+        .select('id')
+        .in('id', Array.from(jugadores))
+        .not('email', 'ilike', 'invitado_%');
+
+    return (reales || []).map((u: { id: string }) => u.id);
 }
 
 /** Fecha corta y en español para el cuerpo de los avisos. */

@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { TIPO_NOTIFICACION, audienciaDelClub, crearNotificaciones } from "@/lib/notificaciones";
 
 export async function uploadClubLogo(userId: string, formData: FormData) {
     const adminSupabase = createAdminClient();
@@ -84,7 +85,7 @@ export async function saveClubSettings(userId: string, formData: FormData) {
 export async function postClubNews(userId: string, formData: FormData) {
     const supabase = createClient();
 
-    const { data: userRow } = await supabase.from('users').select('rol, id').eq('auth_id', userId).single();
+    const { data: userRow } = await supabase.from('users').select('rol, id, nombre, auth_id').eq('auth_id', userId).single();
     if (userRow?.rol !== 'admin_club') {
         throw new Error("No tienes permisos para realizar esta acción.");
     }
@@ -105,6 +106,23 @@ export async function postClubNews(userId: string, formData: FormData) {
         throw new Error("No se pudo publicar la novedad.");
     }
 
+    // Avisar a la gente del club. La audiencia son los seguidores MÁS los
+    // jugadores que lo tienen como club de preferencia: quedarse solo con los
+    // seguidores dejaría por fuera a la mayoría (ver audienciaDelClub).
+    const { createPureAdminClient } = await import("@/utils/supabase/server");
+    const admin = createPureAdminClient();
+    const destinatarios = await audienciaDelClub(admin, userRow.id, userRow.auth_id);
+
+    await crearNotificaciones(admin, destinatarios.map(jugador_id => ({
+        jugador_id,
+        tipo: TIPO_NOTIFICACION.CLUB_NOVEDAD,
+        titulo: `${userRow.nombre || 'Tu club'} publicó una novedad`,
+        mensaje: titulo,
+        link: '/novedades',
+    })));
+
+    revalidatePath("/novedades");
+    revalidatePath("/notificaciones");
     return { success: true };
 }
 
