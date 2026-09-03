@@ -20,7 +20,14 @@ export async function GET(request: NextRequest) {
     const { searchParams, origin } = new URL(request.url);
     const token_hash = searchParams.get("token_hash");
     const type = searchParams.get("type") as EmailOtpType | null;
-    const next = searchParams.get("next") ?? "/";
+    const rawNext = searchParams.get("next") ?? "/";
+    // `next` puede llegar como URL absoluta (ej. {{ .RedirectTo }} en la
+    // plantilla de "Confirm signup" trae el valor completo que pasamos en
+    // emailRedirectTo) — si lo pegáramos tal cual detrás de `origin` se
+    // duplicaría el dominio. Nos quedamos solo con el path + query.
+    const next = rawNext.startsWith("http")
+        ? (() => { const u = new URL(rawNext); return `${u.pathname}${u.search}`; })()
+        : rawNext;
 
     if (token_hash && type) {
         const supabase = createClient();

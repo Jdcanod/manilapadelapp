@@ -77,11 +77,11 @@ export default function RegistroPage() {
                         categoria: categoria,
                         nivel: nivelValidado
                     },
-                    // Si "Confirm email" está activo en Supabase, este es el link al
-                    // que llega el correo de confirmación — pasa por /auth/callback
-                    // (mismo que usa recuperar contraseña) y de ahí a `nextPath` ya
-                    // con sesión iniciada.
-                    emailRedirectTo: `${window.location.origin}/auth/callback?next=${nextPath}`,
+                    // Si "Confirm email" está activo en Supabase, la plantilla de
+                    // correo usa {{ .RedirectTo }} (= este valor) como `next` para
+                    // /auth/confirm, que extrae el path y redirige ahí ya con la
+                    // sesión iniciada.
+                    emailRedirectTo: `${window.location.origin}${nextPath}`,
                 }
             });
 
