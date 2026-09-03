@@ -135,7 +135,7 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
     }, [open, reservationId, supabase, reservations]);
 
     const handleDelete = async () => {
-        if (!confirm("¿Estás seguro de que deseas eliminar esta reserva por completo?")) return;
+        if (!confirm("¿Estás seguro de que deseas eliminar este partido por completo?")) return;
         
         setSaving(true);
         try {
@@ -147,9 +147,9 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
                 .eq('id', reservationId);
             
             if (error) {
-                alert("Error al eliminar la reserva: " + error.message);
+                alert("Error al eliminar el partido: " + error.message);
             } else {
-                alert("Reserva eliminada con éxito");
+                alert("Partido eliminado con éxito");
                 onOpenChange(false);
                 window.location.reload();
             }
@@ -194,7 +194,7 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
             });
 
             if (hasOverlap) {
-                alert("❌ SOLAPAMIENTO: Esta cancha ya está ocupada en este horario por otra reserva.");
+                alert("❌ SOLAPAMIENTO: Esta cancha ya está ocupada en este horario por otro partido.");
                 return;
             }
         }
@@ -268,7 +268,7 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
             });
 
             if (hasOverlap) {
-                alert("❌ SOLAPAMIENTO: Ya existe otra reserva que se cruza con el nuevo horario seleccionado.");
+                alert("❌ SOLAPAMIENTO: Ya existe otro partido que se cruza con el nuevo horario seleccionado.");
                 return;
             }
         }
@@ -352,7 +352,7 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[500px] bg-paper-soft border-olive/20 text-ink max-h-[90vh] overflow-hidden flex flex-col p-0 shadow-2xl">
                 <DialogHeader className="p-6 pb-2 border-b border-olive/20">
-                    <DialogTitle className="text-xl">Gestión de Reserva</DialogTitle>
+                    <DialogTitle className="text-xl">Gestión del Partido</DialogTitle>
                     <DialogDescription className="text-olive">
                         Edita los detalles de la reserva, asigna canchas o gestiona jugadores inscritos.
                     </DialogDescription>
@@ -364,7 +364,7 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
                             <Loader2 className="w-8 h-8 text-olive animate-spin" />
                         </div>
                     ) : !partido ? (
-                        <div className="text-red-500 p-4">No se pudo cargar la reserva. Es posible que haya sido eliminada.</div>
+                        <div className="text-red-500 p-4">No se pudo cargar el partido. Es posible que haya sido eliminado.</div>
                     ) : (
                         <div className="space-y-6 pt-2 pb-6">
                             {partido?.tipo_partido === 'torneo' ? (

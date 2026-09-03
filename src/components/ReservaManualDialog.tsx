@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createClient } from "@/utils/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
+import { CATEGORIAS_ORDENADAS, RANGO } from "@/lib/amistosos";
+import { crearAmistosoComoClub, listarJugadoresDelClub, type JugadorDelClub } from "@/app/(dashboard)/partidos/actions";
 
 interface Props {
     userId: string;
@@ -60,6 +62,13 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
     const [selectedDia, setSelectedDia] = useState(defaultDate || new Date().toLocaleString("en-CA", { timeZone: "America/Bogota" }).split(',')[0]);
     const [selectedDuracion, setSelectedDuracion] = useState("90");
     const [users, setUsers] = useState<{ id: string, nombre: string }[]>([]);
+    // Partido abierto: categoría real del ranking, rango, cupos por llenar y
+    // jugadores que el club inscribe de una vez.
+    const [categoriaPartido, setCategoriaPartido] = useState<string>("6ta");
+    const [rango, setRango] = useState<number>(RANGO.CERCANA);
+    const [cupos, setCupos] = useState<number>(4);
+    const [jugadoresClub, setJugadoresClub] = useState<JugadorDelClub[]>([]);
+    const [seleccionados, setSeleccionados] = useState<string[]>([]);
 
     const checkIsPrime = (hora: string, dia: string, cancha: string) => {
         if (!horariosPrime || !Array.isArray(horariosPrime)) return false;
@@ -77,8 +86,18 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
     const { toast } = useToast();
     const supabase = createClient();
 
+    // Si el club baja los cupos, no puede quedar con más jugadores inscritos
+    // que puestos disponibles.
+    useEffect(() => {
+        setSeleccionados(prev => prev.slice(0, cupos));
+    }, [cupos]);
+
     useEffect(() => {
         if (open) {
+            setSeleccionados([]);
+            listarJugadoresDelClub()
+                .then(setJugadoresClub)
+                .catch(() => setJugadoresClub([]));
             // Sincronizar estados con defaults si se abrió desde la grilla
             if (defaultTime) setSelectedHora(defaultTime);
             if (defaultCourt) setSelectedIdCancha(defaultCourt);
@@ -139,7 +158,7 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
             });
 
             if (hasOverlap) {
-                alert("❌ SOLAPAMIENTO: Ya existe una reserva en este horario para la cancha seleccionada.");
+                alert("❌ SOLAPAMIENTO: Ya existe un partido en este horario para la cancha seleccionada.");
                 setLoading(false);
                 return;
             }
@@ -162,34 +181,59 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
             }
             const lugar_formateado = `${clubNombre} - ${cancha_id} (${is90Min ? '90' : '60'} min)${!abrirPartido ? ` - a nombre de ${playerName}` : ''}`;
 
+            if (abrirPartido) {
+                // Los partidos abiertos van por server action para poder avisar
+                // a los jugadores del club cuya categoría encaja e inscribir a
+                // los que el club eligió.
+                const res = await crearAmistosoComoClub({
+                    fecha,
+                    lugar: lugar_formateado,
+                    nivel: categoriaPartido,
+                    categoriaRango: rango,
+                    sexo: categoria,
+                    cuposDisponibles: cupos,
+                    precioPorPersona: 0,
+                    jugadoresIds: seleccionados,
+                });
+                if (!res.ok) {
+                    toast({ title: "No se pudo abrir el partido", description: res.mensaje, variant: "destructive" });
+                    setLoading(false);
+                    return;
+                }
+                toast({ title: "Partido abierto", description: res.mensaje });
+                setOpen(false);
+                router.refresh();
+                return;
+            }
+
             const { error } = await supabase.from('partidos').insert({
                 creador_id: userId,
                 fecha: fecha,
-                estado: abrirPartido ? 'abierto' : 'pendiente',
+                estado: 'pendiente',
                 lugar: lugar_formateado,
-                tipo_partido: abrirPartido ? 'Amistoso' : 'Reserva Manual',
+                tipo_partido: 'Reserva Manual',
                 nivel: nivel,
                 sexo: categoria,
                 cupos_totales: 4,
-                cupos_disponibles: abrirPartido ? 4 : 0,
+                cupos_disponibles: 0,
                 precio_por_persona: 0
             });
 
             if (error) throw error;
 
             toast({
-                title: "Reserva Confirmada",
-                description: abrirPartido ? "Partido abierto a la comunidad exitosamente." : "Cancha bloqueada exitosamente.",
+                title: "Partido agendado",
+                description: "La cancha queda ocupada a nombre del jugador.",
             });
 
             setOpen(false);
             router.refresh();
 
         } catch (err: unknown) {
-            console.error("Error confirmando reserva:", err);
+            console.error("Error creando el partido:", err);
             toast({
-                title: "Error en reserva",
-                description: (err as Error)?.message || "Ocurrió un error inesperado al listar la reserva.",
+                title: "Error al crear el partido",
+                description: (err as Error)?.message || "Ocurrió un error inesperado al crear el partido.",
                 variant: "destructive"
             });
         } finally {
@@ -203,15 +247,15 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
             <DialogTrigger asChild>
                 {trigger || (
                     <Button className="flex-1 sm:flex-none bg-olive hover:bg-olive text-paper shadow-lg">
-                        <Plus className="w-4 h-4 mr-2" /> Reserva Manual
+                        <Plus className="w-4 h-4 mr-2" /> Nuevo Partido
                     </Button>
                 )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] bg-paper-soft border-olive/20 text-ink">
                 <DialogHeader>
-                    <DialogTitle className="text-xl">Añadir Reserva Manual</DialogTitle>
+                    <DialogTitle className="text-xl">Nuevo Partido</DialogTitle>
                     <DialogDescription className="text-olive">
-                        Reserva telefónica o presencial. Bloquea el turno en el sistema.
+                        Agenda un partido en tu cancha: ábrelo a la comunidad o déjalo a nombre de alguien.
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 pt-4">
@@ -249,33 +293,102 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                             </div>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label className="text-ink">Nivel</Label>
-                                <Select name="nivel" defaultValue="intermedio">
-                                    <SelectTrigger className="bg-paper border-olive/20 text-ink">
-                                        <SelectValue placeholder="Nivel" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-paper-soft border-olive/20 text-ink">
-                                        <SelectItem value="principiante">Principiante</SelectItem>
-                                        <SelectItem value="intermedio">Intermedio (5ta - 6ta)</SelectItem>
-                                        <SelectItem value="avanzado">Avanzado (3ra - 4ta)</SelectItem>
-                                        <SelectItem value="profesional">Profesional (1ra - 2da)</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    {/* Categoría en la MISMA escala del ranking, para que el
+                                        partido entre al filtro por categoría y al aviso. */}
+                                    <Label className="text-ink">Categoría</Label>
+                                    <Select name="nivel" value={categoriaPartido} onValueChange={setCategoriaPartido}>
+                                        <SelectTrigger className="bg-paper border-olive/20 text-ink">
+                                            <SelectValue placeholder="Categoría" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-paper-soft border-olive/20 text-ink">
+                                            {CATEGORIAS_ORDENADAS.map((cat) => (
+                                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-ink">¿Quién puede entrar?</Label>
+                                    <Select name="categoria_rango" value={String(rango)} onValueChange={(v) => setRango(Number(v))}>
+                                        <SelectTrigger className="bg-paper border-olive/20 text-ink">
+                                            <SelectValue placeholder="Rango" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-paper-soft border-olive/20 text-ink">
+                                            <SelectItem value={String(RANGO.EXACTA)}>Solo esta categoría</SelectItem>
+                                            <SelectItem value={String(RANGO.CERCANA)}>Esta o una cercana (±1)</SelectItem>
+                                            <SelectItem value={String(RANGO.ABIERTO)}>Cualquier categoría</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-ink">Modalidad</Label>
+                                    <Select name="categoria" defaultValue="mixto">
+                                        <SelectTrigger className="bg-paper border-olive/20 text-ink">
+                                            <SelectValue placeholder="Modalidad" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-paper-soft border-olive/20 text-ink">
+                                            <SelectItem value="masculino">Masculino</SelectItem>
+                                            <SelectItem value="femenino">Femenino</SelectItem>
+                                            <SelectItem value="mixto">Mixto</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-ink">Cupos a llenar</Label>
+                                    <Select value={String(cupos)} onValueChange={(v) => setCupos(Number(v))}>
+                                        <SelectTrigger className="bg-paper border-olive/20 text-ink">
+                                            <SelectValue placeholder="Cupos" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-paper-soft border-olive/20 text-ink">
+                                            <SelectItem value="4">4 (cancha vacía)</SelectItem>
+                                            <SelectItem value="3">3</SelectItem>
+                                            <SelectItem value="2">2</SelectItem>
+                                            <SelectItem value="1">1</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            {/* Inscribir jugadores de una vez: cada uno ocupa un cupo. */}
                             <div className="space-y-2">
-                                <Label className="text-ink">Categoría</Label>
-                                <Select name="categoria" defaultValue="mixto">
-                                    <SelectTrigger className="bg-paper border-olive/20 text-ink">
-                                        <SelectValue placeholder="Categoría" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-paper-soft border-olive/20 text-ink">
-                                        <SelectItem value="masculino">Masculino</SelectItem>
-                                        <SelectItem value="femenino">Femenino</SelectItem>
-                                        <SelectItem value="mixto">Mixto</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <Label className="text-ink">
+                                    Inscribir jugadores ahora
+                                    <span className="text-xs text-olive/60 font-normal ml-2">opcional · {seleccionados.length} de {cupos}</span>
+                                </Label>
+                                {jugadoresClub.length === 0 ? (
+                                    <p className="text-xs text-olive/60 italic">
+                                        No hay jugadores de tu club con cuenta todavía.
+                                    </p>
+                                ) : (
+                                    <div className="max-h-36 overflow-y-auto border border-olive/20 rounded-lg bg-paper divide-y divide-olive/10">
+                                        {jugadoresClub.map((j) => {
+                                            const marcado = seleccionados.includes(j.id);
+                                            const lleno = !marcado && seleccionados.length >= cupos;
+                                            return (
+                                                <button
+                                                    key={j.id}
+                                                    type="button"
+                                                    disabled={lleno}
+                                                    onClick={() => setSeleccionados(prev =>
+                                                        marcado ? prev.filter(id => id !== j.id) : [...prev, j.id]
+                                                    )}
+                                                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors ${marcado ? 'bg-olive/10 text-ink font-semibold' : lleno ? 'text-olive/40 cursor-not-allowed' : 'text-ink hover:bg-olive/5'}`}
+                                                >
+                                                    <span className="truncate">{j.nombre}</span>
+                                                    <span className="text-[10px] text-olive/60 shrink-0">
+                                                        {marcado ? '✓ inscrito' : (j.categoria || 'sin categoría')}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -352,7 +465,7 @@ export function ReservaManualDialog({ userId, clubNombre, courts, timeSlots, tri
                     </div>
 
                     <Button type="submit" disabled={loading} className="w-full bg-olive hover:bg-olive text-paper font-semibold shadow-lg shadow-emerald-900/20 active:scale-95 transition-all mt-4">
-                        {loading ? "Confirmando..." : "Confirmar Reserva"}
+                        {loading ? "Confirmando..." : "Confirmar Partido"}
                     </Button>
                 </form>
             </DialogContent>

@@ -6,6 +6,7 @@ import { ESTADO_AMISTOSO, describirNivel, puedeUnirsePorCategoria } from "@/lib/
 import { obtenerCategoriaJugador } from "@/lib/ranking/categoriaJugador";
 import {
     TIPO_NOTIFICACION,
+    audienciaDelClub,
     authIdsAJugadorIds,
     crearNotificaciones,
     fechaCorta,
@@ -353,6 +354,127 @@ async function notificarPartidoNuevo(
     })));
 }
 
+export interface DatosAmistosoClub extends DatosAmistoso {
+    /** users.id de jugadores que el club inscribe de una vez. */
+    jugadoresIds?: string[];
+}
+
+/**
+ * Crea un amistoso desde el club, para llenar una cancha suya.
+ *
+ * Diferencia clave con el de un jugador: **el club no juega**, así que no
+ * ocupa cupo. Los 4 puestos quedan disponibles salvo los que el club llene
+ * al inscribir jugadores a dedo.
+ */
+export async function crearAmistosoComoClub(datos: DatosAmistosoClub): Promise<ResultadoAccion & { partidoId?: string }> {
+    const supabase = createClient();
+    const admin = createPureAdminClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { ok: false, mensaje: "Tienes que iniciar sesión." };
+
+    const { data: club } = await admin
+        .from('users')
+        .select('id, nombre, rol, auth_id')
+        .eq('auth_id', user.id)
+        .single();
+    if (!club) return { ok: false, mensaje: "No encontramos tu perfil." };
+    if (club.rol !== 'admin_club') return { ok: false, mensaje: "Solo un club puede usar esta acción." };
+
+    if (new Date(datos.fecha) < new Date()) {
+        return { ok: false, mensaje: "La fecha del partido ya pasó." };
+    }
+
+    const { data: partido, error } = await admin
+        .from('partidos')
+        .insert({
+            creador_id: user.id,          // creador_id guarda auth_id
+            club_id: club.id,             // club_id sí usa users.id
+            fecha: datos.fecha,
+            lugar: datos.lugar,
+            nivel: datos.nivel,
+            categoria_rango: datos.categoriaRango,
+            sexo: datos.sexo,
+            tipo_partido: 'Amistoso',
+            tipo_partido_oficial: 'amistoso',
+            cupos_totales: 4,
+            cupos_disponibles: datos.cuposDisponibles,
+            precio_por_persona: datos.precioPorPersona,
+            estado: ESTADO_AMISTOSO.ABIERTO,
+        })
+        .select('id')
+        .single();
+
+    if (error || !partido) {
+        return { ok: false, mensaje: "No pudimos crear el partido: " + (error?.message || 'error desconocido') };
+    }
+
+    // Jugadores que el club inscribe de una vez. `partido_jugadores.jugador_id`
+    // guarda auth_id, así que hay que traducir desde users.id; y los cupos los
+    // descuenta el trigger de la base, no este código.
+    const inscritos: { id: string; auth_id: string; nombre: string }[] = [];
+    if (datos.jugadoresIds && datos.jugadoresIds.length > 0) {
+        const { data: jugadores } = await admin
+            .from('users')
+            .select('id, auth_id, nombre')
+            .in('id', datos.jugadoresIds)
+            .eq('rol', 'jugador')
+            .not('auth_id', 'is', null);
+
+        for (const j of (jugadores || [])) {
+            const { error: errIns } = await admin
+                .from('partido_jugadores')
+                .insert({ partido_id: partido.id, jugador_id: j.auth_id });
+            if (!errIns) inscritos.push(j);
+        }
+    }
+
+    const cuposRestantes = await sincronizarEstado(admin, partido.id);
+    const link = `/partido/${partido.id}`;
+
+    // A quien el club inscribió: aviso directo, es un compromiso que adquirió
+    // sin pedirlo él.
+    await crearNotificaciones(admin, inscritos.map(j => ({
+        jugador_id: j.id,
+        tipo: TIPO_NOTIFICACION.PARTIDO_INSCRITO_POR_CLUB,
+        titulo: `${club.nombre || 'Tu club'} te inscribió a un partido`,
+        mensaje: `${fechaCorta(datos.fecha)} en ${datos.lugar}. Si no puedes, libera tu cupo desde el partido.`,
+        link,
+    })));
+
+    // Al resto del club cuya categoría encaja: hay cancha por llenar.
+    if (cuposRestantes > 0) {
+        const yaInscritos = new Set(inscritos.map(j => j.id));
+        const candidatos = (await audienciaDelClub(admin, club.id, club.auth_id))
+            .filter(id => !yaInscritos.has(id));
+
+        const destinatarios: string[] = [];
+        for (const id of candidatos) {
+            const { categoria } = await obtenerCategoriaJugador(admin, id, club.auth_id);
+            if (!categoria) continue;
+            if (puedeUnirsePorCategoria(categoria, datos.nivel, datos.categoriaRango)) destinatarios.push(id);
+        }
+
+        await crearNotificaciones(admin, destinatarios.map(jugador_id => ({
+            jugador_id,
+            tipo: TIPO_NOTIFICACION.PARTIDO_NUEVO,
+            titulo: `${club.nombre || 'Tu club'} abrió un partido`,
+            mensaje: `${fechaCorta(datos.fecha)} en ${datos.lugar} · ${describirNivel(datos.nivel, datos.categoriaRango)} · faltan ${cuposRestantes}.`,
+            link,
+        })));
+    }
+
+    revalidarListas(partido.id);
+    revalidatePath('/club');
+    return {
+        ok: true,
+        mensaje: inscritos.length > 0
+            ? `Partido abierto con ${inscritos.length} jugador${inscritos.length !== 1 ? 'es' : ''} ya inscrito${inscritos.length !== 1 ? 's' : ''}.`
+            : "Partido abierto a la comunidad.",
+        partidoId: partido.id,
+    };
+}
+
 /**
  * Categoría del jugador de la sesión, para preseleccionarla al crear un
  * amistoso. Va por server action porque `ranking_club_jugador` no es legible
@@ -374,6 +496,60 @@ export async function obtenerMiCategoria(): Promise<string | null> {
 
     const { categoria } = await obtenerCategoriaJugador(admin, perfil.id, perfil.club_id);
     return categoria;
+}
+
+export interface JugadorDelClub {
+    id: string;
+    nombre: string;
+    categoria: string | null;
+}
+
+/**
+ * Jugadores con cuenta del club de la sesión, para que el club los inscriba a
+ * un partido. Se excluyen invitados: no tienen login con el que ver el partido
+ * ni recibir el aviso.
+ */
+export async function listarJugadoresDelClub(): Promise<JugadorDelClub[]> {
+    const supabase = createClient();
+    const admin = createPureAdminClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data: club } = await admin
+        .from('users')
+        .select('id, rol, auth_id')
+        .eq('auth_id', user.id)
+        .single();
+    if (club?.rol !== 'admin_club') return [];
+
+    const { data: jugadores } = await admin
+        .from('users')
+        .select('id, nombre')
+        .eq('rol', 'jugador')
+        .eq('club_id', club.auth_id)          // users.club_id guarda el auth_id del club
+        .not('auth_id', 'is', null)
+        .not('email', 'ilike', 'invitado_%')
+        .order('nombre');
+
+    if (!jugadores || jugadores.length === 0) return [];
+
+    // Categoría de cada uno en ESTE club, para que el club vea a quién encaja.
+    const { data: niveles } = await admin
+        .from('ranking_club_jugador')
+        .select('jugador_id, categoria_jugador')
+        .eq('club_id', club.id)
+        .in('jugador_id', jugadores.map((j: { id: string }) => j.id));
+
+    const catPorJugador = new Map<string, string | null>(
+        (niveles || []).map((n: { jugador_id: string; categoria_jugador: string | null }) => [n.jugador_id, n.categoria_jugador])
+    );
+
+    return jugadores.map((j: { id: string; nombre: string }) => ({
+        id: j.id,
+        nombre: j.nombre || 'Jugador',
+        categoria: catPorJugador.get(j.id) ?? null,
+    }));
 }
 
 /** El creador cancela su propio amistoso. */

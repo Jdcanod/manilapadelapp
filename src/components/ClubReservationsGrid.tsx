@@ -112,7 +112,7 @@ export function ClubReservationsGrid({ userId, clubNombre, courts, timeSlots, re
                                                         {isPrime ? (
                                                             <span className="text-[10px] text-amber-600/70 group-hover:text-amber-600 font-medium">+ Prime (90m)</span>
                                                         ) : (
-                                                            <span className="text-xs text-olive/60 group-hover:text-emerald-700">+ Reservar</span>
+                                                            <span className="text-xs text-olive/60 group-hover:text-emerald-700">+ Partido</span>
                                                         )}
                                                     </div>
                                                 ) : (

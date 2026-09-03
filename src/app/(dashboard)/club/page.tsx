@@ -237,7 +237,7 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
             const lugarStr = p.lugar || "";
             const matches = lugarStr.match(/cancha[_\s](\d+)/i);
             const courtIndex = matches ? parseInt(matches[1]) - 1 : -1;
-            let playerName = "Reservado";
+            let playerName = "Partido";
             let span = 3;
             if (lugarStr.includes("60 min")) span = 2;
             else if (lugarStr.includes("90 min")) span = 3;
@@ -565,13 +565,13 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                 </div>
             </div>
 
-            {/* Gestor de Reservas */}
+            {/* Gestor de Partidos */}
             <Card className="bg-paper-soft/50 border-olive/20 shadow-xl">
                 <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-olive/20">
                     <div>
                         <CardTitle className="text-xl text-ink flex items-center gap-2">
                             <CalendarRange className="w-5 h-5 text-olive" />
-                            Gestor de Reservas
+                            Gestor de Partidos
                         </CardTitle>
                         <CardDescription className="text-olive">Panel central para administrar turnos y canchas.</CardDescription>
                     </div>

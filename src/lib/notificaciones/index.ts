@@ -33,6 +33,8 @@ export const TIPO_NOTIFICACION = {
     CLUB_NOVEDAD: 'club_novedad',
     /** El club publicó algo en el muro de un torneo donde estás inscrito. */
     TORNEO_MURO: 'torneo_muro',
+    /** El club te inscribió directamente a un partido. */
+    PARTIDO_INSCRITO_POR_CLUB: 'partido_inscrito_por_club',
 } as const;
 
 export type TipoNotificacion = typeof TIPO_NOTIFICACION[keyof typeof TIPO_NOTIFICACION];
