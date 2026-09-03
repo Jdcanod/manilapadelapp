@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { Trophy, Home, User, Calendar, Megaphone, MapPin, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { createClient } from "@/utils/supabase/server";
+import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { cerrarSesionAction } from "@/app/actions/auth";
 import { BrandLogo } from "@/components/BrandLogo";
+import { resolveClubPublicId } from "@/lib/club/resolveClubPublicId";
 
 export default async function DashboardLayout({
     children,
@@ -17,12 +18,12 @@ export default async function DashboardLayout({
     let iniciales = "US";
     let fotoUrl = "";
     let rolUsuario = "jugador";
-    let puntosUsuario = 1000;
+    let miNivel: number | null = null;
 
     if (user) {
         const { data: userData } = await supabase
             .from('users')
-            .select('nombre, rol, puntos_ranking, foto')
+            .select('id, nombre, rol, club_id, foto')
             .eq('auth_id', user.id)
             .single();
 
@@ -36,8 +37,20 @@ export default async function DashboardLayout({
         if (userData?.rol) {
             rolUsuario = userData.rol;
         }
-        if (userData?.puntos_ranking !== undefined && userData?.puntos_ranking !== null) {
-            puntosUsuario = userData.puntos_ranking;
+        if (userData?.rol === 'jugador' && userData?.id && userData?.club_id) {
+            // Nivel real (0-5) en el club de preferencia — reemplaza el
+            // antiguo "puntos_ranking" (campo abandonado, siempre en 1000).
+            const adminSupabase = createPureAdminClient();
+            const miClubPublicId = await resolveClubPublicId(adminSupabase, userData.club_id);
+            if (miClubPublicId) {
+                const { data: nivelRow } = await adminSupabase
+                    .from('ranking_club_jugador')
+                    .select('nivel_ranking')
+                    .eq('jugador_id', userData.id)
+                    .eq('club_id', miClubPublicId)
+                    .maybeSingle();
+                miNivel = nivelRow?.nivel_ranking ?? null;
+            }
         }
     }
     return (
@@ -87,8 +100,8 @@ export default async function DashboardLayout({
 
                         <div className="flex flex-col text-right">
                             <span className="text-xs font-bold text-ink line-clamp-1 max-w-[120px]">{nombreReal}</span>
-                            {rolUsuario === "jugador" && (
-                                <span className="text-[10px] text-ochre-dark font-black">{puntosUsuario} pts</span>
+                            {rolUsuario === "jugador" && miNivel != null && (
+                                <span className="text-[10px] text-ochre-dark font-black">Nivel {miNivel.toFixed(2)}</span>
                             )}
                         </div>
                         <Link href={rolUsuario === "jugador" ? "/jugador/perfil" : rolUsuario === "admin_club" ? "/club/configuracion" : "/superadmin"}>
