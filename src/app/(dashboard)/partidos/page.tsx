@@ -12,11 +12,15 @@ import { DetallePartidoDialog } from "@/components/DetallePartidoDialog";
 import { redirect } from "next/navigation";
 import { autocancelarPartidosIncompletos } from "@/utils/cancelarPartidos";
 import { formatFormatoLabel } from "@/lib/display-names";
-import { ESTADOS_VIGENTES, describirNivel } from "@/lib/amistosos";
+import { ESTADOS_VIGENTES, describirNivel, puedeUnirsePorCategoria } from "@/lib/amistosos";
+import { obtenerCategoriaJugador } from "@/lib/ranking/categoriaJugador";
+import { CompartirPartidoButton } from "@/components/CompartirPartidoButton";
+import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
 
-export default async function PartidosPage() {
+export default async function PartidosPage({ searchParams }: { searchParams?: { todos?: string } }) {
+    const verTodos = searchParams?.todos === '1';
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -26,7 +30,7 @@ export default async function PartidosPage() {
 
     const { data: userData } = await supabase
         .from('users')
-        .select('id, rol')
+        .select('id, rol, club_id')
         .eq('auth_id', user.id)
         .single();
 
@@ -50,6 +54,23 @@ export default async function PartidosPage() {
         .in('estado', ESTADOS_VIGENTES)
         .gte('fecha', new Date().toISOString())
         .order('fecha', { ascending: true });
+
+    // Filtro por categoría (Fase B): por defecto la lista muestra solo los
+    // amistosos a los que este jugador realmente puede entrar según su
+    // categoría del ranking y el rango que definió el creador. `?todos=1`
+    // muestra todos. La regla vive en src/lib/amistosos para que el filtro de
+    // la lista y la validación al unirse no se puedan desincronizar.
+    const { createPureAdminClient: adminClientFactory } = await import("@/utils/supabase/server");
+    const miCategoria = userData?.id
+        ? (await obtenerCategoriaJugador(adminClientFactory(), userData.id, userData.club_id)).categoria
+        : null;
+
+    const amistososVigentes = partidosReales || [];
+    const amistososParaMi = amistososVigentes.filter(p =>
+        puedeUnirsePorCategoria(miCategoria, p.nivel, p.categoria_rango)
+    );
+    const amistososVisibles = verTodos ? amistososVigentes : amistososParaMi;
+    const ocultosPorCategoria = amistososVigentes.length - amistososParaMi.length;
 
     // Obtener las inscripciones del usuario actual
     const { data: misInscripciones } = await supabase
@@ -288,13 +309,46 @@ export default async function PartidosPage() {
                 </TabsList>
 
                 <TabsContent value="buscar" className="space-y-4">
-                    {!partidosReales || partidosReales.length === 0 ? (
+                    {/* Filtro por categoría: solo tiene sentido mostrarlo si hay
+                        algo que filtrar o si el jugador ya lo desactivó. */}
+                    {(ocultosPorCategoria > 0 || verTodos) && (
+                        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-xl border border-olive/20 bg-paper-soft/50">
+                            <p className="text-xs text-olive">
+                                {verTodos ? (
+                                    <>Viendo <span className="font-bold">todos</span> los partidos, incluidos los de otras categorías.</>
+                                ) : (
+                                    <>
+                                        Viendo los partidos para tu categoría
+                                        {miCategoria && <span className="font-bold"> ({miCategoria})</span>}.
+                                        {ocultosPorCategoria > 0 && ` Hay ${ocultosPorCategoria} más de otras categorías.`}
+                                    </>
+                                )}
+                            </p>
+                            <Link
+                                href={verTodos ? "/partidos" : "/partidos?todos=1"}
+                                className="text-xs font-bold uppercase tracking-widest text-olive hover:text-olive-dark transition-colors shrink-0"
+                            >
+                                {verTodos ? "Solo mi categoría" : "Ver todos"}
+                            </Link>
+                        </div>
+                    )}
+
+                    {amistososVisibles.length === 0 ? (
                         <div className="text-center py-12 text-olive/70 border border-olive/20 border-dashed rounded-xl bg-paper-soft/30">
-                            No hay partidos abiertos en este momento. ¡Sé el primero en organizar uno!
+                            {amistososVigentes.length > 0 ? (
+                                <>
+                                    <p>No hay partidos abiertos para tu categoría{miCategoria ? ` (${miCategoria})` : ''} en este momento.</p>
+                                    <Link href="/partidos?todos=1" className="text-olive font-bold underline mt-2 inline-block">
+                                        Ver los {amistososVigentes.length} partidos de otras categorías
+                                    </Link>
+                                </>
+                            ) : (
+                                <>No hay partidos abiertos en este momento. ¡Sé el primero en organizar uno!</>
+                            )}
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                            {partidosReales.map((match) => (
+                            {amistososVisibles.map((match) => (
                                 <Card key={match.id} className="bg-paper-soft border-olive/20 hover:border-olive/30 transition-colors">
                                     <CardContent className="p-5">
                                         <div className="flex justify-between items-start mb-4 gap-4">
@@ -369,6 +423,14 @@ export default async function PartidosPage() {
                                                         partidoFecha={match.fecha}
                                                     />
                                                 )}
+                                                <CompartirPartidoButton
+                                                    partidoId={match.id}
+                                                    lugar={match.lugar}
+                                                    fecha={match.fecha}
+                                                    nivel={match.nivel}
+                                                    categoriaRango={match.categoria_rango}
+                                                    cuposDisponibles={match.cupos_disponibles}
+                                                />
                                             </div>
                                         </div>
                                     </CardContent>
@@ -474,6 +536,20 @@ export default async function PartidosPage() {
                                                     <Swords className="w-4 h-4 mr-2" />
                                                     Confirmar Resultado
                                                 </Button>
+                                            )}
+                                            {/* El organizador es quien más necesita compartir: es como
+                                                consigue que le llenen el partido. */}
+                                            {!match.isPast && !match.isTournamentMatch && match.estado_original !== 'cancelado' && (
+                                                <CompartirPartidoButton
+                                                    partidoId={match.id}
+                                                    lugar={match.lugar}
+                                                    fecha={match.fecha}
+                                                    nivel={match.nivel}
+                                                    categoriaRango={match.categoria_rango}
+                                                    cuposDisponibles={match.cupos_disponibles}
+                                                    variante="full"
+                                                    className="w-full"
+                                                />
                                             )}
                                             {!match.isPast && match.creador_id === user.id && !match.isTournamentMatch && (
                                                 <BotonCancelarPartido
