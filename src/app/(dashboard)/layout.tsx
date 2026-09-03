@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Trophy, Home, User, Calendar, Megaphone, MapPin, LogOut } from "lucide-react";
+import { Trophy, Home, User, Calendar, Megaphone, MapPin, LogOut, Bell } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { cerrarSesionAction } from "@/app/actions/auth";
@@ -19,6 +19,7 @@ export default async function DashboardLayout({
     let fotoUrl = "";
     let rolUsuario = "jugador";
     let miNivel: number | null = null;
+    let noLeidas = 0;
 
     if (user) {
         const { data: userData } = await supabase
@@ -37,6 +38,15 @@ export default async function DashboardLayout({
         if (userData?.rol) {
             rolUsuario = userData.rol;
         }
+        if (userData?.rol === 'jugador' && userData?.id) {
+            const { count } = await createPureAdminClient()
+                .from('notificaciones')
+                .select('*', { count: 'exact', head: true })
+                .eq('jugador_id', userData.id)
+                .eq('leida', false);
+            noLeidas = count || 0;
+        }
+
         if (userData?.rol === 'jugador' && userData?.id && userData?.club_id) {
             // Nivel real (0-5) en el club de preferencia — reemplaza el
             // antiguo "puntos_ranking" (campo abandonado, siempre en 1000).
@@ -96,6 +106,21 @@ export default async function DashboardLayout({
                                     <LogOut className="w-3 h-3" /> Salir
                                 </button>
                             </form>
+                        )}
+
+                        {rolUsuario === "jugador" && (
+                            <Link
+                                href="/notificaciones"
+                                aria-label={noLeidas > 0 ? `Notificaciones (${noLeidas} sin leer)` : "Notificaciones"}
+                                className="relative p-2 rounded-full text-olive hover:text-olive-dark hover:bg-olive/10 transition-colors"
+                            >
+                                <Bell className="w-5 h-5" />
+                                {noLeidas > 0 && (
+                                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-ochre text-paper text-[10px] font-black flex items-center justify-center">
+                                        {noLeidas > 9 ? '9+' : noLeidas}
+                                    </span>
+                                )}
+                            </Link>
                         )}
 
                         <div className="flex flex-col text-right">

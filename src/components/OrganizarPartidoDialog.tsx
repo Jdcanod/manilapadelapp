@@ -10,11 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createClient } from "@/utils/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar as CalendarIcon, MapPin, Users, Coins } from "lucide-react";
-import { CATEGORIAS_ORDENADAS, RANGO, RANGO_LABEL, ESTADO_AMISTOSO } from "@/lib/amistosos";
-import { obtenerMiCategoria } from "@/app/(dashboard)/partidos/actions";
+import { CATEGORIAS_ORDENADAS, RANGO, RANGO_LABEL } from "@/lib/amistosos";
+import { obtenerMiCategoria, crearAmistoso } from "@/app/(dashboard)/partidos/actions";
 
 interface Props {
-    userId: string;
+    /** @deprecated Ya no se usa: `crearAmistoso` saca el usuario de la sesión
+     *  en el servidor. Se mantiene para no romper los sitios que lo pasan. */
+    userId?: string;
     openState?: boolean;
     onOpenChange?: (open: boolean) => void;
     trigger?: React.ReactNode;
@@ -23,7 +25,7 @@ interface Props {
     defaultCourt?: string;
 }
 
-export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigger, defaultLugar, defaultFecha, defaultCourt }: Props) {
+export function OrganizarPartidoDialog({ openState, onOpenChange, trigger, defaultLugar, defaultFecha, defaultCourt }: Props) {
     const [internalOpen, setInternalOpen] = useState(false);
 
     const isControlled = openState !== undefined;
@@ -156,28 +158,27 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
         const precio = parseFloat(formData.get("precio") as string) || 0;
 
         try {
-            // `torneo_id` queda NULL: eso es lo que marca a este partido como
-            // amistoso en toda la app (ver src/lib/amistosos).
-            const { error } = await supabase.from("partidos").insert({
-                creador_id: userId,
+            // La creación vive en el servidor para poder avisarle a los
+            // jugadores de la categoría que encaja (ver crearAmistoso).
+            const res = await crearAmistoso({
                 fecha: fechaISO,
                 lugar,
                 nivel,
-                categoria_rango: Number.isNaN(categoriaRango) ? RANGO.CERCANA : categoriaRango,
+                categoriaRango: Number.isNaN(categoriaRango) ? RANGO.CERCANA : categoriaRango,
                 sexo,
-                tipo_partido: "Amistoso",
-                tipo_partido_oficial: "amistoso",
-                cupos_totales: 4,
-                cupos_disponibles: faltantes,
-                precio_por_persona: precio,
-                estado: ESTADO_AMISTOSO.ABIERTO
+                cuposDisponibles: faltantes,
+                precioPorPersona: precio,
             });
 
-            if (error) throw error;
+            if (!res.ok) {
+                toast({ title: "No se pudo publicar", description: res.mensaje, variant: "destructive" });
+                setLoading(false);
+                return;
+            }
 
             toast({
                 title: "¡Partido creado!",
-                description: "Tu partido ya está visible para la comunidad.",
+                description: res.mensaje,
             });
 
             setOpen(false);
