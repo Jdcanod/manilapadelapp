@@ -95,6 +95,9 @@ export default async function PartidoPublicoPage({ params }: { params: { id: str
         timeZone: 'America/Bogota', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
     });
 
+    // Para que login/registro devuelvan a este mismo partido al terminar.
+    const volverAqui = encodeURIComponent(`/partido/${partido.id}`);
+
     let aviso: string | null = null;
     if (yaPaso) aviso = "Este partido ya pasó.";
     else if (partido.estado === ESTADO_AMISTOSO.CANCELADO) aviso = "Este partido fue cancelado.";
@@ -106,7 +109,7 @@ export default async function PartidoPublicoPage({ params }: { params: { id: str
             <nav className="max-w-2xl mx-auto flex justify-between items-center px-6 py-5">
                 <BrandLogo size="sm" href={user ? "/jugador" : "/"} />
                 {!user && (
-                    <Link href="/login" className="text-xs font-black uppercase tracking-widest text-olive hover:text-olive-dark transition-colors">
+                    <Link href={`/login?next=${volverAqui}`} className="text-xs font-black uppercase tracking-widest text-olive hover:text-olive-dark transition-colors">
                         Iniciar sesión
                     </Link>
                 )}
@@ -168,7 +171,7 @@ export default async function PartidoPublicoPage({ params }: { params: { id: str
 
                         {!user && (
                             <Link
-                                href="/registro"
+                                href={`/registro?next=${volverAqui}`}
                                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-display text-base tracking-[0.08em] uppercase bg-olive text-paper hover:-translate-y-0.5 transition-transform"
                             >
                                 Crear cuenta para unirme
@@ -191,7 +194,7 @@ export default async function PartidoPublicoPage({ params }: { params: { id: str
 
                     {!user && (
                         <p className="text-[11px] text-olive/60 mt-4">
-                            Ya tienes cuenta? <Link href="/login" className="underline hover:text-olive">Inicia sesión</Link> y vuelve a este link para unirte.
+                            ¿Ya tienes cuenta? <Link href={`/login?next=${volverAqui}`} className="underline hover:text-olive">Inicia sesión</Link> y vuelves directo a este partido.
                         </p>
                     )}
                 </div>

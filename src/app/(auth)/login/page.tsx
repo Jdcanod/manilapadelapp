@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,9 +10,24 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/utils/supabase/client";
+import { destinoSeguro } from "@/lib/auth/destinoSeguro";
 
+/** useSearchParams obliga a un boundary de Suspense en el App Router. */
 export default function LoginPage() {
+    return (
+        <Suspense fallback={null}>
+            <LoginForm />
+        </Suspense>
+    );
+}
+
+function LoginForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    // ?next= permite volver a donde estaba el usuario tras iniciar sesión
+    // (ej. el link de un partido compartido por WhatsApp). Se valida para no
+    // dejar un open redirect.
+    const next = destinoSeguro(searchParams.get('next'));
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const { toast } = useToast();
@@ -59,14 +74,16 @@ export default function LoginPage() {
                     title: "¡Hola de nuevo!",
                     description: "Entrando como jugador.",
                 });
-                router.push("/jugador");
+                router.push(next || "/jugador");
             } else {
                 toast({
                     title: "¡Hola de nuevo!",
                     description: "Es hora de jugar.",
                 });
 
-                if (userData?.rol === 'admin_club') {
+                if (next) {
+                    router.push(next);
+                } else if (userData?.rol === 'admin_club') {
                     router.push("/club");
                 } else if (userData?.rol === 'superadmin') {
                     router.push("/superadmin");
@@ -166,7 +183,10 @@ export default function LoginPage() {
                 <CardFooter className="flex flex-col gap-4 text-center">
                     <div className="text-sm text-ink-soft">
                         ¿Aún no eres miembro?{" "}
-                        <Link href="/registro" className="text-ochre-dark hover:text-ochre hover:underline transition-colors font-bold">
+                        <Link
+                            href={next ? `/registro?next=${encodeURIComponent(next)}` : "/registro"}
+                            className="text-ochre-dark hover:text-ochre hover:underline transition-colors font-bold"
+                        >
                             Vincúlate gratis
                         </Link>
                     </div>

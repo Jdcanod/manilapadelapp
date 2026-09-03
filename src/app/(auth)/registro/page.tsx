@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,9 +10,23 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/utils/supabase/client";
+import { destinoSeguro } from "@/lib/auth/destinoSeguro";
 
+/** useSearchParams obliga a un boundary de Suspense en el App Router. */
 export default function RegistroPage() {
+    return (
+        <Suspense fallback={null}>
+            <RegistroForm />
+        </Suspense>
+    );
+}
+
+function RegistroForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    // ?next= para volver a donde estaba el usuario (ej. el partido que le
+    // compartieron por WhatsApp). Validado contra open redirect.
+    const next = destinoSeguro(searchParams.get('next'));
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const { toast } = useToast();
@@ -70,7 +84,10 @@ export default function RegistroPage() {
             }
 
             // 1. Crear el usuario en Authentication de Supabase
-            const nextPath = userRole === 'admin_club' ? '/club' : '/jugador';
+            // `next` (si viene y es seguro) manda sobre el destino por rol, para
+            // que quien llega desde un partido compartido vuelva a ese partido
+            // — tanto al terminar el registro como al confirmar el correo.
+            const nextPath = next || (userRole === 'admin_club' ? '/club' : '/jugador');
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
@@ -366,7 +383,10 @@ export default function RegistroPage() {
                 <CardFooter className="flex flex-col gap-4 text-center">
                     <div className="text-sm text-ink-soft">
                         ¿Ya tienes una cuenta?{" "}
-                        <Link href="/login" className="text-ochre-dark hover:text-ochre hover:underline transition-colors font-bold">
+                        <Link
+                            href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}
+                            className="text-ochre-dark hover:text-ochre hover:underline transition-colors font-bold"
+                        >
                             Inicia sesión aquí
                         </Link>
                     </div>

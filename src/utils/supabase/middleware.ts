@@ -93,6 +93,15 @@ export async function updateSession(request: NextRequest) {
 
         // Si intenta ir a login/registro/home logueado, redirigir a su dashboard
         if (pathname === '/login' || pathname === '/registro' || pathname === '/') {
+            // ...salvo que traiga un ?next= interno (ej. abrió el link de un
+            // partido compartido teniendo ya la sesión abierta): ahí lo
+            // mandamos a su destino en vez de al dashboard.
+            const next = url.searchParams.get('next')
+            if (next && next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\')) {
+                url.pathname = next
+                url.search = ''
+                return redirectPreservingCookies(url, supabaseResponse)
+            }
             if (userRol === 'admin_club') url.pathname = '/club'
             else if (userRol === 'superadmin') url.pathname = '/superadmin'
             else url.pathname = '/jugador'
