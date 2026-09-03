@@ -28,6 +28,12 @@ export default function Home() {
                 <BrandLogo size="md" />
                 <div className="flex items-center gap-2 sm:gap-4">
                     <Link
+                        href="/nosotros"
+                        className="hidden sm:inline-block px-4 sm:px-5 py-2 text-sm font-bold uppercase tracking-widest text-olive hover:text-olive-dark transition-colors"
+                    >
+                        Nosotros
+                    </Link>
+                    <Link
                         href="/login"
                         className="px-4 sm:px-5 py-2 text-sm font-bold uppercase tracking-widest text-olive hover:text-olive-dark transition-colors"
                     >
