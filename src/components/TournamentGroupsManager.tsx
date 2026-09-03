@@ -841,7 +841,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                         <h4 className="text-xl font-bold text-ink tracking-widest">{grupo.nombre_grupo}</h4>
                                         <div className="flex items-center gap-2">
                                             <Badge variant="outline" className="text-olive border-olive/20">
-                                                Fase de Grupos
+                                                {esLiguilla ? "Todos contra Todos" : "Fase de Grupos"}
                                             </Badge>
                                             <span className="text-[10px] text-olive/70 uppercase">Arrastra aquí</span>
                                         </div>

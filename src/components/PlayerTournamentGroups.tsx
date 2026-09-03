@@ -375,7 +375,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                             <div className="p-6 bg-paper-soft/50 border-b border-olive/15 flex justify-between items-center">
                                 <h4 className="text-xl font-black text-ink italic uppercase tracking-tighter">{grupo.nombre_grupo}</h4>
                                 <Badge variant="outline" className="text-ochre-dark border-ochre/20 uppercase text-[10px] font-black">
-                                    Fase de Grupos
+                                    {esLiguilla ? "Todos contra Todos" : "Fase de Grupos"}
                                 </Badge>
                             </div>
 

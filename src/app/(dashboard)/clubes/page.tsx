@@ -17,12 +17,24 @@ export default async function ClubesMapPage() {
 
     const { data: userData } = await supabase
         .from('users')
-        .select('rol')
+        .select('id, rol, club_id')
         .eq('auth_id', user.id)
         .single();
 
     if (userData?.rol === 'admin_club') {
         redirect("/club");
+    }
+
+    // club_id del jugador apunta al auth_id del club (ver fix club_id/club_preferencia).
+    const miClubAuthId = userData?.club_id || null;
+
+    let clubesSeguidosIds = new Set<string>();
+    if (userData?.id) {
+        const { data: seguidos } = await supabase
+            .from('club_seguidores')
+            .select('club_id')
+            .eq('jugador_id', userData.id);
+        clubesSeguidosIds = new Set((seguidos || []).map(s => s.club_id));
     }
 
     const { data: clubesDb } = await supabase
@@ -31,21 +43,30 @@ export default async function ClubesMapPage() {
         .eq('rol', 'admin_club')
         .neq('rol', 'superadmin');
 
-    const clubesMap = (clubesDb || []).map((c, i) => {
-        const canchas = Array.isArray(c.canchas_activas_json) ? c.canchas_activas_json.length : 4;
-        return {
-            id: c.auth_id || (c.id ? c.id.toString() : "0"), // we use auth_id as the canonical user ID across the app, or we can use id
-            name: c.nombre || "Club Padel",
-            address: "Manizales, Caldas",
-            courts: canchas,
-            rating: 4.8 + (i * 0.1 % 0.2), // Mocking some rating rating
-            status: "Abierto",
-            coors: {
-                x: 20 + ((i * 37) % 60),
-                y: 20 + ((i * 29) % 60)
-            } // Random-ish mock coordinates
-        };
-    });
+    const clubesMap = (clubesDb || [])
+        .map((c, i) => {
+            const canchas = Array.isArray(c.canchas_activas_json) ? c.canchas_activas_json.length : 4;
+            return {
+                id: c.auth_id || (c.id ? c.id.toString() : "0"), // we use auth_id as the canonical user ID across the app, or we can use id
+                name: c.nombre || "Club Padel",
+                address: "Manizales, Caldas",
+                courts: canchas,
+                rating: 4.8 + (i * 0.1 % 0.2), // Mocking some rating rating
+                status: "Abierto",
+                esMiClub: !!miClubAuthId && c.auth_id === miClubAuthId,
+                esSeguido: clubesSeguidosIds.has(c.id),
+                coors: {
+                    x: 20 + ((i * 37) % 60),
+                    y: 20 + ((i * 29) % 60)
+                } // Random-ish mock coordinates
+            };
+        })
+        // El club propio del jugador va primero, luego los que sigue, luego el resto.
+        .sort((a, b) => {
+            if (a.esMiClub !== b.esMiClub) return a.esMiClub ? -1 : 1;
+            if (a.esSeguido !== b.esSeguido) return a.esSeguido ? -1 : 1;
+            return 0;
+        });
 
     return (
         <div className="space-y-6 h-full flex flex-col md:h-[calc(100vh-100px)]">
@@ -112,15 +133,23 @@ export default async function ClubesMapPage() {
                 <div className="w-full md:w-[350px] flex flex-col gap-4 overflow-y-auto pr-2 pb-20 md:pb-0">
                     {clubesMap.map((club) => (
                         <Link href={`/clubes/${club.id}`} key={club.id} className="block">
-                            <Card className="bg-paper-soft border-olive/20 hover:border-olive/30 hover:bg-paper-dark/50 transition-all cursor-pointer group">
+                            <Card className={`bg-paper-soft hover:border-olive/30 hover:bg-paper-dark/50 transition-all cursor-pointer group ${club.esMiClub ? 'border-ochre/60' : 'border-olive/20'}`}>
                                 <CardContent className="p-4 flex gap-4">
                                     <div className="w-16 h-16 rounded-xl bg-paper-dark border border-olive/30 shrink-0 overflow-hidden relative">
                                         {/* Imagen de club simulada */}
                                         <div className="absolute inset-0 bg-olive/20 mix-blend-multiply" />
                                     </div>
                                     <div className="flex-1">
-                                        <div className="flex justify-between items-start mb-1">
-                                            <h3 className="font-bold text-ink text-sm group-hover:text-olive transition-colors line-clamp-1">{club.name}</h3>
+                                        <div className="flex justify-between items-start mb-1 gap-2">
+                                            <div className="flex items-center gap-1.5 min-w-0">
+                                                <h3 className="font-bold text-ink text-sm group-hover:text-olive transition-colors line-clamp-1">{club.name}</h3>
+                                                {club.esMiClub && (
+                                                    <Badge className="text-[9px] px-1.5 py-0 bg-ochre/15 text-ochre-dark border-ochre/40 shrink-0">Tu club</Badge>
+                                                )}
+                                                {!club.esMiClub && club.esSeguido && (
+                                                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-olive/30 text-olive/70 shrink-0">Siguiendo</Badge>
+                                                )}
+                                            </div>
                                             {club.status === "Abierto" ? (
                                                 <span className="w-2 h-2 rounded-full bg-olive shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
                                             ) : (

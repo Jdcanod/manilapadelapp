@@ -739,6 +739,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                                     }}
                                     tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                                     parejaPlayers={parejaPlayersMap}
+                                    formato={torneo.formato}
                                     copaDavisContext={{
                                         clubLocal: { id: String(clubInfo?.id || torneo.club_id), nombre: clubInfo?.nombre || 'Local' },
                                         clubRival: rivalClubData,
@@ -870,6 +871,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                         parejaPlayers={parejaPlayersMap}
                         setsCantidad={torneo.reglas_puntuacion?.sets}
+                        formato={torneo.formato}
                     />
                 </TabsContent>
 
@@ -908,7 +910,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
 
                         {/* SECCIÓN HISTORIAL DE GRUPOS */}
                         <div className="opacity-60 hover:opacity-100 transition-opacity">
-                            <h3 className="text-lg font-bold text-olive/70 mb-6 uppercase tracking-widest pl-2 border-l-2 border-olive/20">Historial de Fase de Grupos</h3>
+                            <h3 className="text-lg font-bold text-olive/70 mb-6 uppercase tracking-widest pl-2 border-l-2 border-olive/20">Historial de {torneo.formato === 'liguilla' ? "Todos contra Todos" : "Fase de Grupos"}</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {partidosReales.filter(p => p.torneo_grupo_id).map((match) => (
                                     <div key={match.id} className="bg-paper-soft/50 border border-olive/20 rounded-xl p-4 flex justify-between items-center">

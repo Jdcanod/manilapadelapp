@@ -220,12 +220,10 @@ export function RankingManager({ clubId, jugadores, readOnly = false }: RankingM
                                 {rankedPorNivel.map((j, i) => (
                                     <Link
                                         key={j.id}
-                                        href={readOnly ? "#" : `/club/ranking/jugador/${j.id}`}
-                                        onClick={(e) => { if (readOnly) e.preventDefault(); }}
+                                        href={readOnly ? `/jugador/${j.id}` : `/club/ranking/jugador/${j.id}`}
                                         className={cn(
                                             "grid grid-cols-[2rem_1fr_auto_1rem] gap-3 px-5 py-3.5 items-center transition-colors group",
-                                            !readOnly && "hover:bg-paper-dark/50 cursor-pointer",
-                                            readOnly && "cursor-default",
+                                            "hover:bg-paper-dark/50 cursor-pointer",
                                             i === 0 && "bg-ochre/5"
                                         )}
                                     >
@@ -276,7 +274,7 @@ export function RankingManager({ clubId, jugadores, readOnly = false }: RankingM
                                             </div>
                                         </div>
 
-                                        {!readOnly && <ChevronRight className="w-3.5 h-3.5 text-olive/40 group-hover:text-olive transition-colors" />}
+                                        <ChevronRight className="w-3.5 h-3.5 text-olive/40 group-hover:text-olive transition-colors" />
                                     </Link>
                                 ))}
                             </div>

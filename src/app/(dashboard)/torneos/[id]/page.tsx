@@ -396,7 +396,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                         </div>
                     )}
                     <div className="bg-paper-soft/50 rounded-3xl border border-olive/20 p-6">
-                        <TournamentChronogram 
+                        <TournamentChronogram
                             torneoId={torneo.id}
                             matches={partidosReales}
                             config={{
@@ -406,13 +406,14 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                             isAdmin={false}
                             currentUserId={finalUserId}
                             setsCantidad={torneo.reglas_puntuacion?.sets}
+                            formato={torneo.formato}
                         />
                     </div>
                 </div>
             ) : (
                 <Tabs defaultValue="grupos" className="w-full">
                     <TabsList className="bg-paper border border-olive/20 p-1 h-auto w-full max-w-2xl mx-auto flex flex-wrap sm:grid sm:grid-cols-4 rounded-2xl">
-                        <TabsTrigger value="grupos" className="data-[state=active]:bg-paper-dark flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Fase de Grupos</TabsTrigger>
+                        <TabsTrigger value="grupos" className="data-[state=active]:bg-paper-dark flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">{torneo.formato === 'liguilla' ? "Todos contra Todos" : "Fase de Grupos"}</TabsTrigger>
                         <TabsTrigger value="cuadros" className="data-[state=active]:bg-paper-dark flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Cuadros de Juego</TabsTrigger>
                         <TabsTrigger value="muro" className="data-[state=active]:bg-paper-dark flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Muro</TabsTrigger>
                         <TabsTrigger value="cronograma" className="data-[state=active]:bg-paper-dark flex-1 uppercase text-[9px] sm:text-[10px] font-black tracking-widest py-3">Cronograma</TabsTrigger>
