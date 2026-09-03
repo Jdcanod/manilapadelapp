@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createClient } from "@/utils/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar as CalendarIcon, MapPin, Users, Coins } from "lucide-react";
+import { CATEGORIAS_ORDENADAS, RANGO, RANGO_LABEL, ESTADO_AMISTOSO } from "@/lib/amistosos";
+import { obtenerMiCategoria } from "@/app/(dashboard)/partidos/actions";
 
 interface Props {
     userId: string;
@@ -39,6 +41,10 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
     const [selectedTime, setSelectedTime] = useState<string>(defaultFecha?.includes('T') ? defaultFecha.split('T')[1].substring(0, 5) : "18:00");
     const [selectedCancha, setSelectedCancha] = useState<string>(defaultCourt || "");
     const [busyCourts, setBusyCourts] = useState<string[]>([]);
+    // Categoría del partido en la escala real del ranking (4ta/5ta/6ta/7ma),
+    // preseleccionada con la del jugador cuando la tiene.
+    const [categoria, setCategoria] = useState<string>("6ta");
+    const [categoriaJugador, setCategoriaJugador] = useState<string | null>(null);
 
     const router = useRouter();
     const { toast } = useToast();
@@ -48,6 +54,12 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
         if (open) {
             setStep(1);
             setSelectedCancha("");
+            obtenerMiCategoria().then((cat) => {
+                if (cat) {
+                    setCategoriaJugador(cat);
+                    setCategoria(cat);
+                }
+            }).catch(() => { /* si falla, queda el default */ });
             const fetchClubes = async () => {
                 const { data, error } = await supabase
                     .from('users')
@@ -137,23 +149,28 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
             lugar = `${lugar} - cancha_${defaultCourt}`;
         }
 
-        const nivel = formData.get("nivel") as string;
+        const nivel = categoria;
+        const categoriaRango = parseInt(formData.get("categoria_rango") as string, 10);
         const sexo = formData.get("sexo") as string;
         const faltantes = parseInt(formData.get("faltantes") as string, 10) || 3;
         const precio = parseFloat(formData.get("precio") as string) || 0;
 
         try {
+            // `torneo_id` queda NULL: eso es lo que marca a este partido como
+            // amistoso en toda la app (ver src/lib/amistosos).
             const { error } = await supabase.from("partidos").insert({
                 creador_id: userId,
                 fecha: fechaISO,
                 lugar,
                 nivel,
+                categoria_rango: Number.isNaN(categoriaRango) ? RANGO.CERCANA : categoriaRango,
                 sexo,
                 tipo_partido: "Amistoso",
+                tipo_partido_oficial: "amistoso",
                 cupos_totales: 4,
                 cupos_disponibles: faltantes,
                 precio_por_persona: precio,
-                estado: "abierto"
+                estado: ESTADO_AMISTOSO.ABIERTO
             });
 
             if (error) throw error;
@@ -262,16 +279,32 @@ export function OrganizarPartidoDialog({ userId, openState, onOpenChange, trigge
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-ink-soft">Nivel Buscado</Label>
-                            <Select name="nivel" defaultValue="intermedio">
+                            <Label className="text-ink-soft">Categoría</Label>
+                            <Select name="nivel" value={categoria} onValueChange={setCategoria}>
                                 <SelectTrigger className="bg-paper border-olive/20">
-                                    <SelectValue placeholder="Nivel" />
+                                    <SelectValue placeholder="Categoría" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-paper-soft border-olive/20">
-                                    <SelectItem value="principiante">Principiante</SelectItem>
-                                    <SelectItem value="intermedio">Intermedio (5ta - 6ta)</SelectItem>
-                                    <SelectItem value="avanzado">Avanzado (3ra - 4ta)</SelectItem>
-                                    <SelectItem value="profesional">Pro (1ra - 2da)</SelectItem>
+                                    {CATEGORIAS_ORDENADAS.map((cat) => (
+                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {categoriaJugador && (
+                                <p className="text-[10px] text-olive/60">Tu categoría en tu club: {categoriaJugador}</p>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-ink-soft">¿Quién puede entrar?</Label>
+                            <Select name="categoria_rango" defaultValue={String(RANGO.CERCANA)}>
+                                <SelectTrigger className="bg-paper border-olive/20">
+                                    <SelectValue placeholder="Rango" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-paper-soft border-olive/20">
+                                    <SelectItem value={String(RANGO.EXACTA)}>{RANGO_LABEL[RANGO.EXACTA]}</SelectItem>
+                                    <SelectItem value={String(RANGO.CERCANA)}>{RANGO_LABEL[RANGO.CERCANA]}</SelectItem>
+                                    <SelectItem value={String(RANGO.ABIERTO)}>{RANGO_LABEL[RANGO.ABIERTO]}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

@@ -1,21 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { UserPlus } from "lucide-react";
-import { createClient } from "@/utils/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { unirseAPartido, salirseDePartido } from "@/app/(dashboard)/partidos/actions";
 
 interface BotonUnirseProps {
     partidoId: string;
+    /** auth_id del usuario. Ya no se usa para mutar (la server action lo saca
+     *  de la sesión), solo para comparar con el creador del partido. */
     userId: string;
     yaInscrito: boolean;
     cuposDisponibles: number;
     partidoFecha: string;
     fullWidth?: boolean;
-    partidoCreadorId?: string; // Nuevo
-    showLeaveButtonOnly?: boolean; // Nuevo
+    partidoCreadorId?: string;
+    showLeaveButtonOnly?: boolean;
 }
 
 export function BotonUnirsePartido({
@@ -28,101 +30,63 @@ export function BotonUnirsePartido({
     partidoCreadorId,
     showLeaveButtonOnly = false
 }: BotonUnirseProps) {
+    const [pending, startTransition] = useTransition();
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
-    const supabase = createClient();
 
-    const handleJoin = async () => {
+    const enCurso = pending || loading;
+
+    /** Las validaciones reales (cupos, categoría, estado, carrera por el último
+     *  cupo) viven en la server action — acá solo mostramos su resultado. */
+    const ejecutar = (accion: () => Promise<{ ok: boolean; mensaje: string }>) => {
         setLoading(true);
-        try {
-            const { error } = await supabase.from('partido_jugadores').insert({
-                partido_id: partidoId,
-                jugador_id: userId
-            });
-
-            if (error) throw error;
-
-            toast({
-                title: "¡Estás dentro!",
-                description: "Te has apuntado al partido. Lleva tu mejor pala.",
-            });
-
-            router.refresh();
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
-            console.error("Error unirse:", err);
-            toast({
-                title: "No se pudo inscribir",
-                description: "Recuerda que no puedes unirte dos veces al mismo partido.",
-                variant: "destructive"
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleLeave = async () => {
-        setLoading(true);
-        try {
-            const { error } = await supabase
-                .from('partido_jugadores')
-                .delete()
-                .eq('partido_id', partidoId)
-                .eq('jugador_id', userId);
-
-            if (error) throw error;
-
-            toast({
-                title: "Te has dado de baja",
-                description: "Has liberado tu cupo en este partido.",
-            });
-
-            router.refresh();
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
-            console.error("Error al salir:", err);
-            toast({
-                title: "Error",
-                description: "No se pudo cancelar la inscripción.",
-                variant: "destructive"
-            });
-        } finally {
-            setLoading(false);
-        }
+        startTransition(async () => {
+            try {
+                const res = await accion();
+                toast({
+                    title: res.ok ? "Listo" : "No se pudo",
+                    description: res.mensaje,
+                    variant: res.ok ? undefined : "destructive",
+                });
+                if (res.ok) router.refresh();
+            } catch (err) {
+                console.error("Error en acción de partido:", err);
+                toast({
+                    title: "Error",
+                    description: "Algo falló, vuelve a intentarlo.",
+                    variant: "destructive",
+                });
+            } finally {
+                setLoading(false);
+            }
+        });
     };
 
     if (yaInscrito) {
-        // Si el usuario es el creador, no debería ver este botón (para eso está BotonCancelar)
-        // Pero por si acaso, lo manejamos
+        // El creador tiene su propio botón de cancelar (BotonCancelarPartido).
         if (userId === partidoCreadorId && !showLeaveButtonOnly) {
             return null;
         }
 
-        // Calcular si faltan menos de 2 horas
-        const matchTime = new Date(partidoFecha).getTime();
-        const now = new Date().getTime();
-        const hoursDifference = (matchTime - now) / (1000 * 60 * 60);
-
-        const canLeave = hoursDifference > 2;
+        const horasFaltantes = (new Date(partidoFecha).getTime() - Date.now()) / (1000 * 60 * 60);
+        const puedeSalir = horasFaltantes > 2;
 
         return (
             <Button
                 size="sm"
-                onClick={canLeave ? handleLeave : undefined}
-                disabled={loading || !canLeave}
-                className={`shrink-0 h-9 px-3 text-xs ${fullWidth ? 'w-full' : ''} ${canLeave
+                onClick={puedeSalir ? () => ejecutar(() => salirseDePartido(partidoId)) : undefined}
+                disabled={enCurso || !puedeSalir}
+                className={`shrink-0 h-9 px-3 text-xs ${fullWidth ? 'w-full' : ''} ${puedeSalir
                     ? "bg-red-500/20 text-red-500 hover:bg-red-500/30 border border-red-500/30 font-semibold"
                     : "bg-paper-dark text-olive/60 cursor-not-allowed"}`}
             >
-                {loading ? "Saliendo..." : canLeave ? "Salir" : "Aviso < 2h"}
+                {enCurso ? "Saliendo..." : puedeSalir ? "Salir" : "Aviso < 2h"}
             </Button>
         );
     }
 
-    if (showLeaveButtonOnly) return null; // No mostramos "Me Apunto" si solo queríamos el de salir
+    if (showLeaveButtonOnly) return null;
 
     if (cuposDisponibles <= 0) {
         return (
@@ -133,9 +97,14 @@ export function BotonUnirsePartido({
     }
 
     return (
-        <Button size="sm" className={`bg-white text-neutral-950 hover:bg-neutral-200 shadow-lg shrink-0 h-9 px-3 text-xs ${fullWidth ? 'w-full' : ''}`} onClick={handleJoin} disabled={loading}>
+        <Button
+            size="sm"
+            className={`bg-white text-neutral-950 hover:bg-neutral-200 shadow-lg shrink-0 h-9 px-3 text-xs ${fullWidth ? 'w-full' : ''}`}
+            onClick={() => ejecutar(() => unirseAPartido(partidoId))}
+            disabled={enCurso}
+        >
             <UserPlus className="w-4 h-4 mr-1.5" />
-            {loading ? "Uniendo..." : "Me Apunto"}
+            {enCurso ? "Uniendo..." : "Me Apunto"}
         </Button>
     );
 }

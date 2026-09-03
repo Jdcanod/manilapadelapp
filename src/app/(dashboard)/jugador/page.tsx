@@ -15,6 +15,7 @@ import { FollowersModal } from "@/components/social/FollowersModal";
 import { obtenerRankingClub } from "@/lib/ranking/obtenerRankingClub";
 import { obtenerRankingGlobal } from "@/lib/ranking/obtenerRankingGlobal";
 import { resolveClubPublicId } from "@/lib/club/resolveClubPublicId";
+import { ESTADO_AMISTOSO, describirNivel } from "@/lib/amistosos";
 
 /** Dado el resultado "6-3,4-6,10-7" (o con espacios/barras) devuelve qué pareja ganó: 1 o 2 */
 function getWinner(resultado: string | null | undefined): 1 | 2 | null {
@@ -108,10 +109,14 @@ export default async function JugadorDashboard() {
 
     const proximoPartido = misProximosPartidos?.[0];
 
+    // Amistosos abiertos de la comunidad. Se identifican por `torneo_id IS NULL`
+    // (tipo_partido no sirve: tiene default 'Amistoso' y quedó en cientos de
+    // partidos de torneo — ver src/lib/amistosos).
     const { data: partidosAbiertos } = await supabase
         .from('partidos')
         .select('*')
-        .eq('estado', 'abierto')
+        .is('torneo_id', null)
+        .eq('estado', ESTADO_AMISTOSO.ABIERTO)
         .gt('cupos_disponibles', 0)
         .gte('fecha', new Date().toISOString())
         .order('fecha', { ascending: true })
@@ -521,7 +526,7 @@ export default async function JugadorDashboard() {
                                             <div>
                                                 <h3 className="font-bold text-base text-ink line-clamp-1">{partido.lugar}</h3>
                                                 <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-olive">
-                                                    <span className="flex items-center"><MapPin className="w-3 h-3 mr-1" /> {partido.nivel}</span>
+                                                    <span className="flex items-center"><MapPin className="w-3 h-3 mr-1" /> {describirNivel(partido.nivel, partido.categoria_rango)}</span>
                                                     <span>•</span>
                                                     <span className="text-ochre font-medium">Faltan {partido.cupos_disponibles} p.</span>
                                                 </div>

@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
-import { createClient } from "@/utils/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { cancelarAmistoso } from "@/app/(dashboard)/partidos/actions";
 
 interface BotonCancelarProps {
     partidoId: string;
@@ -17,29 +17,21 @@ export function BotonCancelarPartido({ partidoId, partidoFecha, fullWidth = fals
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
-    const supabase = createClient();
 
     const handleCancel = async () => {
         if (!confirm("¿Estás seguro de que deseas cancelar este partido definitivamente?")) return;
 
         setLoading(true);
         try {
-            const { error } = await supabase
-                .from('partidos')
-                .update({ estado: 'cancelado' })
-                .eq('id', partidoId);
-
-            if (error) throw error;
-
+            // La validación de que soy el creador vive en la server action.
+            const res = await cancelarAmistoso(partidoId);
             toast({
-                title: "Partido cancelado",
-                description: "Se ha avisado a los inscritos (simulado).",
+                title: res.ok ? "Partido cancelado" : "No se pudo cancelar",
+                description: res.mensaje,
+                variant: res.ok ? undefined : "destructive",
             });
-
-            router.refresh();
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
+            if (res.ok) router.refresh();
+        } catch (err) {
             console.error("Error al cancelar:", err);
             toast({
                 title: "Error",

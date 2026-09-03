@@ -1,4 +1,13 @@
 import { createPureAdminClient } from "@/utils/supabase/server";
+import { ESTADO_AMISTOSO } from "@/lib/amistosos";
+
+/**
+ * Minutos antes de la hora del partido a partir de los cuales un amistoso
+ * incompleto se da por perdido. Antes el default era 0 ("temporalmente, para
+ * pruebas"), lo que cancelaba cualquier partido incompleto justo al llegar su
+ * hora; el club puede sobreescribirlo con `tiempo_cancelacion_minutos`.
+ */
+const MINUTOS_CANCELACION_DEFAULT = 60;
 
 export async function autocancelarPartidosIncompletos() {
     try {
@@ -6,48 +15,45 @@ export async function autocancelarPartidosIncompletos() {
         // de servicio (RLS bloquearía cualquier UPDATE hecho sin auth.uid()).
         const supabase = createPureAdminClient();
 
-        // 1. Get matches that are 'abierto'
+        // Solo amistosos abiertos: los de torneo los gestiona el club, y
+        // `torneo_id IS NULL` es el único discriminador confiable de amistoso
+        // (ver src/lib/amistosos).
         const { data: partidos } = await supabase
             .from('partidos')
             .select('id, fecha, lugar, cupos_disponibles, estado')
-            .eq('estado', 'abierto');
+            .is('torneo_id', null)
+            .eq('estado', ESTADO_AMISTOSO.ABIERTO);
 
         if (!partidos || partidos.length === 0) return;
 
-        // 2. Get clubs to know their cancellation times
         const { data: clubes } = await supabase
             .from('users')
             .select('nombre, canchas_activas_json')
             .eq('rol', 'admin_club');
 
-        if (!clubes) return;
-
         const matchesToCancel: string[] = [];
-        const now = new Date().getTime();
+        const now = Date.now();
 
         for (const p of partidos) {
-            // Match with missing players
-            if (p.cupos_disponibles > 0) {
-                // Find matching club settings based on 'lugar' string
-                const club = clubes.find((c: { nombre: string }) => p.lugar.startsWith(c.nombre));
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const tiempoMinutos = (club?.canchas_activas_json as any)?.tiempo_cancelacion_minutos || 0; // Se cambió el default temporalmente a 0 para pruebas
+            // Solo se cancela si de verdad quedó incompleto.
+            if (p.cupos_disponibles <= 0) continue;
 
-                const matchTime = new Date(p.fecha).getTime();
-                const minutesDiff = (matchTime - now) / (1000 * 60);
+            const club = (clubes || []).find((c: { nombre: string }) => p.lugar?.startsWith(c.nombre));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const configurado = (club?.canchas_activas_json as any)?.tiempo_cancelacion_minutos;
+            const tiempoMinutos = typeof configurado === 'number' ? configurado : MINUTOS_CANCELACION_DEFAULT;
 
-                if (minutesDiff <= tiempoMinutos) {
-                    matchesToCancel.push(p.id);
-                }
+            const minutosFaltantes = (new Date(p.fecha).getTime() - now) / (1000 * 60);
+
+            if (minutosFaltantes <= tiempoMinutos) {
+                matchesToCancel.push(p.id);
             }
         }
 
-        // 3. Batch update to 'cancelado' 
         if (matchesToCancel.length > 0) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { error: cancelError } = await (supabase as any)
+            const { error: cancelError } = await supabase
                 .from('partidos')
-                .update({ estado: 'cancelado' })
+                .update({ estado: ESTADO_AMISTOSO.CANCELADO })
                 .in('id', matchesToCancel);
 
             if (cancelError) {

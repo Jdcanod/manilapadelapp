@@ -12,6 +12,7 @@ import { DetallePartidoDialog } from "@/components/DetallePartidoDialog";
 import { redirect } from "next/navigation";
 import { autocancelarPartidosIncompletos } from "@/utils/cancelarPartidos";
 import { formatFormatoLabel } from "@/lib/display-names";
+import { ESTADOS_VIGENTES, describirNivel } from "@/lib/amistosos";
 
 export const dynamic = 'force-dynamic';
 
@@ -36,14 +37,17 @@ export default async function PartidosPage() {
     // Cancelar partidos que ya pasaron su tiempo limite sin completarse
     await autocancelarPartidosIncompletos();
 
-    // Obtener los partidos reales de la BD, ordenados por fecha, solo los que sean a futuro
+    // Amistosos vigentes de la comunidad. Un amistoso se identifica por
+    // `torneo_id IS NULL` — NO por tipo_partido, que tiene default 'Amistoso'
+    // y quedó puesto en cientos de partidos de torneo (ver src/lib/amistosos).
     const { data: partidosReales } = await supabase
         .from('partidos')
         .select(`
             *,
             creador:users!creador_id(nombre)
         `)
-        .eq('estado', 'abierto')
+        .is('torneo_id', null)
+        .in('estado', ESTADOS_VIGENTES)
         .gte('fecha', new Date().toISOString())
         .order('fecha', { ascending: true });
 
@@ -127,16 +131,18 @@ export default async function PartidosPage() {
         const timeStr = dt.toLocaleString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         const isPast = dt < new Date();
 
-        let statusDisplay = p.estado === 'abierto' ? 'Buscando Jugadores' : 'Cerrado';
-        if (isPast && p.estado === 'abierto') statusDisplay = 'Jugado';
-        else if (isPast && p.estado === 'cerrado') statusDisplay = 'Jugado';
+        let statusDisplay = 'Cerrado';
+        if (p.estado === 'abierto') statusDisplay = 'Buscando Jugadores';
+        else if (p.estado === 'completo') statusDisplay = 'Completo';
+        else if (p.estado === 'cancelado') statusDisplay = 'Cancelado';
+        if (isPast && p.estado !== 'cancelado') statusDisplay = 'Jugado';
 
         return {
             ...p,
             id: p.id,
             club: p.lugar,
             time: timeStr,
-            type: `${p.tipo_partido} - ${p.sexo} (Lvl ${p.nivel})`,
+            type: `${p.sexo} · ${describirNivel(p.nivel, p.categoria_rango)}`,
             status: statusDisplay,
             opponents: p.creador?.nombre || 'Jugadores',
             estado_original: p.estado,
@@ -294,11 +300,16 @@ export default async function PartidosPage() {
                                         <div className="flex justify-between items-start mb-4 gap-4">
                                             <div className="flex-1">
                                                 <Badge variant="outline" className="text-blue-600 border-blue-400/30 bg-blue-400/10 mb-2">
-                                                    {match.tipo_partido} - {match.sexo}
+                                                    Amistoso - {match.sexo}
                                                 </Badge>
                                                 <Badge variant="outline" className="ml-2 text-olive border-olive/30 bg-olive-light/10 mb-2">
-                                                    Nivel: {match.nivel}
+                                                    {describirNivel(match.nivel, match.categoria_rango)}
                                                 </Badge>
+                                                {match.estado === 'completo' && (
+                                                    <Badge variant="outline" className="ml-2 text-ochre-dark border-ochre/40 bg-ochre/10 mb-2">
+                                                        Completo
+                                                    </Badge>
+                                                )}
                                                 <h3 className="text-lg font-bold text-ink mb-1 leading-tight">{match.lugar}</h3>
                                                 <div className="flex items-center text-sm text-olive font-medium mt-2">
                                                     <Calendar className="w-4 h-4 mr-2 text-olive" />
