@@ -4,6 +4,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Trophy, TrendingUp, Activity, UserPlus, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FollowersModal } from "@/components/social/FollowersModal";
+import { obtenerRankingClub } from "@/lib/ranking/obtenerRankingClub";
+import { obtenerRankingGlobal } from "@/lib/ranking/obtenerRankingGlobal";
+import { resolveClubPublicId } from "@/lib/club/resolveClubPublicId";
 
 export const dynamic = 'force-dynamic';
 
@@ -120,9 +123,39 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
     }
 
     const winRate = totalJugados > 0 ? Math.round((ganados / totalJugados) * 100) : 0;
-    const displayCategory = lastTournamentCategory 
-        ? `Categoría ${lastTournamentCategory}` 
-        : (profile.categoria || profile.nivel || 'Jugador');
+
+    // Nivel real (0-5): en su club de preferencia y global, mismo sistema
+    // que usa /club/ranking — reemplaza el antiguo campo users.elo.
+    let miClubNombre: string | null = null;
+    let miNivel: number | null = null;
+    let miCategoria: string | null = null;
+    let miRankClub = 0;
+    let totalClub = 0;
+
+    const clubPublicId = profile.club_id ? await resolveClubPublicId(supabase, profile.club_id) : null;
+    if (clubPublicId) {
+        const [{ jugadores: rankingClub }, { data: clubRow }] = await Promise.all([
+            obtenerRankingClub(clubPublicId),
+            supabase.from('users').select('nombre').eq('id', clubPublicId).single(),
+        ]);
+        miClubNombre = clubRow?.nombre || null;
+        const conNivel = rankingClub.filter(j => j.nivel_ranking != null).sort((a, b) => (b.nivel_ranking ?? 0) - (a.nivel_ranking ?? 0));
+        const el = rankingClub.find(j => j.id === params.id);
+        miNivel = el?.nivel_ranking ?? null;
+        miCategoria = el?.categoria_jugador ?? null;
+        totalClub = conNivel.length;
+        miRankClub = conNivel.findIndex(j => j.id === params.id) + 1;
+    }
+
+    const jugadoresGlobal = await obtenerRankingGlobal();
+    const totalGlobal = jugadoresGlobal.length;
+    const miRankGlobal = jugadoresGlobal.findIndex(j => j.id === params.id) + 1;
+
+    const displayCategory = miCategoria
+        ? `Categoría ${miCategoria}`
+        : lastTournamentCategory
+            ? `Categoría ${lastTournamentCategory}`
+            : (profile.categoria || profile.nivel || 'Jugador');
     const iniciales = (profile.nombre || "Jugador").substring(0, 2).toUpperCase();
 
     return (
@@ -168,8 +201,14 @@ export default async function JugadorProfilePage({ params }: { params: { id: str
 
                     <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                         <div className="bg-paper p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
-                            <div className="text-xs font-bold text-olive/60 uppercase tracking-widest mb-2 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-blue-600" /> Puntos ELO</div>
-                            <div className="text-3xl font-black text-ink">{profile.elo?.toLocaleString() || '1,000'}</div>
+                            <div className="text-xs font-bold text-olive/60 uppercase tracking-widest mb-2 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-blue-600" /> Nivel {miClubNombre ? `en ${miClubNombre}` : ''}</div>
+                            <div className="text-3xl font-black text-ink">{miNivel != null ? miNivel.toFixed(2) : '—'}</div>
+                            {miRankClub > 0 && <p className="text-[11px] text-olive/50 mt-1">#{miRankClub} de {totalClub} en el club</p>}
+                        </div>
+                        <div className="bg-paper p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
+                            <div className="text-xs font-bold text-olive/60 uppercase tracking-widest mb-2 flex items-center gap-2"><Trophy className="w-4 h-4 text-purple-700" /> Ranking Global</div>
+                            <div className="text-3xl font-black text-ink">{miRankGlobal ? `#${miRankGlobal}` : '—'}</div>
+                            <p className="text-[11px] text-olive/50 mt-1">{totalGlobal > 0 ? `de ${totalGlobal} jugadores` : 'Sin ranking aún'}</p>
                         </div>
                         <div className="bg-paper p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
                             <div className="text-xs font-bold text-olive/60 uppercase tracking-widest mb-2 flex items-center gap-2"><Activity className="w-4 h-4 text-emerald-700" /> Win Rate</div>

@@ -8,6 +8,7 @@ import { obtenerRankingClub } from "@/lib/ranking/obtenerRankingClub";
 import { obtenerRankingGlobal } from "@/lib/ranking/obtenerRankingGlobal";
 import { RankingGlobalTable } from "@/components/RankingGlobalTable";
 import { ClubRankingSelector } from "@/components/ClubRankingSelector";
+import { resolveClubPublicId } from "@/lib/club/resolveClubPublicId";
 
 interface ClubOption {
     id: string;
@@ -34,7 +35,10 @@ export default async function RankingPage({ searchParams }: { searchParams?: { c
         .order('nombre', { ascending: true });
     const clubes: ClubOption[] = clubesData || [];
 
-    const clubIdSeleccionado = searchParams?.club || userData?.club_id || clubes[0]?.id || null;
+    // userData.club_id guarda el auth_id del club de preferencia — hay que
+    // resolverlo a su users.id real antes de usarlo para filtrar el ranking.
+    const miClubPublicId = userData?.club_id ? await resolveClubPublicId(supabase, userData.club_id) : null;
+    const clubIdSeleccionado = searchParams?.club || miClubPublicId || clubes[0]?.id || null;
 
     if (!clubIdSeleccionado || clubes.length === 0) {
         return (

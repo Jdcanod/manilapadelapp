@@ -12,6 +12,9 @@ import { OrganizarPartidoDialog } from "@/components/OrganizarPartidoDialog";
 import { TournamentResultModal } from "@/components/TournamentResultModal";
 import { ValidationTimer } from "@/components/ValidationTimer";
 import { FollowersModal } from "@/components/social/FollowersModal";
+import { obtenerRankingClub } from "@/lib/ranking/obtenerRankingClub";
+import { obtenerRankingGlobal } from "@/lib/ranking/obtenerRankingGlobal";
+import { resolveClubPublicId } from "@/lib/club/resolveClubPublicId";
 
 /** Dado el resultado "6-3,4-6,10-7" (o con espacios/barras) devuelve qué pareja ganó: 1 o 2 */
 function getWinner(resultado: string | null | undefined): 1 | 2 | null {
@@ -154,15 +157,56 @@ export default async function JugadorDashboard() {
         club_nombre: typeof item.users === 'object' && item.users ? ((item.users as { nombre?: string }).nombre || 'Club') : 'Club'
     }));
 
-    // 1. Ranking Global
-    const { data: rankingData } = await adminSupabase
-        .from('users')
-        .select('id, elo')
-        .eq('rol', 'jugador')
-        .order('elo', { ascending: false });
-    
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const myRank = rankingData ? rankingData.findIndex((u: any) => (u as any).id === userData?.id) + 1 : 0;
+    // 1. Nivel de juego (0-5) real: en mi club de preferencia, en mi categoría
+    // dentro de ese club, y global (promedio entre todos los clubes donde
+    // tengo nivel asignado) — el mismo sistema que usa /club/ranking.
+    let miClubPublicId = userData?.club_id ? await resolveClubPublicId(adminSupabase, userData.club_id) : null;
+    if (!miClubPublicId && userData?.id) {
+        // Sin club de preferencia guardado: usamos cualquier club donde ya
+        // tenga nivel asignado, para no dejar el bloque vacío.
+        const { data: cualquierClub } = await adminSupabase
+            .from('ranking_club_jugador')
+            .select('club_id')
+            .eq('jugador_id', userData.id)
+            .not('nivel_ranking', 'is', null)
+            .limit(1)
+            .maybeSingle();
+        miClubPublicId = cualquierClub?.club_id ?? null;
+    }
+
+    let miClubNombre: string | null = null;
+    let miNivel: number | null = null;
+    let miCategoria: string | null = null;
+    let miRankClub = 0;
+    let totalClub = 0;
+    let miRankCategoria = 0;
+    let totalCategoria = 0;
+
+    if (miClubPublicId && userData?.id) {
+        const [{ jugadores: rankingClub }, { data: clubRow }] = await Promise.all([
+            obtenerRankingClub(miClubPublicId),
+            adminSupabase.from('users').select('nombre').eq('id', miClubPublicId).single(),
+        ]);
+        miClubNombre = clubRow?.nombre || null;
+
+        const conNivel = rankingClub.filter(j => j.nivel_ranking != null).sort((a, b) => (b.nivel_ranking ?? 0) - (a.nivel_ranking ?? 0));
+        const yo = rankingClub.find(j => j.id === userData.id);
+        miNivel = yo?.nivel_ranking ?? null;
+        miCategoria = yo?.categoria_jugador ?? null;
+        totalClub = conNivel.length;
+        miRankClub = conNivel.findIndex(j => j.id === userData.id) + 1;
+
+        if (miCategoria) {
+            const mismaCategoria = conNivel.filter(j => j.categoria_jugador === miCategoria);
+            totalCategoria = mismaCategoria.length;
+            miRankCategoria = mismaCategoria.findIndex(j => j.id === userData.id) + 1;
+        }
+    }
+
+    const jugadoresGlobal = await obtenerRankingGlobal();
+    const totalGlobal = jugadoresGlobal.length;
+    const miRankGlobal = userData?.id ? jugadoresGlobal.findIndex(j => j.id === userData.id) + 1 : 0;
+    const miNivelGlobal = userData?.id ? jugadoresGlobal.find(j => j.id === userData.id)?.nivel_promedio ?? null : null;
 
     // Fetch Follow Stats
     const { count: followersCount } = await adminSupabase
@@ -258,9 +302,13 @@ export default async function JugadorDashboard() {
     }
 
     const winRate = totalJugados > 0 ? Math.round((ganados / totalJugados) * 100) : 0;
-    const displayCategory = lastTournamentCategory 
-        ? `Categoría ${lastTournamentCategory}` 
-        : (userData?.categoria || userData?.nivel || 'Jugador');
+    // La categoría del ranking del club (real, editada por el club) manda
+    // sobre la heurística por último torneo jugado, que es solo un respaldo.
+    const displayCategory = miCategoria
+        ? `Categoría ${miCategoria}`
+        : lastTournamentCategory
+            ? `Categoría ${lastTournamentCategory}`
+            : (userData?.categoria || userData?.nivel || 'Jugador');
 
     return (
         <div className="space-y-6">
@@ -290,15 +338,34 @@ export default async function JugadorDashboard() {
                             </Badge>
                             <div className="flex items-center gap-2 bg-paper px-4 py-2 rounded-2xl border border-olive/20 shadow-inner">
                                 <Trophy className="w-5 h-5 text-ochre" />
-                                <span className="font-black text-xl text-ink">#{myRank || '-'}</span>
+                                <span className="font-black text-xl text-ink">{miRankGlobal ? `#${miRankGlobal}` : '—'}</span>
                             </div>
                         </div>
                     </div>
 
                     <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                         <div className="bg-paper/50 p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
-                            <div className="text-xs font-bold text-olive/70 uppercase tracking-widest mb-2 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-blue-600" /> Puntos ELO</div>
-                            <div className="text-3xl font-black text-ink">{userData?.elo?.toLocaleString() || '1,000'}</div>
+                            <div className="text-xs font-bold text-olive/70 uppercase tracking-widest mb-2 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-blue-600" /> Nivel {miClubNombre ? `en ${miClubNombre}` : ''}</div>
+                            <div className="text-3xl font-black text-ink">{miNivel != null ? miNivel.toFixed(2) : '—'}</div>
+                            {miRankClub > 0 && (
+                                <p className="text-[11px] text-olive/60 mt-1">
+                                    #{miRankClub} de {totalClub}
+                                    {miRankCategoria > 0 && ` · #${miRankCategoria} de ${totalCategoria} en ${miCategoria}`}
+                                </p>
+                            )}
+                            {miNivel == null && (
+                                <Link href="/clubes" className="text-[11px] text-olive/70 hover:text-olive underline mt-1 inline-block">
+                                    Aún sin nivel asignado
+                                </Link>
+                            )}
+                        </div>
+                        <div className="bg-paper/50 p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
+                            <div className="text-xs font-bold text-olive/70 uppercase tracking-widest mb-2 flex items-center gap-2"><Trophy className="w-4 h-4 text-ochre" /> Ranking Global</div>
+                            <div className="text-3xl font-black text-ink">{miRankGlobal ? `#${miRankGlobal}` : '—'}</div>
+                            <p className="text-[11px] text-olive/60 mt-1">
+                                {totalGlobal > 0 ? `de ${totalGlobal} jugadores` : 'Sin jugadores rankeados aún'}
+                                {miNivelGlobal != null && ` · nivel ${miNivelGlobal.toFixed(2)}`}
+                            </p>
                         </div>
                         <div className="bg-paper/50 p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
                             <div className="text-xs font-bold text-olive/70 uppercase tracking-widest mb-2 flex items-center gap-2"><Activity className="w-4 h-4 text-olive" /> Win Rate</div>
