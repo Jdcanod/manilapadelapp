@@ -130,7 +130,13 @@ export default async function HistorialPartidosPage() {
                                         </div>
                                         <h3 className="text-lg font-bold text-ink flex flex-col gap-1">
                                             {isTorneo && torneoName && (
-                                                <span className="text-xl text-ink">{torneoName}</span>
+                                                partido.torneo_id ? (
+                                                    <Link href={`/torneos/${partido.torneo_id}`} className="text-xl text-ink hover:text-olive underline-offset-2 hover:underline w-fit">
+                                                        {torneoName}
+                                                    </Link>
+                                                ) : (
+                                                    <span className="text-xl text-ink">{torneoName}</span>
+                                                )
                                             )}
                                             <span className="flex items-center gap-2 text-olive/70 text-sm font-normal">
                                                 <Trophy className="w-4 h-4 text-olive/60" />
