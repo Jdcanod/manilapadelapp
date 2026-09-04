@@ -100,6 +100,55 @@ export async function saveBasePoints(clubId: string, points: Record<string, numb
  * recalcularNivelPorPartido / aplicarBonoPosicion) — nunca hay filas ahí
  * para un invitado.
  */
+export interface HistorialInvitado {
+    parejas: number;
+    partidos: number;
+    torneos: number;
+}
+
+/**
+ * Qué historial arrastra un invitado. Se muestra antes de fusionar porque la
+ * operación es irreversible: si el club se equivoca de persona, mezcla dos
+ * historiales distintos y no hay vuelta atrás.
+ */
+export async function contarHistorialInvitado(invitadoId: string): Promise<HistorialInvitado> {
+    const supabase = createClient();
+    const admin = createPureAdminClient();
+    const vacio = { parejas: 0, partidos: 0, torneos: 0 };
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return vacio;
+    const { data: userData } = await supabase
+        .from('users').select('rol').eq('auth_id', user.id).single();
+    if (userData?.rol !== 'admin_club' && userData?.rol !== 'superadmin') return vacio;
+
+    const { data: parejas } = await admin
+        .from('parejas')
+        .select('id')
+        .or(`jugador1_id.eq.${invitadoId},jugador2_id.eq.${invitadoId}`);
+    const parejaIds = (parejas || []).map((p: { id: string }) => p.id);
+    if (parejaIds.length === 0) return vacio;
+
+    const [{ data: comoP1 }, { data: comoP2 }, { data: enTorneos }] = await Promise.all([
+        admin.from('partidos').select('id, torneo_id').in('pareja1_id', parejaIds),
+        admin.from('partidos').select('id, torneo_id').in('pareja2_id', parejaIds),
+        admin.from('torneo_parejas').select('torneo_id').in('pareja_id', parejaIds),
+    ]);
+
+    const partidos = new Set([
+        ...(comoP1 || []).map((p: { id: string }) => p.id),
+        ...(comoP2 || []).map((p: { id: string }) => p.id),
+    ]);
+    const torneos = new Set([
+        ...(enTorneos || []).map((t: { torneo_id: string }) => t.torneo_id),
+        ...[...(comoP1 || []), ...(comoP2 || [])]
+            .map((p: { torneo_id: string | null }) => p.torneo_id)
+            .filter((t): t is string => !!t),
+    ]);
+
+    return { parejas: parejaIds.length, partidos: partidos.size, torneos: torneos.size };
+}
+
 export async function vincularInvitadoAJugador(invitadoId: string, jugadorRealId: string) {
     const supabase = createClient();
     const admin = createPureAdminClient();

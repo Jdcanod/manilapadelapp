@@ -6,6 +6,9 @@ import { ChevronLeft, Trophy } from "lucide-react";
 import Link from "next/link";
 import { RankingManager } from "./RankingManager";
 import { obtenerRankingClub } from "@/lib/ranking/obtenerRankingClub";
+import { sugerenciasDeVinculacion, jugadoresNuevosDelClub } from "@/lib/invitados/sugerencias";
+import { SugerenciasInvitadosPanel } from "@/components/SugerenciasInvitadosPanel";
+import { JugadoresNuevosPanel } from "@/components/JugadoresNuevosPanel";
 
 export default async function ClubRankingPage() {
     const supabase = createClient();
@@ -22,10 +25,22 @@ export default async function ClubRankingPage() {
 
     const { jugadores, sinTorneos } = await obtenerRankingClub(userData.id);
 
+    // Invitados que probablemente ya tienen cuenta real. Va acá porque es donde
+    // el club ya ve a sus invitados, y antes solo los listaba como texto muerto.
+    const { createPureAdminClient } = await import("@/utils/supabase/server");
+    const admin = createPureAdminClient();
+    const [sugerencias, jugadoresNuevos] = await Promise.all([
+        sugerenciasDeVinculacion(admin, userData.id, userData.auth_id),
+        jugadoresNuevosDelClub(admin, userData.id, userData.auth_id),
+    ]);
+
     if (sinTorneos) {
         return (
             <div className="space-y-6 pb-20">
                 <PageHeader />
+                {/* Aunque no haya torneos, la gente ya puede estar registrándose
+                    eligiendo este club — y sin esto el club no los vería. */}
+                <JugadoresNuevosPanel jugadores={jugadoresNuevos} />
                 <div className="py-20 text-center border border-dashed border-olive/20 rounded-2xl">
                     <Trophy className="w-14 h-14 mx-auto mb-4 text-olive/30" />
                     <p className="text-olive font-semibold">No hay torneos creados aún</p>
@@ -41,6 +56,8 @@ export default async function ClubRankingPage() {
     return (
         <div className="space-y-6 pb-20">
             <PageHeader />
+            <JugadoresNuevosPanel jugadores={jugadoresNuevos} />
+            <SugerenciasInvitadosPanel sugerencias={sugerencias} />
             <RankingManager
                 clubId={userData.id}
                 jugadores={jugadores}
