@@ -177,9 +177,17 @@ export async function sugerenciasDeVinculacion(
 
     const sugerencias: SugerenciaInvitado[] = [];
     for (const inv of invitados) {
+        // Los invitados TAMBIÉN tienen apellido: `getOrCreateInvitado` parte
+        // "Juan Aristizabal" en nombre="Juan" + apellido="Aristizabal". Leer
+        // solo `nombre` los mostraba a todos como "Juan" y los hacía parecer
+        // duplicados cuando son personas distintas.
+        // Sin el email: `formatPlayerNameFull` le agregaría " (I)" a los
+        // invitados, y ese sufijo rompía la comparación exacta de nombres
+        // (además la fila ya dice "invitado").
+        const nombreInvitado = formatPlayerNameFull({ nombre: inv.nombre, apellido: inv.apellido });
         const candidatos: CandidatoVinculacion[] = [];
         reales.forEach((real, id) => {
-            const confianza = clasificar(inv.nombre || '', real.nombre);
+            const confianza = clasificar(nombreInvitado, real.nombre);
             if (confianza) candidatos.push({
                 id,
                 nombre: real.nombre || 'Jugador',
@@ -202,7 +210,7 @@ export async function sugerenciasDeVinculacion(
 
         sugerencias.push({
             invitadoId: inv.id,
-            invitadoNombre: inv.nombre || 'Invitado',
+            invitadoNombre: nombreInvitado,
             invitadoCreadoEn: inv.fecha_registro,
             candidatos: delMejorNivel.slice(0, 5),
         });
@@ -273,9 +281,9 @@ export async function jugadoresNuevosDelClub(
 
         if (personaIds.size > 0) {
             const { data: personas } = await admin
-                .from('users').select('id, nombre, email, fecha_registro').in('id', Array.from(personaIds));
-            (personas || []).forEach((p: { id: string; nombre: string | null; email: string | null; fecha_registro: string | null }) => {
-                if (isGuestEmail(p.email)) invitadosDelClub.set(p.id, { nombre: p.nombre || 'Invitado', fecha: p.fecha_registro });
+                .from('users').select('id, nombre, apellido, email, fecha_registro').in('id', Array.from(personaIds));
+            (personas || []).forEach((p: { id: string; nombre: string | null; apellido: string | null; email: string | null; fecha_registro: string | null }) => {
+                if (isGuestEmail(p.email)) invitadosDelClub.set(p.id, { nombre: formatPlayerNameFull({ nombre: p.nombre, apellido: p.apellido }), fecha: p.fecha_registro });
                 else yaJugaron.add(p.id);
             });
         }
