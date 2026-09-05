@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/utils/supabase/client";
 import { Loader2, Trash2, Edit, Save, Plus, Users, Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { formatPlayerNameFull } from "@/lib/display-names";
 
 interface Props {
     reservationId: string | number;
@@ -39,7 +40,10 @@ interface Props {
 interface User {
     auth_id: string;
     nombre: string;
-    nivel: string;
+    apellido: string | null;
+    email: string | null;
+    /** Categoría en el club (4ta, 5ta...). Es la que la gente usa. */
+    categoria_jugador: string | null;
 }
 
 interface Partido {
@@ -54,7 +58,9 @@ interface PartidoJugador {
     id: number;
     jugador: {
         nombre: string;
-        nivel: string;
+        apellido: string | null;
+        email: string | null;
+        categoria_jugador: string | null;
     }[];
 }
 
@@ -101,7 +107,7 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
                 setPartido(pData);
                 
                 if (pData) {
-                    const { data: jData } = await supabase.from('partido_jugadores').select('id, jugador:users(nombre, nivel)').eq('partido_id', pData.id);
+                    const { data: jData } = await supabase.from('partido_jugadores').select('id, jugador:users(nombre, apellido, email, categoria_jugador)').eq('partido_id', pData.id);
                     setJugadores(jData || []);
                     
                     // Extraer cancha actual. Soportamos tanto "cancha_1" como "Cancha 1"
@@ -125,7 +131,13 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
                 }
                 
                 // Cargar jugadores registrados
-                const { data: usersData } = await supabase.from('users').select('auth_id, nombre, nivel').eq('rol', 'jugador').order('nombre');
+                // Sin apellido, dos personas distintas se ven idénticas en la
+                // lista ("Alejandra" y "ALEJANDRA") y no hay forma de elegir.
+                const { data: usersData } = await supabase
+                    .from('users')
+                    .select('auth_id, nombre, apellido, email, categoria_jugador')
+                    .eq('rol', 'jugador')
+                    .order('nombre');
                 setAllUsers(usersData || []);
 
                 setLoading(false);
@@ -303,7 +315,7 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
             setSaving(false);
         } else {
             // Recargar lista local
-            const { data: jData } = await supabase.from('partido_jugadores').select('id, jugador:users(nombre, nivel)').eq('partido_id', reservationId);
+            const { data: jData } = await supabase.from('partido_jugadores').select('id, jugador:users(nombre, apellido, email, categoria_jugador)').eq('partido_id', reservationId);
             setJugadores(jData || []);
             setSelectedUserId("");
             setSaving(false);
@@ -469,7 +481,10 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
                                         </SelectTrigger>
                                         <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[150px]">
                                             {allUsers.map((u) => (
-                                                <SelectItem key={u.auth_id} value={u.auth_id}>{u.nombre} (Lvl {u.nivel})</SelectItem>
+                                                <SelectItem key={u.auth_id} value={u.auth_id}>
+                                                    {formatPlayerNameFull(u)}
+                                                    {u.categoria_jugador ? ` · ${u.categoria_jugador}` : ''}
+                                                </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
@@ -482,8 +497,12 @@ export function GestionReservaModal({ reservationId, open, onOpenChange, courts,
                                     {jugadores.map((j) => (
                                         <div key={j.id} className="text-sm bg-paper-soft/50 px-3 py-2 rounded flex justify-between items-center border border-olive/20 group hover:border-olive/30 transition-colors">
                                             <div className="flex flex-col">
-                                                <span className="font-medium text-ink">{j.jugador?.[0]?.nombre || "Jugador"}</span>
-                                                <span className="text-[10px] text-olive/70 uppercase">Nivel {j.jugador?.[0]?.nivel || "-"}</span>
+                                                <span className="font-medium text-ink">
+                                                    {j.jugador?.[0] ? formatPlayerNameFull(j.jugador[0]) : "Jugador"}
+                                                </span>
+                                                <span className="text-[10px] text-olive/70 uppercase">
+                                                    {j.jugador?.[0]?.categoria_jugador || "Sin categoría"}
+                                                </span>
                                             </div>
                                             <Button 
                                                 variant="ghost" 

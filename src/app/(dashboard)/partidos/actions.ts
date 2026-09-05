@@ -2,6 +2,7 @@
 
 import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { formatPlayerNameFull } from "@/lib/display-names";
 import { ESTADO_AMISTOSO, describirNivel, puedeUnirsePorCategoria } from "@/lib/amistosos";
 import { obtenerCategoriaJugador } from "@/lib/ranking/categoriaJugador";
 import { ESTADO_BLOQUEADO, TIPO_BLOQUEO, MOTIVO_POR_DEFECTO } from "@/lib/canchas/bloqueos";
@@ -567,9 +568,11 @@ export async function listarJugadoresDelClub(): Promise<JugadorDelClub[]> {
         .single();
     if (club?.rol !== 'admin_club') return [];
 
+    // Con solo `nombre` la lista muestra "Alejandra" y "ALEJANDRA" como dos
+    // filas idénticas: el apellido de mucha gente vive en su propia columna.
     const { data: jugadores } = await admin
         .from('users')
-        .select('id, nombre')
+        .select('id, nombre, apellido, email')
         .eq('rol', 'jugador')
         .eq('club_id', club.auth_id)          // users.club_id guarda el auth_id del club
         .not('auth_id', 'is', null)
@@ -589,11 +592,15 @@ export async function listarJugadoresDelClub(): Promise<JugadorDelClub[]> {
         (niveles || []).map((n: { jugador_id: string; categoria_jugador: string | null }) => [n.jugador_id, n.categoria_jugador])
     );
 
-    return jugadores.map((j: { id: string; nombre: string }) => ({
-        id: j.id,
-        nombre: j.nombre || 'Jugador',
-        categoria: catPorJugador.get(j.id) ?? null,
-    }));
+    return jugadores
+        .map((j: { id: string; nombre: string; apellido: string | null; email: string | null }) => ({
+            id: j.id,
+            nombre: formatPlayerNameFull(j) || 'Jugador',
+            categoria: catPorJugador.get(j.id) ?? null,
+        }))
+        // Reordenar acá y no en SQL: el orden útil es por el nombre que se ve,
+        // y ese lo arma `formatPlayerNameFull`, no la columna `nombre`.
+        .sort((a: JugadorDelClub, b: JugadorDelClub) => a.nombre.localeCompare(b.nombre, 'es'));
 }
 
 /** El creador cancela su propio amistoso. */
