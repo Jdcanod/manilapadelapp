@@ -1,0 +1,225 @@
+<title>Panel de Pareja</title>
+<style>
+:root{
+  --paper:#F5EFE0; --paper-soft:#EDE5D3; --paper-dark:#DDD2B7;
+  --olive:#5E6118; --olive-dark:#3F3F10;
+  --ochre:#A88A4B; --ochre-dark:#7E663C;
+  --ink:#2A2A0A; --ink-soft:#4A4A20;
+  --win:#046C4E; --loss:#B42318;
+  --stage:#E4DCC7;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--stage:#1e1c12;--ink-soft:#3F3F10;}}
+:root[data-theme="dark"]{--stage:#1e1c12;}
+*{box-sizing:border-box}
+body{background:var(--stage);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;color:var(--ink);margin:0;padding:24px 16px 56px}
+.wrap{max-width:1100px;margin:0 auto}
+h1{font:700 26px/1.2 Georgia,"Times New Roman",serif;color:var(--olive-dark);margin:0 0 6px;text-wrap:balance}
+.sub{color:var(--ink-soft);margin:0 0 28px;max-width:62ch}
+.rail{display:flex;gap:30px;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+.col{display:flex;flex-direction:column;align-items:center;gap:10px}
+.tag{font:700 10px/1 ui-sans-serif,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--ochre-dark);background:rgba(168,138,75,.14);border:1px solid rgba(168,138,75,.35);border-radius:99px;padding:5px 11px}
+.note{font-size:11px;color:var(--ink-soft);max-width:300px;text-align:center;min-height:34px}
+
+.phone{width:300px;height:600px;background:var(--paper);border:9px solid #23230d;border-radius:34px;overflow:hidden;position:relative;box-shadow:0 14px 34px rgba(0,0,0,.28)}
+.status{height:26px;background:var(--olive-dark);color:var(--paper);font-size:9px;display:flex;align-items:center;justify-content:space-between;padding:0 12px}
+.nav{background:var(--paper-soft);border-bottom:1px solid rgba(94,97,24,.18);padding:9px 12px;font-weight:700;font-size:12px;color:var(--ink);height:36px}
+.body{padding:12px;height:calc(100% - 26px - 36px);overflow:hidden;position:relative}
+.gtitle{font:700 10px/1 ui-sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--ochre-dark);margin:2px 0 9px}
+
+.row{display:flex;align-items:center;gap:9px;padding:9px 10px;background:var(--paper-soft);border:1px solid rgba(94,97,24,.15);border-radius:11px;margin-bottom:6px}
+.row.me{border-color:rgba(94,97,24,.5);background:rgba(94,97,24,.09)}
+.row.tapme{border-color:var(--ochre);box-shadow:0 0 0 3px rgba(168,138,75,.24)}
+.pos{font:700 11px ui-sans-serif;color:var(--ochre-dark);width:13px;font-variant-numeric:tabular-nums}
+.nm{flex:1;min-width:0;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pts{font:700 11px ui-sans-serif;color:var(--olive);font-variant-numeric:tabular-nums}
+.chev{color:var(--ochre-dark);font-size:12px}
+.youtag{font:700 8px ui-sans-serif;letter-spacing:.1em;color:var(--olive);background:rgba(94,97,24,.16);border-radius:99px;padding:2px 6px}
+
+.scrim{position:absolute;inset:0;background:rgba(42,42,10,.42)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--paper);border-radius:20px 20px 0 0;box-shadow:0 -8px 26px rgba(0,0,0,.24);max-height:88%;display:flex;flex-direction:column}
+.grab{width:34px;height:4px;background:var(--paper-dark);border-radius:99px;margin:8px auto 2px}
+.shead{padding:6px 14px 11px;border-bottom:1px solid rgba(94,97,24,.16)}
+.back{font-size:11px;color:var(--ochre-dark);font-weight:600;margin-bottom:5px}
+.stitle{font:700 16px/1.25 Georgia,serif;color:var(--ink);margin:0}
+.smeta{font-size:10px;color:var(--ink-soft);margin-top:3px}
+.scont{padding:12px 14px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:11px}
+
+.h2h{border-radius:12px;padding:11px 12px;border:1px solid}
+.h2h.yes{background:rgba(180,35,24,.07);border-color:rgba(180,35,24,.3)}
+.h2h.no{background:var(--paper-soft);border-color:rgba(94,97,24,.2)}
+.h2h .lbl{font:700 9px ui-sans-serif;letter-spacing:.13em;text-transform:uppercase;margin-bottom:5px}
+.h2h.yes .lbl{color:var(--loss)}
+.h2h.no .lbl{color:var(--olive)}
+.h2h .big{font:700 14px/1.3 Georgia,serif}
+.h2h .sm{font-size:10px;color:var(--ink-soft);margin-top:4px;font-variant-numeric:tabular-nums}
+
+.plr{display:flex;align-items:center;gap:9px;padding:9px 10px;background:var(--paper-soft);border:1px solid rgba(94,97,24,.16);border-radius:11px}
+.plr.tapme{border-color:var(--ochre);box-shadow:0 0 0 3px rgba(168,138,75,.24)}
+.av{width:28px;height:28px;border-radius:99px;background:var(--olive);color:var(--paper);display:grid;place-items:center;font:700 10px ui-sans-serif;flex-shrink:0}
+.plr .i{flex:1;min-width:0}
+.plr .pn{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plr .pd{font-size:9px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.cat{font:700 9px ui-sans-serif;color:var(--ochre-dark);background:rgba(168,138,75,.15);border:1px solid rgba(168,138,75,.32);border-radius:99px;padding:2px 7px;flex-shrink:0}
+
+.sect{font:700 9px ui-sans-serif;letter-spacing:.13em;text-transform:uppercase;color:var(--ochre-dark);margin:2px 0 -3px}
+.mt{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--paper-soft);border:1px solid rgba(94,97,24,.13);border-radius:10px}
+.mt .l{flex:1;min-width:0}
+.mt .t{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mt .d{font-size:9px;color:var(--ink-soft)}
+.sc{font:700 11px ui-sans-serif;font-variant-numeric:tabular-nums}
+.sc.w{color:var(--win)} .sc.l{color:var(--loss)}
+
+.empty{text-align:center;padding:18px 12px;background:var(--paper-soft);border:1px dashed rgba(94,97,24,.32);border-radius:12px}
+.empty .e1{font:700 13px Georgia,serif;color:var(--ink);margin-bottom:5px}
+.empty .e2{font-size:10px;color:var(--ink-soft);line-height:1.5}
+.pill{display:inline-flex;font-size:10px;background:var(--paper-soft);border:1px solid rgba(94,97,24,.2);border-radius:99px;padding:4px 10px;font-variant-numeric:tabular-nums}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.legend{margin:34px auto 0;max-width:660px;background:var(--paper-soft);border:1px solid rgba(94,97,24,.2);border-radius:14px;padding:16px 20px}
+.legend h2{font:700 13px ui-sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--ochre-dark);margin:0 0 9px}
+.legend li{margin-bottom:8px;font-size:13px;color:var(--ink-soft)}
+</style>
+
+<div class="wrap">
+<h1>Panel de pareja &mdash; cuatro momentos</h1>
+<p class="sub">Rafael est&aacute; en su grupo, en el celular, y toca la pareja contra la que le toca jugar. Datos reales de LIGA P&Aacute;DEL DEL R&Iacute;O 2026-II, categor&iacute;a 6ta.</p>
+
+<div class="rail">
+
+  <div class="col">
+    <span class="tag">1 &middot; Toca la pareja rival</span>
+    <div class="phone">
+      <div class="status"><span>9:21</span><span>46 %</span></div>
+      <div class="nav">&lsaquo; LIGA P&Aacute;DEL DEL R&Iacute;O 2026-II</div>
+      <div class="body">
+        <div class="gtitle">Grupo A &middot; 6ta</div>
+        <div class="row me"><span class="pos">1</span><span class="nm">Jimena / Daniel Gaviria</span><span class="youtag">T&Uacute;</span><span class="pts">6</span></div>
+        <div class="row tapme"><span class="pos">2</span><span class="nm">Cristian / Carlos</span><span class="pts">3</span><span class="chev">&rsaquo;</span></div>
+        <div class="row"><span class="pos">3</span><span class="nm">Vanessa / Juan</span><span class="pts">0</span><span class="chev">&rsaquo;</span></div>
+        <div class="row"><span class="pos">4</span><span class="nm">Daniel / Arturo</span><span class="pts">0</span><span class="chev">&rsaquo;</span></div>
+      </div>
+    </div>
+    <p class="note">Toda pareja es tocable &mdash; en grupos, llaves, cronograma y Copa Davis. El chevron lo anuncia.</p>
+  </div>
+
+  <div class="col">
+    <span class="tag">2 &middot; Con historial</span>
+    <div class="phone">
+      <div class="status"><span>9:21</span><span>46 %</span></div>
+      <div class="nav">&lsaquo; LIGA P&Aacute;DEL DEL R&Iacute;O 2026-II</div>
+      <div class="body">
+        <div class="gtitle">Grupo A &middot; 6ta</div>
+        <div class="row me"><span class="pos">1</span><span class="nm">Jimena / Daniel Gaviria</span><span class="youtag">T&Uacute;</span><span class="pts">6</span></div>
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="shead">
+            <p class="stitle">Cristian / Carlos</p>
+            <p class="smeta">6ta &middot; Grupo A &middot; 2.&ordm;</p>
+          </div>
+          <div class="scont">
+            <div class="h2h yes">
+              <div class="lbl">Ya se enfrentaron</div>
+              <div class="big">Les ganaste 1 de 1</div>
+              <div class="sm">6-1, 6-3 &middot; 4 jul 2026 &middot; fase de grupos</div>
+            </div>
+            <div class="sect">Los jugadores</div>
+            <div class="plr tapme"><div class="av">CR</div><div class="i"><div class="pn">Cristian Restrepo</div><div class="pd">#14 del club &middot; 12 partidos</div></div><span class="cat">6ta</span><span class="chev">&rsaquo;</span></div>
+            <div class="plr"><div class="av">CG</div><div class="i"><div class="pn">Carlos G&oacute;mez</div><div class="pd">#22 del club &middot; 8 partidos</div></div><span class="cat">6ta</span><span class="chev">&rsaquo;</span></div>
+            <div class="sect">Sus 2 partidos</div>
+            <div class="mt"><div class="l"><div class="t">vs Jimena / D. Gaviria</div><div class="d">4 jul 2026</div></div><span class="sc l">1-6, 1-6</span></div>
+            <div class="mt"><div class="l"><div class="t">vs Vanessa / Juan</div><div class="d">5 jul 2026</div></div><span class="sc w">4-6, 6-2, 10-6</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="note">Lo tuyo primero. Despu&eacute;s qui&eacute;nes son, despu&eacute;s qu&eacute; han jugado.</p>
+  </div>
+
+  <div class="col">
+    <span class="tag">3 &middot; Sin historial (lo normal)</span>
+    <div class="phone">
+      <div class="status"><span>9:21</span><span>46 %</span></div>
+      <div class="nav">&lsaquo; LIGA P&Aacute;DEL DEL R&Iacute;O 2026-II</div>
+      <div class="body">
+        <div class="gtitle">Grupo A &middot; 6ta</div>
+        <div class="row me"><span class="pos">1</span><span class="nm">Jimena / Daniel Gaviria</span><span class="youtag">T&Uacute;</span><span class="pts">6</span></div>
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="shead">
+            <p class="stitle">Daniel / Arturo</p>
+            <p class="smeta">6ta &middot; Grupo A &middot; 4.&ordm;</p>
+          </div>
+          <div class="scont">
+            <div class="h2h no">
+              <div class="lbl">Nunca se han enfrentado</div>
+              <div class="big">Es la primera vez</div>
+              <div class="sm">Los dos en 6ta, as&iacute; que van parejos.</div>
+            </div>
+            <div class="sect">Los jugadores</div>
+            <div class="plr"><div class="av">DE</div><div class="i"><div class="pn">Daniel Escobar</div><div class="pd">#9 del club &middot; 24 partidos</div></div><span class="cat">6ta</span><span class="chev">&rsaquo;</span></div>
+            <div class="plr"><div class="av">AR</div><div class="i"><div class="pn">Arturo Ram&iacute;rez</div><div class="pd">#17 del club &middot; 24 partidos</div></div><span class="cat">6ta</span><span class="chev">&rsaquo;</span></div>
+            <div class="sect">Como pareja</div>
+            <div class="empty">
+              <div class="e1">Debutan juntos</div>
+              <div class="e2">Es su primer torneo como pareja.<br>Cada uno trae lo suyo &mdash; t&oacute;calos arriba.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="note">Sin historial de pareja el panel no se queda mudo: manda al jugador, que s&iacute; tiene.</p>
+  </div>
+
+  <div class="col">
+    <span class="tag">4 &middot; Capa de jugador</span>
+    <div class="phone">
+      <div class="status"><span>9:21</span><span>46 %</span></div>
+      <div class="nav">&lsaquo; LIGA P&Aacute;DEL DEL R&Iacute;O 2026-II</div>
+      <div class="body">
+        <div class="gtitle">Grupo A &middot; 6ta</div>
+        <div class="row me"><span class="pos">1</span><span class="nm">Jimena / Daniel Gaviria</span><span class="youtag">T&Uacute;</span><span class="pts">6</span></div>
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="shead">
+            <div class="back">&lsaquo; Cristian / Carlos</div>
+            <p class="stitle">Cristian Restrepo</p>
+            <p class="smeta">6ta &middot; #14 del club</p>
+          </div>
+          <div class="scont">
+            <div class="pills">
+              <span class="pill">12 partidos</span>
+              <span class="pill">58 % ganados</span>
+              <span class="pill">2 torneos</span>
+            </div>
+            <div class="h2h yes">
+              <div class="lbl">Contigo</div>
+              <div class="big">Se han cruzado 2 veces</div>
+              <div class="sm">Vas 1-1 contra &eacute;l</div>
+            </div>
+            <div class="sect">Con qui&eacute;n ha jugado</div>
+            <div class="plr"><div class="av">CG</div><div class="i"><div class="pn">Carlos G&oacute;mez</div><div class="pd">Liga 2026-II &middot; 2 partidos</div></div><span class="chev">&rsaquo;</span></div>
+            <div class="plr"><div class="av">JL</div><div class="i"><div class="pn">Juan L&oacute;pez</div><div class="pd">Liga 2026-I &middot; 10 partidos</div></div><span class="chev">&rsaquo;</span></div>
+            <div class="sect">&Uacute;ltimos partidos</div>
+            <div class="mt"><div class="l"><div class="t">vs Jimena / D. Gaviria</div><div class="d">4 jul 2026 &middot; con Carlos</div></div><span class="sc l">1-6, 1-6</span></div>
+            <div class="mt"><div class="l"><div class="t">vs Vanessa / Juan</div><div class="d">5 jul 2026 &middot; con Carlos</div></div><span class="sc w">4-6, 6-2, 10-6</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="note">El &laquo;&lsaquo; Cristian / Carlos&raquo; devuelve a la pareja. El torneo nunca se pierde de vista.</p>
+  </div>
+
+</div>
+
+<div class="legend">
+  <h2>Lo que falta decidir</h2>
+  <ul>
+    <li><b>El orden.</b> Cara a cara &rarr; jugadores &rarr; partidos. &iquest;Es el orden en que t&uacute; preguntas?</li>
+    <li><b>El vac&iacute;o.</b> &laquo;Debutan juntos&raquo; empuja al jugador en vez de mostrar ceros. &iquest;Sirve o sobra?</li>
+    <li><b>El ranking.</b> &laquo;#14 del club&raquo; sale siempre. &iquest;Ayuda, o expone de m&aacute;s a los &uacute;ltimos?</li>
+    <li><b>La profundidad.</b> &iquest;Se puede seguir bajando (compa&ntilde;ero &rarr; su pareja), o se para en el jugador?</li>
+  </ul>
+</div>
+</div>
