@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { Trophy } from "lucide-react";
 import { RankingManager } from "@/app/(dashboard)/club/ranking/RankingManager";
 import { obtenerRankingClub } from "@/lib/ranking/obtenerRankingClub";
+import { EstadoVacio } from "@/components/EstadoVacio";
 import { obtenerRankingGlobal } from "@/lib/ranking/obtenerRankingGlobal";
 import { RankingGlobalTable } from "@/components/RankingGlobalTable";
 import { ClubRankingSelector } from "@/components/ClubRankingSelector";
@@ -44,7 +45,7 @@ export default async function RankingPage({ searchParams }: { searchParams?: { c
         return (
             <div className="space-y-6 pb-20">
                 <PageHeader clubes={clubes} clubIdSeleccionado="" />
-                <EmptyState mensaje="Todavía no hay clubes con ranking disponible." />
+                <EmptyState mensaje="El ranking se arma con los resultados de los torneos, y ningún club ha jugado uno todavía." />
             </div>
         );
     }
@@ -55,7 +56,7 @@ export default async function RankingPage({ searchParams }: { searchParams?: { c
             <div className="space-y-6 pb-20">
                 <PageHeader clubes={clubes} clubIdSeleccionado={clubIdSeleccionado} />
                 {jugadoresGlobal.length === 0 ? (
-                    <EmptyState mensaje="Todavía no hay jugadores con nivel asignado en ningún club." />
+                    <EmptyState mensaje="Aparecerás acá cuando tu club te asigne una categoría y empieces a sumar resultados." />
                 ) : (
                     <RankingGlobalTable jugadores={jugadoresGlobal} />
                 )}
@@ -70,7 +71,7 @@ export default async function RankingPage({ searchParams }: { searchParams?: { c
         <div className="space-y-6 pb-20">
             <PageHeader clubes={clubes} clubIdSeleccionado={clubIdSeleccionado} />
             {sinTorneos || jugadores.length === 0 ? (
-                <EmptyState mensaje={`${clubActual?.nombre || 'Este club'} todavía no tiene ranking — vuelve cuando hayan jugado algunos torneos.`} />
+                <EmptyState mensaje={`${clubActual?.nombre || 'Este club'} no ha jugado torneos todavía. El ranking aparece con el primer resultado.`} />
             ) : (
                 <RankingManager clubId={clubIdSeleccionado} jugadores={jugadores} readOnly />
             )}
@@ -78,12 +79,16 @@ export default async function RankingPage({ searchParams }: { searchParams?: { c
     );
 }
 
+/** Envoltura sobre EstadoVacio: acá el "por qué" siempre es el mismo — el
+ *  ranking sale de los resultados, así que sin torneos jugados no hay nada. */
 function EmptyState({ mensaje }: { mensaje: string }) {
     return (
-        <div className="py-20 text-center border border-dashed border-olive/20 rounded-2xl">
-            <Trophy className="w-14 h-14 mx-auto mb-4 text-olive/30" />
-            <p className="text-olive/70 text-sm">{mensaje}</p>
-        </div>
+        <EstadoVacio
+            icono={Trophy}
+            titulo="Todavía no hay ranking"
+            explicacion={mensaje}
+            accion={{ texto: "Ver torneos", href: "/torneos" }}
+        />
     );
 }
 

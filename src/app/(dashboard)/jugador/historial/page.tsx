@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { History as HistoryIcon, Trophy, Users, ChevronLeft } from "lucide-react";
 import Link from "next/link";
+import { EstadoVacio } from "@/components/EstadoVacio";
 
 export default async function HistorialPartidosPage() {
     const supabase = createClient();
@@ -57,14 +58,13 @@ export default async function HistorialPartidosPage() {
 
     if (ids.length === 0) {
         return (
-            <div className="p-8 text-center space-y-4">
-                <HistoryIcon className="w-16 h-16 text-olive/30 mx-auto" />
-                <h2 className="text-xl font-bold text-ink">Aún no tienes historial</h2>
-                <p className="text-olive/60">Tus partidos jugados aparecerán aquí.</p>
-                <Link href="/jugador">
-                    <Button variant="outline">Volver al Panel</Button>
-                </Link>
-            </div>
+            <EstadoVacio
+                icono={HistoryIcon}
+                titulo="Tu historial empieza con el primer partido"
+                explicacion="Acá van a quedar tus resultados, con quién jugaste y cómo te fue contra cada pareja."
+                accion={{ texto: "Buscar un partido", href: "/partidos" }}
+                secundaria={{ texto: "Ver torneos", href: "/torneos" }}
+            />
         );
     }
 
@@ -169,14 +169,4 @@ export default async function HistorialPartidosPage() {
             </div>
         </div>
     );
-}
-
-interface ButtonProps {
-    children: React.ReactNode;
-    variant?: 'outline';
-    className?: string;
-}
-
-function Button({ children, variant, className }: ButtonProps) {
-    return <button className={`px-4 py-2 rounded-lg font-bold ${variant === 'outline' ? 'border border-olive/20 text-ink' : ''} ${className}`}>{children}</button>;
 }

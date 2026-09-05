@@ -16,6 +16,7 @@ import { ESTADOS_VIGENTES, describirNivel, puedeUnirsePorCategoria } from "@/lib
 import { obtenerCategoriaJugador } from "@/lib/ranking/categoriaJugador";
 import { CompartirPartidoButton } from "@/components/CompartirPartidoButton";
 import Link from "next/link";
+import { EstadoVacio } from "@/components/EstadoVacio";
 
 export const dynamic = 'force-dynamic';
 
@@ -334,18 +335,22 @@ export default async function PartidosPage({ searchParams }: { searchParams?: { 
                     )}
 
                     {amistososVisibles.length === 0 ? (
-                        <div className="text-center py-12 text-olive/70 border border-olive/20 border-dashed rounded-xl bg-paper-soft/30">
-                            {amistososVigentes.length > 0 ? (
-                                <>
-                                    <p>No hay partidos abiertos para tu categoría{miCategoria ? ` (${miCategoria})` : ''} en este momento.</p>
-                                    <Link href="/partidos?todos=1" className="text-olive font-bold underline mt-2 inline-block">
-                                        Ver los {amistososVigentes.length} partidos de otras categorías
-                                    </Link>
-                                </>
-                            ) : (
-                                <>No hay partidos abiertos en este momento. ¡Sé el primero en organizar uno!</>
-                            )}
-                        </div>
+                        amistososVigentes.length > 0 ? (
+                            <EstadoVacio
+                                icono={Swords}
+                                titulo={`Nadie ha abierto un partido en ${miCategoria || 'tu categoría'}`}
+                                explicacion="Sí hay partidos en otras categorías, y también puedes abrir el tuyo y esperar a que se llene."
+                                accion={{ texto: `Ver los ${amistososVigentes.length} de otras categorías`, href: "/partidos?todos=1" }}
+                            />
+                        ) : (
+                            <EstadoVacio
+                                icono={Swords}
+                                titulo="Todavía no hay partidos abiertos"
+                                explicacion="Un partido abierto es una invitación: pones el día, la hora y cuántos faltan, y los demás se apuntan. Se comparte por WhatsApp."
+                            >
+                                <OrganizarPartidoDialog userId={user.id} />
+                            </EstadoVacio>
+                        )
                     ) : (
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                             {amistososVisibles.map((match) => (
@@ -442,11 +447,13 @@ export default async function PartidosPage({ searchParams }: { searchParams?: { 
 
                 <TabsContent value="mis-partidos" className="space-y-4">
                     {allMyEntries.length === 0 ? (
-                        <div className="text-center py-12 text-olive/70 border border-olive/20 border-dashed rounded-xl bg-paper-soft/30">
-                            <Trophy className="w-12 h-12 text-olive/40 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-ink mb-2">Aún no tienes partidos</h3>
-                            <p className="mb-4">No estás inscrito ni has organizado partidos recientemente.</p>
-                        </div>
+                        <EstadoVacio
+                            icono={Trophy}
+                            titulo="Aún no has jugado nada por aquí"
+                            explicacion="Acá van a aparecer los partidos que organices, aquellos a los que te apuntes, y los torneos que juegues."
+                            accion={{ texto: "Ver partidos abiertos", href: "/partidos" }}
+                            secundaria={{ texto: "Ver torneos", href: "/torneos" }}
+                        />
                     ) : (
                         allMyEntries.map((match) => {
                             // REnder alternativo para Torneos

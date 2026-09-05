@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { InscribirParejaDialog } from "./InscribirParejaDialog";
 import Link from "next/link";
+import { EstadoVacio } from "@/components/EstadoVacio";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -80,11 +81,13 @@ export default async function TorneosPage() {
                 </div>
 
                 {!torneosFiltrados || torneosFiltrados.length === 0 ? (
-                    <div className="text-center py-12 text-olive/70 border border-olive/20 border-dashed rounded-xl bg-paper-soft/30">
-                        <Trophy className="w-12 h-12 text-olive/40 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-ink mb-2">No hay torneos recientes</h3>
-                        <p className="mb-4">Mantente atento, pronto los clubes organizarán nuevos campeonatos.</p>
-                    </div>
+                    <EstadoVacio
+                        icono={Trophy}
+                        titulo="Ningún club ha publicado torneos todavía"
+                        explicacion="Los torneos los organizan los clubes. Sigue al tuyo y te enteras apenas abra inscripciones."
+                        accion={{ texto: "Ver clubes", href: "/clubes" }}
+                        secundaria={{ texto: "Buscar un partido", href: "/partidos" }}
+                    />
                 ) : (
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}

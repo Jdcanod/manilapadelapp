@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { EstadoVacio } from "@/components/EstadoVacio";
 import { DeleteTournamentButton } from "@/components/DeleteTournamentButton";
 import { formatFormatoLabel } from "@/lib/display-names";
 
@@ -70,11 +71,12 @@ export default async function ClubTorneosPage() {
             </div>
 
             {!torneos || torneos.length === 0 ? (
-                <div className="text-center py-12 text-olive/70 border border-olive/20 border-dashed rounded-xl bg-paper-soft/30">
-                    <Trophy className="w-12 h-12 text-olive/40 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-ink mb-2">No tienes torneos activos</h3>
-                    <p className="mb-4">Empieza organizando tu primer torneo relámpago o de liga.</p>
-                </div>
+                <EstadoVacio
+                    icono={Trophy}
+                    titulo="Tu club todavía no tiene torneos"
+                    explicacion="Un relámpago se arma en una tarde; una liga acompaña toda la temporada. De cualquiera de los dos sale el ranking de tus jugadores."
+                    accion={{ texto: "Crear mi primer torneo", href: "/club/torneos/nuevo" }}
+                />
             ) : (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                     {torneos.map((torneo) => {
