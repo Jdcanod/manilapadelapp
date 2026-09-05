@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { ParejaLink } from "@/components/panel/ParejaLink";
+import { TablaPosicionesMovil } from "@/components/TablaPosicionesMovil";
 import { GrupoMatchesList } from "@/components/GrupoMatchesList";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { calcularClasificados, calcularRequeridosPorPareja, type ClasifConfig } from "@/lib/tournaments/clasificacion";
@@ -380,7 +381,26 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                 </Badge>
                             </div>
 
-                            <div className="overflow-x-auto">
+                            {/* En movil la tabla no cabe: 776px contra 309 visibles, y
+                                sin un solo numero a la vista. Debajo de md se cambia
+                                por una lista, no por la misma tabla encogida. */}
+                            <div className="md:hidden">
+                                <TablaPosicionesMovil
+                                    filas={standings.map(t => ({
+                                        parejaId: t.parejaId,
+                                        nombre: t.nombre,
+                                        pj: t.pj, sg: t.sg, sp: t.sp, gg: t.gg, gp: t.gp, pts: t.pts,
+                                        revanchas: t.revanchas,
+                                        pctJugados: porcentajePorParejaCat.get(t.parejaId),
+                                    }))}
+                                    esLiguilla={esLiguilla}
+                                    esMia={id => playerPairIds.includes(id)}
+                                    clasifica={id => esLiguilla && clasificandoGlobalSet.has(id)}
+                                    eliminada={id => parejasEliminadas.has(id)}
+                                />
+                            </div>
+
+                            <div className="overflow-x-auto hidden md:block">
                                 <table className="w-full text-sm text-left">
                                     <thead className="bg-paper-soft/20 border-b border-olive/15">
                                         <tr>

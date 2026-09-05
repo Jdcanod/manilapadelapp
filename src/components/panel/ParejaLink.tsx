@@ -14,11 +14,14 @@ import { esParejaPlaceholder } from "@/lib/tbd";
  * Empuja a la URL en vez de manejar estado local, para que el "atrás" de
  * Android cierre el panel y el enlace se pueda compartir.
  */
-export function ParejaLink({ parejaId, nombre, className, children }: {
+export function ParejaLink({ parejaId, nombre, className, children, multilinea }: {
     parejaId: string | null | undefined;
     nombre: string;
     className?: string;
     children?: React.ReactNode;
+    /** El nombre envuelve y el chevron sigue al texto en vez de quedar
+     *  huerfano en la linea siguiente. Para listas angostas (movil). */
+    multilinea?: boolean;
 }) {
     const router = useRouter();
     const pathname = usePathname();
@@ -42,13 +45,22 @@ export function ParejaLink({ parejaId, nombre, className, children }: {
             onClick={(e) => { e.stopPropagation(); abrir(); }}
             title={`Ver historial de ${nombre}`}
             className={cn(
-                "inline-flex items-center gap-1 text-left min-w-0 max-w-full",
-                "hover:text-ochre-dark transition-colors",
+                "text-left max-w-full hover:text-ochre-dark transition-colors",
+                multilinea ? "inline" : "inline-flex items-center gap-1 min-w-0",
                 className,
             )}
         >
-            <span className="truncate">{children ?? nombre}</span>
-            <ChevronRight className="w-3 h-3 text-ochre-dark shrink-0" aria-hidden="true" />
+            {multilinea ? (
+                <>
+                    {children ?? nombre}
+                    <ChevronRight className="w-3 h-3 text-ochre-dark inline align-middle ml-0.5 mb-px" aria-hidden="true" />
+                </>
+            ) : (
+                <>
+                    <span className="truncate">{children ?? nombre}</span>
+                    <ChevronRight className="w-3 h-3 text-ochre-dark shrink-0" aria-hidden="true" />
+                </>
+            )}
         </button>
     );
 }
