@@ -1050,7 +1050,10 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                 <div className="flex justify-between items-center bg-paper/50 p-3 rounded-xl border border-olive/15">
                                                                      <div className="flex flex-col gap-1.5 flex-1">
                                                                          <div className="flex justify-between items-center text-xs font-bold text-ink uppercase pr-2">
-                                                                             <span>{resolvePairName(match.pareja1_id, match.pareja1?.nombre_pareja, parejaPlayers)}</span>
+                                                                             <ParejaLink
+                                                                                 parejaId={match.pareja1_id}
+                                                                                 nombre={resolvePairName(match.pareja1_id, match.pareja1?.nombre_pareja, parejaPlayers)}
+                                                                             />
                                                                             {match.resultado && (
                                                                                 <div className="flex gap-1">
                                                                                     {match.resultado.split(',').map((setStr: string, idx: number) => (
@@ -1062,7 +1065,10 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                             )}
                                                                         </div>
                                                                          <div className="flex justify-between items-center text-xs font-bold text-ink uppercase pr-2">
-                                                                             <span>{resolvePairName(match.pareja2_id, match.pareja2?.nombre_pareja, parejaPlayers)}</span>
+                                                                             <ParejaLink
+                                                                                 parejaId={match.pareja2_id}
+                                                                                 nombre={resolvePairName(match.pareja2_id, match.pareja2?.nombre_pareja, parejaPlayers)}
+                                                                             />
                                                                             {match.resultado && (
                                                                                 <div className="flex gap-1">
                                                                                     {match.resultado.split(',').map((setStr: string, idx: number) => (

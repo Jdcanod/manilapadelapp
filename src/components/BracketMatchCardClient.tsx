@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check } from "lucide-react";
 import { PlayerTournamentResultModal } from "./PlayerTournamentResultModal";
 import { cn } from "@/lib/utils";
+import { ParejaLink } from "@/components/panel/ParejaLink";
 
 export interface MatchItem {
     id: string;
@@ -70,7 +71,10 @@ export function BracketMatchCardClient({ match, playerPairIds, currentUserId, ti
                             "text-sm font-black uppercase truncate pr-2",
                             match.pareja1_id && playerPairIds.includes(match.pareja1_id) ? "text-ochre-dark" : "text-ink"
                         )}>
-                            {match.pareja1?.nombre_pareja || (match.lugar?.includes('||') ? match.lugar.split('||')[1].split('vs')[0]?.replace(/^\s*PH:\s*/i, '').trim() : "TBD")}
+                            <ParejaLink
+                                parejaId={match.pareja1_id}
+                                nombre={match.pareja1?.nombre_pareja || (match.lugar?.includes('||') ? match.lugar.split('||')[1].split('vs')[0]?.replace(/^\s*PH:\s*/i, '').trim() || 'TBD' : "TBD")}
+                            />
                         </span>
                         <div className="flex gap-1">
                             {(match.resultado || "-").split(',').map((setStr: string, idx: number) => (
@@ -88,7 +92,10 @@ export function BracketMatchCardClient({ match, playerPairIds, currentUserId, ti
                             "text-sm font-black uppercase truncate pr-2",
                             match.pareja2_id && playerPairIds.includes(match.pareja2_id) ? "text-ochre-dark" : "text-ink"
                         )}>
-                            {match.pareja2?.nombre_pareja || (match.lugar?.includes('||') ? match.lugar.split('||')[1].split('vs')[1]?.replace(/^\s*PH:\s*/i, '').trim() : "TBD")}
+                            <ParejaLink
+                                parejaId={match.pareja2_id}
+                                nombre={match.pareja2?.nombre_pareja || (match.lugar?.includes('||') ? match.lugar.split('||')[1].split('vs')[1]?.replace(/^\s*PH:\s*/i, '').trim() || 'TBD' : "TBD")}
+                            />
                         </span>
                         <div className="flex gap-1">
                             {(match.resultado || "-").split(',').map((setStr: string, idx: number) => (

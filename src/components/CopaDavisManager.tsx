@@ -13,6 +13,7 @@ import { AdminTournamentResultModal } from "@/components/AdminTournamentResultMo
 import { confirmarResultado, reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
 import { borrarPartidoCopa, borrarInscripcionCopa } from "@/app/(dashboard)/club/torneos/[id]/copa-actions";
 import { resolvePairName, formatPairName, type ParejaPlayersMap } from "@/lib/display-names";
+import { ParejaLink } from "@/components/panel/ParejaLink";
 
 interface PartidoCopa {
     id: string;
@@ -367,9 +368,13 @@ export function CopaDavisManager({ torneoId, clubLocal, clubRival, partidos, tip
 
                                                         {/* Parejas */}
                                                         <div className="flex items-baseline gap-2 flex-wrap text-sm font-bold">
-                                                            <span className={cn(winner === 1 ? "text-olive" : "text-ink")}>{p1Display}</span>
+                                                            <span className={cn(winner === 1 ? "text-olive" : "text-ink")}>
+                                                                <ParejaLink parejaId={(p.pareja1?.id || p.pareja1_id) ?? null} nombre={p1Display} />
+                                                            </span>
                                                             <span className="text-[10px] text-olive/50">vs</span>
-                                                            <span className={cn(winner === 2 ? "text-purple-700" : "text-ink")}>{p2Display}</span>
+                                                            <span className={cn(winner === 2 ? "text-purple-700" : "text-ink")}>
+                                                                <ParejaLink parejaId={(p.pareja2?.id || p.pareja2_id) ?? null} nombre={p2Display} />
+                                                            </span>
                                                         </div>
 
                                                         {/* Resultado */}

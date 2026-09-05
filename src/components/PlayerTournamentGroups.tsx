@@ -524,7 +524,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                             "text-xs font-bold uppercase pr-2",
                                                                             match.pareja1_id && playerPairIds.includes(match.pareja1_id) ? "text-ochre-dark" : "text-ink"
                                                                         )}>
-                                                                            {nombre1}
+                                                                            <ParejaLink parejaId={match.pareja1_id} nombre={nombre1} />
                                                                         </span>
                                                                         {match.resultado && (
                                                                             <div className="flex gap-1">
@@ -544,7 +544,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                             "text-xs font-bold uppercase pr-2",
                                                                             match.pareja2_id && playerPairIds.includes(match.pareja2_id) ? "text-ochre-dark" : "text-ink"
                                                                         )}>
-                                                                            {nombre2}
+                                                                            <ParejaLink parejaId={match.pareja2_id} nombre={nombre2} />
                                                                         </span>
                                                                         {match.resultado && (
                                                                             <div className="flex gap-1">

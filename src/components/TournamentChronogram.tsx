@@ -14,6 +14,7 @@ import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton"
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { CheckCircle2 } from "lucide-react";
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
+import { ParejaLink } from "@/components/panel/ParejaLink";
 import { AnadirPartidoCopaDialog } from "@/components/AnadirPartidoCopaDialog";
 
 interface Match {
@@ -336,8 +337,16 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                             <GripVertical className="w-3 h-3 text-olive/40 group-hover:text-olive/70 transition-colors" />
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-xs font-black text-ink uppercase truncate">{getBracketDisplayName(match, false, parejaPlayers)}</p>
-                                            <p className="text-xs font-black text-ink uppercase truncate">{getBracketDisplayName(match, true, parejaPlayers)}</p>
+                                            {/* La tarjeta entera es arrastrable, por eso el nombre
+                                                es su propio botón: abre el panel sin mover nada. */}
+                                            {([false, true] as const).map(esP2 => (
+                                                <p key={String(esP2)} className="text-xs font-black text-ink uppercase truncate">
+                                                    <ParejaLink
+                                                        parejaId={(esP2 ? match.pareja2?.id || match.pareja2_id : match.pareja1?.id || match.pareja1_id) ?? null}
+                                                        nombre={getBracketDisplayName(match, esP2, parejaPlayers)}
+                                                    />
+                                                </p>
+                                            ))}
                                         </div>
                                         {/* Botón Gestionar Partido (solo Copa Davis) */}
                                         {copaDavisContext && (

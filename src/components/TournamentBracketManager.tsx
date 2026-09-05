@@ -14,6 +14,7 @@ import { useParams } from 'next/navigation';
 import { AdminEditBracketModal } from "@/components/AdminEditBracketModal";
 import { SortearEliminatoriasDialog } from "@/components/SortearEliminatoriasDialog";
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
+import { ParejaLink } from "@/components/panel/ParejaLink";
 
 interface MatchItem {
     id: string;
@@ -121,7 +122,12 @@ function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers, setsC
                         onDrop={(e) => handleDrop(e, 1)}
                         className={`flex justify-between items-center transition-all p-1.5 rounded-lg border-2 border-transparent ${match.estado !== 'jugado' ? 'cursor-grab active:cursor-grabbing hover:bg-paper-soft/30 hover:border-amber-500/25' : ''} ${isDraggingOver === 1 ? 'bg-amber-500/10 border-amber-500 border-dashed' : ''}`}
                     >
-                        <span className="text-sm font-black text-ink uppercase truncate pr-2">{p1Display}</span>
+                        <span className="text-sm font-black text-ink uppercase truncate pr-2">
+                            <ParejaLink
+                                parejaId={p1IsTBD ? null : (match.pareja1?.id || match.pareja1_id) ?? null}
+                                nombre={p1Display}
+                            />
+                        </span>
                         <div className="flex gap-1 shrink-0">
                             {(match.resultado || "-").split(',').map((setStr: string, idx: number) => (
                                 <span key={idx} className="w-6 h-6 flex items-center justify-center bg-paper-soft text-ink font-black text-[10px] rounded border border-olive/20">
@@ -138,7 +144,12 @@ function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers, setsC
                         onDrop={(e) => handleDrop(e, 2)}
                         className={`flex justify-between items-center transition-all p-1.5 rounded-lg border-2 border-transparent border-t border-t-olive/15 ${match.estado !== 'jugado' ? 'cursor-grab active:cursor-grabbing hover:bg-paper-soft/30 hover:border-amber-500/25' : ''} ${isDraggingOver === 2 ? 'bg-amber-500/10 border-amber-500 border-dashed' : ''}`}
                     >
-                        <span className="text-sm font-black text-ink uppercase truncate pr-2">{p2Display}</span>
+                        <span className="text-sm font-black text-ink uppercase truncate pr-2">
+                            <ParejaLink
+                                parejaId={p2IsTBD ? null : (match.pareja2?.id || match.pareja2_id) ?? null}
+                                nombre={p2Display}
+                            />
+                        </span>
                         <div className="flex gap-1 shrink-0">
                             {(match.resultado || "-").split(',').map((setStr: string, idx: number) => (
                                 <span key={idx} className="w-6 h-6 flex items-center justify-center bg-paper-soft text-olive font-black text-[10px] rounded border border-olive/20">
