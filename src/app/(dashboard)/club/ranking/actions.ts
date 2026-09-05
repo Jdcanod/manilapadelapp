@@ -100,6 +100,60 @@ export async function saveBasePoints(clubId: string, points: Record<string, numb
  * recalcularNivelPorPartido / aplicarBonoPosicion) — nunca hay filas ahí
  * para un invitado.
  */
+/**
+ * El club dice "este invitado NO es esta persona". El emparejamiento es por
+ * nombre, así que propone falsos positivos; sin esto los volvería a mostrar
+ * para siempre.
+ *
+ * Se descarta el PAR, no el invitado: que no sea ESE Juan Duque no significa
+ * que no pueda ser otro.
+ */
+export async function descartarVinculacion(invitadoId: string, jugadorId: string): Promise<{ ok: boolean; mensaje: string }> {
+    const supabase = createClient();
+    const admin = createPureAdminClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { ok: false, mensaje: "Tienes que iniciar sesión." };
+
+    const { data: club } = await admin
+        .from('users').select('id, rol').eq('auth_id', user.id).single();
+    if (club?.rol !== 'admin_club') return { ok: false, mensaje: "Solo un club puede descartar sugerencias." };
+
+    const { error } = await admin
+        .from('vinculaciones_descartadas')
+        .upsert(
+            { club_id: club.id, invitado_id: invitadoId, jugador_id: jugadorId },
+            { onConflict: 'club_id,invitado_id,jugador_id' }
+        );
+    if (error) return { ok: false, mensaje: "No pudimos descartarla: " + error.message };
+
+    revalidatePath('/club/ranking');
+    return { ok: true, mensaje: "No volveremos a sugerirlo." };
+}
+
+/** Deshace un descarte, por si el club se arrepiente. */
+export async function restaurarVinculacion(invitadoId: string, jugadorId: string): Promise<{ ok: boolean; mensaje: string }> {
+    const supabase = createClient();
+    const admin = createPureAdminClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { ok: false, mensaje: "Tienes que iniciar sesión." };
+
+    const { data: club } = await admin
+        .from('users').select('id, rol').eq('auth_id', user.id).single();
+    if (club?.rol !== 'admin_club') return { ok: false, mensaje: "Sin permisos." };
+
+    await admin
+        .from('vinculaciones_descartadas')
+        .delete()
+        .eq('club_id', club.id)
+        .eq('invitado_id', invitadoId)
+        .eq('jugador_id', jugadorId);
+
+    revalidatePath('/club/ranking');
+    return { ok: true, mensaje: "Volverá a aparecer como sugerencia." };
+}
+
 export interface HistorialInvitado {
     parejas: number;
     partidos: number;

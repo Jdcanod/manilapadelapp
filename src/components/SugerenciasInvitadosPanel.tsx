@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Link2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VincularInvitadoButton } from "@/components/VincularInvitadoButton";
+import { DescartarVinculacionButton } from "@/components/DescartarVinculacionButton";
+import { ContextoDelInvitado } from "@/components/ContextoDelInvitado";
 import type { SugerenciaInvitado, Confianza } from "@/lib/invitados/sugerencias";
 
 const ETIQUETA: Record<Confianza, { texto: string; clase: string }> = {
@@ -65,6 +67,11 @@ export function SugerenciasInvitadosPanel({ sugerencias }: { sugerencias: Sugere
                                     invitado{s.invitadoCreadoEn && ` · cargado ${fechaCorta(s.invitadoCreadoEn)}`}
                                 </p>
 
+                                {/* Con qué jugó: es lo que permite reconocerlo. El club
+                                    puede no acordarse de "Juan", pero sí del que jugó
+                                    4ta con Ancizar en la Copa Davis. */}
+                                <ContextoDelInvitado contexto={s.contexto} />
+
                                 <div className="mt-2 space-y-1.5">
                                     {s.candidatos.map(c => (
                                         <div key={c.id}>
@@ -73,6 +80,12 @@ export function SugerenciasInvitadosPanel({ sugerencias }: { sugerencias: Sugere
                                                 <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0", ETIQUETA[c.confianza].clase)}>
                                                     {ETIQUETA[c.confianza].texto}
                                                 </Badge>
+                                                <DescartarVinculacionButton
+                                                    invitadoId={s.invitadoId}
+                                                    jugadorId={c.id}
+                                                    invitadoNombre={s.invitadoNombre}
+                                                    jugadorNombre={c.nombre}
+                                                />
                                             </div>
                                             {/* Datos para desempatar cuando el nombre no alcanza. */}
                                             <p className="text-[10px] text-olive/60 ml-3 mt-0.5 break-all">

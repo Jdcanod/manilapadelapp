@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { UserPlus, ChevronDown, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VincularInvitadoButton } from "@/components/VincularInvitadoButton";
+import { DescartarVinculacionButton } from "@/components/DescartarVinculacionButton";
+import { ContextoDelInvitado } from "@/components/ContextoDelInvitado";
 import type { JugadorNuevo } from "@/lib/invitados/sugerencias";
 
 /**
@@ -91,7 +93,8 @@ export function JugadoresNuevosPanel({ jugadores }: { jugadores: JugadorNuevo[] 
                                             {j.posiblesInvitados[0].confianza === 'debil' ? 'Quizá, pero revísalo' : '¿Es este invitado?'}
                                         </p>
                                         {j.posiblesInvitados.map(inv => (
-                                            <div key={inv.id} className="flex items-center gap-2 flex-wrap">
+                                            <div key={inv.id}>
+                                            <div className="flex items-center gap-2 flex-wrap">
                                                 <span className="text-xs text-ink">{inv.nombre}</span>
                                                 <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-ochre/40 text-ochre-dark">
                                                     {inv.confianza === 'exacta' ? 'Nombre idéntico' : inv.confianza === 'fuerte' ? 'Muy parecido' : 'Coincide un nombre'}
@@ -101,6 +104,18 @@ export function JugadoresNuevosPanel({ jugadores }: { jugadores: JugadorNuevo[] 
                                                         cargado {new Date(inv.fecha).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}
                                                     </span>
                                                 )}
+                                                <DescartarVinculacionButton
+                                                    invitadoId={inv.id}
+                                                    jugadorId={j.id}
+                                                    invitadoNombre={inv.nombre}
+                                                    jugadorNombre={j.nombre}
+                                                />
+                                            </div>
+                                            {/* Con qué jugó ese invitado: sin esto el club
+                                                no puede saber si es la misma persona. */}
+                                            <div className="ml-1">
+                                                <ContextoDelInvitado contexto={inv.contexto} />
+                                            </div>
                                             </div>
                                         ))}
                                     </div>
