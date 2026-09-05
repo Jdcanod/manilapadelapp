@@ -39,6 +39,46 @@ export const TIPO_NOTIFICACION = {
 
 export type TipoNotificacion = typeof TIPO_NOTIFICACION[keyof typeof TIPO_NOTIFICACION];
 
+/** Los tres grupos que el jugador puede apagar. */
+export const GRUPO_NOTIFICACION = {
+    MIS_PARTIDOS: 'mis_partidos',
+    PARTIDOS_ABIERTOS: 'partidos_abiertos',
+    NOVEDADES: 'novedades',
+} as const;
+
+export type GrupoNotificacion = typeof GRUPO_NOTIFICACION[keyof typeof GRUPO_NOTIFICACION];
+
+/**
+ * A qué grupo pertenece cada tipo.
+ *
+ * El criterio no es de dónde viene el aviso sino qué te pide: "mis partidos"
+ * son los que te involucran y tienen consecuencia si te los pierdes (te
+ * cancelaron, te inscribieron); los otros dos son invitación y difusión.
+ */
+export const GRUPO_DE_TIPO: Record<TipoNotificacion, GrupoNotificacion> = {
+    [TIPO_NOTIFICACION.PARTIDO_UNION]: GRUPO_NOTIFICACION.MIS_PARTIDOS,
+    [TIPO_NOTIFICACION.PARTIDO_COMPLETO]: GRUPO_NOTIFICACION.MIS_PARTIDOS,
+    [TIPO_NOTIFICACION.PARTIDO_SALIDA]: GRUPO_NOTIFICACION.MIS_PARTIDOS,
+    [TIPO_NOTIFICACION.PARTIDO_CANCELADO]: GRUPO_NOTIFICACION.MIS_PARTIDOS,
+    [TIPO_NOTIFICACION.PARTIDO_INSCRITO_POR_CLUB]: GRUPO_NOTIFICACION.MIS_PARTIDOS,
+    [TIPO_NOTIFICACION.PARTIDO_NUEVO]: GRUPO_NOTIFICACION.PARTIDOS_ABIERTOS,
+    [TIPO_NOTIFICACION.CLUB_NOVEDAD]: GRUPO_NOTIFICACION.NOVEDADES,
+    [TIPO_NOTIFICACION.TORNEO_MURO]: GRUPO_NOTIFICACION.NOVEDADES,
+};
+
+export interface PreferenciasNotificaciones {
+    mis_partidos: boolean;
+    partidos_abiertos: boolean;
+    novedades: boolean;
+}
+
+/** Sin fila guardada, todo llega: nadie tuvo que optar por recibir. */
+export const PREFERENCIAS_POR_DEFECTO: PreferenciasNotificaciones = {
+    mis_partidos: true,
+    partidos_abiertos: true,
+    novedades: true,
+};
+
 export interface NotificacionNueva {
     /** users.id (no auth_id) */
     jugador_id: string;
@@ -55,8 +95,14 @@ export interface Notificacion extends NotificacionNueva {
 }
 
 /**
- * Inserta notificaciones. Nunca lanza: un fallo avisando no puede tumbar la
- * acción que la originó. Ignora destinatarios repetidos y vacíos.
+ * Inserta notificaciones respetando lo que cada jugador aceptó recibir.
+ *
+ * El filtro va acá y no al leer: si alguien apagó un grupo, la fila ni se
+ * escribe. Así el silencio es real (no una notificación escondida) y de paso
+ * un aviso de club deja de generar ~90 escrituras cuando la mitad no lo quiere.
+ *
+ * Nunca lanza: un fallo avisando no puede tumbar la acción que lo originó.
+ * Ignora destinatarios repetidos y vacíos.
  */
 export async function crearNotificaciones(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,12 +121,51 @@ export async function crearNotificaciones(
         return true;
     });
 
+    const permitidas = await filtrarPorPreferencias(adminSupabase, unicas);
+    if (permitidas.length === 0) return;
+
     try {
-        const { error } = await adminSupabase.from('notificaciones').insert(unicas);
+        const { error } = await adminSupabase.from('notificaciones').insert(permitidas);
         if (error) console.error('[notificaciones] no se pudieron crear:', error.message);
     } catch (e) {
         console.error('[notificaciones] excepción creando:', e);
     }
+}
+
+/**
+ * Quita de la lista a quien apagó ese grupo.
+ *
+ * Ante cualquier error de lectura deja pasar todo: perderse un aviso de que
+ * te cancelaron el partido es peor que recibir uno de más.
+ */
+async function filtrarPorPreferencias(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    adminSupabase: SupabaseClient<any, any, any>,
+    notificaciones: NotificacionNueva[]
+): Promise<NotificacionNueva[]> {
+    const destinatarios = Array.from(new Set(notificaciones.map(n => n.jugador_id)));
+
+    const { data, error } = await adminSupabase
+        .from('preferencias_notificaciones')
+        .select('jugador_id, mis_partidos, partidos_abiertos, novedades')
+        .in('jugador_id', destinatarios);
+
+    if (error) {
+        console.error('[notificaciones] no pude leer preferencias, envío todo:', error.message);
+        return notificaciones;
+    }
+
+    // Sin fila = todo encendido, así que solo hace falta mirar a los que sí la tienen.
+    const porJugador = new Map<string, PreferenciasNotificaciones>(
+        (data || []).map((p: { jugador_id: string } & PreferenciasNotificaciones) =>
+            [p.jugador_id, { mis_partidos: p.mis_partidos, partidos_abiertos: p.partidos_abiertos, novedades: p.novedades }])
+    );
+
+    return notificaciones.filter(n => {
+        const prefs = porJugador.get(n.jugador_id);
+        if (!prefs) return true;
+        return prefs[GRUPO_DE_TIPO[n.tipo]] !== false;
+    });
 }
 
 /**

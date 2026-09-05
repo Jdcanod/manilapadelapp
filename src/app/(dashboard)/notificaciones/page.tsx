@@ -5,7 +5,8 @@ import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { Button } from "@/components/ui/button";
 import { marcarTodasLeidas } from "./actions";
 import { NotificacionItem } from "./NotificacionItem";
-import type { Notificacion } from "@/lib/notificaciones";
+import { PreferenciasPanel } from "./PreferenciasPanel";
+import { PREFERENCIAS_POR_DEFECTO, type Notificacion, type PreferenciasNotificaciones } from "@/lib/notificaciones";
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,14 @@ export default async function NotificacionesPage() {
         .single();
 
     if (perfil?.rol === 'admin_club') redirect("/club");
+
+    // Sin fila guardada, todo llega: nadie tuvo que optar por recibir.
+    const { data: guardadas } = await admin
+        .from('preferencias_notificaciones')
+        .select('mis_partidos, partidos_abiertos, novedades')
+        .eq('jugador_id', perfil?.id)
+        .maybeSingle();
+    const preferencias: PreferenciasNotificaciones = guardadas ?? PREFERENCIAS_POR_DEFECTO;
 
     const { data: notificaciones } = await admin
         .from('notificaciones')
@@ -54,6 +63,8 @@ export default async function NotificacionesPage() {
                     </form>
                 )}
             </div>
+
+            <PreferenciasPanel iniciales={preferencias} />
 
             {lista.length === 0 ? (
                 <div className="text-center py-16 text-olive/70 border border-olive/20 border-dashed rounded-2xl bg-paper-soft/30">
