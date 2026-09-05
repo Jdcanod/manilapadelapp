@@ -29,6 +29,20 @@ function claveAplicacion(base64: string): ArrayBuffer {
     return bytes.buffer;
 }
 
+/**
+ * Traduce el error del navegador a algo accionable.
+ *
+ * Los nombres vienen del estándar y son los que de verdad distinguen un caso
+ * de otro; mostrarlos crudos no ayuda, pero esconderlos deja a todos ciegos.
+ */
+function explicar(e: { name?: string; message?: string }): string {
+    if (e.name === 'NotAllowedError') return 'El navegador bloqueó los avisos para este sitio.';
+    if (e.name === 'AbortError') return 'El navegador rechazó la suscripción. Suele pasar si el celular no tiene Google Play Services.';
+    if (e.name === 'NotSupportedError') return 'Este navegador no soporta avisos con la app cerrada.';
+    if (e.name === 'InvalidStateError') return 'Ya había una suscripción con otra clave. Recargá la página e intentá de nuevo.';
+    return e.message ? `${e.name || 'Error'}: ${e.message}` : 'Intentá de nuevo.';
+}
+
 function esIOS(): boolean {
     return /iPad|iPhone|iPod/.test(navigator.userAgent)
         // iPadOS se reporta como Mac; el touch lo delata.
@@ -78,6 +92,13 @@ export function PushSwitch() {
             return;
         }
 
+        // Una suscripción vieja hecha con OTRA clave VAPID no se reemplaza
+        // sola: `subscribe` lanza InvalidStateError. Se deshace primero, que
+        // es justo lo que pasa cuando se rotan las claves o hubo un intento
+        // anterior a medias.
+        const previa = await reg.pushManager.getSubscription();
+        if (previa) await previa.unsubscribe();
+
         const sub = await reg.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: claveAplicacion(clave),
@@ -117,8 +138,15 @@ export function PushSwitch() {
             if (estado === 'encendido') await apagar();
             else await encender();
         } catch (e) {
+            // "Algo salió mal" no le sirve a nadie: sin el motivo real no se
+            // puede distinguir un permiso denegado de una clave mal puesta.
             console.error('[push]', e);
-            toast({ title: 'Algo salió mal', description: 'Intentá de nuevo.', variant: 'destructive' });
+            const err = e as { name?: string; message?: string };
+            toast({
+                title: 'No se pudo activar',
+                description: explicar(err),
+                variant: 'destructive',
+            });
         }
     });
 
