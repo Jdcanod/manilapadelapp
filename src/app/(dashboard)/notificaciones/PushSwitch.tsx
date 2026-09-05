@@ -19,14 +19,32 @@ import { guardarSuscripcionPush, borrarSuscripcionPush } from "./actions";
 
 type Estado = 'cargando' | 'no-soportado' | 'ios-sin-instalar' | 'bloqueado' | 'apagado' | 'encendido';
 
-/** base64url -> bytes, que es lo que espera `pushManager.subscribe`. */
-function claveAplicacion(base64: string): ArrayBuffer {
-    const relleno = '='.repeat((4 - (base64.length % 4)) % 4);
-    const normal = (base64 + relleno).replace(/-/g, '+').replace(/_/g, '/');
+/**
+ * base64url -> bytes para `pushManager.subscribe`.
+ *
+ * Devuelve Uint8Array y no ArrayBuffer a propósito: el estándar acepta los
+ * dos, pero Safari rechaza el ArrayBuffer con "applicationServerKey must
+ * contain a valid P-256 public key" aunque la clave esté perfecta.
+ */
+function claveAplicacion(base64: string): Uint8Array<ArrayBuffer> {
+    const limpia = base64.trim();
+    const relleno = '='.repeat((4 - (limpia.length % 4)) % 4);
+    const normal = (limpia + relleno).replace(/-/g, '+').replace(/_/g, '/');
     const crudo = atob(normal);
+    // Sobre un ArrayBuffer explícito para que el tipo case con BufferSource
+    // sin castear a `any`.
     const bytes = new Uint8Array(new ArrayBuffer(crudo.length));
     for (let i = 0; i < crudo.length; i++) bytes[i] = crudo.charCodeAt(i);
-    return bytes.buffer;
+    return bytes;
+}
+
+/**
+ * Una clave P-256 sin comprimir son 65 bytes que arrancan en 0x04. Validarlo
+ * acá distingue "la variable quedó mal en el servidor" de un problema del
+ * navegador — que es exactamente la duda que costó encontrar la primera vez.
+ */
+function claveValida(bytes: Uint8Array<ArrayBuffer>): boolean {
+    return bytes.length === 65 && bytes[0] === 4;
 }
 
 /**
@@ -99,9 +117,19 @@ export function PushSwitch() {
         const previa = await reg.pushManager.getSubscription();
         if (previa) await previa.unsubscribe();
 
+        const bytes = claveAplicacion(clave);
+        if (!claveValida(bytes)) {
+            toast({
+                title: 'La clave del servidor está mal',
+                description: `Se esperaban 65 bytes y llegaron ${bytes.length}. Revisá NEXT_PUBLIC_VAPID_PUBLIC_KEY.`,
+                variant: 'destructive',
+            });
+            return;
+        }
+
         const sub = await reg.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: claveAplicacion(clave),
+            applicationServerKey: bytes,
         });
 
         const json = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
