@@ -1,10 +1,10 @@
 "use client";
 import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Swords, Users, History } from "lucide-react";
+import { Swords, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ParejaLink } from "@/components/panel/ParejaLink";
 import { generarFaseGrupos, swapParejasDeGrupo, crearGrupoManual, moverParejaAGrupo, actualizarOrdenGrupo, crearRevancha, actualizarIdaVueltaCategoria, actualizarRevanchaCategoria } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -944,12 +944,14 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                             clasifica ? "text-ink" : "text-olive"
                                                         )} title={team.nombre}>
                                                             <div className="flex items-center gap-2">
-                                                                <span className={cn(
-                                                                    esTBD(team.nombre) && "italic text-olive/70 font-normal",
-                                                                    parejasEliminadas.has(team.parejaId) && "line-through opacity-70"
-                                                                )}>
-                                                                    {team.nombre}
-                                                                </span>
+                                                                <ParejaLink
+                                                                    parejaId={team.parejaId}
+                                                                    nombre={team.nombre}
+                                                                    className={cn(
+                                                                        esTBD(team.nombre) && "italic text-olive/70 font-normal",
+                                                                        parejasEliminadas.has(team.parejaId) && "line-through opacity-70"
+                                                                    )}
+                                                                />
                                                                 {parejasEliminadas.has(team.parejaId) && (
                                                                     <span className="text-[8px] font-black uppercase text-red-600 bg-red-500/10 border border-red-500/30 rounded-full px-1.5 py-0.5 flex-shrink-0">
                                                                         Eliminada
@@ -967,16 +969,6 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                         categoria={selectedCat}
                                                                         yaAsignada={!esTBD(team.nombre)}
                                                                     />
-                                                                )}
-                                                                {esLiguilla && !esTBD(team.nombre) && (
-                                                                    <Link
-                                                                        href={`/club/torneos/${torneoId}/pareja/${team.parejaId}`}
-                                                                        title="Ver historial de la pareja"
-                                                                        className="text-olive/40 hover:text-olive flex-shrink-0"
-                                                                        onClick={(e) => e.stopPropagation()}
-                                                                    >
-                                                                        <History className="w-3.5 h-3.5" />
-                                                                    </Link>
                                                                 )}
                                                             </div>
                                                         </td>

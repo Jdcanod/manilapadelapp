@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { ParejaLink } from "@/components/panel/ParejaLink";
 import { GrupoMatchesList } from "@/components/GrupoMatchesList";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { calcularClasificados, calcularRequeridosPorPareja, type ClasifConfig } from "@/lib/tournaments/clasificacion";
@@ -421,7 +422,11 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                         isMyTeam ? "text-ochre-dark" : "text-ink"
                                                     )} title={team.nombre}>
                                                         {clasifica && <span className="mr-1 text-emerald-600">★</span>}
-                                                        <span className={parejasEliminadas.has(team.parejaId) ? "line-through opacity-70" : ""}>{team.nombre}</span>
+                                                        <ParejaLink
+                                                            parejaId={team.parejaId}
+                                                            nombre={team.nombre}
+                                                            className={parejasEliminadas.has(team.parejaId) ? "line-through opacity-70" : ""}
+                                                        />
                                                         {isMyTeam && <span className="ml-2 text-[10px] font-black text-amber-600 bg-ochre/10 px-1 rounded">TÚ</span>}
                                                         {parejasEliminadas.has(team.parejaId) && (
                                                             <span className="ml-2 text-[8px] font-black uppercase text-red-600 bg-red-500/10 border border-red-500/30 rounded-full px-1.5 py-0.5">

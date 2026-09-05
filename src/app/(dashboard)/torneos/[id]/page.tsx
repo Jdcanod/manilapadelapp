@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import type { ParejaPlayersMap } from "@/lib/display-names";
 import { TournamentChronogram } from "@/components/TournamentChronogram";
 import { PlayerBracketManager } from "@/components/PlayerBracketManager";
+import { PanelTorneo } from "@/components/panel/PanelTorneo";
 
 
 
@@ -466,6 +467,9 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                     </TabsContent>
                 </Tabs>
             )}
+            {/* La hoja de pareja y jugador: vive en la URL, sobre cualquier vista. */}
+            <PanelTorneo torneoId={params.id} />
         </div>
+
     );
 }

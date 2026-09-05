@@ -23,6 +23,7 @@ import { CrearVueltaCopaDialog } from "@/components/CrearVueltaCopaDialog";
 import { EditarCanchasControl } from "@/components/EditarCanchasControl";
 import { PersistentTabs } from "@/components/PersistentTabs";
 import { formatPairName, formatFormatoLabel } from "@/lib/display-names";
+import { PanelTorneo } from "@/components/panel/PanelTorneo";
 
 
 
@@ -927,6 +928,9 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                 </TabsContent>
             </PersistentTabs>
             )}
+            {/* La hoja de pareja y jugador: vive en la URL, sobre cualquier vista. */}
+            <PanelTorneo torneoId={params.id} />
         </div>
+
     );
 }
