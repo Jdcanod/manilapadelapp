@@ -29,18 +29,36 @@ export interface CandidatoVinculacion {
     id: string;
     nombre: string;
     confianza: Confianza;
+    /** Datos para desempatar cuando el nombre no alcanza. Los invitados no
+     *  tienen correo real ni teléfono, así que solo vienen en cuentas reales. */
+    email?: string | null;
+    /** Últimos 4 dígitos: suficiente para reconocer a alguien sin exponer el número. */
+    telefonoFinal?: string | null;
+    /** Cuenta real: cuándo se registró. Invitado: cuándo lo cargó el club. */
+    fecha?: string | null;
 }
 
 export interface SugerenciaInvitado {
     invitadoId: string;
     invitadoNombre: string;
+    /** Cuándo el club cargó a este invitado — ubica de qué torneo viene. */
+    invitadoCreadoEn: string | null;
     candidatos: CandidatoVinculacion[];
+}
+
+/** Solo los últimos 4 dígitos, para reconocer sin exponer el número entero. */
+function ultimos4(telefono: string | null | undefined): string | null {
+    const digitos = (telefono || '').replace(/\D/g, '');
+    return digitos.length >= 4 ? digitos.slice(-4) : null;
 }
 
 export interface JugadorNuevo {
     id: string;
     nombre: string;
     registradoEn: string | null;
+    email: string | null;
+    /** Últimos 4 dígitos del teléfono con el que se registró. */
+    telefonoFinal: string | null;
     /** Invitados del club que podrían ser esta misma persona. */
     posiblesInvitados: CandidatoVinculacion[];
 }
@@ -123,38 +141,53 @@ export async function sugerenciasDeVinculacion(
 
     const { data: personas } = await admin
         .from('users')
-        .select('id, nombre, apellido, email')
+        .select('id, nombre, apellido, email, telefono, fecha_registro')
         .in('id', Array.from(personaIds));
 
-    type Persona = { id: string; nombre: string | null; apellido: string | null; email: string | null };
+    type Persona = {
+        id: string; nombre: string | null; apellido: string | null; email: string | null;
+        telefono: string | null; fecha_registro: string | null;
+    };
     const invitados = (personas || []).filter((p: Persona) => isGuestEmail(p.email));
 
     // Candidatos = cuentas reales que jugaron acá MÁS las que eligieron este
     // club al registrarse. Lo segundo es clave: alguien que se acaba de
     // registrar todavía no ha jugado, y es justo el caso que hay que detectar.
-    const reales = new Map<string, string>();
+    type DatosReal = { nombre: string; email: string | null; telefono: string | null; fecha: string | null };
+    const reales = new Map<string, DatosReal>();
     (personas || [])
         .filter((p: Persona) => !isGuestEmail(p.email))
-        .forEach((p: Persona) => reales.set(p.id, formatPlayerNameFull(p)));
+        .forEach((p: Persona) => reales.set(p.id, {
+            nombre: formatPlayerNameFull(p), email: p.email, telefono: p.telefono, fecha: p.fecha_registro,
+        }));
 
     if (clubAuthId) {
         const { data: delClub } = await admin
             .from('users')
-            .select('id, nombre, apellido')
+            .select('id, nombre, apellido, email, telefono, fecha_registro')
             .eq('rol', 'jugador')
             .eq('club_id', clubAuthId)
             .not('email', 'ilike', 'invitado_%');
-        (delClub || []).forEach((p: { id: string; nombre: string | null; apellido: string | null }) => {
-            reales.set(p.id, formatPlayerNameFull(p));
+        (delClub || []).forEach((p: Persona) => {
+            reales.set(p.id, {
+                nombre: formatPlayerNameFull(p), email: p.email, telefono: p.telefono, fecha: p.fecha_registro,
+            });
         });
     }
 
     const sugerencias: SugerenciaInvitado[] = [];
     for (const inv of invitados) {
         const candidatos: CandidatoVinculacion[] = [];
-        reales.forEach((nombreReal, id) => {
-            const confianza = clasificar(inv.nombre || '', nombreReal);
-            if (confianza) candidatos.push({ id, nombre: nombreReal || 'Jugador', confianza });
+        reales.forEach((real, id) => {
+            const confianza = clasificar(inv.nombre || '', real.nombre);
+            if (confianza) candidatos.push({
+                id,
+                nombre: real.nombre || 'Jugador',
+                confianza,
+                email: real.email,
+                telefonoFinal: ultimos4(real.telefono),
+                fecha: real.fecha,
+            });
         });
         if (candidatos.length === 0) continue;
 
@@ -170,6 +203,7 @@ export async function sugerenciasDeVinculacion(
         sugerencias.push({
             invitadoId: inv.id,
             invitadoNombre: inv.nombre || 'Invitado',
+            invitadoCreadoEn: inv.fecha_registro,
             candidatos: delMejorNivel.slice(0, 5),
         });
     }
@@ -205,7 +239,7 @@ export async function jugadoresNuevosDelClub(
 
     const { data: delClub } = await admin
         .from('users')
-        .select('id, nombre, apellido, email, fecha_registro')
+        .select('id, nombre, apellido, email, telefono, fecha_registro')
         .eq('rol', 'jugador')
         .eq('club_id', clubAuthId)
         .not('email', 'ilike', 'invitado_%')
@@ -218,7 +252,7 @@ export async function jugadoresNuevosDelClub(
     const torneoIds = (torneos || []).map((t: { id: string }) => t.id);
 
     const yaJugaron = new Set<string>();
-    const invitadosDelClub = new Map<string, string>();
+    const invitadosDelClub = new Map<string, { nombre: string; fecha: string | null }>();
 
     if (torneoIds.length > 0) {
         const { data: tParejas } = await admin
@@ -239,24 +273,27 @@ export async function jugadoresNuevosDelClub(
 
         if (personaIds.size > 0) {
             const { data: personas } = await admin
-                .from('users').select('id, nombre, email').in('id', Array.from(personaIds));
-            (personas || []).forEach((p: { id: string; nombre: string | null; email: string | null }) => {
-                if (isGuestEmail(p.email)) invitadosDelClub.set(p.id, p.nombre || 'Invitado');
+                .from('users').select('id, nombre, email, fecha_registro').in('id', Array.from(personaIds));
+            (personas || []).forEach((p: { id: string; nombre: string | null; email: string | null; fecha_registro: string | null }) => {
+                if (isGuestEmail(p.email)) invitadosDelClub.set(p.id, { nombre: p.nombre || 'Invitado', fecha: p.fecha_registro });
                 else yaJugaron.add(p.id);
             });
         }
     }
 
-    type Nuevo = { id: string; nombre: string | null; apellido: string | null; email: string | null; fecha_registro: string | null };
+    type Nuevo = {
+        id: string; nombre: string | null; apellido: string | null; email: string | null;
+        telefono: string | null; fecha_registro: string | null;
+    };
 
     return (delClub as Nuevo[])
         .filter(j => !yaJugaron.has(j.id))
         .map(j => {
             const nombreCompleto = formatPlayerNameFull(j);
             const posibles: CandidatoVinculacion[] = [];
-            invitadosDelClub.forEach((nombreInvitado, invitadoId) => {
-                const confianza = clasificar(nombreInvitado, nombreCompleto);
-                if (confianza) posibles.push({ id: invitadoId, nombre: nombreInvitado, confianza });
+            invitadosDelClub.forEach((inv, invitadoId) => {
+                const confianza = clasificar(inv.nombre, nombreCompleto);
+                if (confianza) posibles.push({ id: invitadoId, nombre: inv.nombre, confianza, fecha: inv.fecha });
             });
 
             posibles.sort((a, b) => ORDEN[a.confianza] - ORDEN[b.confianza] || a.nombre.localeCompare(b.nombre));
@@ -266,6 +303,8 @@ export async function jugadoresNuevosDelClub(
                 id: j.id,
                 nombre: nombreCompleto,
                 registradoEn: j.fecha_registro,
+                email: j.email,
+                telefonoFinal: ultimos4(j.telefono),
                 posiblesInvitados: mejor ? posibles.filter(p => p.confianza === mejor).slice(0, 5) : [],
             };
         })

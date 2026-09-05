@@ -18,6 +18,11 @@ const ETIQUETA: Record<Confianza, { texto: string; clase: string }> = {
  * Invitados que probablemente ya tienen cuenta real. El club es quien decide:
  * es el único que sabe si "Santiago" el invitado es Santiago Rodríguez.
  */
+/** "12 mar 2026" — corta, para no comerse el ancho de la fila. */
+function fechaCorta(fecha: string): string {
+    return new Date(fecha).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 export function SugerenciasInvitadosPanel({ sugerencias }: { sugerencias: SugerenciaInvitado[] }) {
     const [abierto, setAbierto] = useState(false);
 
@@ -56,15 +61,27 @@ export function SugerenciasInvitadosPanel({ sugerencias }: { sugerencias: Sugere
                         >
                             <div className="min-w-0 flex-1">
                                 <p className="text-sm font-semibold text-ink truncate">{s.invitadoNombre}</p>
-                                <p className="text-[10px] uppercase tracking-widest text-olive/50 mt-0.5">invitado</p>
+                                <p className="text-[10px] uppercase tracking-widest text-olive/50 mt-0.5">
+                                    invitado{s.invitadoCreadoEn && ` · cargado ${fechaCorta(s.invitadoCreadoEn)}`}
+                                </p>
 
-                                <div className="mt-2 space-y-1">
+                                <div className="mt-2 space-y-1.5">
                                     {s.candidatos.map(c => (
-                                        <div key={c.id} className="flex items-center gap-2 flex-wrap">
-                                            <span className="text-xs text-ink">→ {c.nombre}</span>
-                                            <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0", ETIQUETA[c.confianza].clase)}>
-                                                {ETIQUETA[c.confianza].texto}
-                                            </Badge>
+                                        <div key={c.id}>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="text-xs text-ink">→ {c.nombre}</span>
+                                                <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0", ETIQUETA[c.confianza].clase)}>
+                                                    {ETIQUETA[c.confianza].texto}
+                                                </Badge>
+                                            </div>
+                                            {/* Datos para desempatar cuando el nombre no alcanza. */}
+                                            <p className="text-[10px] text-olive/60 ml-3 mt-0.5 break-all">
+                                                {[
+                                                    c.email,
+                                                    c.telefonoFinal && `tel ····${c.telefonoFinal}`,
+                                                    c.fecha && `se registró ${fechaCorta(c.fecha)}`,
+                                                ].filter(Boolean).join(' · ')}
+                                            </p>
                                         </div>
                                     ))}
                                 </div>

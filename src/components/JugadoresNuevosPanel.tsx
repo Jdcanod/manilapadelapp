@@ -73,6 +73,14 @@ export function JugadoresNuevosPanel({ jugadores }: { jugadores: JugadorNuevo[] 
                                     )}
                                 </div>
 
+                                {/* Con qué correo y teléfono se registró: es lo que le
+                                    permite al club confirmar que es la misma persona. */}
+                                {(j.email || j.telefonoFinal) && (
+                                    <p className="text-[10px] text-olive/60 mt-0.5 break-all">
+                                        {[j.email, j.telefonoFinal && `tel ····${j.telefonoFinal}`].filter(Boolean).join(' · ')}
+                                    </p>
+                                )}
+
                                 {j.posiblesInvitados.length > 0 ? (
                                     <div className="mt-2 space-y-1">
                                         <p className={cn(
@@ -88,6 +96,11 @@ export function JugadoresNuevosPanel({ jugadores }: { jugadores: JugadorNuevo[] 
                                                 <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-ochre/40 text-ochre-dark">
                                                     {inv.confianza === 'exacta' ? 'Nombre idéntico' : inv.confianza === 'fuerte' ? 'Muy parecido' : 'Coincide un nombre'}
                                                 </Badge>
+                                                {inv.fecha && (
+                                                    <span className="text-[10px] text-olive/50">
+                                                        cargado {new Date(inv.fecha).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                    </span>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
