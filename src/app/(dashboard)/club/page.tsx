@@ -386,8 +386,8 @@ export default async function ClubDashboard({ searchParams }: { searchParams: { 
                                 <Award className="w-5 h-5" />
                             </div>
                             <div className="min-w-0">
-                                <h3 className="text-sm font-bold text-ink group-hover:text-purple-700 transition-colors">Ranking</h3>
-                                <p className="text-olive/70 text-[11px]">Gestionar puntuación</p>
+                                <h3 className="text-sm font-bold text-ink group-hover:text-purple-700 transition-colors">Gestión de Jugadores</h3>
+                                <p className="text-olive/70 text-[11px]">Ranking, invitados y nuevos</p>
                             </div>
                         </CardContent>
                     </Card>

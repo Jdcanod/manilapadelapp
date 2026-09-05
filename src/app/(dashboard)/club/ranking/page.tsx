@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { ChevronLeft, Trophy } from "lucide-react";
+import { ChevronLeft, Trophy, Users } from "lucide-react";
 import Link from "next/link";
 import { RankingManager } from "./RankingManager";
 import { obtenerRankingClub } from "@/lib/ranking/obtenerRankingClub";
@@ -43,8 +43,8 @@ export default async function ClubRankingPage() {
                 <JugadoresNuevosPanel jugadores={jugadoresNuevos} />
                 <div className="py-20 text-center border border-dashed border-olive/20 rounded-2xl">
                     <Trophy className="w-14 h-14 mx-auto mb-4 text-olive/30" />
-                    <p className="text-olive font-semibold">No hay torneos creados aún</p>
-                    <p className="text-olive/50 text-sm mt-1">Crea tu primer torneo para empezar a gestionar el ranking.</p>
+                    <p className="text-olive font-semibold">Todavía no hay ranking</p>
+                    <p className="text-olive/50 text-sm mt-1">El ranking se arma con los resultados: crea tu primer torneo para empezar.</p>
                     <Link href="/club/torneos/nuevo" className="mt-4 inline-block text-sm text-ochre hover:text-ochre-soft font-bold">
                         + Crear torneo
                     </Link>
@@ -77,11 +77,11 @@ function PageHeader() {
             </Link>
             <div>
                 <h1 className="text-2xl font-bold text-ink flex items-center gap-2">
-                    <Trophy className="w-6 h-6 text-ochre-dark" />
-                    Ranking del Club
+                    <Users className="w-6 h-6 text-ochre-dark" />
+                    Gestión de Jugadores
                 </h1>
                 <p className="text-olive/70 text-sm mt-0.5">
-                    Asigna categoría y nivel a tus jugadores y visualiza el ranking en tiempo real.
+                    Jugadores nuevos, invitados por vincular, y la categoría y nivel de cada uno.
                 </p>
             </div>
         </div>
