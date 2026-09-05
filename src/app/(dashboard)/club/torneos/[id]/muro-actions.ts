@@ -2,7 +2,8 @@
 
 import { requireClubOwnership } from "@/lib/auth/clubOwnership";
 import { revalidatePath } from "next/cache";
-import { TIPO_NOTIFICACION, audienciaDelTorneo, crearNotificaciones } from "@/lib/notificaciones";
+import { TIPO_NOTIFICACION } from "@/lib/notificaciones";
+import { audienciaDelTorneo, crearNotificaciones } from "@/lib/notificaciones/servidor";
 
 export type MuroTipo = 'regla' | 'fecha_importante' | 'anuncio';
 

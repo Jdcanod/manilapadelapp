@@ -5,13 +5,12 @@ import { revalidatePath } from "next/cache";
 import { ESTADO_AMISTOSO, describirNivel, puedeUnirsePorCategoria } from "@/lib/amistosos";
 import { obtenerCategoriaJugador } from "@/lib/ranking/categoriaJugador";
 import { ESTADO_BLOQUEADO, TIPO_BLOQUEO, MOTIVO_POR_DEFECTO } from "@/lib/canchas/bloqueos";
+import { TIPO_NOTIFICACION, fechaCorta } from "@/lib/notificaciones";
 import {
-    TIPO_NOTIFICACION,
     audienciaDelClub,
     authIdsAJugadorIds,
     crearNotificaciones,
-    fechaCorta,
-} from "@/lib/notificaciones";
+} from "@/lib/notificaciones/servidor";
 
 export interface ResultadoAccion {
     ok: boolean;

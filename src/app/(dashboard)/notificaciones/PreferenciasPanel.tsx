@@ -5,6 +5,7 @@ import { SlidersHorizontal, ChevronDown, Loader2, AlertTriangle } from "lucide-r
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { guardarPreferencias } from "./actions";
+import { PushSwitch } from "./PushSwitch";
 import type { PreferenciasNotificaciones } from "@/lib/notificaciones";
 
 /**
@@ -130,6 +131,10 @@ export function PreferenciasPanel({ iniciales }: { iniciales: PreferenciasNotifi
                     })}
                 </div>
             )}
+
+            {/* Dónde avisar, no qué avisar: va después de los grupos porque
+                depende de ellos — si apagaste todo, esto no suena nunca. */}
+            {abierto && <PushSwitch />}
         </div>
     );
 }

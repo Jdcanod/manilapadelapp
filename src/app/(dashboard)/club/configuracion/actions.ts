@@ -3,7 +3,8 @@
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
-import { TIPO_NOTIFICACION, audienciaDelClub, crearNotificaciones } from "@/lib/notificaciones";
+import { TIPO_NOTIFICACION } from "@/lib/notificaciones";
+import { audienciaDelClub, crearNotificaciones } from "@/lib/notificaciones/servidor";
 
 export async function uploadClubLogo(userId: string, formData: FormData) {
     const adminSupabase = createAdminClient();

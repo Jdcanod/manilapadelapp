@@ -92,3 +92,66 @@ export async function guardarPreferencias(
     revalidatePath('/notificaciones');
     return { ok: true };
 }
+
+/**
+ * Registra un dispositivo para push web.
+ *
+ * Una fila por dispositivo: la misma persona puede tener el celular y el
+ * computador. Si el navegador regeneró el endpoint, entra como uno nuevo y el
+ * viejo se cae solo cuando falle la entrega (404/410).
+ */
+export async function guardarSuscripcionPush(sub: {
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+    userAgent?: string;
+}): Promise<{ ok: boolean; mensaje?: string }> {
+    const supabase = createClient();
+    const admin = createPureAdminClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { ok: false, mensaje: 'Sesión expirada.' };
+
+    const { data: perfil } = await admin
+        .from('users').select('id').eq('auth_id', user.id).single();
+    if (!perfil) return { ok: false, mensaje: 'No encontré tu perfil.' };
+
+    const { error } = await admin
+        .from('push_suscripciones')
+        .upsert({
+            jugador_id: perfil.id,
+            endpoint: sub.endpoint,
+            p256dh: sub.p256dh,
+            auth: sub.auth,
+            user_agent: sub.userAgent ?? null,
+        }, { onConflict: 'endpoint' });
+
+    if (error) {
+        console.error('[push] no se pudo guardar la suscripción:', error.message);
+        return { ok: false, mensaje: 'Intentá de nuevo en un momento.' };
+    }
+    return { ok: true };
+}
+
+/** Da de baja este dispositivo. */
+export async function borrarSuscripcionPush(endpoint: string): Promise<{ ok: boolean }> {
+    const supabase = createClient();
+    const admin = createPureAdminClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { ok: false };
+
+    const { data: perfil } = await admin
+        .from('users').select('id').eq('auth_id', user.id).single();
+    if (!perfil) return { ok: false };
+
+    // El `eq('jugador_id')` evita que alguien de baja el dispositivo de otro
+    // pasando un endpoint ajeno.
+    const { error } = await admin
+        .from('push_suscripciones')
+        .delete()
+        .eq('endpoint', endpoint)
+        .eq('jugador_id', perfil.id);
+
+    return { ok: !error };
+}
