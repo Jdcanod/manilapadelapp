@@ -299,15 +299,15 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 space-y-5 sm:space-y-8">
             {/* HEADER */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-paper-soft/50 p-8 rounded-3xl border border-olive/20">
-                <div className="flex gap-6 items-start">
-                    <div className="p-4 bg-ochre/10 rounded-2xl border border-ochre/20">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6 bg-paper-soft/50 p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-olive/20">
+                <div className="flex gap-3 sm:gap-6 items-start">
+                    <div className="hidden sm:block p-4 bg-ochre/10 rounded-2xl border border-ochre/20">
                         <Trophy className="w-10 h-10 text-ochre-dark" />
                     </div>
-                    <div>
-                        <div className="flex items-center gap-3 mb-2">
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-3 mb-1.5 sm:mb-2">
                              <Link href="/torneos" className="text-xs font-bold text-olive/70 hover:text-ink uppercase tracking-widest flex items-center gap-1 transition-colors">
                                 <ChevronLeft className="w-3 h-3" /> Volver
                              </Link>
@@ -318,10 +318,10 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                                  {todosFinalizados ? "Finalizado" : (isPast ? "Finalizando" : "En Curso")}
                              </Badge>
                         </div>
-                        <h1 className="text-4xl lg:text-5xl font-black text-ink uppercase italic tracking-tighter leading-tight mb-2">
+                        <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-ink uppercase italic tracking-tighter leading-[1.05] sm:leading-tight mb-1.5 sm:mb-2 text-balance">
                             {torneo.nombre}
                         </h1>
-                        <div className="flex flex-wrap gap-4 text-xs font-bold text-olive/70 uppercase tracking-widest">
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] sm:text-xs font-bold text-olive/70 uppercase tracking-widest">
                             <span className="flex items-center gap-2"><MapPin className="w-3 h-3" /> {torneo.club?.nombre || "Sede por definir"}</span>
                             <span className="flex items-center gap-2"><CalendarDays className="w-3 h-3" /> {new Date(torneo.fecha_inicio).toLocaleDateString('es-CO')}</span>
                         </div>
