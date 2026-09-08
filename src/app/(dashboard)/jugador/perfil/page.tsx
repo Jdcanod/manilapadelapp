@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { LogOut, User, Shield, Mail, MapPin, Building } from "lucide-react";
+import { LogOut, User, Shield, Mail, MapPin, Building, ChevronRight } from "lucide-react";
 import { cerrarSesionAction } from "./actions";
 import { EditarPerfilDialog } from "./EditarPerfilDialog";
 
@@ -69,13 +70,18 @@ export default async function PerfilJugadorPage() {
                             <span className="text-sm text-olive/70">{userData?.ciudad || 'Manizales'}</span>
                         </div>
 
-                        <div className="flex items-center justify-between py-3">
+                        {/* Enlace y no texto: al sacar Clubes de la barra inferior,
+                            esta pasa a ser la unica via desde el celular. */}
+                        <Link href="/clubes" className="flex items-center justify-between py-3 -mx-1 px-1 rounded-lg hover:bg-olive/5 transition-colors">
                             <div className="flex items-center gap-3">
                                 <Building className="w-4 h-4 text-olive/70" />
                                 <span className="text-sm font-medium text-ink">Club de Preferencia</span>
                             </div>
-                            <span className="text-sm text-olive/70 capitalize">{userData?.club_preferencia || 'Ninguno'}</span>
-                        </div>
+                            <span className="flex items-center gap-1 text-sm text-olive/70">
+                                <span className="capitalize">{userData?.club_preferencia || 'Elegir club'}</span>
+                                <ChevronRight className="w-3.5 h-3.5 text-ochre-dark shrink-0" aria-hidden="true" />
+                            </span>
+                        </Link>
                     </div>
                 </CardContent>
 

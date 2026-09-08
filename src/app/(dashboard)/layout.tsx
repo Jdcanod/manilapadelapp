@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Trophy, Home, User, Calendar, Megaphone, MapPin, LogOut, Bell } from "lucide-react";
+import { Trophy, Home, User, Calendar, Megaphone, LogOut, Bell, BarChart3 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { cerrarSesionAction } from "@/app/actions/auth";
@@ -161,9 +161,13 @@ export default async function DashboardLayout({
                                 <Trophy className="w-5 h-5 mb-1" />
                                 <span className="text-[9px] font-black uppercase tracking-tighter">Torneos</span>
                             </Link>
-                            <Link href="/clubes" className="flex flex-col items-center justify-center flex-1 h-full text-olive/60">
-                                <MapPin className="w-5 h-5 mb-1" />
-                                <span className="text-[9px] font-black uppercase tracking-tighter">Clubes</span>
+                            {/* Ranking en vez de Clubes: a un club se entra una vez, al
+                                registrarse; el ranking se consulta cada semana y es el
+                                corazon de la app. Clubes sigue en el inicio y en el menu
+                                de escritorio. */}
+                            <Link href="/ranking" className="flex flex-col items-center justify-center flex-1 h-full text-olive/60">
+                                <BarChart3 className="w-5 h-5 mb-1" />
+                                <span className="text-[9px] font-black uppercase tracking-tighter">Ranking</span>
                             </Link>
                             <Link href="/jugador/perfil" className="flex flex-col items-center justify-center flex-1 h-full text-olive/60">
                                 <User className="w-5 h-5 mb-1" />
