@@ -357,7 +357,10 @@ export default async function JugadorDashboard() {
                     </div>
 
                     <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                        <div className="bg-paper/50 p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
+                        {/* Enlaces de verdad: estas tarjetas ya se veían tocables por
+                            el hover, pero no llevaban a ningún lado — y en el celular
+                            no hay otra forma de llegar al ranking. */}
+                        <Link href="/ranking" className="block bg-paper/50 p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft hover:border-olive/40 transition-colors">
                             <div className="text-xs font-bold text-olive/70 uppercase tracking-widest mb-2 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-blue-600" /> Nivel {miClubNombre ? `en ${miClubNombre}` : ''}</div>
                             <div className="text-3xl font-black text-ink">{miNivel != null ? miNivel.toFixed(2) : '—'}</div>
                             {miRankClub > 0 && (
@@ -367,19 +370,19 @@ export default async function JugadorDashboard() {
                                 </p>
                             )}
                             {miNivel == null && (
-                                <Link href="/clubes" className="text-[11px] text-olive/70 hover:text-olive underline mt-1 inline-block">
+                                <span className="text-[11px] text-olive/70 underline mt-1 inline-block">
                                     Aún sin nivel asignado
-                                </Link>
+                                </span>
                             )}
-                        </div>
-                        <div className="bg-paper/50 p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
+                        </Link>
+                        <Link href="/ranking?club=global" className="block bg-paper/50 p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft hover:border-olive/40 transition-colors">
                             <div className="text-xs font-bold text-olive/70 uppercase tracking-widest mb-2 flex items-center gap-2"><Trophy className="w-4 h-4 text-ochre" /> Ranking Global</div>
                             <div className="text-3xl font-black text-ink">{miRankGlobal ? `#${miRankGlobal}` : '—'}</div>
                             <p className="text-[11px] text-olive/60 mt-1">
                                 {totalGlobal > 0 ? `de ${totalGlobal} jugadores` : 'Sin jugadores rankeados aún'}
                                 {miNivelGlobal != null && ` · nivel ${miNivelGlobal.toFixed(2)}`}
                             </p>
-                        </div>
+                        </Link>
                         <div className="bg-paper/50 p-5 rounded-3xl border border-olive/20 hover:bg-paper-soft transition-colors">
                             <div className="text-xs font-bold text-olive/70 uppercase tracking-widest mb-2 flex items-center gap-2"><Activity className="w-4 h-4 text-olive" /> Win Rate</div>
                             <div className="text-3xl font-black text-ink">{winRate}%</div>
