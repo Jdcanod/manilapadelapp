@@ -84,11 +84,23 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
     const [selectedCat, setSelectedCat] = useState<string>("");
     const [pendientesOpen, setPendientesOpen] = useState(false);
 
+    /** La categoría donde juega este jugador, deducida de sus propios partidos. */
+    const miCategoria = (() => {
+        const mio = partidos.find(p =>
+            (p.pareja1_id && playerPairIds.includes(p.pareja1_id)) ||
+            (p.pareja2_id && playerPairIds.includes(p.pareja2_id))
+        );
+        if (!mio?.torneo_grupo_id) return null;
+        return grupos.find(g => g.id === mio.torneo_grupo_id)?.categoria ?? null;
+    })();
+
     useEffect(() => {
+        // Abrir en SU categoría: antes abría en la primera alfabética, así que
+        // lo primero que veía un jugador de 6ta era la tabla y el avance de 4ta.
         if (uniqueCategorias.length > 0 && !selectedCat) {
-            setSelectedCat(uniqueCategorias[0]);
+            setSelectedCat(miCategoria && uniqueCategorias.includes(miCategoria) ? miCategoria : uniqueCategorias[0]);
         }
-    }, [uniqueCategorias, selectedCat]);
+    }, [uniqueCategorias, selectedCat, miCategoria]);
 
     const getStandings = (grupoId: string) => {
         const matches = partidos.filter(p => p.torneo_grupo_id === grupoId);
@@ -221,21 +233,21 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
         return { clasificandoGlobalSet: clasifican, porcentajePorParejaCat: porcentajePorPareja };
     })();
 
-    // Resumen de avance: cuántos partidos ya tienen resultado vs. cuántos
-    // faltan, separados en "sin programar" y "programados". A diferencia de
-    // la vista del club (que necesita el avance de TODA la categoría), al
-    // jugador solo le interesa el avance de SU PROPIA pareja — si tiene
-    // pareja en esta categoría filtramos a solo sus partidos; si no (está
-    // mirando sin jugar), mostramos el de la categoría completa como
-    // referencia general.
+    // Resumen de avance: SOLO los partidos de la pareja de quien mira.
+    //
+    // Antes, si el jugador no tenía pareja en la categoría abierta, caía al
+    // avance de esa categoría completa — y como la pantalla abría en la
+    // primera categoría alfabética, un jugador de 6ta veía "0 / 65 partidos
+    // jugados" de 4ta y lo leía como suyo. El club sí necesita el avance de
+    // toda la categoría, pero eso vive en TournamentGroupsManager.
     const resumenPartidosCat = (() => {
         const grupoIdsCat = new Set(filteredGrupos.map(g => g.id));
-        const matchesCatCompleta = partidos.filter(p => p.torneo_grupo_id && grupoIdsCat.has(p.torneo_grupo_id));
-        const misMatchesCat = matchesCatCompleta.filter(p =>
-            (p.pareja1_id && playerPairIds.includes(p.pareja1_id)) ||
-            (p.pareja2_id && playerPairIds.includes(p.pareja2_id))
+        const matchesCat = partidos.filter(p =>
+            p.torneo_grupo_id && grupoIdsCat.has(p.torneo_grupo_id) && (
+                (p.pareja1_id && playerPairIds.includes(p.pareja1_id)) ||
+                (p.pareja2_id && playerPairIds.includes(p.pareja2_id))
+            )
         );
-        const matchesCat = misMatchesCat.length > 0 ? misMatchesCat : matchesCatCompleta;
         const jugados = matchesCat.filter(p => p.estado === 'jugado' && p.resultado).length;
         const total = matchesCat.length;
         const pendientes = matchesCat.filter(p => !(p.estado === 'jugado' && p.resultado));
@@ -245,7 +257,6 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
             jugados, total,
             pct: total > 0 ? Math.round((jugados / total) * 100) : 0,
             pendientes, sinProgramar, programados,
-            esMio: misMatchesCat.length > 0,
         };
     })();
 
@@ -286,7 +297,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                         <div className="flex items-center gap-3">
                             <span className="text-2xl font-black text-ink">{resumenPartidosCat.jugados}</span>
                             <span className="text-sm text-olive/70">
-                                / {resumenPartidosCat.total} partidos jugados{resumenPartidosCat.esMio ? " (tu pareja)" : " (categoría completa)"}
+                                / {resumenPartidosCat.total} partidos jugados (tu pareja)
                             </span>
                             <Badge variant="outline" className={cn(
                                 "font-black border-olive/20",
