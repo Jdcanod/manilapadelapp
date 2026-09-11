@@ -203,7 +203,27 @@ export async function contarHistorialInvitado(invitadoId: string): Promise<Histo
     return { parejas: parejaIds.length, partidos: partidos.size, torneos: torneos.size };
 }
 
-export async function vincularInvitadoAJugador(invitadoId: string, jugadorRealId: string) {
+/**
+ * Fusiona un invitado con un jugador real.
+ *
+ * Devuelve el error en vez de lanzarlo: en producción Next oculta el mensaje
+ * de cualquier excepción de un server action, y el club veía "An error
+ * occurred in the Server Components render" en lugar del motivo real.
+ */
+export async function vincularInvitadoAJugador(
+    invitadoId: string,
+    jugadorRealId: string,
+): Promise<{ ok: true } | { ok: false; mensaje: string }> {
+    try {
+        await vincularInterno(invitadoId, jugadorRealId);
+        return { ok: true };
+    } catch (e) {
+        console.error('[vincular]', e);
+        return { ok: false, mensaje: e instanceof Error ? e.message : 'No se pudo vincular.' };
+    }
+}
+
+async function vincularInterno(invitadoId: string, jugadorRealId: string) {
     const supabase = createClient();
     const admin = createPureAdminClient();
 
@@ -242,6 +262,63 @@ export async function vincularInvitadoAJugador(invitadoId: string, jugadorRealId
         .or(`and(jugador1_id.eq.${invitadoId},jugador2_id.eq.${jugadorRealId}),and(jugador1_id.eq.${jugadorRealId},jugador2_id.eq.${invitadoId})`);
     if (parejasConflicto && parejasConflicto.length > 0) {
         throw new Error("El invitado y este jugador ya jugaron juntos como pareja — no se puede fusionar automáticamente. Contacta soporte.");
+    }
+
+    // Parejas del invitado cuyo compañero YA forma pareja con el jugador real.
+    // Reasignarlas crearía dos parejas idénticas y el índice único de la dupla
+    // rechaza el UPDATE entero — esto es lo que hacía fallar la fusión de
+    // Ancizar Ramírez, que había jugado con Javier Rodríguez y con Sebastián
+    // Restrepo tanto como invitado como con su cuenta real. Se funden: sus
+    // partidos e inscripciones pasan a la pareja que ya existe.
+    type Dupla = { id: string; jugador1_id: string | null; jugador2_id: string | null };
+    const socio = (p: Dupla, id: string) => (p.jugador1_id === id ? p.jugador2_id : p.jugador1_id);
+    const [{ data: delInvitado }, { data: delReal }] = await Promise.all([
+        admin.from('parejas').select('id, jugador1_id, jugador2_id')
+            .or(`jugador1_id.eq.${invitadoId},jugador2_id.eq.${invitadoId}`),
+        admin.from('parejas').select('id, jugador1_id, jugador2_id')
+            .or(`jugador1_id.eq.${jugadorRealId},jugador2_id.eq.${jugadorRealId}`),
+    ]);
+    const aFundir = ((delInvitado || []) as Dupla[])
+        .map(vieja => ({
+            vieja,
+            destino: ((delReal || []) as Dupla[]).find(b => {
+                const s = socio(vieja, invitadoId);
+                return !!s && socio(b, jugadorRealId) === s;
+            }),
+        }))
+        .filter((x): x is { vieja: Dupla; destino: Dupla } => !!x.destino);
+
+    // Todo se verifica ANTES de escribir: si una sola fusión es ambigua, no se
+    // toca nada. Ambigua = las dos parejas estaban en el mismo torneo (quedaría
+    // inscrita dos veces) o jugaron entre ellas (quedaría jugando contra sí misma).
+    for (const { vieja, destino } of aFundir) {
+        const [{ data: tv }, { data: td }, { count: enfrentadas }] = await Promise.all([
+            admin.from('torneo_parejas').select('torneo_id').eq('pareja_id', vieja.id),
+            admin.from('torneo_parejas').select('torneo_id').eq('pareja_id', destino.id),
+            admin.from('partidos').select('id', { count: 'exact', head: true })
+                .or(`and(pareja1_id.eq.${vieja.id},pareja2_id.eq.${destino.id}),and(pareja1_id.eq.${destino.id},pareja2_id.eq.${vieja.id})`),
+        ]);
+        const torneosDestino = new Set((td || []).map((t: { torneo_id: string }) => t.torneo_id));
+        if ((tv || []).some((t: { torneo_id: string }) => torneosDestino.has(t.torneo_id))) {
+            throw new Error("El invitado y el jugador real están inscritos en el mismo torneo con el mismo compañero. Revisa ese torneo antes de vincular.");
+        }
+        if ((enfrentadas ?? 0) > 0) {
+            throw new Error("Hay un partido donde el invitado y el jugador real, con el mismo compañero, se enfrentaron entre sí. No se puede fusionar automáticamente.");
+        }
+    }
+
+    for (const { vieja, destino } of aFundir) {
+        const pasos = [
+            admin.from('partidos').update({ pareja1_id: destino.id }).eq('pareja1_id', vieja.id),
+            admin.from('partidos').update({ pareja2_id: destino.id }).eq('pareja2_id', vieja.id),
+            admin.from('torneo_parejas').update({ pareja_id: destino.id }).eq('pareja_id', vieja.id),
+        ];
+        for (const paso of pasos) {
+            const { error } = await paso;
+            if (error) throw new Error("Error fundiendo parejas repetidas: " + error.message);
+        }
+        const { error: eDel } = await admin.from('parejas').delete().eq('id', vieja.id);
+        if (eDel) throw new Error("Error borrando la pareja repetida del invitado: " + eDel.message);
     }
 
     // Reasignar parejas del invitado al jugador real. Se desactivan (activa=false)

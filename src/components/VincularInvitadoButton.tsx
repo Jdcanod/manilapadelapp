@@ -79,7 +79,14 @@ export function VincularInvitadoButton({ invitadoId, invitadoNombre, candidatoSu
         setError(null);
         startTransition(async () => {
             try {
-                await vincularInvitadoAJugador(invitadoId, selected.id);
+                // La acción devuelve el motivo en vez de lanzarlo: una excepción
+                // llega redactada en producción y el club no sabría qué pasó.
+                const res = await vincularInvitadoAJugador(invitadoId, selected.id);
+                if (!res.ok) {
+                    setError(res.mensaje);
+                    setConfirming(false);
+                    return;
+                }
                 setOpen(false);
                 reset();
                 router.push(`/club/ranking/jugador/${selected.id}`);
