@@ -1,0 +1,32 @@
+-- CRITICO: un jugador con sesion podia cambiarse el `rol` a admin_club.
+--
+-- Verificado con una cuenta QA: desde el cliente, con la clave anonima y el
+-- token del propio jugador, `update users set rol='admin_club' where
+-- auth_id = <el suyo>` se guardaba. El middleware lee el rol de esta tabla,
+-- asi que con eso entraba a /club: gestionar torneos y resultados, fusionar y
+-- borrar jugadores. Tambien podia cambiarse `club_id`, nivel, elo y el resto.
+-- La politica de UPDATE solo limitaba la FILA (la propia), no las columnas.
+--
+-- Solucion: nadie con sesion escribe `users` directamente. Todas las
+-- escrituras pasan por acciones del servidor que verifican la sesion y usan
+-- la clave de servicio, que no depende de estos permisos:
+--   - perfil del jugador      -> jugador/perfil/actions.ts
+--   - configuracion del club  -> club/configuracion/actions.ts
+--   - alta al registrarse     -> api/registro/perfil (ya usaba servicio)
+--   - superadmin              -> superadmin/jugadores/actions.ts
+-- Se recorrio el codigo: despues de este cambio ninguna parte escribe `users`
+-- con el cliente de sesion.
+--
+-- ORDEN: correr DESPUES de que Vercel publique el codigo nuevo. Con el codigo
+-- viejo, la configuracion del club todavia escribia con la sesion.
+
+revoke insert, update, delete on public.users from anon, authenticated;
+
+-- Comprobacion: authenticated debe quedar solo con SELECT, y anon con el
+-- SELECT por columnas del paso anterior.
+--
+--   select grantee, privilege_type, count(*) as columnas
+--   from information_schema.column_privileges
+--   where table_schema = 'public' and table_name = 'users'
+--     and grantee in ('anon', 'authenticated')
+--   group by 1, 2 order by 1, 2;

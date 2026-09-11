@@ -6,19 +6,56 @@ import { revalidatePath } from "next/cache";
 import { TIPO_NOTIFICACION } from "@/lib/notificaciones";
 import { audienciaDelClub, crearNotificaciones } from "@/lib/notificaciones/servidor";
 
-export async function uploadClubLogo(userId: string, formData: FormData) {
-    const adminSupabase = createAdminClient();
+/**
+ * El club que está usando la app, sacado de la SESIÓN.
+ *
+ * Estas acciones recibían el `userId` desde el navegador y verificaban el rol
+ * de ESE id: cualquier jugador podía mandar el id de un club real, pasar el
+ * chequeo y publicar novedades en su nombre — con aviso a toda su audiencia —
+ * o subir archivos al bucket de logos sin estar ni siquiera logueado.
+ *
+ * Escribe con la clave de servicio porque la sesión ya no puede escribir
+ * `users` directamente (ver migración users_solo_escribe_el_servidor).
+ */
+async function clubDeLaSesion() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Tu sesión expiró. Vuelve a entrar.");
+
+    const admin = createAdminClient();
+    const { data: club } = await admin
+        .from('users')
+        .select('id, auth_id, nombre, rol')
+        .eq('auth_id', user.id)
+        .single();
+    if (club?.rol !== 'admin_club') {
+        throw new Error("No tienes permisos para realizar esta acción.");
+    }
+    return { admin, club };
+}
+
+const LOGO_MAX_BYTES = 5 * 1024 * 1024;
+
+// El primer parámetro se conserva para no romper a quien las llama, pero se
+// ignora: la identidad sale de la sesión.
+export async function uploadClubLogo(_userIdIgnorado: string, formData: FormData) {
+    const { admin, club } = await clubDeLaSesion();
     const file = formData.get("logo") as File;
-    
+
     if (!file) {
         throw new Error("No se ha proporcionado ningún archivo.");
     }
+    if (!file.type.startsWith("image/")) {
+        throw new Error("El logo tiene que ser una imagen.");
+    }
+    if (file.size > LOGO_MAX_BYTES) {
+        throw new Error("El logo no puede pesar más de 5 MB.");
+    }
 
     const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}-${Math.random()}.${fileExt}`;
-    const filePath = `${fileName}`;
+    const filePath = `${club.auth_id}-${Math.random()}.${fileExt}`;
 
-    const { error: uploadError } = await adminSupabase.storage
+    const { error: uploadError } = await admin.storage
         .from('club-logos')
         .upload(filePath, file, {
             contentType: file.type,
@@ -30,21 +67,15 @@ export async function uploadClubLogo(userId: string, formData: FormData) {
         throw new Error("No se pudo subir el logo al servidor.");
     }
 
-    const { data: { publicUrl } } = adminSupabase.storage
+    const { data: { publicUrl } } = admin.storage
         .from('club-logos')
         .getPublicUrl(filePath);
 
     return { publicUrl };
 }
 
-export async function saveClubSettings(userId: string, formData: FormData) {
-    const supabase = createClient();
-
-    // Check if user is legally admin_club
-    const { data: userRow } = await supabase.from('users').select('rol, id').eq('auth_id', userId).single();
-    if (userRow?.rol !== 'admin_club') {
-        throw new Error("No tienes permisos para realizar esta acción.");
-    }
+export async function saveClubSettings(_userIdIgnorado: string, formData: FormData) {
+    const { admin, club } = await clubDeLaSesion();
 
     const basePrice = parseInt(formData.get("precio_base") as string) || 80000;
     const weekendPrice = parseInt(formData.get("precio_fin") as string) || 100000;
@@ -67,12 +98,12 @@ export async function saveClubSettings(userId: string, formData: FormData) {
         primeTimes = [];
     }
 
-    const { error } = await supabase.from('users').update({
+    const { error } = await admin.from('users').update({
         precio_hora_base: basePrice,
         precio_fin_semana: weekendPrice,
         canchas_activas_json: canchasActivas,
         horarios_solo_90_min_json: primeTimes
-    }).eq('id', userRow.id);
+    }).eq('id', club.id);
 
     if (error) {
         console.error("Error al guardar la configuración:", error);
@@ -83,20 +114,15 @@ export async function saveClubSettings(userId: string, formData: FormData) {
     return { success: true };
 }
 
-export async function postClubNews(userId: string, formData: FormData) {
-    const supabase = createClient();
-
-    const { data: userRow } = await supabase.from('users').select('rol, id, nombre, auth_id').eq('auth_id', userId).single();
-    if (userRow?.rol !== 'admin_club') {
-        throw new Error("No tienes permisos para realizar esta acción.");
-    }
+export async function postClubNews(_userIdIgnorado: string, formData: FormData) {
+    const { admin, club } = await clubDeLaSesion();
 
     const tipo = formData.get("tipo") as string;
     const titulo = formData.get("titulo") as string;
     const contenido = formData.get("contenido") as string;
 
-    const { error } = await supabase.from('club_news').insert({
-        club_id: userRow.id,
+    const { error } = await admin.from('club_news').insert({
+        club_id: club.id,
         tipo,
         titulo,
         contenido
@@ -110,14 +136,12 @@ export async function postClubNews(userId: string, formData: FormData) {
     // Avisar a la gente del club. La audiencia son los seguidores MÁS los
     // jugadores que lo tienen como club de preferencia: quedarse solo con los
     // seguidores dejaría por fuera a la mayoría (ver audienciaDelClub).
-    const { createPureAdminClient } = await import("@/utils/supabase/server");
-    const admin = createPureAdminClient();
-    const destinatarios = await audienciaDelClub(admin, userRow.id, userRow.auth_id);
+    const destinatarios = await audienciaDelClub(admin, club.id, club.auth_id);
 
     await crearNotificaciones(admin, destinatarios.map(jugador_id => ({
         jugador_id,
         tipo: TIPO_NOTIFICACION.CLUB_NOVEDAD,
-        titulo: `${userRow.nombre || 'Tu club'} publicó una novedad`,
+        titulo: `${club.nombre || 'Tu club'} publicó una novedad`,
         mensaje: titulo,
         link: '/novedades',
     })));
@@ -127,21 +151,16 @@ export async function postClubNews(userId: string, formData: FormData) {
     return { success: true };
 }
 
-export async function updateClubProfile(userId: string, formData: FormData) {
-    const supabase = createClient();
-
-    const { data: userRow } = await supabase.from('users').select('rol, id').eq('auth_id', userId).single();
-    if (userRow?.rol !== 'admin_club') {
-        throw new Error("No tienes permisos para realizar esta acción.");
-    }
+export async function updateClubProfile(_userIdIgnorado: string, formData: FormData) {
+    const { admin, club } = await clubDeLaSesion();
 
     const nombre = formData.get("nombre") as string;
     const foto = formData.get("foto") as string;
 
-    const { error } = await supabase.from('users').update({
+    const { error } = await admin.from('users').update({
         nombre,
         foto
-    }).eq('id', userRow.id);
+    }).eq('id', club.id);
 
     if (error) {
         console.error("Error al actualizar perfil del club:", error);

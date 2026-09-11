@@ -21,63 +21,96 @@ import { actualizarPerfilAction } from "./actions";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 
-export function EditarPerfilDialog({ 
-    usuario 
-}: { 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    usuario: any 
-}) {
+interface Usuario {
+    nombre?: string | null;
+    apellido?: string | null;
+    telefono?: string | null;
+    ciudad?: string | null;
+    categoria?: string | null;
+    club_id?: string | null;
+}
+
+/**
+ * `users.nombre` guarda el nombre completo y `apellido` repite el apellido.
+ * Para editar se separan, o el apellido saldría dos veces al guardar.
+ */
+function soloNombre(u: Usuario): string {
+    const nombre = u.nombre || "";
+    const apellido = (u.apellido || "").trim();
+    if (apellido && nombre.toLowerCase().endsWith(" " + apellido.toLowerCase())) {
+        return nombre.slice(0, -(apellido.length + 1));
+    }
+    return nombre;
+}
+
+const CATEGORIAS: [string, string][] = [
+    ["1ra", "1ra Categoría"], ["2da", "2da Categoría"], ["3ra", "3ra Categoría"],
+    ["4ta", "4ta Categoría"], ["5ta", "5ta Categoría"], ["6ta", "6ta Categoría"],
+    ["7ma", "7ma Categoría"], ["Iniciacion", "Iniciación"],
+];
+
+const campoCls = "bg-paper border-olive/20 text-ink";
+
+export function EditarPerfilDialog({ usuario }: { usuario: Usuario }) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const [clubs, setClubs] = useState<{id: string, nombre: string, ciudad: string}[]>([]);
+    const [categoria, setCategoria] = useState(usuario.categoria || "");
+    const [clubs, setClubs] = useState<{ auth_id: string; nombre: string; ciudad: string | null }[]>([]);
     const { toast } = useToast();
     const router = useRouter();
     const supabase = createClient();
 
     useEffect(() => {
-        const fetchClubs = async () => {
-            const { data } = await supabase.from('users').select('id, nombre, ciudad').eq('rol', 'admin_club');
-            if (data) {
-                setClubs(data);
-            }
-        };
-        fetchClubs();
-    }, [supabase]);
+        if (!open) return;
+        (async () => {
+            // `users.club_id` guarda el auth_id del club: el valor del select
+            // es el auth_id, no el nombre (que era lo que se guardaba antes).
+            const { data } = await supabase
+                .from('users').select('auth_id, nombre, ciudad').eq('rol', 'admin_club').order('nombre');
+            if (data) setClubs(data);
+        })();
+    }, [open, supabase]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
         const formData = new FormData(e.currentTarget);
+        const nuevaContrasena = (formData.get("nueva_contrasena") as string || "").trim();
 
         try {
-            // Cambio de contraseña (opcional): se hace con la sesión del propio
-            // usuario, sin correo ni links de recuperación.
-            const nuevaContrasena = (formData.get("nueva_contrasena") as string || "").trim();
-            if (nuevaContrasena) {
-                if (nuevaContrasena.length < 6) {
-                    throw new Error("La nueva contraseña debe tener al menos 6 caracteres.");
-                }
-                const { error: passError } = await supabase.auth.updateUser({ password: nuevaContrasena });
-                if (passError) throw new Error("No se pudo cambiar la contraseña: " + passError.message);
+            if (nuevaContrasena && nuevaContrasena.length < 6) {
+                toast({ title: "Contraseña muy corta", description: "Debe tener al menos 6 caracteres.", variant: "destructive" });
+                return;
             }
 
-            await actualizarPerfilAction(formData);
+            // Primero los datos: si algo no valida, la contraseña ni se toca.
+            const res = await actualizarPerfilAction(formData);
+            if (!res.ok) {
+                toast({ title: "No se guardó", description: res.mensaje, variant: "destructive" });
+                return;
+            }
+
+            // Se hace con la sesión del propio usuario, sin correo ni enlaces.
+            if (nuevaContrasena) {
+                const { error: passError } = await supabase.auth.updateUser({ password: nuevaContrasena });
+                if (passError) {
+                    toast({
+                        title: "Tus datos se guardaron, la contraseña no",
+                        description: passError.message,
+                        variant: "destructive",
+                    });
+                    router.refresh();
+                    return;
+                }
+            }
+
             toast({
                 title: "Perfil actualizado",
-                description: nuevaContrasena
-                    ? "Tus datos y tu contraseña fueron actualizados."
-                    : "Tus datos han sido guardados correctamente.",
+                description: nuevaContrasena ? "Tus datos y tu contraseña quedaron guardados." : "Tus datos quedaron guardados.",
             });
             setOpen(false);
             router.refresh();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (error: any) {
-            toast({
-                title: "Error al actualizar",
-                description: error.message || "Ha ocurrido un error.",
-                variant: "destructive",
-            });
         } finally {
             setLoading(false);
         }
@@ -90,45 +123,69 @@ export function EditarPerfilDialog({
                     Editar Perfil
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] bg-paper-soft border-olive/20 text-ink">
+            <DialogContent className="sm:max-w-[440px] max-h-[90svh] overflow-y-auto bg-paper-soft border-olive/20 text-ink">
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
                         <DialogTitle>Editar Perfil</DialogTitle>
                         <DialogDescription className="text-olive/70">
-                            Actualiza tu información pública de jugador.
+                            Así te ven los demás jugadores y tu club.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-2">
+                                <Label htmlFor="nombre" className="text-ink-soft">Nombre</Label>
+                                <Input id="nombre" name="nombre" required minLength={2} maxLength={60}
+                                    defaultValue={soloNombre(usuario)} autoComplete="given-name" className={campoCls} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="apellido" className="text-ink-soft">Apellido</Label>
+                                <Input id="apellido" name="apellido" maxLength={60}
+                                    defaultValue={usuario.apellido || ""} autoComplete="family-name" className={campoCls} />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-2">
+                                <Label htmlFor="telefono" className="text-ink-soft">Teléfono</Label>
+                                <Input id="telefono" name="telefono" type="tel" inputMode="tel" maxLength={20}
+                                    defaultValue={usuario.telefono || ""} autoComplete="tel" className={campoCls} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="ciudad" className="text-ink-soft">Ciudad</Label>
+                                <Input id="ciudad" name="ciudad" maxLength={60}
+                                    defaultValue={usuario.ciudad || ""} autoComplete="address-level2" className={campoCls} />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="club_id" className="text-ink-soft">Mi club</Label>
+                            <Select name="club_id" defaultValue={usuario.club_id || "ninguno"}>
+                                <SelectTrigger id="club_id" className={campoCls}>
+                                    <SelectValue placeholder="Selecciona tu club" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[220px] overflow-y-auto">
+                                    <SelectItem value="ninguno">Ninguno</SelectItem>
+                                    {clubs.map(club => (
+                                        <SelectItem key={club.auth_id} value={club.auth_id}>
+                                            {club.nombre}{club.ciudad ? ` (${club.ciudad})` : ""}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-[11px] text-olive/60">Define qué ranking y qué novedades ves primero.</p>
+                        </div>
                         <div className="space-y-2">
                             <Label htmlFor="categoria" className="text-ink-soft">Categoría</Label>
-                            <Select name="categoria" defaultValue={usuario.categoria || ""}>
-                                <SelectTrigger className="bg-paper border-olive/20 text-ink">
+                            {/* Controlado y SIN `name`: el Select de Radix, sin un valor
+                                que coincida, envía la primera opción — un jugador sin
+                                categoría quedaba en "1ra" solo por corregir su nombre.
+                                El input oculto manda vacío si nadie la eligió. */}
+                            <input type="hidden" name="categoria" value={categoria} />
+                            <Select value={categoria || undefined} onValueChange={setCategoria}>
+                                <SelectTrigger id="categoria" className={campoCls}>
                                     <SelectValue placeholder="Selecciona tu categoría" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-paper-soft border-olive/20 text-ink">
-                                    <SelectItem value="1ra">1ra Categoría</SelectItem>
-                                    <SelectItem value="2da">2da Categoría</SelectItem>
-                                    <SelectItem value="3ra">3ra Categoría</SelectItem>
-                                    <SelectItem value="4ta">4ta Categoría</SelectItem>
-                                    <SelectItem value="5ta">5ta Categoría</SelectItem>
-                                    <SelectItem value="6ta">6ta Categoría</SelectItem>
-                                    <SelectItem value="Iniciacion">Iniciación</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="club_preferencia" className="text-ink-soft">Club de Preferencia</Label>
-                            <Select name="club_preferencia" defaultValue={usuario.club_preferencia || "ninguno"}>
-                                <SelectTrigger className="bg-paper border-olive/20 text-ink">
-                                    <SelectValue placeholder="Selecciona tu club" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-paper-soft border-olive/20 text-ink max-h-[200px] overflow-y-auto">
-                                    <SelectItem value="ninguno">Ninguno</SelectItem>
-                                    {clubs.map(club => (
-                                        <SelectItem key={club.id} value={club.nombre}>
-                                            {club.nombre} ({club.ciudad || 'Sin ciudad'})
-                                        </SelectItem>
-                                    ))}
+                                    {CATEGORIAS.map(([v, t]) => <SelectItem key={v} value={v}>{t}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -140,14 +197,14 @@ export function EditarPerfilDialog({
                                     name="nueva_contrasena"
                                     type={showPassword ? "text" : "password"}
                                     placeholder="Déjala vacía para no cambiarla"
-                                    minLength={6}
-                                    className="bg-paper border-olive/20 text-ink pr-10"
+                                    autoComplete="new-password"
+                                    className={`${campoCls} pr-10`}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(v => !v)}
                                     tabIndex={-1}
-                                    title={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                                    aria-label={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
                                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-olive/60 hover:text-olive transition-colors"
                                 >
                                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
