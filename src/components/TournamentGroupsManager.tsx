@@ -20,6 +20,7 @@ import { CorteParticipacionControl } from "@/components/CorteParticipacionContro
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { calcularClasificados, calcularRequeridosPorPareja, type ClasifConfig } from "@/lib/tournaments/clasificacion";
 import { esParejaPlaceholder as esTBD } from "@/lib/tbd";
+import { TablaGruposClubMovil } from "@/components/TablaGruposClubMovil";
 
 interface Props {
     torneoId: string;
@@ -195,6 +196,26 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                 } else {
                     alert("Error: " + result.message);
                 }
+            } catch (err) {
+                console.error(err);
+                alert("Error desconocido al mover pareja");
+            }
+        });
+    };
+
+    /**
+     * Lo mismo que soltar la pareja sobre otro grupo, pero por botón: en un
+     * celular no se puede arrastrar una fila, así que la lista móvil ofrece
+     * los otros grupos como botones.
+     */
+    const handleMoverAGrupo = (parejaId: string, grupoId: string, nombreGrupo: string) => {
+        if (!confirm(`¿Mover esta pareja a ${nombreGrupo}? Se eliminarán sus partidos no jugados del grupo actual.`)) return;
+
+        startTransition(async () => {
+            try {
+                const result = await moverParejaAGrupo(torneoId, selectedCat, parejaId, grupoId);
+                if (result.success) router.refresh();
+                else alert("Error: " + result.message);
             } catch (err) {
                 console.error(err);
                 alert("Error desconocido al mover pareja");
@@ -843,10 +864,75 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                             <Badge variant="outline" className="text-olive border-olive/20">
                                                 {esLiguilla ? "Todos contra Todos" : "Fase de Grupos"}
                                             </Badge>
-                                            <span className="text-[10px] text-olive/70 uppercase">Arrastra aquí</span>
+                                            {/* En móvil no hay arrastre: mover es un botón dentro de cada fila. */}
+                                            <span className="hidden md:inline text-[10px] text-olive/70 uppercase">Arrastra aquí</span>
                                         </div>
                                     </div>
-                                    <div className="overflow-x-auto">
+                                    {/* Móvil: la tabla de 12 columnas mide 672 px y solo se ven 341,
+                                        así que ahí va una lista con las mismas acciones. */}
+                                    <div className="md:hidden">
+                                        {standings.length === 0 ? (
+                                            <p className="px-4 py-6 text-center text-olive/70 text-sm">Sin participantes asignados</p>
+                                        ) : (
+                                            <TablaGruposClubMovil
+                                                esLiguilla={esLiguilla}
+                                                grupos={gruposCategoria.map(g => ({ id: g.id, nombre: g.nombre_grupo }))}
+                                                grupoActualId={grupo.id}
+                                                isPending={isPending}
+                                                onSubir={(parejaId) => handleMoverEnGrupo(grupo.id, parejaId, 'up')}
+                                                onBajar={(parejaId) => handleMoverEnGrupo(grupo.id, parejaId, 'down')}
+                                                onMover={(parejaId, destinoId) => handleMoverAGrupo(
+                                                    parejaId,
+                                                    destinoId,
+                                                    gruposCategoria.find(g => g.id === destinoId)?.nombre_grupo ?? 'otro grupo',
+                                                )}
+                                                filas={standings.map((team, idx) => ({
+                                                    parejaId: team.parejaId,
+                                                    nombre: (
+                                                        <>
+                                                            <ParejaLink
+                                                                parejaId={team.parejaId}
+                                                                nombre={team.nombre}
+                                                                multilinea
+                                                                className={cn(
+                                                                    esTBD(team.nombre) && "italic text-olive/70 font-normal",
+                                                                    parejasEliminadas.has(team.parejaId) && "line-through opacity-70"
+                                                                )}
+                                                            />
+                                                            {parejasEliminadas.has(team.parejaId) && (
+                                                                <span className="ml-1 text-[8px] font-black uppercase text-red-600 bg-red-500/10 border border-red-500/30 rounded-full px-1.5 py-0.5">
+                                                                    Eliminada
+                                                                </span>
+                                                            )}
+                                                        </>
+                                                    ),
+                                                    clasifica: esLiguilla
+                                                        ? clasificandoGlobalSet.has(team.parejaId)
+                                                        : idx < clasificanPorGrupo,
+                                                    pj: team.pj,
+                                                    sg: team.sg,
+                                                    sp: team.sp,
+                                                    gg: team.gg,
+                                                    gp: team.gp,
+                                                    pts: team.pts,
+                                                    revanchas: team.revanchas,
+                                                    pctJugados: esLiguilla ? (porcentajePorParejaCat.get(team.parejaId) || 0) : undefined,
+                                                    puedeSubir: idx > 0 && areTiedStandings(standings[idx], standings[idx - 1]),
+                                                    puedeBajar: idx < standings.length - 1 && areTiedStandings(standings[idx], standings[idx + 1]),
+                                                    accion: (!esLiguilla || esTBD(team.nombre)) ? (
+                                                        <AsignarParejaSlotDialog
+                                                            torneoId={torneoId}
+                                                            placeholderParejaId={team.parejaId}
+                                                            nombreActual={team.nombre}
+                                                            categoria={selectedCat}
+                                                            yaAsignada={!esTBD(team.nombre)}
+                                                        />
+                                                    ) : undefined,
+                                                }))}
+                                            />
+                                        )}
+                                    </div>
+                                    <div className="overflow-x-auto hidden md:block">
                                         <table className="w-full text-sm text-left">
                                             <thead className="text-xs text-olive/70 uppercase bg-paper-soft/50 border-b border-olive/20">
                                                 <tr>
