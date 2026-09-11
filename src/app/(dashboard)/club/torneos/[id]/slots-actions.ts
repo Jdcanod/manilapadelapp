@@ -446,6 +446,22 @@ export async function buscarJugadores(
         }
     }
 
+    // Sin torneo (el diálogo de "Vincular invitado" no tiene uno) el club sale
+    // de la SESIÓN. Sin esto nadie quedaba marcado como "de este club" y los
+    // resultados se recortaban a 20 en orden alfabético: buscando "juan" había
+    // 23 coincidencias y la persona del club podía quedar fuera del corte.
+    if (!clubId) {
+        const { data: { user } } = await createClient().auth.getUser();
+        if (user) {
+            const { data: yo } = await admin
+                .from("users").select("id, auth_id, rol").eq("auth_id", user.id).maybeSingle();
+            if (yo?.rol === "admin_club") {
+                clubId = yo.id;
+                clubAuthId = yo.auth_id ?? null;
+            }
+        }
+    }
+
     // ILIKE de Postgres no ignora tildes (Niño vs nino no matchean), así que
     // traemos todos los jugadores y filtramos en memoria con texto
     // normalizado — a la escala de un club/ciudad esto es rápido y es lo
