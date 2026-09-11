@@ -11,11 +11,19 @@ import { isGuestEmail, formatPlayerNameFull } from "@/lib/display-names";
  * historial por un lado, y la cuenta nueva vacía por el otro. Medido en Padel
  * del Río: 217 invitados contra 57 cuentas reales.
  *
- * ─── Por qué el emparejamiento es ambiguo ──────────────────────────────────
- * Comparar nombres escritos a mano nunca es exacto: hay tildes, mayúsculas,
- * nombres compuestos y gente que comparte el nombre de pila. Un "Santiago"
- * puede apuntar a varias cuentas, así que la decisión final SIEMPRE la toma el
- * club, que es quien conoce a la gente.
+ * ─── Por qué la señal es el compañero, no el nombre ────────────────────────
+ * Emparejar solo por nombre inundaba al club de falsos positivos: cada "Juan"
+ * invitado aparecía contra todos los "Juan" reales. Medido: 591 "No es"
+ * marcados a mano, hasta 25 para un solo invitado. De esos 591, apenas 7
+ * compartían compañero de pareja, y en los 7 el apellido era distinto.
+ *
+ * En cambio los invitados que SÍ eran la misma persona compartían compañero
+ * todos: quien se registra sigue jugando con los mismos. Por eso una
+ * sugerencia "probable" exige compañero en común MÁS nombre y apellido
+ * compatibles (con margen para un tipeo o una inicial, porque el compañero ya
+ * respalda). Sin compañero en común solo queda "revisar a mano", y solo con el
+ * nombre completo idéntico: un invitado sin apellido ("Santiago") coincidía si
+ * no contra todos sus homónimos.
  *
  * Ojo con los nombres: en `users`, `nombre` suele traer YA el nombre completo
  * y `apellido` repite el apellido (el registro guarda `nombre = "Pepe Pérez"`
@@ -38,6 +46,8 @@ export interface CandidatoVinculacion {
     fecha?: string | null;
     /** Solo cuando el candidato es un invitado: con qué jugó. */
     contexto?: ContextoInvitado;
+    /** Compañero con el que jugaron los dos: la evidencia de que son la misma persona. */
+    companeroComun?: string | null;
 }
 
 /**
@@ -51,12 +61,20 @@ export interface ContextoInvitado {
     partidos: number;
 }
 
+/**
+ * `probable`: comparten compañero y nombre — casi seguro la misma persona.
+ * `revisar`: mismo nombre y apellido, pero nunca jugaron con el mismo
+ *            compañero. Puede ser alguien que aún no jugó con su cuenta nueva.
+ */
+export type TipoSugerencia = 'probable' | 'revisar';
+
 export interface SugerenciaInvitado {
     invitadoId: string;
     invitadoNombre: string;
     /** Cuándo el club cargó a este invitado — ubica de qué torneo viene. */
     invitadoCreadoEn: string | null;
     contexto: ContextoInvitado;
+    tipo: TipoSugerencia;
     candidatos: CandidatoVinculacion[];
 }
 
@@ -110,12 +128,61 @@ function clasificar(nombreInvitado: string, nombreReal: string): Confianza | nul
     return null;
 }
 
+/** Letras que hay que cambiar para pasar de una palabra a otra. "danial"→"daniel" = 1. */
+function distancia(a: string, b: string): number {
+    if (a === b) return 0;
+    const fila = Array.from({ length: b.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= a.length; i++) {
+        let diagonal = fila[0];
+        fila[0] = i;
+        for (let j = 1; j <= b.length; j++) {
+            const arriba = fila[j];
+            fila[j] = Math.min(fila[j] + 1, fila[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
+            diagonal = arriba;
+        }
+    }
+    return fila[b.length];
+}
+
+/** Misma palabra con margen: un error de tipeo, o una inicial ("C" ↔ "Camilo"). */
+function parecidas(a: string, b: string): boolean {
+    if (a === b) return true;
+    if (a.length === 1 || b.length === 1) return a[0] === b[0];
+    return Math.min(a.length, b.length) >= 4 && distancia(a, b) <= 1;
+}
+
+interface NombreCrudo { nombre: string | null; apellido: string | null }
+
+/** Nombre de pila y apellidos, tolerando que `nombre` ya traiga el completo. */
+function partesDelNombre(p: NombreCrudo): { pila: string; apellidos: string[] } {
+    const completo = normalizar(p.nombre).split(' ').filter(Boolean);
+    const delCampo = tokens(normalizar(p.apellido));
+    return {
+        pila: completo[0] || '',
+        apellidos: delCampo.length > 0 ? delCampo : tokens(completo.slice(1).join(' ')),
+    };
+}
+
+/**
+ * ¿Pueden ser la misma persona por el nombre? Nombre de pila Y apellido
+ * compatibles, con margen para un error de tipeo ("Danial"/"Daniel",
+ * "Alejando"/"Alejandro") e iniciales ("Juan C Hoyos"/"Juan Camilo Hoyos").
+ * Compartir solo el nombre de pila ya no alcanza: era la fuente del ruido.
+ */
+function nombresCompatibles(a: NombreCrudo, b: NombreCrudo): boolean {
+    const x = partesDelNombre(a);
+    const y = partesDelNombre(b);
+    if (!x.pila || !y.pila || !parecidas(x.pila, y.pila)) return false;
+    // Si a uno le falta el apellido no hay cómo descartarlo por ahí.
+    if (x.apellidos.length === 0 || y.apellidos.length === 0) return true;
+    return x.apellidos.some(s => y.apellidos.some(t => parecidas(s, t)));
+}
+
 const ORDEN: Record<Confianza, number> = { exacta: 0, fuerte: 1, debil: 2 };
 
 /**
  * Pares que el club ya marcó como "no son la misma persona", como claves
- * "invitadoId|jugadorId". El emparejamiento es por nombre y propone falsos
- * positivos; sin esto se los mostraríamos para siempre.
+ * "invitadoId|jugadorId". Sin esto se los mostraríamos para siempre.
  */
 async function paresDescartados(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -135,8 +202,7 @@ async function paresDescartados(
 
 /**
  * Para un club: invitados que jugaron ahí y a qué cuentas reales podrían
- * corresponder. Devuelve solo los que tienen al menos un candidato — los
- * invitados sin ninguna coincidencia son ruido para esta pantalla.
+ * corresponder. Devuelve solo los que tienen al menos un candidato.
  *
  * `clubId` es el users.id del club; `clubAuthId` su auth_id (necesario porque
  * `users.club_id` de un jugador guarda el auth_id — ver convención de IDs).
@@ -214,13 +280,16 @@ export async function sugerenciasDeVinculacion(
     // Candidatos = cuentas reales que jugaron acá MÁS las que eligieron este
     // club al registrarse. Lo segundo es clave: alguien que se acaba de
     // registrar todavía no ha jugado, y es justo el caso que hay que detectar.
-    type DatosReal = { nombre: string; email: string | null; telefono: string | null; fecha: string | null };
+    type DatosReal = {
+        nombre: string; crudo: NombreCrudo;
+        email: string | null; telefono: string | null; fecha: string | null;
+    };
     const reales = new Map<string, DatosReal>();
-    (personas || [])
-        .filter((p: Persona) => !isGuestEmail(p.email))
-        .forEach((p: Persona) => reales.set(p.id, {
-            nombre: formatPlayerNameFull(p), email: p.email, telefono: p.telefono, fecha: p.fecha_registro,
-        }));
+    const agregarReal = (p: Persona) => reales.set(p.id, {
+        nombre: formatPlayerNameFull(p), crudo: { nombre: p.nombre, apellido: p.apellido },
+        email: p.email, telefono: p.telefono, fecha: p.fecha_registro,
+    });
+    (personas || []).filter((p: Persona) => !isGuestEmail(p.email)).forEach(agregarReal);
 
     if (clubAuthId) {
         const { data: delClub } = await admin
@@ -229,11 +298,7 @@ export async function sugerenciasDeVinculacion(
             .eq('rol', 'jugador')
             .eq('club_id', clubAuthId)
             .not('email', 'ilike', 'invitado_%');
-        (delClub || []).forEach((p: Persona) => {
-            reales.set(p.id, {
-                nombre: formatPlayerNameFull(p), email: p.email, telefono: p.telefono, fecha: p.fecha_registro,
-            });
-        });
+        (delClub || []).forEach(agregarReal);
     }
 
     const descartados = await paresDescartados(admin, clubId);
@@ -277,55 +342,72 @@ export async function sugerenciasDeVinculacion(
         };
     };
 
+    /** Un compañero con el que jugaron los dos, o null. */
+    const companeroEnComun = (a: string, b: string): string | null => {
+        const de = companerosDe.get(a);
+        const otro = companerosDe.get(b);
+        if (!de || !otro) return null;
+        for (const s of Array.from(de)) if (otro.has(s)) return s;
+        return null;
+    };
+
     const sugerencias: SugerenciaInvitado[] = [];
     for (const inv of invitados) {
         // Los invitados TAMBIÉN tienen apellido: `getOrCreateInvitado` parte
-        // "Juan Aristizabal" en nombre="Juan" + apellido="Aristizabal". Leer
-        // solo `nombre` los mostraba a todos como "Juan" y los hacía parecer
-        // duplicados cuando son personas distintas.
-        // Sin el email: `formatPlayerNameFull` le agregaría " (I)" a los
-        // invitados, y ese sufijo rompía la comparación exacta de nombres
-        // (además la fila ya dice "invitado").
-        const nombreInvitado = formatPlayerNameFull({ nombre: inv.nombre, apellido: inv.apellido });
-        const candidatos: CandidatoVinculacion[] = [];
+        // "Juan Aristizabal" en nombre="Juan" + apellido="Aristizabal". Sin el
+        // email: `formatPlayerNameFull` le agregaría " (I)" a los invitados y
+        // ese sufijo rompía la comparación exacta de nombres.
+        const crudoInv: NombreCrudo = { nombre: inv.nombre, apellido: inv.apellido };
+        const nombreInvitado = formatPlayerNameFull(crudoInv);
+        const probables: CandidatoVinculacion[] = [];
+        const aRevisar: CandidatoVinculacion[] = [];
+
         reales.forEach((real, id) => {
             if (descartados.has(`${inv.id}|${id}`)) return;
+            // Jugaron JUNTOS: son dos personas distintas.
+            if (companerosDe.get(inv.id)?.has(id)) return;
             const confianza = clasificar(nombreInvitado, real.nombre);
-            if (confianza) candidatos.push({
+            if (!confianza) return;
+
+            // Con compañero en común se acepta el margen de tipeo e iniciales.
+            // Sin él, solo nombre completo idéntico: un invitado sin apellido
+            // ("Santiago") coincidía si no con todos sus homónimos, que es
+            // justo el ruido que obligaba a marcar "No es" 25 veces.
+            const socio = companeroEnComun(inv.id, id);
+            if (socio ? !nombresCompatibles(crudoInv, real.crudo) : confianza !== 'exacta') return;
+            const candidato: CandidatoVinculacion = {
                 id,
                 nombre: real.nombre || 'Jugador',
                 confianza,
                 email: real.email,
                 telefonoFinal: ultimos4(real.telefono),
                 fecha: real.fecha,
-            });
+                companeroComun: socio ? nombrePorId.get(socio) ?? null : null,
+            };
+            (socio ? probables : aRevisar).push(candidato);
         });
-        if (candidatos.length === 0) continue;
 
-        candidatos.sort((a, b) => ORDEN[a.confianza] - ORDEN[b.confianza] || a.nombre.localeCompare(b.nombre));
+        const tipo: TipoSugerencia | null = probables.length > 0 ? 'probable' : aRevisar.length > 0 ? 'revisar' : null;
+        if (!tipo) continue;
 
-        // Solo se muestran los del mejor nivel de confianza encontrado. Si el
-        // nombre coincide idéntico, las cuentas que solo comparten el nombre de
-        // pila son ruido: "Santiago Rodríguez" no necesita ver tres "Santiago"
-        // al lado de su coincidencia exacta.
-        const mejor = candidatos[0].confianza;
-        const delMejorNivel = candidatos.filter(c => c.confianza === mejor);
+        const candidatos = (tipo === 'probable' ? probables : aRevisar)
+            .sort((a, b) => ORDEN[a.confianza] - ORDEN[b.confianza] || a.nombre.localeCompare(b.nombre))
+            .slice(0, 5);
 
         sugerencias.push({
             invitadoId: inv.id,
             invitadoNombre: nombreInvitado,
             invitadoCreadoEn: inv.fecha_registro,
             contexto: contextoDe(inv.id),
-            candidatos: delMejorNivel.slice(0, 5),
+            tipo,
+            candidatos,
         });
     }
 
-    // Primero lo más accionable: un único candidato y de alta confianza.
-    return sugerencias.sort((a, b) => {
-        const pa = ORDEN[a.candidatos[0].confianza] * 10 + Math.min(a.candidatos.length, 9);
-        const pb = ORDEN[b.candidatos[0].confianza] * 10 + Math.min(b.candidatos.length, 9);
-        return pa - pb || a.invitadoNombre.localeCompare(b.invitadoNombre);
-    });
+    // Primero lo más accionable: probables, con un único candidato y de alta confianza.
+    const peso = (s: SugerenciaInvitado) =>
+        (s.tipo === 'probable' ? 0 : 100) + ORDEN[s.candidatos[0].confianza] * 10 + Math.min(s.candidatos.length, 9);
+    return sugerencias.sort((a, b) => peso(a) - peso(b) || a.invitadoNombre.localeCompare(b.invitadoNombre));
 }
 
 /**
@@ -337,9 +419,10 @@ export async function sugerenciasDeVinculacion(
  * juega. Medido en Padel del Río: 95 jugadores lo eligieron y 50 nunca
  * aparecieron por ningún lado.
  *
- * A cada uno se le buscan invitados del club que podrían ser la misma persona,
- * que es el momento natural para fusionarlos: la persona acaba de crear su
- * cuenta y su historial sigue colgando del invitado.
+ * A cada uno se le buscan invitados del club que podrían ser la misma persona.
+ * Como todavía no jugó, acá no existe la señal del compañero en común: se
+ * exige que el nombre completo sea idéntico. "Solo coincide Juan" ya no
+ * alcanza — era lo que llenaba este panel de "No es".
  */
 export async function jugadoresNuevosDelClub(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -366,7 +449,7 @@ export async function jugadoresNuevosDelClub(
     const torneoIds = (torneos || []).map((t: { id: string }) => t.id);
 
     const yaJugaron = new Set<string>();
-    const invitadosDelClub = new Map<string, { nombre: string; fecha: string | null; contexto: ContextoInvitado }>();
+    const invitadosDelClub = new Map<string, { nombre: string; crudo: NombreCrudo; fecha: string | null; contexto: ContextoInvitado }>();
 
     if (torneoIds.length > 0) {
         const { data: tParejas } = await admin
@@ -447,6 +530,7 @@ export async function jugadoresNuevosDelClub(
             (personas || []).forEach((p: { id: string; nombre: string | null; apellido: string | null; email: string | null; fecha_registro: string | null }) => {
                 if (isGuestEmail(p.email)) invitadosDelClub.set(p.id, {
                     nombre: formatPlayerNameFull({ nombre: p.nombre, apellido: p.apellido }),
+                    crudo: { nombre: p.nombre, apellido: p.apellido },
                     fecha: p.fecha_registro,
                     contexto: contextoDe(p.id),
                 });
@@ -467,12 +551,14 @@ export async function jugadoresNuevosDelClub(
             const posibles: CandidatoVinculacion[] = [];
             invitadosDelClub.forEach((inv, invitadoId) => {
                 if (descartados.has(`${invitadoId}|${j.id}`)) return;
+                // Acá no existe la señal del compañero (son jugadores que aún no
+                // han jugado), así que se exige nombre completo idéntico.
                 const confianza = clasificar(inv.nombre, nombreCompleto);
-                if (confianza) posibles.push({ id: invitadoId, nombre: inv.nombre, confianza, fecha: inv.fecha, contexto: inv.contexto });
+                if (confianza !== 'exacta') return;
+                posibles.push({ id: invitadoId, nombre: inv.nombre, confianza, fecha: inv.fecha, contexto: inv.contexto, companeroComun: null });
             });
 
             posibles.sort((a, b) => ORDEN[a.confianza] - ORDEN[b.confianza] || a.nombre.localeCompare(b.nombre));
-            const mejor = posibles.length > 0 ? posibles[0].confianza : null;
 
             return {
                 id: j.id,
@@ -480,13 +566,10 @@ export async function jugadoresNuevosDelClub(
                 registradoEn: j.fecha_registro,
                 email: j.email,
                 telefonoFinal: ultimos4(j.telefono),
-                posiblesInvitados: mejor ? posibles.filter(p => p.confianza === mejor).slice(0, 5) : [],
+                posiblesInvitados: posibles.slice(0, 5),
             };
         })
-        // Primero lo accionable de verdad: coincidencias fuertes arriba. Una
-        // coincidencia débil ("Arturo Ramirez" vs el invitado "Ancizar Ramirez",
-        // que comparten solo el apellido) es casi siempre gente distinta, así
-        // que no debe encabezar la lista.
+        // Primero los que tienen un invitado posible, y de ellos los de nombre idéntico.
         .sort((a, b) => {
             const pa = a.posiblesInvitados.length > 0 ? ORDEN[a.posiblesInvitados[0].confianza] : 9;
             const pb = b.posiblesInvitados.length > 0 ? ORDEN[b.posiblesInvitados[0].confianza] : 9;

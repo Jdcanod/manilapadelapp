@@ -8,6 +8,7 @@ import { UserPlus, ChevronDown, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VincularInvitadoButton } from "@/components/VincularInvitadoButton";
 import { DescartarVinculacionButton } from "@/components/DescartarVinculacionButton";
+import { DescartarTodasButton } from "@/components/DescartarTodasButton";
 import { ContextoDelInvitado } from "@/components/ContextoDelInvitado";
 import type { JugadorNuevo } from "@/lib/invitados/sugerencias";
 
@@ -118,6 +119,9 @@ export function JugadoresNuevosPanel({ jugadores }: { jugadores: JugadorNuevo[] 
                                             </div>
                                             </div>
                                         ))}
+                                        <DescartarTodasButton
+                                            pares={j.posiblesInvitados.map(inv => ({ invitadoId: inv.id, jugadorId: j.id }))}
+                                        />
                                     </div>
                                 ) : (
                                     <p className="text-[11px] text-olive/50 mt-1">Sin invitados que se le parezcan.</p>

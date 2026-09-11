@@ -131,6 +131,43 @@ export async function descartarVinculacion(invitadoId: string, jugadorId: string
     return { ok: true, mensaje: "No volveremos a sugerirlo." };
 }
 
+/**
+ * "Ninguno es": descarta de un golpe todos los candidatos de una tarjeta.
+ * Antes había que marcar "No es" uno por uno — hasta 25 veces para un solo
+ * invitado ("Juan Giraldo").
+ */
+export async function descartarVarias(
+    pares: { invitadoId: string; jugadorId: string }[]
+): Promise<{ ok: boolean; mensaje: string }> {
+    const supabase = createClient();
+    const admin = createPureAdminClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { ok: false, mensaje: "Tienes que iniciar sesión." };
+
+    const { data: club } = await admin
+        .from('users').select('id, rol').eq('auth_id', user.id).single();
+    if (club?.rol !== 'admin_club') return { ok: false, mensaje: "Solo un club puede descartar sugerencias." };
+
+    // Tope defensivo: una tarjeta muestra como mucho 5 candidatos.
+    const limpios = (pares || []).filter(p => p?.invitadoId && p?.jugadorId).slice(0, 50);
+    if (limpios.length === 0) return { ok: true, mensaje: "Nada que descartar." };
+
+    const { error } = await admin
+        .from('vinculaciones_descartadas')
+        .upsert(
+            limpios.map(p => ({ club_id: club.id, invitado_id: p.invitadoId, jugador_id: p.jugadorId })),
+            { onConflict: 'club_id,invitado_id,jugador_id' }
+        );
+    if (error) return { ok: false, mensaje: "No pudimos descartarlas: " + error.message };
+
+    revalidatePath('/club/ranking');
+    return {
+        ok: true,
+        mensaje: limpios.length === 1 ? "No volveremos a sugerirlo." : `No volveremos a sugerir esos ${limpios.length}.`,
+    };
+}
+
 /** Deshace un descarte, por si el club se arrepiente. */
 export async function restaurarVinculacion(invitadoId: string, jugadorId: string): Promise<{ ok: boolean; mensaje: string }> {
     const supabase = createClient();
