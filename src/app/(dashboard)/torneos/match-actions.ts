@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { fecharPartidoSinProgramar } from "@/lib/tournaments/fechaResultado";
 
 export async function registrarResultadoTorneo(matchId: string, resultado: string, userId: string) {
     const supabase = createClient();
@@ -17,6 +18,8 @@ export async function registrarResultadoTorneo(matchId: string, resultado: strin
         .eq('id', matchId);
 
     if (error) throw new Error(error.message);
+
+    await fecharPartidoSinProgramar(supabase, matchId);
 
     revalidatePath("/jugador");
     return { success: true };

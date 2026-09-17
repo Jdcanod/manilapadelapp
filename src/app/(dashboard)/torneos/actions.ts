@@ -286,6 +286,9 @@ export async function registrarResultadoPorJugador(matchId: string, resultado: s
         if (updateError) {
             return { success: false, message: "Error DB Final: " + updateError.message };
         }
+
+        const { fecharPartidoSinProgramar } = await import("@/lib/tournaments/fechaResultado");
+        await fecharPartidoSinProgramar(admin, matchId);
         
         // REVALIDAR
         revalidatePath(`/torneos/${match.torneo_id}`);

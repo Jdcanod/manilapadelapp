@@ -1065,6 +1065,9 @@ export async function registrarResultadoPorClub(matchId: string, resultado: stri
 
         if (error) throw new Error(error.message);
 
+        const { fecharPartidoSinProgramar } = await import("@/lib/tournaments/fechaResultado");
+        await fecharPartidoSinProgramar(supabaseAdmin, matchId);
+
         const { recalcularNivelPorPartido } = await import("@/lib/ranking/recalcularNivel");
         await recalcularNivelPorPartido(matchId);
         const { aplicarBonoPosicionSiAplica } = await import("@/lib/ranking/aplicarBonoPosicion");
