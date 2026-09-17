@@ -21,6 +21,7 @@ import { TorneoMuroManager } from "@/components/TorneoMuroManager";
 import { listarMuroPosts } from "@/app/(dashboard)/club/torneos/[id]/muro-actions";
 import { CrearVueltaCopaDialog } from "@/components/CrearVueltaCopaDialog";
 import { EditarCanchasControl } from "@/components/EditarCanchasControl";
+import { EditarNombreTorneoControl } from "@/components/EditarNombreTorneoControl";
 import { PersistentTabs } from "@/components/PersistentTabs";
 import { formatPairName, formatFormatoLabel } from "@/lib/display-names";
 import { PanelTorneo } from "@/components/panel/PanelTorneo";
@@ -577,9 +578,13 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                 <div className="flex-1 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                     <div>
                         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center mb-1">
-                            <h1 className="text-3xl font-bold tracking-tight text-ink leading-tight">
-                                {torneo.nombre}
-                            </h1>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                                <h1 className="text-3xl font-bold tracking-tight text-ink leading-tight">
+                                    {torneo.nombre}
+                                </h1>
+                                {/* El club corrige la errata donde la ve: en el propio titulo. */}
+                                <EditarNombreTorneoControl torneoId={torneo.id} nombre={torneo.nombre} />
+                            </div>
                             <div className="flex items-center gap-2">
                                 <Badge variant="outline" className={statusColor}>
                                     {statusText}

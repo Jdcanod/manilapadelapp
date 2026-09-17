@@ -1038,6 +1038,45 @@ async function unirParejaATablaLigaSiAplica(admin: any, torneoId: string, catego
     }
 }
 
+/** Largo máximo del nombre, para que no rompa encabezados ni exportes. */
+const NOMBRE_TORNEO_MAX = 120;
+
+/**
+ * Renombra un torneo, esté en el estado que esté.
+ *
+ * Un club suele corregir el nombre con el torneo ya andando (una errata, el
+ * año equivocado, "2026-I" que debía ser "2026-II"), y antes el nombre
+ * quedaba congelado desde la creación. Solo cambia la etiqueta: no toca
+ * partidos, parejas ni ranking.
+ *
+ * Devuelve el error en vez de lanzarlo, porque Next borra el mensaje de las
+ * excepciones de server action en producción y el club vería "algo salió mal".
+ */
+export async function renombrarTorneo(torneoId: string, nombre: string): Promise<{ ok: boolean; mensaje: string }> {
+    try {
+        const { admin } = await requireClubOwnership(torneoId);
+
+        const limpio = nombre.trim().replace(/\s+/g, ' ');
+        if (limpio.length < 3) {
+            return { ok: false, mensaje: "El nombre debe tener al menos 3 caracteres." };
+        }
+        if (limpio.length > NOMBRE_TORNEO_MAX) {
+            return { ok: false, mensaje: `El nombre no puede pasar de ${NOMBRE_TORNEO_MAX} caracteres.` };
+        }
+
+        const { error } = await admin.from('torneos').update({ nombre: limpio }).eq('id', torneoId);
+        if (error) return { ok: false, mensaje: error.message };
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        revalidatePath('/club/torneos');
+        revalidatePath(`/torneos/${torneoId}`);
+        revalidatePath('/torneos');
+        return { ok: true, mensaje: `El torneo ahora se llama "${limpio}".` };
+    } catch (err: unknown) {
+        return { ok: false, mensaje: err instanceof Error ? err.message : "Error desconocido" };
+    }
+}
+
 export async function registrarResultadoPorClub(matchId: string, resultado: string) {
     try {
         // El match no trae el torneoId como parámetro, así que primero lo
