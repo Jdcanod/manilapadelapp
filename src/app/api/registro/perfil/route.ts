@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { insertarPerfilJugador } from "@/lib/registro/perfilJugador";
 
 /**
  * Crea la fila pública de un jugador recién registrado.
@@ -15,7 +16,6 @@ import { createAdminClient } from "@/utils/supabase/admin";
  *   - el club se valida contra los clubes reales y su nombre sale de la base.
  */
 
-const CATEGORIAS = ["1ra", "2da", "3ra", "4ta", "5ta", "6ta", "7ma", "Iniciacion"];
 /** Margen entre signUp y este POST. Sobra: el navegador lo manda enseguida. */
 const VENTANA_MS = 60 * 60 * 1000;
 
@@ -53,46 +53,10 @@ export async function POST(request: Request) {
     const { data: existente } = await admin.from("users").select("id").eq("auth_id", authId).maybeSingle();
     if (existente) return falla("Esta cuenta ya tiene perfil.", 409);
 
-    const categoriaPedida = texto(body.categoria, 20);
-    const categoria = CATEGORIAS.includes(categoriaPedida) ? categoriaPedida : null;
-    const nivel = categoria && ["1ra", "2da", "3ra"].includes(categoria) ? "avanzado"
-        : categoria && ["4ta", "5ta"].includes(categoria) ? "intermedio"
-        : "amateur";
-
-    // `users.club_id` guarda el auth_id del club. El nombre sale de la base,
-    // no del navegador.
-    let clubId: string | null = null;
-    let clubNombre: string | null = null;
-    const clubPedido = texto(body.club_id, 64);
-    if (clubPedido) {
-        const { data: club } = await admin
-            .from("users").select("auth_id, nombre")
-            .eq("auth_id", clubPedido).eq("rol", "admin_club").maybeSingle();
-        if (club) {
-            clubId = club.auth_id;
-            clubNombre = club.nombre;
-        }
-    }
-
-    const fecha = texto(body.fecha_nacimiento, 10);
-    const { error } = await admin.from("users").insert({
-        auth_id: authId,
-        email: usuario.email,
-        rol: "jugador",
-        nombre: texto(body.nombre, 120) || email.split("@")[0],
-        apellido: texto(body.apellido, 60) || null,
-        ciudad: texto(body.ciudad, 60) || "Manizales",
-        telefono: texto(body.telefono, 20) || null,
-        fecha_nacimiento: /^\d{4}-\d{2}-\d{2}$/.test(fecha) ? fecha : null,
-        categoria,
-        nivel,
-        club_id: clubId,
-        club_preferencia: clubNombre,
-    });
-
-    if (error) {
-        console.error("[/api/registro/perfil] insert error:", error);
-        return falla(`No se pudo guardar el perfil (${error.code ?? "?"}).`, 500);
+    const r = await insertarPerfilJugador(admin, authId, usuario.email || email, body);
+    if (!r.ok) {
+        console.error("[/api/registro/perfil] insert error:", r.error);
+        return falla(`No se pudo guardar el perfil (${r.error}).`, 500);
     }
     return NextResponse.json({ success: true, error: null });
 }

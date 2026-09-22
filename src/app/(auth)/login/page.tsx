@@ -11,6 +11,7 @@ import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/utils/supabase/client";
 import { destinoSeguro } from "@/lib/auth/destinoSeguro";
+import { asegurarPerfilAction } from "@/app/actions/auth";
 
 /** useSearchParams obliga a un boundary de Suspense en el App Router. */
 export default function LoginPage() {
@@ -59,6 +60,10 @@ function LoginForm() {
                 setLoading(false);
                 return;
             }
+
+            // Una cuenta que quedó sin perfil (registro fallido a medias)
+            // lo recupera aquí; si no, entraría como "Usuario" sin club.
+            await asegurarPerfilAction().catch(() => {});
 
             // Obtain user role to redirect properly
             const { data: userData, error: dbError } = await supabase

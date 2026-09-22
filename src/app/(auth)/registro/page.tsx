@@ -33,6 +33,7 @@ function RegistroForm() {
     const supabase = createClient();
     const [clubs, setClubs] = useState<{id: string, auth_id: string, nombre: string, ciudad: string}[]>([]);
     const [confirmacionPendiente, setConfirmacionPendiente] = useState<string | null>(null);
+    const [cuentaExistente, setCuentaExistente] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchClubs = async () => {
@@ -120,6 +121,16 @@ function RegistroForm() {
                 return;
             }
 
+            // Si el correo ya tiene cuenta, Supabase no avisa con un error (para no
+            // revelar qué correos existen): devuelve un usuario de mentira sin
+            // `identities` y NO manda correo. Antes le decíamos "confirma tu
+            // correo" y la persona se quedaba esperando uno que nunca llega.
+            if (authData?.user && (authData.user.identities?.length ?? 0) === 0) {
+                setCuentaExistente(email);
+                setLoading(false);
+                return;
+            }
+
             if (authData?.user) {
                 // 2. Guardar su perfil en la tabla pública "users" usando una acción de servidor (Admin)
                 // Esto evita el error de RLS ya que el usuario aún no ha confirmado su email
@@ -192,6 +203,39 @@ function RegistroForm() {
             setLoading(false);
         }
     };
+
+    if (cuentaExistente) {
+        return (
+            <div className="flex flex-col items-center">
+                <Card className="w-full max-w-md bg-paper-soft border-olive/20 shadow-xl">
+                    <CardHeader className="space-y-3 text-center">
+                        <div className="flex justify-center mb-2">
+                            <div className="w-20 h-20 rounded-full overflow-hidden shadow-md ring-4 ring-paper">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src="/logo.png" alt="Pádel Manía" className="w-full h-full object-cover" />
+                            </div>
+                        </div>
+                        <CardTitle className="font-display tracking-[0.08em] uppercase text-2xl text-olive">Ya tienes una cuenta</CardTitle>
+                        <CardDescription className="text-ink-soft text-sm">
+                            <strong>{cuentaExistente}</strong> ya está registrado, así que no te enviamos ningún correo.
+                            Entra con tu contraseña; si no la recuerdas, te mandamos un enlace para crear una nueva.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardFooter className="flex flex-col gap-3">
+                        <Link
+                            href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}
+                            className="w-full text-center rounded-xl bg-olive hover:bg-olive-dark text-paper font-bold py-2.5 transition-colors"
+                        >
+                            Iniciar sesión
+                        </Link>
+                        <Link href="/recuperar" className="text-sm text-ochre-dark hover:text-ochre hover:underline transition-colors font-bold">
+                            No recuerdo mi contraseña
+                        </Link>
+                    </CardFooter>
+                </Card>
+            </div>
+        );
+    }
 
     if (confirmacionPendiente) {
         return (

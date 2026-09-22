@@ -1,6 +1,7 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { createClient, createPureAdminClient } from "@/utils/supabase/server";
+import { asegurarPerfilJugador } from "@/lib/registro/perfilJugador";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
@@ -32,4 +33,16 @@ export async function recuperarPasswordAction(email: string) {
         console.error("Error en recuperarPasswordAction:", err);
         return { error: "Ocurrió un error inesperado al procesar la solicitud." };
     }
+}
+
+/**
+ * Llamada justo después de iniciar sesión: si la cuenta quedó sin perfil (un
+ * registro que falló a medias), se lo crea. La identidad sale de la sesión,
+ * no de nada que mande el navegador.
+ */
+export async function asegurarPerfilAction(): Promise<void> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await asegurarPerfilJugador(createPureAdminClient(), user);
 }

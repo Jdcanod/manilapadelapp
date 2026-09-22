@@ -5,6 +5,7 @@ import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { cerrarSesionAction } from "@/app/actions/auth";
 import { BrandLogo } from "@/components/BrandLogo";
 import { resolveClubPublicId } from "@/lib/club/resolveClubPublicId";
+import { asegurarPerfilJugador } from "@/lib/registro/perfilJugador";
 
 export default async function DashboardLayout({
     children,
@@ -22,11 +23,21 @@ export default async function DashboardLayout({
     let noLeidas = 0;
 
     if (user) {
-        const { data: userData } = await supabase
+        let { data: userData } = await supabase
             .from('users')
             .select('id, nombre, rol, club_id, foto')
             .eq('auth_id', user.id)
             .single();
+
+        // Respaldo de la autorreparación del login: quien ya tenía la sesión
+        // abierta, o entró por el enlace del correo, también recupera el perfil.
+        if (!userData && await asegurarPerfilJugador(createPureAdminClient(), user)) {
+            ({ data: userData } = await supabase
+                .from('users')
+                .select('id, nombre, rol, club_id, foto')
+                .eq('auth_id', user.id)
+                .single());
+        }
 
         if (userData?.nombre) {
             nombreReal = userData.nombre;
