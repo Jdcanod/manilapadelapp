@@ -44,12 +44,28 @@ export function PanelTorneo({ torneoId }: { torneoId: string }) {
         return () => { vigente = false; };
     }, [abierto, parejaId, jugadorId, torneoId]);
 
-    // Cerrar quita los parámetros: un "atrás" más y sale del torneo, como debe.
-    const cerrar = useCallback(() => router.push(pathname, { scroll: false }), [router, pathname]);
+    /**
+     * La URL sin el panel, PERO conservando el resto de parámetros.
+     *
+     * Antes se volvía a `pathname` pelado y eso se llevaba por delante el
+     * `?tab=`: el club cerraba la ficha de una pareja y aparecía de vuelta en
+     * "Parejas Inscritas", perdiendo el grupo que estaba revisando.
+     */
+    const sinPanel = useCallback((extra?: string) => {
+        const otros = new URLSearchParams(params.toString());
+        otros.delete('pareja');
+        otros.delete('jugador');
+        if (extra) otros.set('pareja', extra);
+        const qs = otros.toString();
+        return `${pathname}${qs ? `?${qs}` : ''}`;
+    }, [params, pathname]);
+
+    // Cerrar quita los parámetros del panel: un "atrás" más y sale del torneo.
+    const cerrar = useCallback(() => router.push(sinPanel(), { scroll: false }), [router, sinPanel]);
     const volverAPareja = useCallback(() => {
-        if (parejaId) router.push(`${pathname}?pareja=${parejaId}`, { scroll: false });
+        if (parejaId) router.push(sinPanel(parejaId), { scroll: false });
         else cerrar();
-    }, [router, pathname, parejaId, cerrar]);
+    }, [router, sinPanel, parejaId, cerrar]);
 
     const enPareja = !jugadorId;
 
