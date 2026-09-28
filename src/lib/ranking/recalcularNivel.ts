@@ -114,17 +114,20 @@ export async function recalcularNivelPorPartido(matchId: string): Promise<void> 
         const historialRows: { jugador_id: string; partido_id: string; club_id: string; nivel_antes: number; nivel_despues: number; delta: number }[] = [];
         const updates: { jugadorId: string; nivel_ranking: number }[] = [];
 
-        const procesarJugador = (jugadorId: string, nivelPropio: number, nivelRivalPromedio: number, gano: boolean) => {
-            const delta = calcularDeltaNivel({ nivelJugador: nivelPropio, nivelRivalPromedio, gano });
+        // `nivelPropio` es el nivel del jugador (lo que se le suma o resta);
+        // `nivelPareja` es el promedio de su dupla, que es lo que se compara
+        // contra la pareja rival para medir qué tan pareja estaba la cancha.
+        const procesarJugador = (jugadorId: string, nivelPropio: number, nivelPareja: number, nivelRivalPromedio: number, gano: boolean) => {
+            const delta = calcularDeltaNivel({ nivelJugador: nivelPareja, nivelRivalPromedio, gano });
             const nivelDespues = aplicarDeltaNivel(nivelPropio, delta);
             historialRows.push({ jugador_id: jugadorId, partido_id: matchId, club_id: clubId, nivel_antes: nivelPropio, nivel_despues: nivelDespues, delta });
             updates.push({ jugadorId, nivel_ranking: nivelDespues });
         };
 
-        procesarJugador(pareja1.jugador1_id!, nivelP1J1, promedioPareja2, ganoPareja1);
-        procesarJugador(pareja1.jugador2_id!, nivelP1J2, promedioPareja2, ganoPareja1);
-        procesarJugador(pareja2.jugador1_id!, nivelP2J1, promedioPareja1, !ganoPareja1);
-        procesarJugador(pareja2.jugador2_id!, nivelP2J2, promedioPareja1, !ganoPareja1);
+        procesarJugador(pareja1.jugador1_id!, nivelP1J1, promedioPareja1, promedioPareja2, ganoPareja1);
+        procesarJugador(pareja1.jugador2_id!, nivelP1J2, promedioPareja1, promedioPareja2, ganoPareja1);
+        procesarJugador(pareja2.jugador1_id!, nivelP2J1, promedioPareja2, promedioPareja1, !ganoPareja1);
+        procesarJugador(pareja2.jugador2_id!, nivelP2J2, promedioPareja2, promedioPareja1, !ganoPareja1);
 
         const { error: histError } = await admin.from('ranking_nivel_historial').insert(historialRows);
         if (histError) {

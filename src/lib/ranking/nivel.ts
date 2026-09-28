@@ -20,15 +20,24 @@ const NIVEL_MIN = 0;
 const NIVEL_MAX = 5;
 
 export interface DeltaNivelInput {
+    /** Promedio de la pareja propia (NO el nivel suelto del jugador). */
     nivelJugador: number;
+    /** Promedio de la pareja rival. */
     nivelRivalPromedio: number;
     gano: boolean;
 }
 
 /**
- * Delta de nivel para UN jugador tras un partido. El factor crece cuando el
- * rival es más fuerte que el jugador (ganarle vale más / perder duele menos)
- * y decrece cuando el rival es más débil.
+ * Delta de nivel tras un partido, comparando PAREJA contra PAREJA.
+ *
+ * El pádel se juega de a dos: quien acompaña decide tanto como quien mira la
+ * tabla. Antes se comparaba el nivel suelto del jugador contra el promedio
+ * rival, y eso castigaba a quien cargaba con un compañero de categoría
+ * inferior: se le exigía ganar solo. Medido sobre un 4ta jugando con una 6ta,
+ * sus siete partidos dieron todos ±0.02 (el piso), ganara o perdiera.
+ *
+ * Los dos integrantes de una pareja reciben el mismo delta: jugaron el mismo
+ * partido contra los mismos rivales.
  */
 export function calcularDeltaNivel({ nivelJugador, nivelRivalPromedio, gano }: DeltaNivelInput): number {
     const diferencia = nivelRivalPromedio - nivelJugador;
