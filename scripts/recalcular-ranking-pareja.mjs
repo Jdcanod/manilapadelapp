@@ -24,10 +24,13 @@ const admin = createClient(leer('NEXT_PUBLIC_SUPABASE_URL'), leer('SUPABASE_SERV
     auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const DELTA_BASE = 0.05, FACTOR_MIN = 0.4, FACTOR_MAX = 2.5;
+// Espejo de src/lib/ranking/nivel.ts — si cambia allá, cambia acá.
+const EN_JUEGO = 0.1, ESCALA = 1.5, MINIMO = 0.01;
 const delta = (nivelPareja, nivelRival, gano) => {
-    const f = Math.min(FACTOR_MAX, Math.max(FACTOR_MIN, 1 + (nivelRival - nivelPareja)));
-    return gano ? DELTA_BASE * f : -DELTA_BASE * f;
+    const esperado = 1 / (1 + Math.pow(10, (nivelRival - nivelPareja) / ESCALA));
+    const bruto = EN_JUEGO * ((gano ? 1 : 0) - esperado);
+    const magnitud = Math.max(MINIMO, Math.abs(bruto));
+    return gano ? magnitud : -magnitud;
 };
 const aplicar = (n, d) => Math.min(5, Math.max(0, n + d));
 
@@ -41,7 +44,11 @@ function ganador(resultado) {
     } catch { return null; }
 }
 
-const { data: hist } = await admin.from('ranking_nivel_historial').select('*').order('creado_en');
+const { data: histRaw } = await admin.from('ranking_nivel_historial').select('*').order('creado_en');
+// Orden determinista: varios partidos comparten marca de tiempo, y si el
+// orden cambia entre corridas el resultado cambia con él.
+const hist = histRaw.sort((a, b) =>
+    a.creado_en.localeCompare(b.creado_en) || String(a.partido_id).localeCompare(String(b.partido_id)) || String(a.id).localeCompare(String(b.id)));
 console.log(`historial: ${hist.length} filas`);
 
 const partidoIds = [...new Set(hist.map(h => h.partido_id))];
@@ -67,44 +74,54 @@ for (const h of hist) {
     porPartido.get(h.partido_id).push(h);
 }
 
+/**
+ * Recategorizaciones que hizo el club a mano, con el partido desde el cual
+ * rigen. Van explícitas y no inferidas de la cadena grabada: deducirlas
+ * comparando niveles no es repetible, porque cada corrida deja sus propios
+ * saltos. Si el club vuelve a ajustar a mano, se agrega la entrada.
+ */
+const RESETS = [
+    { jugador: '7e40c25e-e6b2-4603-8ecd-5b8d7131026c', partido: 'e01ca73c-de8d-4849-a2f1-8aad2e2f7532', nivel: 2.8 },
+    { jugador: '267152b0-1835-4a17-8e68-957568c4b190', partido: '65af486c-bb26-475c-aad5-d8bbcfff4c1a', nivel: 3.0 },
+];
+
 const nuevasFilas = [];
-const ultimoGrabado = new Map();   // último nivel_despues grabado, para detectar ajustes del club
 const ajustesManuales = [];
 let saltados = 0;
-for (const [partidoId, filas] of porPartido) {
-    const p = partidoMap.get(partidoId);
-    const gana1 = p?.resultado ? ganador(p.resultado) === 1 : null;
-    const p1 = parejaMap.get(p?.pareja1_id), p2 = parejaMap.get(p?.pareja2_id);
-    if (gana1 === null || !p1 || !p2) { saltados++; continue; }
 
+/*
+ * Quién jugó con quién sale de las FILAS del historial, no de la composición
+ * actual de la pareja: el club edita parejas después de cargar el resultado
+ * (en un partido reemplazó a un jugador por un invitado, que nunca tiene
+ * nivel) y entonces la pareja de hoy ya no es la que jugó. La fila sí quedó
+ * grabada, y el signo de su delta dice de qué lado estuvo.
+ */
+for (const [partidoId, filas] of porPartido) {
     const club = filas[0].club_id;
 
-    // El club puede corregir un nivel a mano entre partidos (recategorizar a
-    // alguien, por ejemplo). Eso se ve como un salto: el `nivel_antes` que
-    // quedó grabado no coincide con el `nivel_despues` del partido anterior.
-    // Esos ajustes MANDAN: se adopta el valor del club y se sigue desde ahí,
-    // en lugar de encadenar a ciegas desde el nivel inicial y pisárselos.
     for (const fila of filas) {
-        const k = clave(club, fila.jugador_id);
-        const ultimo = ultimoGrabado.get(k);
-        if (ultimo != null && Math.abs(fila.nivel_antes - ultimo) > 1e-6) {
-            nivel.set(k, fila.nivel_antes);
-            ajustesManuales.push({ jugador: fila.jugador_id, de: ultimo, a: fila.nivel_antes });
+        const reset = RESETS.find(r => r.jugador === fila.jugador_id && r.partido === partidoId);
+        if (reset) {
+            nivel.set(clave(club, fila.jugador_id), reset.nivel);
+            ajustesManuales.push({ jugador: fila.jugador_id, a: reset.nivel });
         }
-        ultimoGrabado.set(k, fila.nivel_despues);
     }
 
-    const nivelDe = (j) => nivel.get(clave(club, j));
-    const prom = (par) => (nivelDe(par.jugador1_id) + nivelDe(par.jugador2_id)) / 2;
-    if ([p1.jugador1_id, p1.jugador2_id, p2.jugador1_id, p2.jugador2_id].some(j => nivelDe(j) == null)) { saltados++; continue; }
+    const ganadores = filas.filter(f => f.delta > 0);
+    const perdedores = filas.filter(f => f.delta < 0);
+    if (ganadores.length !== 2 || perdedores.length !== 2) { saltados++; continue; }
 
-    const promedio1 = prom(p1), promedio2 = prom(p2);
+    const nivelDe = (f) => nivel.get(clave(club, f.jugador_id));
+    if (filas.some(f => nivelDe(f) == null)) { saltados++; continue; }
+
+    const promGana = (nivelDe(ganadores[0]) + nivelDe(ganadores[1])) / 2;
+    const promPierde = (nivelDe(perdedores[0]) + nivelDe(perdedores[1])) / 2;
+
     for (const fila of filas) {
-        const enPareja1 = [p1.jugador1_id, p1.jugador2_id].includes(fila.jugador_id);
-        const mio = enPareja1 ? promedio1 : promedio2;
-        const rival = enPareja1 ? promedio2 : promedio1;
-        const gano = enPareja1 ? gana1 : !gana1;
-        const antes = nivelDe(fila.jugador_id);
+        const gano = fila.delta > 0;
+        const mio = gano ? promGana : promPierde;
+        const rival = gano ? promPierde : promGana;
+        const antes = nivelDe(fila);
         const d = delta(mio, rival, gano);
         const despues = aplicar(antes, d);
         nivel.set(clave(club, fila.jugador_id), despues);
@@ -113,6 +130,7 @@ for (const [partidoId, filas] of porPartido) {
 }
 console.log(`partidos reprocesados: ${porPartido.size - saltados} | saltados: ${saltados}`);
 console.log(`ajustes manuales del club respetados: ${ajustesManuales.length}`);
+for (const x of ajustesManuales) console.log(`   ${x.jugador} queda en ${x.a.toFixed(3)}`);
 
 const { data: users } = await admin.from('users').select('id, nombre, apellido').limit(3000);
 const nom = new Map(users.map(u => [u.id, `${u.nombre || ''} ${u.apellido || ''}`.trim()]));
