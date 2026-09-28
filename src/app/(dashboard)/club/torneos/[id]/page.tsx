@@ -175,14 +175,25 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         jugador2_id?: string;
         grupo_id?: string | null;
         representando_club_id?: string | null;
+        /** Se retiró del torneo: conserva lo jugado, no clasifica. */
+        retirada?: boolean;
     }
 
-    // Parejas marcadas como eliminadas por el corte de participación (liguilla).
-    // Quedan visibles en la tabla, pero excluidas de la clasificación a finales.
+    // Parejas fuera de la pelea por la fase final: las que sacó el corte de
+    // participación y las que se retiraron. Siguen visibles con sus
+    // resultados, pero ya no clasifican.
     const parejasEliminadasSet = new Set<string>(
         (torneo.torneo_parejas || [])
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .filter((tp: any) => tp.eliminada && tp.pareja_id)
+            .filter((tp: any) => (tp.eliminada || tp.retirada) && tp.pareja_id)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .map((tp: any) => tp.pareja_id as string)
+    );
+
+    const parejasRetiradasSet = new Set<string>(
+        (torneo.torneo_parejas || [])
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .filter((tp: any) => tp.retirada && tp.pareja_id)
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .map((tp: any) => tp.pareja_id as string)
     );
@@ -209,7 +220,8 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                 jugador1_id: tp.pareja?.jugador1_id,
                 jugador2_id: tp.pareja?.jugador2_id,
                 grupo_id: tp.torneo_grupo_id ? String(tp.torneo_grupo_id) : null,
-                representando_club_id: tp.representando_club_id
+                representando_club_id: tp.representando_club_id,
+                retirada: !!tp.retirada
             });
         });
     }
@@ -817,10 +829,10 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         configClasifican={torneo.reglas_puntuacion?.config_clasifican_por_grupo}
                         setsCantidad={torneo.reglas_puntuacion?.sets}
                         ordenGrupos={torneo.reglas_puntuacion?.orden_grupos || {}}
-                        idaVueltaConfig={torneo.reglas_puntuacion?.liga_ida_vuelta_config || {}}
                         revanchaConfig={torneo.reglas_puntuacion?.liga_revancha_config || {}}
                         ligaClasificacionConfig={torneo.reglas_puntuacion?.liga_clasificacion_config || {}}
                         parejasEliminadas={parejasEliminadasSet}
+                        parejasRetiradas={parejasRetiradasSet}
                         corteConfig={torneo.reglas_puntuacion?.liga_corte_config || null}
                     />
                 </TabsContent>

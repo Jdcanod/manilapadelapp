@@ -70,14 +70,13 @@ interface Props {
     parejasEliminadas?: Set<string>;
     /** Liguilla: qué categorías juegan ida y vuelta (afecta cuántos partidos
      *  le correspondían a cada pareja para el cálculo de %). */
-    idaVueltaConfig?: Record<string, boolean>;
     /** Nombre + apellido de cada jugador por pareja, para mostrar siempre
      *  "Nombre Apellido / Nombre Apellido" en vez de depender del
      *  `nombre_pareja` guardado (a veces incompleto). */
     parejaPlayers?: ParejaPlayersMap;
 }
 
-export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId, tipoDesempate = "tercer_set", formato = "relampago", setsCantidad = 3, ordenGrupos = {}, ligaClasificacionConfig = {}, parejasEliminadas = new Set(), idaVueltaConfig = {}, parejaPlayers = {} }: Props) {
+export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId, tipoDesempate = "tercer_set", formato = "relampago", setsCantidad = 3, ordenGrupos = {}, ligaClasificacionConfig = {}, parejasEliminadas = new Set(), parejaPlayers = {} }: Props) {
     const esLiguilla = formato === 'liguilla';
 
     const uniqueCategorias = Array.from(new Set(grupos.map(g => g.categoria))).sort();
@@ -213,15 +212,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
         }));
         const globalStandings = calculateStandings(matchesShape, { pointsForLoss: 1 });
 
-        const parejasPorGrupo = new Map<string, string[]>();
-        matchesCat.forEach(p => {
-            if (!p.torneo_grupo_id || p.es_revancha) return;
-            const set = parejasPorGrupo.get(p.torneo_grupo_id) || [];
-            if (p.pareja1_id && !set.includes(p.pareja1_id)) set.push(p.pareja1_id);
-            if (p.pareja2_id && !set.includes(p.pareja2_id)) set.push(p.pareja2_id);
-            parejasPorGrupo.set(p.torneo_grupo_id, set);
-        });
-        const requeridos = calcularRequeridosPorPareja(parejasPorGrupo, !!idaVueltaConfig[selectedCat]);
+        const requeridos = calcularRequeridosPorPareja(matchesCat.filter(p => p.torneo_grupo_id));
 
         const config: ClasifConfig = {
             total: ligaConfigCat.total,

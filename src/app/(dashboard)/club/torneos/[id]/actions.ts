@@ -127,9 +127,6 @@ export async function actualizarCorteConfig(torneoId: string, fecha: string | nu
  * vuelta. Compartido entre la vista previa y la ejecución real del corte.
  */
 async function calcularPorcentajesTorneo(admin: ReturnType<typeof createPureAdminClient>, torneoId: string) {
-    const { data: torneo } = await admin.from('torneos').select('reglas_puntuacion').eq('id', torneoId).single();
-    const idaVueltaPorCategoria = torneo?.reglas_puntuacion?.liga_ida_vuelta_config || {};
-
     const { data: grupos } = await admin.from('torneo_grupos').select('id, categoria').eq('torneo_id', torneoId);
     const { data: partidos } = await admin
         .from('partidos')
@@ -164,16 +161,7 @@ async function calcularPorcentajesTorneo(admin: ReturnType<typeof createPureAdmi
             { pointsForLoss: 1 }
         );
 
-        const parejasPorGrupo = new Map<string, string[]>();
-        const idsGrupo: string[] = [];
-        matchesGrupo.forEach((m: PartidoCorte) => {
-            if (m.es_revancha) return;
-            if (m.pareja1_id && !idsGrupo.includes(m.pareja1_id)) idsGrupo.push(m.pareja1_id);
-            if (m.pareja2_id && !idsGrupo.includes(m.pareja2_id)) idsGrupo.push(m.pareja2_id);
-        });
-        parejasPorGrupo.set(grupo.id, idsGrupo);
-        const esIdaVuelta = !!idaVueltaPorCategoria[grupo.categoria];
-        const requeridos = calcularRequeridosPorPareja(parejasPorGrupo, esIdaVuelta);
+        const requeridos = calcularRequeridosPorPareja(matchesGrupo);
 
         standings.forEach(s => {
             const req = requeridos.get(s.parejaId) || 0;
@@ -2353,22 +2341,10 @@ export async function generarFaseEliminatoriaTopN(
             // Partidos requeridos por pareja (según tamaño de su grupo y si la
             // categoría juega ida y vuelta) — para el modo % y para desempatar
             // los cupos sobrantes (siempre por %, sin importar el modo).
-            const { data: gruposCat } = await supabaseAdmin
-                .from('torneo_grupos').select('id').eq('torneo_id', torneoId).eq('categoria', categoria);
             const { data: matchesCat } = await supabaseAdmin
                 .from('partidos').select('torneo_grupo_id, pareja1_id, pareja2_id, es_revancha')
                 .eq('torneo_id', torneoId).eq('nivel', categoria).not('torneo_grupo_id', 'is', null);
-            const parejasPorGrupo = new Map<string, string[]>();
-            (gruposCat || []).forEach(g => {
-                const ids: string[] = [];
-                (matchesCat || []).filter(m => m.torneo_grupo_id === g.id && !m.es_revancha).forEach(m => {
-                    if (m.pareja1_id && !ids.includes(m.pareja1_id)) ids.push(m.pareja1_id);
-                    if (m.pareja2_id && !ids.includes(m.pareja2_id)) ids.push(m.pareja2_id);
-                });
-                parejasPorGrupo.set(g.id, ids);
-            });
-            const esIdaVueltaCat = !!torneo?.reglas_puntuacion?.liga_ida_vuelta_config?.[categoria];
-            const requeridosPorPareja = calcularRequeridosPorPareja(parejasPorGrupo, esIdaVueltaCat);
+            const requeridosPorPareja = calcularRequeridosPorPareja(matchesCat || []);
 
             // Modo/mínimos persistidos (configurados desde el control en vivo);
             // `totalClasificados` sigue viniendo del dialog para poder ajustarlo
@@ -2550,22 +2526,10 @@ export async function generarGruposFinales(torneoId: string, categoria: string, 
             .eq('eliminada', true);
         const eliminadas = new Set((inscripcionesElim || []).map(i => i.pareja_id as string));
 
-        const { data: gruposIniciales } = await supabaseAdmin
-            .from('torneo_grupos').select('id').eq('torneo_id', torneoId).eq('categoria', categoria).eq('fase', 'inicial');
         const { data: matchesIniciales } = await supabaseAdmin
             .from('partidos').select('torneo_grupo_id, pareja1_id, pareja2_id, es_revancha')
             .eq('torneo_id', torneoId).eq('nivel', categoria).not('torneo_grupo_id', 'is', null);
-        const parejasPorGrupo = new Map<string, string[]>();
-        (gruposIniciales || []).forEach(g => {
-            const ids: string[] = [];
-            (matchesIniciales || []).filter(m => m.torneo_grupo_id === g.id && !m.es_revancha).forEach(m => {
-                if (m.pareja1_id && !ids.includes(m.pareja1_id)) ids.push(m.pareja1_id);
-                if (m.pareja2_id && !ids.includes(m.pareja2_id)) ids.push(m.pareja2_id);
-            });
-            parejasPorGrupo.set(g.id, ids);
-        });
-        const esIdaVueltaCat = !!torneo?.reglas_puntuacion?.liga_ida_vuelta_config?.[categoria];
-        const requeridosPorPareja = calcularRequeridosPorPareja(parejasPorGrupo, esIdaVueltaCat);
+        const requeridosPorPareja = calcularRequeridosPorPareja(matchesIniciales || []);
 
         // El dueño del torneo puede confirmar/ajustar aquí mismo cuántas
         // parejas clasifican — si no manda un valor, se usa el ya
@@ -3160,6 +3124,80 @@ export async function crearRevancha(matchId: string) {
     } catch (err: unknown) {
         const e = err as Error;
         return { success: false, message: e.message || "Error desconocido" };
+    }
+}
+
+/**
+ * Retira una pareja del torneo en curso.
+ *
+ * Lo que ya jugó SE MANTIENE: esos resultados afectaron la tabla de sus
+ * rivales, y borrarlos falsearía el torneo de gente que no tuvo nada que ver.
+ * Lo que se cancela son sus partidos pendientes, y con eso baja lo que se le
+ * exige jugar a cada rival — quien tenía pendiente enfrentarla ya no carga
+ * con un partido que nadie va a jugar (`calcularRequeridosPorPareja` cuenta
+ * los partidos que existen, así que el ajuste es automático).
+ *
+ * La pareja queda visible en la tabla, marcada, y no clasifica a la fase
+ * final. Distinto de "dar de baja", que borra la inscripción entera y se usa
+ * para una inscripción equivocada, no para alguien que ya jugó.
+ */
+export async function retirarParejaDelTorneo(torneoId: string, parejaId: string): Promise<{ ok: boolean; mensaje: string }> {
+    try {
+        const { admin } = await requireClubOwnership(torneoId);
+
+        const { data: pendientes, error: errBuscar } = await admin
+            .from('partidos')
+            .select('id')
+            .eq('torneo_id', torneoId)
+            .is('resultado', null)
+            .or(`pareja1_id.eq.${parejaId},pareja2_id.eq.${parejaId}`);
+        if (errBuscar) return { ok: false, mensaje: errBuscar.message };
+
+        if (pendientes && pendientes.length > 0) {
+            const { error: errBorrar } = await admin
+                .from('partidos').delete().in('id', pendientes.map((p: { id: string }) => p.id));
+            if (errBorrar) return { ok: false, mensaje: errBorrar.message };
+        }
+
+        const { error: errMarcar } = await admin
+            .from('torneo_parejas')
+            .update({ retirada: true, retirada_en: new Date().toISOString() })
+            .eq('torneo_id', torneoId)
+            .eq('pareja_id', parejaId);
+        if (errMarcar) return { ok: false, mensaje: errMarcar.message };
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        revalidatePath(`/torneos/${torneoId}`);
+        const n = pendientes?.length || 0;
+        return {
+            ok: true,
+            mensaje: n > 0
+                ? `Pareja retirada. Se cancelaron ${n} partido${n === 1 ? '' : 's'} pendiente${n === 1 ? '' : 's'}; lo ya jugado se mantiene.`
+                : "Pareja retirada. No tenía partidos pendientes; lo ya jugado se mantiene.",
+        };
+    } catch (err: unknown) {
+        return { ok: false, mensaje: err instanceof Error ? err.message : "Error desconocido" };
+    }
+}
+
+/**
+ * Deshace el retiro. Los partidos cancelados NO vuelven solos: si la pareja
+ * se reincorpora hay que regenerar sus cruces desde el sorteo, porque al
+ * cancelarlos se borraron.
+ */
+export async function reincorporarPareja(torneoId: string, parejaId: string): Promise<{ ok: boolean; mensaje: string }> {
+    try {
+        const { admin } = await requireClubOwnership(torneoId);
+        const { error } = await admin
+            .from('torneo_parejas')
+            .update({ retirada: false, retirada_en: null })
+            .eq('torneo_id', torneoId)
+            .eq('pareja_id', parejaId);
+        if (error) return { ok: false, mensaje: error.message };
+        revalidatePath(`/club/torneos/${torneoId}`);
+        return { ok: true, mensaje: "Pareja reincorporada. Sus partidos cancelados no vuelven: hay que volver a generarlos." };
+    } catch (err: unknown) {
+        return { ok: false, mensaje: err instanceof Error ? err.message : "Error desconocido" };
     }
 }
 

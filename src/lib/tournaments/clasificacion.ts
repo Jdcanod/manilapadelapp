@@ -100,14 +100,36 @@ export function calcularClasificados(
  * de su grupo (round-robin: tamaño-1) y si la categoría juega ida y vuelta
  * (×2). `parejaIdsPorGrupo` es grupoId -> lista de parejaIds del grupo.
  */
-export function calcularRequeridosPorPareja(
-    parejaIdsPorGrupo: Map<string, string[]>,
-    esIdaVuelta: boolean,
-): Map<string, number> {
+export interface PartidoRequerido {
+    pareja1_id?: string | null;
+    pareja2_id?: string | null;
+    es_revancha?: boolean | null;
+}
+
+/**
+ * Cuántos partidos le corresponden a cada pareja: los que REALMENTE tiene en
+ * la tabla, jugados o pendientes.
+ *
+ * Antes se calculaba como "parejas del grupo − 1", que es lo mismo mientras
+ * el round-robin esté completo. Pero cuando una pareja se retira y se
+ * cancelan sus partidos pendientes, sus rivales se quedaban con un
+ * denominador que incluía un partido que ya nadie va a jugar, y su % de
+ * participación caía sin que fuera culpa suya. Contando las filas que
+ * existen, el denominador baja solo: al que ya le había jugado a la pareja
+ * retirada le sigue contando (ese partido sí se jugó) y al que no, no.
+ *
+ * Las revanchas no cuentan: son un partido extra, no uno exigido.
+ */
+export function calcularRequeridosPorPareja(partidos: PartidoRequerido[]): Map<string, number> {
     const requeridos = new Map<string, number>();
-    parejaIdsPorGrupo.forEach(parejaIds => {
-        const requeridosGrupo = Math.max(0, parejaIds.length - 1) * (esIdaVuelta ? 2 : 1);
-        parejaIds.forEach(pid => requeridos.set(pid, requeridosGrupo));
-    });
+    const sumar = (id: string | null | undefined) => {
+        if (!id) return;
+        requeridos.set(id, (requeridos.get(id) || 0) + 1);
+    };
+    for (const p of partidos) {
+        if (p.es_revancha) continue;
+        sumar(p.pareja1_id);
+        sumar(p.pareja2_id);
+    }
     return requeridos;
 }

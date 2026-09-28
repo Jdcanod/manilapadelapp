@@ -434,7 +434,6 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                                 ordenGrupos={torneo.reglas_puntuacion?.orden_grupos || {}}
                                 ligaClasificacionConfig={torneo.reglas_puntuacion?.liga_clasificacion_config || {}}
                                 parejasEliminadas={parejasEliminadasSet}
-                                idaVueltaConfig={torneo.reglas_puntuacion?.liga_ida_vuelta_config || {}}
                             />
                     </TabsContent>
                     <TabsContent value="cuadros" className="mt-8">

@@ -76,6 +76,8 @@ interface Props {
      *  (persistido por categoría en torneo_parejas.eliminada). Se muestran en
      *  la tabla pero se excluyen de la clasificación. */
     parejasEliminadas?: Set<string>;
+    /** Parejas que se retiraron: se marcan distinto del corte por participación. */
+    parejasRetiradas?: Set<string>;
     /** Config del corte, única para todo el torneo (no por categoría). */
     corteConfig?: { fecha: string; porcentaje: number; ejecutado: boolean } | null;
 }
@@ -94,7 +96,7 @@ interface Standing {
     revanchas: number; // Revanchas jugadas y confirmadas
 }
 
-export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", tipoDesempatePorCategoria = {}, allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican, setsCantidad, ordenGrupos = {}, idaVueltaConfig = {}, revanchaConfig = {}, ligaClasificacionConfig = {}, parejasEliminadas = new Set(), corteConfig = null }: Props) {
+export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", tipoDesempatePorCategoria = {}, allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican, setsCantidad, ordenGrupos = {}, idaVueltaConfig = {}, revanchaConfig = {}, ligaClasificacionConfig = {}, parejasEliminadas = new Set(), parejasRetiradas = new Set(), corteConfig = null }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const [selectedCat, setSelectedCat] = useState(categorias[0] || "General");
@@ -313,16 +315,10 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
         }));
         const globalStandings = calculateStandings(matchesShape, { pointsForLoss: 1 });
 
-        // Parejas por grupo (para calcular cuántos partidos le correspondían a cada una)
-        const parejasPorGrupo = new Map<string, string[]>();
-        matchesCat.forEach(p => {
-            if (!p.torneo_grupo_id || p.es_revancha) return;
-            const set = parejasPorGrupo.get(p.torneo_grupo_id) || [];
-            if (p.pareja1_id && !set.includes(p.pareja1_id)) set.push(p.pareja1_id);
-            if (p.pareja2_id && !set.includes(p.pareja2_id)) set.push(p.pareja2_id);
-            parejasPorGrupo.set(p.torneo_grupo_id, set);
-        });
-        const requeridos = calcularRequeridosPorPareja(parejasPorGrupo, idaVueltaActiva);
+        // Cuántos partidos le correspondían a cada pareja: los que tiene en la
+        // tabla. Si alguien se retiró, sus pendientes ya no están y el
+        // denominador de sus rivales baja solo.
+        const requeridos = calcularRequeridosPorPareja(matchesCat.filter(p => p.torneo_grupo_id));
 
         const config: ClasifConfig = {
             total: ligaConfigCat.total,
@@ -901,7 +897,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                             />
                                                             {parejasEliminadas.has(team.parejaId) && (
                                                                 <span className="ml-1 text-[8px] font-black uppercase text-red-600 bg-red-500/10 border border-red-500/30 rounded-full px-1.5 py-0.5">
-                                                                    Eliminada
+                                                                    {parejasRetiradas.has(team.parejaId) ? 'Retirada' : 'Eliminada'}
                                                                 </span>
                                                             )}
                                                         </>
@@ -1040,7 +1036,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                 />
                                                                 {parejasEliminadas.has(team.parejaId) && (
                                                                     <span className="text-[8px] font-black uppercase text-red-600 bg-red-500/10 border border-red-500/30 rounded-full px-1.5 py-0.5 flex-shrink-0">
-                                                                        Eliminada
+                                                                        {parejasRetiradas.has(team.parejaId) ? 'Retirada' : 'Eliminada'}
                                                                     </span>
                                                                 )}
                                                                 {/* En Liga, una vez la pareja es real (no TBD), mover/quitar

@@ -2,12 +2,12 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { darDeBajaPareja, actualizarEstadoPago, editarParticipantesInscripcion, obtenerTodosJugadores } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { darDeBajaPareja, actualizarEstadoPago, editarParticipantesInscripcion, obtenerTodosJugadores, retirarParejaDelTorneo, reincorporarPareja } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Trash2, Edit2, CreditCard, UserPlus, AlertCircle } from "lucide-react";
+import { Trash2, Edit2, CreditCard, UserPlus, AlertCircle, LogOut, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPlayerNameFull, isGuestEmail } from "@/lib/display-names";
 
@@ -29,9 +29,11 @@ interface AdminParticipantActionsProps {
     j1Id?: string;
     j2Id?: string;
     estadoPago?: string;
+    /** La pareja se retiró: conserva lo jugado pero ya no clasifica. */
+    retirada?: boolean;
 }
 
-export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStarted, j1Id, j2Id, estadoPago }: AdminParticipantActionsProps) {
+export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStarted, j1Id, j2Id, estadoPago, retirada }: AdminParticipantActionsProps) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const [editOpen, setEditOpen] = useState(false);
@@ -101,6 +103,37 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
             } catch (err: unknown) {
                 setError(err instanceof Error ? err.message : "Error al editar integrantes");
             }
+        });
+    };
+
+    /**
+     * Retiro: para una pareja que YA jugó y no sigue. Distinto de la papelera,
+     * que borra la inscripción entera y sirve para una inscripción equivocada.
+     */
+    const handleRetirar = () => {
+        const aviso = [
+            "¿Retirar a esta pareja del torneo?",
+            "",
+            "· Los partidos que ya jugó SE MANTIENEN, con sus resultados.",
+            "· Sus partidos pendientes se cancelan.",
+            "· A sus rivales les baja lo que se les exige jugar, así que no los perjudica.",
+            "· La pareja queda en la tabla, marcada, y no clasifica a la fase final.",
+        ].join("\n");
+        if (!confirm(aviso)) return;
+
+        startTransition(async () => {
+            const r = await retirarParejaDelTorneo(torneoId, parejaId);
+            if (r.ok) router.refresh();
+            else alert("No se pudo retirar: " + r.mensaje);
+        });
+    };
+
+    const handleReincorporar = () => {
+        if (!confirm("¿Reincorporar a esta pareja?\n\nOjo: los partidos que se cancelaron NO vuelven solos, hay que generarlos de nuevo desde el sorteo.")) return;
+        startTransition(async () => {
+            const r = await reincorporarPareja(torneoId, parejaId);
+            if (r.ok) router.refresh();
+            else alert("No se pudo reincorporar: " + r.mensaje);
         });
     };
 
@@ -288,6 +321,27 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* RETIRAR / REINCORPORAR — sólo tiene sentido con el torneo andando */}
+            {hasStarted && (
+                retirada ? (
+                    <Button
+                        variant="ghost" size="sm" onClick={handleReincorporar} disabled={isPending}
+                        title="Reincorporar al torneo"
+                        className="h-8 w-8 p-0 text-olive/50 hover:text-olive hover:bg-olive/10 rounded-lg transition-colors"
+                    >
+                        <Undo2 className="w-3 h-3" />
+                    </Button>
+                ) : (
+                    <Button
+                        variant="ghost" size="sm" onClick={handleRetirar} disabled={isPending}
+                        title="Retirar del torneo (conserva lo jugado)"
+                        className="h-8 w-8 p-0 text-olive/50 hover:text-ochre-dark hover:bg-ochre/10 rounded-lg transition-colors"
+                    >
+                        <LogOut className="w-3 h-3" />
+                    </Button>
+                )
+            )}
 
             {/* BOTÓN ELIMINAR */}
             <Button

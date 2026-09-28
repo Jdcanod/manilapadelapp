@@ -15,6 +15,7 @@ interface Participant {
     tipo: 'master' | 'regular';
     jugador1_id?: string;
     jugador2_id?: string;
+    retirada?: boolean;
 }
 
 interface Props {
@@ -100,8 +101,13 @@ export function ParejasInscritasTable({ participants, torneoId, hasStarted }: Pr
                         <tbody>
                             {filtrados.map((tp) => (
                                 <tr key={tp.id} className="bg-paper-soft border-b border-olive/20 hover:bg-paper-dark/30">
-                                    <td className="px-6 py-4 font-bold text-ink">
-                                        {tp.nombre}
+                                    <td className={cn("px-6 py-4 font-bold", tp.retirada ? "text-olive/60" : "text-ink")}>
+                                        <span className={cn(tp.retirada && "line-through")}>{tp.nombre}</span>
+                                        {tp.retirada && (
+                                            <span className="ml-2 text-[9px] font-black uppercase tracking-widest text-red-600 bg-red-500/10 border border-red-500/30 rounded-full px-1.5 py-0.5 align-middle">
+                                                Retirada
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4">
                                         {tp.categoria}
@@ -121,6 +127,7 @@ export function ParejasInscritasTable({ participants, torneoId, hasStarted }: Pr
                                             j1Id={tp.jugador1_id}
                                             j2Id={tp.jugador2_id}
                                             estadoPago={tp.estado_pago}
+                                            retirada={tp.retirada}
                                         />
                                     </td>
                                 </tr>
