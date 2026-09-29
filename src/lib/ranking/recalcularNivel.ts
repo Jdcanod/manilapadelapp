@@ -1,5 +1,5 @@
 import { createPureAdminClient } from "@/utils/supabase/server";
-import { calcularDeltaNivel, aplicarDeltaNivel } from "./nivel";
+import { calcularDeltaNivel, aplicarDeltaNivel, sumaCategorias } from "./nivel";
 import { isGuestEmail } from "@/lib/display-names";
 
 /** Dado el resultado "6-3,4-6,10-7" (o variantes de separador) devuelve qué pareja ganó: 1 o 2. */
@@ -86,28 +86,34 @@ export async function recalcularNivelPorPartido(matchId: string): Promise<void> 
         // ni recibir nivel: si alguno de los 4 es invitado, se omite el partido.
         if (jugadoresRows.some(j => isGuestEmail(j.email))) return;
 
-        // Nivel de cada jugador EN ESTE CLUB (no el global).
+        // Nivel y categoría de cada jugador EN ESTE CLUB (no el global).
+        // El nivel es lo que sube o baja; la CATEGORÍA es lo que decide cuánto.
         const { data: nivelesClub } = await admin
             .from('ranking_club_jugador')
-            .select('jugador_id, nivel_ranking')
+            .select('jugador_id, nivel_ranking, categoria_jugador')
             .eq('club_id', clubId)
             .in('jugador_id', jugadorIds);
-        interface NivelClubRow { jugador_id: string; nivel_ranking: number | null; }
+        interface NivelClubRow { jugador_id: string; nivel_ranking: number | null; categoria_jugador: string | null; }
         const nivelesClubRows = (nivelesClub || []) as NivelClubRow[];
+        const filaDe = (id: string) => nivelesClubRows.find(n => n.jugador_id === id);
         const nivelMap = new Map<string, number | null>(
-            jugadorIds.map(id => [id, nivelesClubRows.find(n => n.jugador_id === id)?.nivel_ranking ?? null])
+            jugadorIds.map(id => [id, filaDe(id)?.nivel_ranking ?? null])
         );
 
-        // Si a alguno de los 4 le falta nivel_ranking EN ESTE CLUB (el club aún
-        // no lo asignó), no podemos calcular la diferencia de forma confiable.
+        // Si a alguno de los 4 le falta nivel EN ESTE CLUB (el club aún no se
+        // lo asignó), no hay a qué sumarle ni restarle.
         if (jugadorIds.some(id => nivelMap.get(id) == null)) return;
+
+        // La fuerza de cada pareja es la suma de las categorías de sus dos
+        // jugadores: un 4ta con un 6ta (=10) vale lo mismo que dos 5ta (=10).
+        const sumaPareja1 = sumaCategorias(filaDe(pareja1.jugador1_id!)?.categoria_jugador, filaDe(pareja1.jugador2_id!)?.categoria_jugador);
+        const sumaPareja2 = sumaCategorias(filaDe(pareja2.jugador1_id!)?.categoria_jugador, filaDe(pareja2.jugador2_id!)?.categoria_jugador);
+        if (sumaPareja1 == null || sumaPareja2 == null) return;
 
         const nivelP1J1 = nivelMap.get(pareja1.jugador1_id!)!;
         const nivelP1J2 = nivelMap.get(pareja1.jugador2_id!)!;
         const nivelP2J1 = nivelMap.get(pareja2.jugador1_id!)!;
         const nivelP2J2 = nivelMap.get(pareja2.jugador2_id!)!;
-        const promedioPareja1 = (nivelP1J1 + nivelP1J2) / 2;
-        const promedioPareja2 = (nivelP2J1 + nivelP2J2) / 2;
 
         const ganoPareja1 = winner === 1;
 
@@ -115,19 +121,19 @@ export async function recalcularNivelPorPartido(matchId: string): Promise<void> 
         const updates: { jugadorId: string; nivel_ranking: number }[] = [];
 
         // `nivelPropio` es el nivel del jugador (lo que se le suma o resta);
-        // `nivelPareja` es el promedio de su dupla, que es lo que se compara
-        // contra la pareja rival para medir qué tan pareja estaba la cancha.
-        const procesarJugador = (jugadorId: string, nivelPropio: number, nivelPareja: number, nivelRivalPromedio: number, gano: boolean) => {
-            const delta = calcularDeltaNivel({ nivelJugador: nivelPareja, nivelRivalPromedio, gano });
+        // las sumas de categorías son lo que mide qué tan pareja estaba la
+        // cancha, y por lo tanto cuánto se mueve.
+        const procesarJugador = (jugadorId: string, nivelPropio: number, sumaPropia: number, sumaRival: number, gano: boolean) => {
+            const delta = calcularDeltaNivel({ sumaPropia, sumaRival, gano });
             const nivelDespues = aplicarDeltaNivel(nivelPropio, delta);
             historialRows.push({ jugador_id: jugadorId, partido_id: matchId, club_id: clubId, nivel_antes: nivelPropio, nivel_despues: nivelDespues, delta });
             updates.push({ jugadorId, nivel_ranking: nivelDespues });
         };
 
-        procesarJugador(pareja1.jugador1_id!, nivelP1J1, promedioPareja1, promedioPareja2, ganoPareja1);
-        procesarJugador(pareja1.jugador2_id!, nivelP1J2, promedioPareja1, promedioPareja2, ganoPareja1);
-        procesarJugador(pareja2.jugador1_id!, nivelP2J1, promedioPareja2, promedioPareja1, !ganoPareja1);
-        procesarJugador(pareja2.jugador2_id!, nivelP2J2, promedioPareja2, promedioPareja1, !ganoPareja1);
+        procesarJugador(pareja1.jugador1_id!, nivelP1J1, sumaPareja1, sumaPareja2, ganoPareja1);
+        procesarJugador(pareja1.jugador2_id!, nivelP1J2, sumaPareja1, sumaPareja2, ganoPareja1);
+        procesarJugador(pareja2.jugador1_id!, nivelP2J1, sumaPareja2, sumaPareja1, !ganoPareja1);
+        procesarJugador(pareja2.jugador2_id!, nivelP2J2, sumaPareja2, sumaPareja1, !ganoPareja1);
 
         const { error: histError } = await admin.from('ranking_nivel_historial').insert(historialRows);
         if (histError) {

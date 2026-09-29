@@ -25,9 +25,10 @@ const admin = createClient(leer('NEXT_PUBLIC_SUPABASE_URL'), leer('SUPABASE_SERV
 });
 
 // Espejo de src/lib/ranking/nivel.ts — si cambia allá, cambia acá.
-const EN_JUEGO = 0.1, ESCALA = 1.5, MINIMO = 0.01;
-const delta = (nivelPareja, nivelRival, gano) => {
-    const esperado = 1 / (1 + Math.pow(10, (nivelRival - nivelPareja) / ESCALA));
+const EN_JUEGO = 0.04, ESCALA = 3.3, MINIMO = 0.005;
+const NUMERO_CATEGORIA = { '1ra': 1, '2da': 2, '3ra': 3, '4ta': 4, '5ta': 5, '6ta': 6, '7ma': 7, 'Iniciacion': 8 };
+const delta = (sumaPropia, sumaRival, gano) => {
+    const esperado = 1 / (1 + Math.pow(10, (sumaPropia - sumaRival) / ESCALA));
     const bruto = EN_JUEGO * ((gano ? 1 : 0) - esperado);
     const magnitud = Math.max(MINIMO, Math.abs(bruto));
     return gano ? magnitud : -magnitud;
@@ -85,6 +86,19 @@ const RESETS = [
     { jugador: '267152b0-1835-4a17-8e68-957568c4b190', partido: '65af486c-bb26-475c-aad5-d8bbcfff4c1a', nivel: 3.0 },
 ];
 
+// Categoría de cada jugador en su club. Es lo que decide cuánto se mueve
+// un partido. Ojo: se usa la categoría ACTUAL, porque no se guarda cuál
+// tenía cada quien en cada fecha; si el club recategoriza a alguien, el
+// historial se rejuega con su categoría de hoy.
+const { data: fichas } = await admin.from('ranking_club_jugador').select('club_id, jugador_id, categoria_jugador');
+const categoria = new Map((fichas || []).map(f => [`${f.club_id}|${f.jugador_id}`, f.categoria_jugador]));
+const sumaCategorias = (club, a, b) => {
+    const na = NUMERO_CATEGORIA[categoria.get(`${club}|${a}`)];
+    const nb = NUMERO_CATEGORIA[categoria.get(`${club}|${b}`)];
+    if (na === undefined || nb === undefined) return null;
+    return na + nb;
+};
+
 const nuevasFilas = [];
 const ajustesManuales = [];
 let saltados = 0;
@@ -114,13 +128,14 @@ for (const [partidoId, filas] of porPartido) {
     const nivelDe = (f) => nivel.get(clave(club, f.jugador_id));
     if (filas.some(f => nivelDe(f) == null)) { saltados++; continue; }
 
-    const promGana = (nivelDe(ganadores[0]) + nivelDe(ganadores[1])) / 2;
-    const promPierde = (nivelDe(perdedores[0]) + nivelDe(perdedores[1])) / 2;
+    const sumaGana = sumaCategorias(club, ganadores[0].jugador_id, ganadores[1].jugador_id);
+    const sumaPierde = sumaCategorias(club, perdedores[0].jugador_id, perdedores[1].jugador_id);
+    if (sumaGana == null || sumaPierde == null) { saltados++; continue; }
 
     for (const fila of filas) {
         const gano = fila.delta > 0;
-        const mio = gano ? promGana : promPierde;
-        const rival = gano ? promPierde : promGana;
+        const mio = gano ? sumaGana : sumaPierde;
+        const rival = gano ? sumaPierde : sumaGana;
         const antes = nivelDe(fila);
         const d = delta(mio, rival, gano);
         const despues = aplicar(antes, d);
