@@ -193,14 +193,14 @@ export async function previsualizarCorte(torneoId: string) {
 
         const { data: inscripciones } = await admin
             .from('torneo_parejas')
-            .select('pareja_id, categoria, eliminada, pareja:parejas(nombre_pareja)')
+            .select('pareja_id, categoria, eliminada, excusa, excusa_motivo, pareja:parejas(nombre_pareja)')
             .eq('torneo_id', torneoId);
 
         const porcentajes = await calcularPorcentajesTorneo(admin, torneoId);
         const porcentajePorPareja = new Map(porcentajes.map(p => [`${p.parejaId}:${p.categoria}`, p]));
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const candidatos = (inscripciones || [])
+        const bajoElCorte = (inscripciones || [])
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .filter((i: any) => !i.eliminada)
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -213,11 +213,19 @@ export async function previsualizarCorte(torneoId: string) {
                     porcentaje: p ? Math.round(p.porcentaje) : 0,
                     pj: p?.pj ?? 0,
                     requeridos: p?.requeridos ?? 0,
+                    excusa: !!i.excusa,
+                    excusaMotivo: (i.excusa_motivo || null) as string | null,
                 };
             })
             .filter((c: { porcentaje: number }) => c.porcentaje < corte.porcentaje);
 
-        return { success: true, candidatos, porcentajeCorte: corte.porcentaje, fecha: corte.fecha, ejecutado: !!corte.ejecutado };
+        // Las que tienen excusa se muestran aparte: están bajo el corte pero
+        // no se van a eliminar, y el club debe verlas para no llevarse una
+        // sorpresa al ejecutar.
+        const candidatos = bajoElCorte.filter((c: { excusa: boolean }) => !c.excusa);
+        const conExcusa = bajoElCorte.filter((c: { excusa: boolean }) => c.excusa);
+
+        return { success: true, candidatos, conExcusa, porcentajeCorte: corte.porcentaje, fecha: corte.fecha, ejecutado: !!corte.ejecutado };
     } catch (err: unknown) {
         return { success: false, message: (err as Error).message || "Error desconocido" };
     }
@@ -248,11 +256,15 @@ export async function ejecutarCorte(torneoId: string) {
         const corte = torneo.reglas_puntuacion?.liga_corte_config;
         if (!corte) return { success: false, message: "No hay un corte configurado para este torneo" };
 
+        // Las parejas con excusa no entran al corte: siguen en el torneo y
+        // conservan sus partidos pendientes, así que todavía pueden llegar al
+        // mínimo. La excusa no las exime de cumplirlo para clasificar.
         const { data: inscripciones } = await admin
             .from('torneo_parejas')
             .select('id, pareja_id, categoria, eliminada')
             .eq('torneo_id', torneoId)
-            .eq('eliminada', false);
+            .eq('eliminada', false)
+            .eq('excusa', false);
 
         const porcentajes = await calcularPorcentajesTorneo(admin, torneoId);
         const porcentajePorPareja = new Map(porcentajes.map(p => [`${p.parejaId}:${p.categoria}`, p.porcentaje]));
@@ -3191,6 +3203,53 @@ export async function crearRevancha(matchId: string) {
  * final. Distinto de "dar de baja", que borra la inscripción entera y se usa
  * para una inscripción equivocada, no para alguien que ya jugó.
  */
+/**
+ * Marca (o quita) la excusa de una pareja frente al corte por participación.
+ *
+ * La excusa la salva del corte: no la sacan aunque esté por debajo del
+ * mínimo, y conserva sus partidos pendientes, así que todavía puede
+ * alcanzarlo. NO la exime de clasificar: si al final no llega al mínimo, no
+ * entra a la fase final, igual que cualquiera.
+ *
+ * El motivo se guarda porque el resto del club lo ve: una excepción sin
+ * explicación parece favoritismo.
+ */
+export async function marcarExcusaPareja(
+    torneoId: string,
+    parejaId: string,
+    excusa: boolean,
+    motivo?: string,
+): Promise<{ ok: boolean; mensaje: string }> {
+    try {
+        const { admin } = await requireClubOwnership(torneoId);
+
+        const limpio = (motivo || "").trim().slice(0, 300);
+        if (excusa && limpio.length < 3) {
+            return { ok: false, mensaje: "Escribe el motivo de la excusa: queda visible para el club." };
+        }
+
+        const { error } = await admin
+            .from('torneo_parejas')
+            .update(excusa
+                ? { excusa: true, excusa_motivo: limpio, excusa_en: new Date().toISOString() }
+                : { excusa: false, excusa_motivo: null, excusa_en: null })
+            .eq('torneo_id', torneoId)
+            .eq('pareja_id', parejaId);
+        if (error) return { ok: false, mensaje: error.message };
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        revalidatePath(`/torneos/${torneoId}`);
+        return {
+            ok: true,
+            mensaje: excusa
+                ? "Excusa registrada. El corte ya no la saca, pero sigue necesitando el mínimo para clasificar."
+                : "Excusa quitada. Vuelve a entrar al corte.",
+        };
+    } catch (err: unknown) {
+        return { ok: false, mensaje: err instanceof Error ? err.message : "Error desconocido" };
+    }
+}
+
 export async function retirarParejaDelTorneo(torneoId: string, parejaId: string): Promise<{ ok: boolean; mensaje: string }> {
     try {
         const { admin } = await requireClubOwnership(torneoId);

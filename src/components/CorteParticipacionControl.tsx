@@ -14,6 +14,8 @@ interface Candidato {
     porcentaje: number;
     pj: number;
     requeridos: number;
+    excusa?: boolean;
+    excusaMotivo?: string | null;
 }
 
 interface Props {
@@ -30,6 +32,8 @@ export function CorteParticipacionControl({ torneoId, corteActual }: Props) {
     const [pending, startTransition] = useTransition();
     const [ok, setOk] = useState(false);
     const [preview, setPreview] = useState<Candidato[] | null>(null);
+    /** Están bajo el corte pero tienen excusa: no se van a eliminar. */
+    const [conExcusa, setConExcusa] = useState<Candidato[]>([]);
     const [previewOpen, setPreviewOpen] = useState(false);
 
     const huboCambio = fecha !== (corteActual?.fecha || "") || porcentaje !== (corteActual?.porcentaje ?? 50);
@@ -50,6 +54,7 @@ export function CorteParticipacionControl({ torneoId, corteActual }: Props) {
             const r = await previsualizarCorte(torneoId);
             if (!r.success) { alert(r.message); setPreviewOpen(false); return; }
             setPreview(r.candidatos || []);
+            setConExcusa(r.conExcusa || []);
         });
     };
 
@@ -117,8 +122,31 @@ export function CorteParticipacionControl({ torneoId, corteActual }: Props) {
 
                     {previewOpen && preview && (
                         <div className="mt-3 space-y-2">
+                            {conExcusa.length > 0 && (
+                                <div className="border border-emerald-600/25 bg-emerald-500/5 rounded-lg p-3">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-800 mb-1.5">
+                                        Con excusa — el corte no las saca ({conExcusa.length})
+                                    </p>
+                                    <ul className="space-y-1">
+                                        {conExcusa.map(c => (
+                                            <li key={`exc-${c.parejaId}-${c.categoria}`} className="text-[11px] text-ink">
+                                                <span className="font-semibold">{c.nombre}</span>
+                                                <span className="text-olive/60"> · {c.categoria} · {c.pj}/{c.requeridos} ({c.porcentaje}%)</span>
+                                                {c.excusaMotivo && <span className="block text-[10px] text-olive/70 italic ml-1">{c.excusaMotivo}</span>}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <p className="text-[10px] text-olive/60 mt-2 leading-relaxed">
+                                        Siguen jugando y conservan sus partidos pendientes. Si al final no llegan al mínimo,
+                                        igual no clasifican: la excusa salva del corte, no del requisito.
+                                    </p>
+                                </div>
+                            )}
+
                             {preview.length === 0 ? (
-                                <p className="text-[11px] text-olive/60 italic">Ninguna pareja está por debajo del {porcentaje}% ahora mismo.</p>
+                                <p className="text-[11px] text-olive/60 italic">
+                                    Ninguna pareja sin excusa está por debajo del {porcentaje}% ahora mismo.
+                                </p>
                             ) : (
                                 <>
                                     <div className="border border-red-600/20 rounded-lg overflow-hidden">

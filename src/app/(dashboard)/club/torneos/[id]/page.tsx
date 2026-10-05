@@ -177,6 +177,9 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         representando_club_id?: string | null;
         /** Se retiró del torneo: conserva lo jugado, no clasifica. */
         retirada?: boolean;
+        /** El corte no la saca; sigue necesitando el mínimo para clasificar. */
+        excusa?: boolean;
+        excusaMotivo?: string | null;
     }
 
     // Parejas fuera de la pelea por la fase final: las que sacó el corte de
@@ -221,7 +224,9 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                 jugador2_id: tp.pareja?.jugador2_id,
                 grupo_id: tp.torneo_grupo_id ? String(tp.torneo_grupo_id) : null,
                 representando_club_id: tp.representando_club_id,
-                retirada: !!tp.retirada
+                retirada: !!tp.retirada,
+                excusa: !!tp.excusa,
+                excusaMotivo: tp.excusa_motivo ?? null
             });
         });
     }

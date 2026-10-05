@@ -16,6 +16,8 @@ interface Participant {
     jugador1_id?: string;
     jugador2_id?: string;
     retirada?: boolean;
+    excusa?: boolean;
+    excusaMotivo?: string | null;
 }
 
 interface Props {
@@ -108,6 +110,14 @@ export function ParejasInscritasTable({ participants, torneoId, hasStarted }: Pr
                                                 Retirada
                                             </span>
                                         )}
+                                        {tp.excusa && !tp.retirada && (
+                                            <span
+                                                title={tp.excusaMotivo || undefined}
+                                                className="ml-2 text-[9px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-1.5 py-0.5 align-middle"
+                                            >
+                                                Con excusa
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4">
                                         {tp.categoria}
@@ -128,6 +138,8 @@ export function ParejasInscritasTable({ participants, torneoId, hasStarted }: Pr
                                             j2Id={tp.jugador2_id}
                                             estadoPago={tp.estado_pago}
                                             retirada={tp.retirada}
+                                            excusa={tp.excusa}
+                                            excusaMotivo={tp.excusaMotivo}
                                         />
                                     </td>
                                 </tr>

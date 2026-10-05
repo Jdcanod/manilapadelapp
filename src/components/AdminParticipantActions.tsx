@@ -2,12 +2,12 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { darDeBajaPareja, actualizarEstadoPago, editarParticipantesInscripcion, obtenerTodosJugadores, retirarParejaDelTorneo, reincorporarPareja } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { darDeBajaPareja, actualizarEstadoPago, editarParticipantesInscripcion, obtenerTodosJugadores, retirarParejaDelTorneo, reincorporarPareja, marcarExcusaPareja } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Trash2, Edit2, CreditCard, UserPlus, AlertCircle, LogOut, Undo2 } from "lucide-react";
+import { Trash2, Edit2, CreditCard, UserPlus, AlertCircle, LogOut, Undo2, HeartPulse } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPlayerNameFull, isGuestEmail } from "@/lib/display-names";
 
@@ -31,9 +31,12 @@ interface AdminParticipantActionsProps {
     estadoPago?: string;
     /** La pareja se retiró: conserva lo jugado pero ya no clasifica. */
     retirada?: boolean;
+    /** Tiene excusa: el corte no la saca (pero sigue necesitando el mínimo). */
+    excusa?: boolean;
+    excusaMotivo?: string | null;
 }
 
-export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStarted, j1Id, j2Id, estadoPago, retirada }: AdminParticipantActionsProps) {
+export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStarted, j1Id, j2Id, estadoPago, retirada, excusa, excusaMotivo }: AdminParticipantActionsProps) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const [editOpen, setEditOpen] = useState(false);
@@ -103,6 +106,37 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
             } catch (err: unknown) {
                 setError(err instanceof Error ? err.message : "Error al editar integrantes");
             }
+        });
+    };
+
+    /**
+     * Excusa frente al corte: el club justifica por qué esta pareja no llegó
+     * al mínimo. La salva del corte, NO de clasificar.
+     */
+    const handleExcusa = () => {
+        if (excusa) {
+            if (!confirm("¿Quitar la excusa? La pareja vuelve a entrar al corte por participación.")) return;
+            startTransition(async () => {
+                const r = await marcarExcusaPareja(torneoId, parejaId, false);
+                if (r.ok) router.refresh();
+                else alert("No se pudo quitar la excusa: " + r.mensaje);
+            });
+            return;
+        }
+
+        const motivo = prompt([
+            "¿Por qué no pudo jugar? (lo ve el club, así la excepción no parece favoritismo)",
+            "",
+            "La excusa evita que el corte la saque, y conserva sus partidos pendientes para que pueda alcanzar el mínimo.",
+            "Si al final no lo alcanza, igual no clasifica.",
+        ].join("\n"));
+
+        if (motivo === null) return;
+
+        startTransition(async () => {
+            const r = await marcarExcusaPareja(torneoId, parejaId, true, motivo);
+            if (r.ok) router.refresh();
+            else alert(r.mensaje);
         });
     };
 
@@ -321,6 +355,24 @@ export function AdminParticipantActions({ id, parejaId, tipo, torneoId, hasStart
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* EXCUSA PARA EL CORTE */}
+            {hasStarted && (
+                <Button
+                    variant="ghost" size="sm" onClick={handleExcusa} disabled={isPending}
+                    title={excusa
+                        ? `Con excusa: ${excusaMotivo || 'sin motivo'} — click para quitarla`
+                        : "Excusar del corte por participación (no la exime de clasificar)"}
+                    className={cn(
+                        "h-8 w-8 p-0 rounded-lg transition-colors",
+                        excusa
+                            ? "text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20"
+                            : "text-olive/50 hover:text-emerald-700 hover:bg-emerald-500/10"
+                    )}
+                >
+                    <HeartPulse className="w-3 h-3" />
+                </Button>
+            )}
 
             {/* RETIRAR / REINCORPORAR — sólo tiene sentido con el torneo andando */}
             {hasStarted && (
