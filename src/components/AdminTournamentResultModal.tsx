@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { registrarResultadoPorClub } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { registrarResultadoPorClub, registrarWalkover } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Trophy, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -19,9 +19,12 @@ interface Props {
     disabledReason?: string;
     compact?: boolean;
     setsCantidad?: number;
+    /** Los ids habilitan ganar por W. Sin ellos, el bloque no se muestra. */
+    pareja1Id?: string | null;
+    pareja2Id?: string | null;
 }
 
-export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, initialResult, tipoDesempate = "tercer_set", disabled, disabledReason, compact, setsCantidad = 3 }: Props) {
+export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nombre, initialResult, tipoDesempate = "tercer_set", disabled, disabledReason, compact, setsCantidad = 3, pareja1Id, pareja2Id }: Props) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
@@ -154,6 +157,28 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
         });
     };
 
+    /** Gana sin jugar: el rival no se presentó. */
+    const onWalkover = (ganadorId: string, ganadorNombre: string) => {
+        if (!confirm(
+            `¿Dar el partido por ganado a ${ganadorNombre} por W?
+
+` +
+            `Suma el partido y los puntos, pero sin games ni sets. ` +
+            `La pareja que no se presentó no suma nada, y eso le baja su porcentaje de participación. ` +
+            `El ranking no se mueve.`
+        )) return;
+
+        startTransition(async () => {
+            const r = await registrarWalkover(matchId, ganadorId);
+            if (r.ok) {
+                setOpen(false);
+                router.refresh();
+            } else {
+                alert("No se pudo registrar el W: " + r.mensaje);
+            }
+        });
+    };
+
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -240,6 +265,34 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                 <Button disabled={isPending} onClick={onSave} className="w-full bg-ochre-dark hover:bg-ochre">
                     {isPending ? "Guardando..." : initialResult ? "Guardar Corrección" : "Subir Score Definitivo"}
                 </Button>
+
+                {/* Ganar por W no lleva marcador: el partido no se jugó. */}
+                {pareja1Id && pareja2Id && (
+                    <div className="pt-4 mt-1 border-t border-olive/15">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-olive/60 mb-2 text-center">
+                            ¿No se presentó alguna pareja?
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <Button
+                                variant="outline" size="sm" disabled={isPending}
+                                onClick={() => onWalkover(pareja1Id, pareja1Nombre)}
+                                className="flex-1 border-olive/25 text-olive hover:bg-olive/10 text-xs font-bold"
+                            >
+                                Gana {pareja1Nombre} por W
+                            </Button>
+                            <Button
+                                variant="outline" size="sm" disabled={isPending}
+                                onClick={() => onWalkover(pareja2Id, pareja2Nombre)}
+                                className="flex-1 border-olive/25 text-olive hover:bg-olive/10 text-xs font-bold"
+                            >
+                                Gana {pareja2Nombre} por W
+                            </Button>
+                        </div>
+                        <p className="text-[10px] text-olive/50 mt-2 text-center leading-relaxed">
+                            Suma el partido y los puntos, sin games ni sets. Quien no se presentó no suma nada.
+                        </p>
+                    </div>
+                )}
             </DialogContent>
         </Dialog>
     );

@@ -37,6 +37,8 @@ export function calculateStandings(matches: {
     /** Revancha: partido extra sobre uno ya jugado, contra el mismo rival.
      *  Vale la mitad de puntos y cuenta como 0.5 partidos jugados. */
     es_revancha?: boolean | null;
+    /** Ganado por W: el rival no se presentó. Sin games ni sets. */
+    walkover_ganador_id?: string | null;
 }[], options: StandingsOptions = {}): Standing[] {
     const pointsForWin = options.pointsForWin ?? 3;
     const pointsForLoss = options.pointsForLoss ?? 0;
@@ -47,6 +49,21 @@ export function calculateStandings(matches: {
 
         if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: m.pareja1?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0, revanchas: 0 });
         if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: m.pareja2?.nombre_pareja || "TBD", pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0, revanchas: 0 });
+
+        // Ganado por W: el que se presentó suma el partido y los puntos, pero
+        // NO games ni sets (no se jugaron, e inventarlos le daría una ventaja
+        // falsa en los desempates). El que no se presentó no suma nada: ni
+        // puntos ni partido jugado, así que su % de participación baja.
+        if (m.walkover_ganador_id) {
+            const ganador = map.get(m.walkover_ganador_id);
+            if (ganador) {
+                const peso = m.es_revancha ? 0.5 : 1;
+                ganador.pj += peso;
+                ganador.pg += 1;
+                ganador.pts += m.es_revancha ? pointsForWin / 2 : pointsForWin;
+            }
+            return;
+        }
 
         if ((m.estado === 'jugado' || m.estado_resultado === 'confirmado') && m.resultado) {
             const s1 = map.get(m.pareja1_id)!;

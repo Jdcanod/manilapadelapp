@@ -130,7 +130,7 @@ async function calcularPorcentajesTorneo(admin: ReturnType<typeof createPureAdmi
     const { data: grupos } = await admin.from('torneo_grupos').select('id, categoria').eq('torneo_id', torneoId);
     const { data: partidos } = await admin
         .from('partidos')
-        .select('torneo_grupo_id, pareja1_id, pareja2_id, estado, estado_resultado, resultado, es_revancha, nivel')
+        .select('torneo_grupo_id, pareja1_id, pareja2_id, estado, estado_resultado, resultado, es_revancha, nivel, walkover_ganador_id')
         .eq('torneo_id', torneoId)
         .not('torneo_grupo_id', 'is', null);
 
@@ -143,6 +143,7 @@ async function calcularPorcentajesTorneo(admin: ReturnType<typeof createPureAdmi
         resultado: string | null;
         es_revancha: boolean | null;
         nivel: string | null;
+        walkover_ganador_id: string | null;
     }
 
     const resultado: { parejaId: string; categoria: string; pj: number; requeridos: number; porcentaje: number }[] = [];
@@ -157,6 +158,7 @@ async function calcularPorcentajesTorneo(admin: ReturnType<typeof createPureAdmi
                 estado_resultado: m.estado_resultado,
                 resultado: m.resultado,
                 es_revancha: m.es_revancha,
+                walkover_ganador_id: m.walkover_ganador_id,
             })),
             { pointsForLoss: 1 }
         );
@@ -1060,6 +1062,54 @@ export async function renombrarTorneo(torneoId: string, nombre: string): Promise
         revalidatePath(`/torneos/${torneoId}`);
         revalidatePath('/torneos');
         return { ok: true, mensaje: `El torneo ahora se llama "${limpio}".` };
+    } catch (err: unknown) {
+        return { ok: false, mensaje: err instanceof Error ? err.message : "Error desconocido" };
+    }
+}
+
+/**
+ * Marca un partido como ganado por W: el rival no se presentó.
+ *
+ * No se guarda un marcador inventado (un 6-0 le daría al ganador una ventaja
+ * real en los desempates por % de sets y games). Se guarda quién ganó, y la
+ * tabla le suma el partido y los puntos, sin games ni sets.
+ *
+ * Tampoco mueve el ranking: no hubo partido que medir, y premiar o castigar
+ * el nivel de alguien por una ausencia no dice nada de cómo juega.
+ */
+export async function registrarWalkover(matchId: string, parejaGanadoraId: string): Promise<{ ok: boolean; mensaje: string }> {
+    try {
+        const lookupAdmin = createPureAdminClient();
+        const { data: partido } = await lookupAdmin
+            .from('partidos').select('torneo_id, pareja1_id, pareja2_id').eq('id', matchId).single();
+        if (!partido) return { ok: false, mensaje: "Partido no encontrado" };
+
+        if (parejaGanadoraId !== partido.pareja1_id && parejaGanadoraId !== partido.pareja2_id) {
+            return { ok: false, mensaje: "Esa pareja no juega este partido." };
+        }
+
+        const { admin, userData } = await requireClubOwnership(partido.torneo_id);
+
+        const { error } = await admin
+            .from('partidos')
+            .update({
+                walkover_ganador_id: parejaGanadoraId,
+                resultado: 'W.O.',
+                estado: 'jugado',
+                estado_resultado: 'confirmado',
+                resultado_registrado_por: userData.id,
+                resultado_confirmado_por: userData.id,
+                resultado_registrado_at: new Date().toISOString(),
+            })
+            .eq('id', matchId);
+        if (error) return { ok: false, mensaje: error.message };
+
+        const { fecharPartidoSinProgramar } = await import("@/lib/tournaments/fechaResultado");
+        await fecharPartidoSinProgramar(admin, matchId);
+
+        revalidatePath(`/club/torneos/${partido.torneo_id}`);
+        revalidatePath(`/torneos/${partido.torneo_id}`);
+        return { ok: true, mensaje: "Partido marcado como ganado por W. Suma el partido y los puntos, sin games ni sets." };
     } catch (err: unknown) {
         return { ok: false, mensaje: err instanceof Error ? err.message : "Error desconocido" };
     }

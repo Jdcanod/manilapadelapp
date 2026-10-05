@@ -26,6 +26,8 @@ interface MatchRow {
     pareja1?: { nombre_pareja?: string | null } | null;
     pareja2?: { nombre_pareja?: string | null } | null;
     es_revancha?: boolean | null;
+    /** Si está, el partido se ganó por W (sin games ni sets). */
+    walkover_ganador_id?: string | null;
 }
 
 interface Props {

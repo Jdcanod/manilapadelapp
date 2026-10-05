@@ -45,6 +45,8 @@ interface Match {
     lugar?: string;
     /** Revancha: partido extra sobre uno ya jugado, contra el mismo rival. */
     es_revancha?: boolean | null;
+    /** Si está, el partido se ganó por W (sin games ni sets). */
+    walkover_ganador_id?: string | null;
     revancha_de_partido_id?: string | null;
 }
 
@@ -209,6 +211,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
             pareja1: p.pareja1 ? { nombre_pareja: p.pareja1.nombre_pareja ?? null } : null,
             pareja2: p.pareja2 ? { nombre_pareja: p.pareja2.nombre_pareja ?? null } : null,
             es_revancha: p.es_revancha ?? false,
+            walkover_ganador_id: p.walkover_ganador_id ?? null,
         }));
         const globalStandings = calculateStandings(matchesShape, { pointsForLoss: 1 });
 
