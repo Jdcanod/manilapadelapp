@@ -204,15 +204,15 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="bg-paper-soft border-olive/20 text-ink max-w-sm">
+            <DialogContent className="bg-paper-soft border-olive/20 text-ink w-[calc(100vw-2rem)] max-w-sm max-h-[90svh] overflow-y-auto overflow-x-hidden">
                 <DialogHeader>
                     <DialogTitle>{initialResult ? "Corregir Resultado" : "Ingresar Resultado"}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                     <p className="text-xs text-olive text-center mb-4">{initialResult ? `Corrigiendo: ${initialResult}` : "El resultado ingresado será definitivo y marcará el partido como jugado."}</p>
-                    <div className="grid grid-cols-2 gap-4 text-center text-xs font-bold text-olive/70 uppercase">
-                        <span className="line-clamp-1">{pareja1Nombre}</span>
-                        <span className="line-clamp-1">{pareja2Nombre}</span>
+                    <div className="grid grid-cols-2 gap-3 text-center text-xs font-bold text-olive/70 uppercase">
+                        <span className="line-clamp-2 min-w-0 break-words" title={pareja1Nombre}>{pareja1Nombre}</span>
+                        <span className="line-clamp-2 min-w-0 break-words" title={pareja2Nombre}>{pareja2Nombre}</span>
                     </div>
                     {sets.map((set, idx) => (
                         <div key={idx} className="flex items-center gap-3">
@@ -222,7 +222,7 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                             <Input 
                                 placeholder="0" 
                                 type="number"
-                                className="bg-paper border-olive/20 text-center text-xl font-black h-12"
+                                className="bg-paper border-olive/20 text-center text-xl font-black h-12 w-full min-w-0"
                                 value={set.p1}
                                 onChange={e => {
                                     const newSets = [...sets];
@@ -234,7 +234,7 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                             <Input 
                                 placeholder="0" 
                                 type="number"
-                                className="bg-paper border-olive/20 text-center text-xl font-black h-12"
+                                className="bg-paper border-olive/20 text-center text-xl font-black h-12 w-full min-w-0"
                                 value={set.p2}
                                 onChange={e => {
                                     const newSets = [...sets];
@@ -272,21 +272,21 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
                         <p className="text-[10px] font-black uppercase tracking-widest text-olive/60 mb-2 text-center">
                             ¿No se presentó alguna pareja?
                         </p>
-                        <div className="flex flex-col sm:flex-row gap-2">
-                            <Button
-                                variant="outline" size="sm" disabled={isPending}
-                                onClick={() => onWalkover(pareja1Id, pareja1Nombre)}
-                                className="flex-1 border-olive/25 text-olive hover:bg-olive/10 text-xs font-bold"
-                            >
-                                Gana {pareja1Nombre} por W
-                            </Button>
-                            <Button
-                                variant="outline" size="sm" disabled={isPending}
-                                onClick={() => onWalkover(pareja2Id, pareja2Nombre)}
-                                className="flex-1 border-olive/25 text-olive hover:bg-olive/10 text-xs font-bold"
-                            >
-                                Gana {pareja2Nombre} por W
-                            </Button>
+                        <div className="flex flex-col gap-2">
+                            {([[pareja1Id, pareja1Nombre], [pareja2Id, pareja2Nombre]] as const).map(([id, nombre]) => (
+                                <Button
+                                    key={id}
+                                    variant="outline" size="sm" disabled={isPending}
+                                    onClick={() => onWalkover(id, nombre)}
+                                    title={`Gana ${nombre} por W`}
+                                    className="w-full min-w-0 justify-between gap-2 border-olive/25 text-olive hover:bg-olive/10 h-9 px-3"
+                                >
+                                    <span className="truncate text-xs font-bold text-left">{nombre}</span>
+                                    <span className="shrink-0 text-[9px] font-black uppercase tracking-widest text-olive/60">
+                                        gana por W
+                                    </span>
+                                </Button>
+                            ))}
                         </div>
                         <p className="text-[10px] text-olive/50 mt-2 text-center leading-relaxed">
                             Suma el partido y los puntos, sin games ni sets. Quien no se presentó no suma nada.
