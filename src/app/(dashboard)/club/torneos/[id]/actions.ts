@@ -5,6 +5,7 @@ import { Participant, distributeParticipantsIntoGroups, generateMatchesForGroup 
 import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { calcularRequeridosPorPareja, calcularClasificados } from "@/lib/tournaments/clasificacion";
+import { esPartidoDeTorneo } from "@/lib/tournaments/esDeTorneo";
 import { getOrCreateInvitado } from "@/lib/invitados";
 import { requireClubOwnership } from "@/lib/auth/clubOwnership";
 import { formatPlayerName, isGuestEmail } from "@/lib/display-names";
@@ -527,6 +528,7 @@ export async function generarFaseGrupos(torneoId: string, categoria: string, num
                 ...m,
                 creador_id: userId,
                 club_id: torneoInfo?.club_id,
+                tipo_partido: 'torneo',
                 tipo_partido_oficial: 'torneo',
                 nivel: categoria,
                 sexo: 'Mixto',
@@ -3132,7 +3134,7 @@ export async function crearRevancha(matchId: string) {
             .eq('id', matchId)
             .single();
         if (!original) return { success: false, message: "Partido no encontrado" };
-        if (original.tipo_partido !== 'torneo') return { success: false, message: "Solo aplica a partidos de torneo" };
+        if (!esPartidoDeTorneo(original)) return { success: false, message: "Solo aplica a partidos de torneo" };
         if (original.es_revancha) return { success: false, message: "No se puede crear una revancha de otra revancha" };
         if (original.estado !== 'jugado' || original.estado_resultado !== 'confirmado') {
             return { success: false, message: "El partido original debe estar jugado y confirmado" };

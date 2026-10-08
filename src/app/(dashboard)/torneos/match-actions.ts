@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { fecharPartidoSinProgramar } from "@/lib/tournaments/fechaResultado";
+import { esPartidoDeTorneo } from "@/lib/tournaments/esDeTorneo";
 
 export async function registrarResultadoTorneo(matchId: string, resultado: string, userId: string) {
     const supabase = createClient();
@@ -33,12 +34,12 @@ export async function confirmarResultadoTorneo(matchId: string, userId: string) 
     // entre ellas. Los amistosos/reservas mantienen el flujo anterior.
     const { data: match } = await supabase
         .from('partidos')
-        .select('tipo_partido, club_id, torneo_id')
+        .select('tipo_partido, tipo_partido_oficial, club_id, torneo_id')
         .eq('id', matchId)
         .single();
     if (!match) throw new Error("Partido no encontrado");
 
-    if (match.tipo_partido === 'torneo') {
+    if (esPartidoDeTorneo(match)) {
         const { data: { user } } = await supabase.auth.getUser();
         const { data: me } = user
             ? await supabase.from('users').select('id, rol').eq('auth_id', user.id).single()

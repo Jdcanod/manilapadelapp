@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { esPartidoDeTorneo } from "@/lib/tournaments/esDeTorneo";
 
 export async function inscribirParejaTorneo(formData: FormData) {
     try {
@@ -372,8 +373,8 @@ export async function confirmarResultado(matchId: string) {
         // dueño del torneo — la pareja rival no puede auto-confirmarse el
         // resultado entre ellas. Los amistosos/reservas mantienen el flujo
         // anterior: la pareja rival sí puede confirmar.
-        const esPartidoDeTorneo = match.tipo_partido === 'torneo';
-        const isRival = !esPartidoDeTorneo && (
+        const deTorneo = esPartidoDeTorneo(match);
+        const isRival = !deTorneo && (
             (match.pareja1_id && myPairIds.includes(match.pareja1_id) && match.resultado_registrado_por !== internalUserId) ||
             (match.pareja2_id && myPairIds.includes(match.pareja2_id) && match.resultado_registrado_por !== internalUserId)
         );
