@@ -862,7 +862,10 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                     <p className="text-olive/70">No se han generado grupos para esta categoría aún.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 2xl:grid-cols-2 gap-6">
+                    {/* Dos grupos lado a lado partían el ancho y la tabla de 12
+                        columnas no cabía: PTS, que es la que ordena, quedaba
+                        fuera. Solo se parte en pantallas realmente anchas. */}
                     {gruposCategoria.map((grupo) => {
                         const standings = getStandings(grupo.id);
                         return (
@@ -953,6 +956,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                 <tr>
                                                     <th className="px-4 py-2 font-bold w-10 text-center">#</th>
                                                     <th className="px-4 py-2 font-bold">Pareja</th>
+                                                    <th className="px-3 py-2 font-black text-center text-olive cursor-help" title="Puntos acumulados según el sistema de puntuación del torneo (define la posición en la tabla)">PTS</th>
                                                     <th className="px-2 py-2 font-bold text-center cursor-help" title="Partidos Jugados">PJ</th>
                                                     <th className="px-2 py-2 font-bold text-center cursor-help" title="Sets Ganados">SG</th>
                                                     <th className="px-2 py-2 font-bold text-center cursor-help" title="Sets Perdidos">SP</th>
@@ -960,7 +964,6 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                     <th className="px-2 py-2 font-bold text-center cursor-help" title="Games (juegos) Perdidos">GP</th>
                                                     <th className="px-2 py-2 font-black text-center text-olive cursor-help" title="Porcentaje de Sets ganados">%S</th>
                                                     <th className="px-2 py-2 font-black text-center text-olive cursor-help" title="Porcentaje de Games ganados">%G</th>
-                                                    <th className="px-4 py-2 font-black text-center text-olive cursor-help" title="Puntos acumulados según el sistema de puntuación del torneo (define la posición en la tabla)">PTS</th>
                                                     {esLiguilla && <th className="px-2 py-2 font-bold text-center text-purple-700 cursor-help" title="Revanchas jugadas">REV</th>}
                                                     {esLiguilla && <th className="px-2 py-2 font-bold text-center text-red-700 cursor-help" title="% de partidos jugados sobre los requeridos — criterio del corte y de clasificación">% JUG.</th>}
                                                 </tr>
@@ -1073,6 +1076,10 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                 )}
                                                             </div>
                                                         </td>
+                                                        <td className={cn(
+                                                            "px-3 py-3 text-center font-black",
+                                                            clasifica ? "text-olive" : "text-olive/70"
+                                                        )}>{Number.isInteger(team.pts) ? team.pts : team.pts.toFixed(1)}</td>
                                                         <td className="px-2 py-3 text-center text-ink">{Number.isInteger(team.pj) ? team.pj : team.pj.toFixed(1)}</td>
                                                         <td className="px-2 py-3 text-center text-olive text-xs">{team.sg}</td>
                                                         <td className="px-2 py-3 text-center text-olive text-xs">{team.sp}</td>
@@ -1084,10 +1091,6 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                         <td className="px-2 py-3 text-center font-bold text-olive/80">
                                                             {((team.gg * 100) / (team.gg + team.gp || 1)).toFixed(0)}%
                                                         </td>
-                                                        <td className={cn(
-                                                            "px-4 py-3 text-center font-black",
-                                                            clasifica ? "text-olive" : "text-olive/70"
-                                                        )}>{Number.isInteger(team.pts) ? team.pts : team.pts.toFixed(1)}</td>
                                                         {esLiguilla && (
                                                             <td className="px-2 py-3 text-center text-purple-700 font-bold">{team.revanchas || '—'}</td>
                                                         )}
