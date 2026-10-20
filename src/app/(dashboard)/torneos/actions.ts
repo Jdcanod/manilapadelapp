@@ -445,7 +445,11 @@ export async function reiniciarResultado(matchId: string) {
                 estado_resultado: null,
                 resultado_registrado_por: null,
                 resultado_registrado_at: null,
-                resultado_confirmado_por: null
+                resultado_confirmado_por: null,
+                // Sin esto el partido volvía a "programado" pero seguía
+                // marcado como ganado por W, y la tabla le sumaba los puntos
+                // de un partido que ya no tiene resultado.
+                walkover_ganador_id: null
             })
             .eq('id', matchId);
 

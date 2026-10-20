@@ -1941,7 +1941,7 @@ export async function obtenerStandingsPorGrupo(torneoId: string, categoria: stri
         for (const g of grupos) {
             const { data: rawGroupMatches } = await supabaseAdmin
                 .from('partidos')
-                .select('id, pareja1_id, pareja2_id, estado, resultado, estado_resultado, es_revancha')
+                .select('id, pareja1_id, pareja2_id, estado, resultado, estado_resultado, es_revancha, walkover_ganador_id')
                 .eq('torneo_grupo_id', g.id);
 
             const allParejaIds = new Set<string>();
@@ -2014,7 +2014,7 @@ export async function obtenerStandingsGlobales(torneoId: string, categoria: stri
         // — por RLS, FK roto, etc. — la query venía null y se interpretaba como 0).
         const { data: rawMatches, error: matchesError } = await supabaseAdmin
             .from('partidos')
-            .select('id, torneo_id, torneo_grupo_id, pareja1_id, pareja2_id, estado, estado_resultado, resultado, lugar, nivel, fecha, es_revancha')
+            .select('id, torneo_id, torneo_grupo_id, pareja1_id, pareja2_id, estado, estado_resultado, resultado, lugar, nivel, fecha, es_revancha, walkover_ganador_id')
             .eq('torneo_id', torneoId);
 
         // Resolver nombres de pareja en una segunda query (también opcional)
@@ -2251,7 +2251,7 @@ export async function generarFaseEliminatoriaTopN(
             for (const g of grupos) {
                 const { data: rawGroupMatches } = await supabaseAdmin
                     .from('partidos')
-                    .select('id, pareja1_id, pareja2_id, estado, resultado, estado_resultado, es_revancha')
+                    .select('id, pareja1_id, pareja2_id, estado, resultado, estado_resultado, es_revancha, walkover_ganador_id')
                     .eq('torneo_grupo_id', g.id);
 
                 const allParejaIds = new Set<string>();

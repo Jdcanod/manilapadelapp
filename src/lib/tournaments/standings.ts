@@ -54,7 +54,9 @@ export function calculateStandings(matches: {
         // NO games ni sets (no se jugaron, e inventarlos le daría una ventaja
         // falsa en los desempates). El que no se presentó no suma nada: ni
         // puntos ni partido jugado, así que su % de participación baja.
-        if (m.walkover_ganador_id) {
+        // Se exige que el partido esté realmente resuelto: si al reiniciar el
+        // score quedó un W huérfano, no debe seguir sumando puntos.
+        if (m.walkover_ganador_id && (m.estado === 'jugado' || m.estado_resultado === 'confirmado')) {
             const ganador = map.get(m.walkover_ganador_id);
             if (ganador) {
                 const peso = m.es_revancha ? 0.5 : 1;
