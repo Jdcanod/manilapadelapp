@@ -113,6 +113,22 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
             if (!map.has(m.pareja1_id)) map.set(m.pareja1_id, { parejaId: m.pareja1_id, nombre: resolvePairName(m.pareja1_id, m.pareja1?.nombre_pareja, parejaPlayers), pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0, revanchas: 0 });
             if (!map.has(m.pareja2_id)) map.set(m.pareja2_id, { parejaId: m.pareja2_id, nombre: resolvePairName(m.pareja2_id, m.pareja2?.nombre_pareja, parejaPlayers), pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0, revanchas: 0 });
 
+            // Ganado por W: el que se presentó suma el partido y los puntos,
+            // sin games ni sets. El que no se presentó no suma nada. Esta
+            // tabla recalcula aparte de calculateStandings, así que el caso
+            // hay que contemplarlo también acá.
+            if (m.walkover_ganador_id && m.estado === 'jugado' && m.estado_resultado === 'confirmado') {
+                const ganador = map.get(m.walkover_ganador_id);
+                if (ganador) {
+                    const esRev = !!m.es_revancha;
+                    ganador.pj += esRev ? 0.5 : 1;
+                    ganador.pg += 1;
+                    ganador.pts += esRev ? 1.5 : 3;
+                    if (esRev) ganador.revanchas += 1;
+                }
+                return;
+            }
+
             if (m.estado === 'jugado' && m.resultado && m.estado_resultado === 'confirmado') {
                 const s1 = map.get(m.pareja1_id)!;
                 const s2 = map.get(m.pareja2_id)!;
