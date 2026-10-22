@@ -601,7 +601,17 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                     <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
                                 </summary>
                                 <div className="px-3 pb-3 space-y-3">
-                                    <CorteParticipacionControl torneoId={torneoId} categoria={selectedCat} corteActual={corteConfig[selectedCat] ?? null} />
+                                    {/* La `key` es necesaria: sin ella React reutiliza el
+                                        control al cambiar de pestaña y deja a la vista la
+                                        fecha y el % de la categoría anterior, con el botón
+                                        "Guardar" ya activo — así es fácil escribir sin
+                                        querer el valor de una categoría en otra. */}
+                                    <CorteParticipacionControl
+                                        key={selectedCat}
+                                        torneoId={torneoId}
+                                        categoria={selectedCat}
+                                        corteActual={corteConfig[selectedCat] ?? null}
+                                    />
 
                                     <div className="flex items-center gap-2">
                                         <button
@@ -638,6 +648,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
 
                                     <div className="space-y-1.5">
                                         <EditarClasificacionLigaControl
+                                            key={selectedCat}
                                             torneoId={torneoId}
                                             categoria={selectedCat}
                                             totalActual={ligaConfigCat.total}
