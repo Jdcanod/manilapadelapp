@@ -40,7 +40,10 @@ interface Props {
 
 export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, partidos, ligaClasificacionConfig = {} }: Props) {
     const [selectedCat, setSelectedCat] = useState<string>(categorias[0] || "");
-    const [numGrupos, setNumGrupos] = useState<number>(2);
+    // Por categoría: cada una arma sus grupos finales por separado, y antes
+    // este número era uno solo para todas — cambiarlo en 6ta se lo cambiaba
+    // también a 4ta.
+    const [numGruposPorCat, setNumGruposPorCat] = useState<Record<string, number>>({});
     // El dueño del torneo puede confirmar/ajustar aquí cuántas parejas
     // clasifican, por categoría — parte de un mapa para no perder el valor
     // de una categoría al cambiar a otra. Si no lo toca, se usa lo
@@ -61,6 +64,7 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
 
     const gruposCat = gruposFinales.filter(g => g.categoria === selectedCat);
     const sugeridoClasifican = ligaClasificacionConfig[selectedCat]?.total ?? 4;
+    const numGrupos = numGruposPorCat[selectedCat] ?? 2;
     const totalClasifican = clasificanOverride[selectedCat] ?? sugeridoClasifican;
 
     const handleGenerar = () => {
@@ -134,8 +138,11 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                         min={1}
                         max={16}
                         value={Number.isNaN(numGrupos) ? '' : numGrupos}
-                        onChange={e => setNumGrupos(parseInt(e.target.value))}
-                        onBlur={() => setNumGrupos(prev => Math.max(1, Math.min(16, isNaN(prev) ? 2 : prev)))}
+                        onChange={e => setNumGruposPorCat(prev => ({ ...prev, [selectedCat]: parseInt(e.target.value) }))}
+                        onBlur={() => setNumGruposPorCat(prev => ({
+                            ...prev,
+                            [selectedCat]: Math.max(1, Math.min(16, isNaN(prev[selectedCat]) ? 2 : prev[selectedCat])),
+                        }))}
                         className="w-16 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"
                     />
                 </div>

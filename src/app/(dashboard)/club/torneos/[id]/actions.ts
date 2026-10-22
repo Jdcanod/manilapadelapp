@@ -87,7 +87,32 @@ export async function actualizarClasificacionLiga(
  * para no quedar marcado como eliminado. La fecha es solo informativa — la
  * ejecución siempre requiere que el dueño la corra manualmente.
  */
-export async function actualizarCorteConfig(torneoId: string, fecha: string | null, porcentaje: number) {
+/**
+ * Config del corte de participación para UNA categoría.
+ *
+ * Antes había un solo corte para todo el torneo, pero el control vive dentro
+ * de "Ajustes de <categoría>", así que el club creía estar configurando esa
+ * categoría y en realidad movía el corte de todas. Cada categoría de una liga
+ * avanza a su ritmo y puede necesitar una fecha y un mínimo distintos.
+ *
+ * `liga_corte_config` (el valor viejo, sin categoría) se sigue leyendo como
+ * respaldo para los torneos que ya lo tenían configurado.
+ */
+interface CorteCategoria {
+    fecha: string;
+    porcentaje: number;
+    ejecutado?: boolean;
+    ejecutadoEn?: string;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function corteDeCategoria(reglas: any, categoria: string): CorteCategoria | null {
+    const porCat = reglas?.liga_corte_config_por_categoria?.[categoria];
+    if (porCat) return porCat as CorteCategoria;
+    return (reglas?.liga_corte_config as CorteCategoria | undefined) || null;
+}
+
+export async function actualizarCorteConfig(torneoId: string, categoria: string, fecha: string | null, porcentaje: number) {
     try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
@@ -104,12 +129,24 @@ export async function actualizarCorteConfig(torneoId: string, fecha: string | nu
             return { success: false, message: "Solo el dueño del torneo puede cambiar esta configuración" };
         }
 
-        const yaEjecutado = !!torneo.reglas_puntuacion?.liga_corte_config?.ejecutado;
+        if (!categoria) return { success: false, message: "Falta la categoría" };
+
+        const actual = corteDeCategoria(torneo.reglas_puntuacion, categoria);
+        const porCategoria = { ...(torneo.reglas_puntuacion?.liga_corte_config_por_categoria || {}) };
+        if (fecha) {
+            porCategoria[categoria] = {
+                fecha,
+                porcentaje: Math.max(0, Math.min(100, Math.floor(porcentaje) || 0)),
+                ejecutado: !!actual?.ejecutado,
+                ...(actual?.ejecutadoEn ? { ejecutadoEn: actual.ejecutadoEn } : {}),
+            };
+        } else {
+            delete porCategoria[categoria];
+        }
+
         const nuevasReglas = {
             ...(torneo.reglas_puntuacion || {}),
-            liga_corte_config: fecha
-                ? { fecha, porcentaje: Math.max(0, Math.min(100, Math.floor(porcentaje) || 0)), ejecutado: yaEjecutado }
-                : null,
+            liga_corte_config_por_categoria: porCategoria,
         };
         const { error } = await admin.from('torneos').update({ reglas_puntuacion: nuevasReglas }).eq('id', torneoId);
         if (error) return { success: false, message: error.message };
@@ -185,12 +222,12 @@ async function calcularPorcentajesTorneo(admin: ReturnType<typeof createPureAdmi
  * Vista previa del corte: quiénes quedarían marcados como eliminados si se
  * ejecutara ahora mismo, sin aplicar nada todavía.
  */
-export async function previsualizarCorte(torneoId: string) {
+export async function previsualizarCorte(torneoId: string, categoria: string) {
     try {
         const admin = createPureAdminClient();
         const { data: torneo } = await admin.from('torneos').select('reglas_puntuacion').eq('id', torneoId).single();
-        const corte = torneo?.reglas_puntuacion?.liga_corte_config;
-        if (!corte) return { success: false, message: "No hay un corte configurado para este torneo" };
+        const corte = corteDeCategoria(torneo?.reglas_puntuacion, categoria);
+        if (!corte) return { success: false, message: `No hay un corte configurado para ${categoria}` };
 
         const { data: inscripciones } = await admin
             .from('torneo_parejas')
@@ -203,7 +240,7 @@ export async function previsualizarCorte(torneoId: string) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const bajoElCorte = (inscripciones || [])
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .filter((i: any) => !i.eliminada)
+            .filter((i: any) => !i.eliminada && i.categoria === categoria)
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .map((i: any) => {
                 const p = porcentajePorPareja.get(`${i.pareja_id}:${i.categoria}`);
@@ -238,7 +275,7 @@ export async function previsualizarCorte(torneoId: string) {
  * partidos pendientes (no toca los ya jugados). Requiere acción explícita
  * del dueño del torneo — nunca se aplica solo.
  */
-export async function ejecutarCorte(torneoId: string) {
+export async function ejecutarCorte(torneoId: string, categoria: string) {
     try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
@@ -254,8 +291,8 @@ export async function ejecutarCorte(torneoId: string) {
         if (String(torneo.club_id) !== String(me.id) && me.rol !== 'superadmin') {
             return { success: false, message: "Solo el dueño del torneo puede ejecutar el corte" };
         }
-        const corte = torneo.reglas_puntuacion?.liga_corte_config;
-        if (!corte) return { success: false, message: "No hay un corte configurado para este torneo" };
+        const corte = corteDeCategoria(torneo.reglas_puntuacion, categoria);
+        if (!corte) return { success: false, message: `No hay un corte configurado para ${categoria}` };
 
         // Las parejas con excusa no entran al corte: siguen en el torneo y
         // conservan sus partidos pendientes, así que todavía pueden llegar al
@@ -264,6 +301,7 @@ export async function ejecutarCorte(torneoId: string) {
             .from('torneo_parejas')
             .select('id, pareja_id, categoria, eliminada')
             .eq('torneo_id', torneoId)
+            .eq('categoria', categoria)
             .eq('eliminada', false)
             .eq('excusa', false);
 
@@ -300,7 +338,10 @@ export async function ejecutarCorte(torneoId: string) {
         const { error: errCorte } = await admin.from('torneos').update({
             reglas_puntuacion: {
                 ...(torneo.reglas_puntuacion || {}),
-                liga_corte_config: { ...corte, ejecutado: true, ejecutadoEn: new Date().toISOString() },
+                liga_corte_config_por_categoria: {
+                    ...(torneo.reglas_puntuacion?.liga_corte_config_por_categoria || {}),
+                    [categoria]: { ...corte, ejecutado: true, ejecutadoEn: new Date().toISOString() },
+                },
             },
         }).eq('id', torneoId);
         if (errCorte) return { success: false, message: "Error registrando el corte: " + errCorte.message };

@@ -20,12 +20,14 @@ interface Candidato {
 
 interface Props {
     torneoId: string;
+    /** El corte es propio de cada categoría: cada una avanza a su ritmo. */
+    categoria: string;
     corteActual: { fecha: string; porcentaje: number; ejecutado: boolean } | null;
 }
 
 /** Control único para todo el torneo: configura fecha + % mínimo del corte
  *  de participación, y permite previsualizar/ejecutarlo manualmente. */
-export function CorteParticipacionControl({ torneoId, corteActual }: Props) {
+export function CorteParticipacionControl({ torneoId, categoria, corteActual }: Props) {
     const router = useRouter();
     const [fecha, setFecha] = useState(corteActual?.fecha || "");
     const [porcentaje, setPorcentaje] = useState(corteActual?.porcentaje ?? 50);
@@ -41,7 +43,7 @@ export function CorteParticipacionControl({ torneoId, corteActual }: Props) {
     const guardarConfig = () => {
         setOk(false);
         startTransition(async () => {
-            const r = await actualizarCorteConfig(torneoId, fecha || null, porcentaje);
+            const r = await actualizarCorteConfig(torneoId, categoria, fecha || null, porcentaje);
             if (!r.success) { alert(r.message); return; }
             setOk(true);
             router.refresh();
@@ -51,7 +53,7 @@ export function CorteParticipacionControl({ torneoId, corteActual }: Props) {
     const verPreview = () => {
         setPreviewOpen(true);
         startTransition(async () => {
-            const r = await previsualizarCorte(torneoId);
+            const r = await previsualizarCorte(torneoId, categoria);
             if (!r.success) { alert(r.message); setPreviewOpen(false); return; }
             setPreview(r.candidatos || []);
             setConExcusa(r.conExcusa || []);
@@ -61,9 +63,9 @@ export function CorteParticipacionControl({ torneoId, corteActual }: Props) {
     const ejecutar = () => {
         if (!preview || preview.length === 0) return;
         const nombres = preview.map(c => `${c.nombre} (${c.categoria}, ${c.porcentaje}%)`).join('\n');
-        if (!confirm(`¿Ejecutar el corte? Estas ${preview.length} pareja(s) quedarán marcadas como eliminadas (siguen en la tabla, no clasifican) y se cancelarán sus partidos pendientes:\n\n${nombres}\n\nEsta acción no se puede deshacer.`)) return;
+        if (!confirm(`¿Ejecutar el corte de ${categoria}? Estas ${preview.length} pareja(s) quedarán marcadas como eliminadas (siguen en la tabla, no clasifican) y se cancelarán sus partidos pendientes:\n\n${nombres}\n\nEsta acción no se puede deshacer.`)) return;
         startTransition(async () => {
-            const r = await ejecutarCorte(torneoId);
+            const r = await ejecutarCorte(torneoId, categoria);
             if (!r.success) { alert(r.message); return; }
             alert(`Corte ejecutado: ${r.eliminadas} pareja(s) marcadas como eliminadas.`);
             setPreviewOpen(false);
@@ -76,7 +78,7 @@ export function CorteParticipacionControl({ torneoId, corteActual }: Props) {
         <div className="bg-paper-soft border border-olive/20 rounded-xl p-4 space-y-3">
             <div className="flex items-center gap-2">
                 <Scissors className="w-4 h-4 text-red-600" />
-                <span className="text-sm font-bold text-ink">Corte de Participación</span>
+                <span className="text-sm font-bold text-ink">Corte de Participación · {categoria}</span>
                 {corteActual?.ejecutado && (
                     <span className="text-[9px] font-black uppercase text-emerald-700 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-2 py-0.5">
                         Ya ejecutado

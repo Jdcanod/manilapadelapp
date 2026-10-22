@@ -838,7 +838,19 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         ligaClasificacionConfig={torneo.reglas_puntuacion?.liga_clasificacion_config || {}}
                         parejasEliminadas={parejasEliminadasSet}
                         parejasRetiradas={parejasRetiradasSet}
-                        corteConfig={torneo.reglas_puntuacion?.liga_corte_config || null}
+                        corteConfig={(() => {
+                            // El corte es por categoría. Los torneos que ya
+                            // tenían el corte global siguen viéndolo: se usa
+                            // como respaldo para toda categoría sin config propia.
+                            const porCat = torneo.reglas_puntuacion?.liga_corte_config_por_categoria || {};
+                            const viejo = torneo.reglas_puntuacion?.liga_corte_config;
+                            if (!viejo) return porCat;
+                            const conRespaldo = { ...porCat };
+                            for (const cat of (categoriasConInscritos.length > 0 ? categoriasConInscritos : categoriasHabilitadas)) {
+                                if (!conRespaldo[cat]) conRespaldo[cat] = viejo;
+                            }
+                            return conRespaldo;
+                        })()}
                     />
                 </TabsContent>
 

@@ -81,7 +81,8 @@ interface Props {
     /** Parejas que se retiraron: se marcan distinto del corte por participación. */
     parejasRetiradas?: Set<string>;
     /** Config del corte, única para todo el torneo (no por categoría). */
-    corteConfig?: { fecha: string; porcentaje: number; ejecutado: boolean } | null;
+    /** Corte por categoría: cada una tiene su fecha y su mínimo. */
+    corteConfig?: Record<string, { fecha: string; porcentaje: number; ejecutado: boolean }>;
 }
 
 interface Standing {
@@ -98,7 +99,7 @@ interface Standing {
     revanchas: number; // Revanchas jugadas y confirmadas
 }
 
-export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", tipoDesempatePorCategoria = {}, allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican, setsCantidad, ordenGrupos = {}, idaVueltaConfig = {}, revanchaConfig = {}, ligaClasificacionConfig = {}, parejasEliminadas = new Set(), parejasRetiradas = new Set(), corteConfig = null }: Props) {
+export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", tipoDesempatePorCategoria = {}, allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican, setsCantidad, ordenGrupos = {}, idaVueltaConfig = {}, revanchaConfig = {}, ligaClasificacionConfig = {}, parejasEliminadas = new Set(), parejasRetiradas = new Set(), corteConfig = {} }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const [selectedCat, setSelectedCat] = useState(categorias[0] || "General");
@@ -600,7 +601,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                     <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
                                 </summary>
                                 <div className="px-3 pb-3 space-y-3">
-                                    <CorteParticipacionControl torneoId={torneoId} corteActual={corteConfig} />
+                                    <CorteParticipacionControl torneoId={torneoId} categoria={selectedCat} corteActual={corteConfig[selectedCat] ?? null} />
 
                                     <div className="flex items-center gap-2">
                                         <button
