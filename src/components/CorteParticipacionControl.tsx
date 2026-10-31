@@ -119,7 +119,7 @@ export function CorteParticipacionControl({ torneoId, categoria, corteActual }: 
                     <Button size="sm" variant="outline" onClick={verPreview} disabled={pending}
                         className="bg-paper border-red-600/30 text-red-700 hover:bg-red-600/10 font-bold h-8">
                         {pending && previewOpen && !preview ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />}
-                        Ver quién sería cortado hoy
+                        Revisar y ejecutar el corte
                     </Button>
 
                     {previewOpen && preview && (
@@ -147,7 +147,8 @@ export function CorteParticipacionControl({ torneoId, categoria, corteActual }: 
 
                             {preview.length === 0 ? (
                                 <p className="text-[11px] text-olive/60 italic">
-                                    Ninguna pareja sin excusa está por debajo del {porcentaje}% ahora mismo.
+                                    Ninguna pareja sin excusa está por debajo del {porcentaje}% ahora mismo,
+                                    así que no hay nada que cortar.
                                 </p>
                             ) : (
                                 <>
