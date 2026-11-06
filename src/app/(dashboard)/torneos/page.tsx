@@ -1,6 +1,6 @@
 import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { Trophy, CalendarDays, MapPin, History, ChevronDown } from "lucide-react";
+import { Trophy, CalendarDays, MapPin, History, ChevronDown, UserCog } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { InscribirParejaDialog } from "./InscribirParejaDialog";
@@ -32,6 +32,16 @@ export default async function TorneosPage() {
         `)
         .is('borrado_en', null)
         .order('fecha_inicio', { ascending: true });
+
+    // Los torneos que esta persona gestiona por encargo del club. Sin esto,
+    // un gestor que entra por Torneos ve la tarjeta de jugador y no tiene
+    // cómo llegar a su panel.
+    const { data: yo } = await adminRead
+        .from('users').select('id').eq('auth_id', user.id).maybeSingle();
+    const { data: misGestiones } = yo?.id
+        ? await adminRead.from('torneo_gestores').select('torneo_id').eq('jugador_id', yo.id)
+        : { data: [] };
+    const gestiono = new Set<string>((misGestiones || []).map((g: { torneo_id: string }) => g.torneo_id));
 
     // Conteos de inscritos por torneo (query separado, más confiable).
     const torneoIds = (torneos || []).map((t: { id: string }) => t.id);
@@ -96,6 +106,7 @@ export default async function TorneosPage() {
                                 key={torneo.id}
                                 torneo={torneo}
                                 countParejas={(conteoParejasPorTorneo.get(torneo.id) || 0) + (conteoInscripcionesPorTorneo.get(torneo.id) || 0)}
+                                gestiono={gestiono.has(torneo.id)}
                             />
                         ))}
                     </div>
@@ -117,6 +128,7 @@ export default async function TorneosPage() {
                                 key={torneo.id}
                                 torneo={torneo}
                                 countParejas={(conteoParejasPorTorneo.get(torneo.id) || 0) + (conteoInscripcionesPorTorneo.get(torneo.id) || 0)}
+                                gestiono={gestiono.has(torneo.id)}
                             />
                         ))}
                     </div>
@@ -134,7 +146,7 @@ interface MatchSubset {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function TorneoCard({ torneo, countParejas }: { torneo: any; countParejas: number }) {
+function TorneoCard({ torneo, countParejas, gestiono = false }: { torneo: any; countParejas: number; gestiono?: boolean }) {
     const hasPartidos = torneo.partidos && torneo.partidos.length > 0;
     const partidos = (torneo.partidos || []) as unknown as MatchSubset[];
 
@@ -202,7 +214,15 @@ function TorneoCard({ torneo, countParejas }: { torneo: any; countParejas: numbe
                     </div>
                 </div>
 
-                <div className="mt-auto pt-4 border-t border-olive/20 flex gap-2">
+                <div className="mt-auto pt-4 border-t border-olive/20 flex flex-wrap gap-2">
+                    {gestiono && (
+                        <Link href={`/gestor/${torneo.id}`} className="w-full">
+                            <div className="flex items-center justify-center gap-2 w-full h-10 bg-ochre-dark hover:bg-ochre text-paper text-sm font-bold rounded-md transition-colors">
+                                <UserCog className="w-4 h-4" />
+                                Gestionar este torneo
+                            </div>
+                        </Link>
+                    )}
                     {canInscribe && (
                         <div className="flex-1">
                             <InscribirParejaDialog torneoId={torneo.id} torneoNombre={torneo.nombre} />
