@@ -42,36 +42,53 @@ export function coincideBusqueda(texto: string, query: string): boolean {
  * El formato con el que se muestra a una persona en toda la app:
  * primer nombre, inicial del segundo y apellido.
  *
- *   "Juan M Sarmiento"                        → "Juan M. Sarmiento"
- *   "Diego Alberto Mejia"                     → "Diego A. Mejia"
+ *   "Juan M Sarmiento"                           → "Juan M. Sarmiento"
+ *   "Diego Alberto Mejia"                        → "Diego A. Mejia"
  *   {nombre:"Jose Emiliano", ape:"Mejia Osorio"} → "Jose E. Mejia"
- *   "Daniel Bermudez"                         → "Daniel Bermudez"
- *   "Santiago"                                → "Santiago"
+ *   {nombre:"Juan", ape:"Jose Vidarte"} invitado → "Juan J. Vidarte"
+ *   "Daniel Bermudez"                            → "Daniel Bermudez"
+ *   "Santiago"                                   → "Santiago"
  *
- * De dónde sale el apellido:
- *   - si viene en su propio campo, el PRIMERO de ese campo;
- *   - si no (los invitados se cargan en un solo campo), la última palabra.
+ * De dónde sale el apellido depende de cómo se cargó la persona, porque el
+ * campo `apellido` guarda cosas distintas en cada caso:
  *
- * Tomar siempre la última palabra parecía más simple, pero a quien tiene dos
- * apellidos le mostraba el segundo: "Jose Emiliano Mejia Osorio" salía como
- * "Jose E. Osorio", que no es como lo conoce nadie.
+ *   - REGISTRADO: escribió nombre y apellido por separado, así que el campo
+ *     trae sus apellidos. Se usa el PRIMERO, que es por el que se le conoce;
+ *     tomar el último mostraba "Jose E. Osorio" a quien todos llaman Mejía.
+ *
+ *   - INVITADO: el club escribe el nombre completo de un tirón y el sistema
+ *     corta en la primera palabra, así que el campo trae "segundo nombre +
+ *     apellido" todo junto. Ahí el apellido es la ÚLTIMA palabra; usar la
+ *     primera mostraba "Juan Jose" en vez de "Juan J. Vidarte".
  *
  * A quien se cargó con un solo nombre no se le puede inventar un apellido:
  * se muestra tal cual.
  */
-function compactName(nombre: string | null | undefined, apellido?: string | null | undefined): string {
+function compactName(
+    nombre: string | null | undefined,
+    apellido?: string | null | undefined,
+    esInvitado = false,
+): string {
     const nomTokens = (nombre || '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
     const apeTokens = (apellido || '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
 
     let apellidoFinal: string | null = null;
+
     if (apeTokens.length > 0) {
-        apellidoFinal = apeTokens[0]!;
         // Datos viejos repiten el apellido dentro del nombre
         // (nombre="Juan Camilo Ocampo Muñoz", apellido="Ocampo Muñoz"):
         // se quitan del nombre para no contarlos como nombres de pila.
         const enApellido = new Set(apeTokens.map(t => t.toLowerCase()));
         while (nomTokens.length > 1 && enApellido.has(nomTokens[nomTokens.length - 1]!.toLowerCase())) {
             nomTokens.pop();
+        }
+
+        if (esInvitado) {
+            apellidoFinal = apeTokens[apeTokens.length - 1]!;
+            // Lo que va antes del apellido son segundos nombres.
+            nomTokens.push(...apeTokens.slice(0, -1));
+        } else {
+            apellidoFinal = apeTokens[0]!;
         }
     } else if (nomTokens.length >= 2) {
         apellidoFinal = nomTokens.pop()!;
@@ -94,8 +111,9 @@ function compactName(nombre: string | null | undefined, apellido?: string | null
  */
 export function formatPlayerName(player: { nombre?: string | null; apellido?: string | null; email?: string | null } | null | undefined): string {
     if (!player) return 'Jugador';
-    const compact = compactName(player.nombre, player.apellido);
-    return isGuestEmail(player.email) ? `${compact} (I)` : compact;
+    const invitado = isGuestEmail(player.email);
+    const compact = compactName(player.nombre, player.apellido, invitado);
+    return invitado ? `${compact} (I)` : compact;
 }
 
 /**
