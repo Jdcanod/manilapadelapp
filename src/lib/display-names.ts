@@ -39,35 +39,50 @@ export function coincideBusqueda(texto: string, query: string): boolean {
 }
 
 /**
- * Compone "Nombre PrimerApellido" priorizando el campo `apellido` cuando
- * viene separado en DB. Evita duplicados: si el nombre ya termina con el
- * apellido (datos legacy), no lo repite.
+ * El formato con el que se muestra a una persona en toda la app:
+ * primer nombre, inicial del segundo y apellido.
  *
- * Casos:
- *   {nombre: "Juan David", apellido: "Cano Duque"}  → "Juan David Cano"
- *   {nombre: "Pedro", apellido: "Pérez"}            → "Pedro Pérez"
- *   {nombre: "Pedro Pérez"}                         → "Pedro Pérez"
- *   {nombre: "José"}                                → "José"
- *   {nombre: null}                                  → "Jugador"
+ *   "Juan M Sarmiento"                        → "Juan M. Sarmiento"
+ *   "Diego Alberto Mejia"                     → "Diego A. Mejia"
+ *   {nombre:"Jose Emiliano", ape:"Mejia Osorio"} → "Jose E. Mejia"
+ *   "Daniel Bermudez"                         → "Daniel Bermudez"
+ *   "Santiago"                                → "Santiago"
+ *
+ * De dónde sale el apellido:
+ *   - si viene en su propio campo, el PRIMERO de ese campo;
+ *   - si no (los invitados se cargan en un solo campo), la última palabra.
+ *
+ * Tomar siempre la última palabra parecía más simple, pero a quien tiene dos
+ * apellidos le mostraba el segundo: "Jose Emiliano Mejia Osorio" salía como
+ * "Jose E. Osorio", que no es como lo conoce nadie.
+ *
+ * A quien se cargó con un solo nombre no se le puede inventar un apellido:
+ * se muestra tal cual.
  */
 function compactName(nombre: string | null | undefined, apellido?: string | null | undefined): string {
-    const nom = (nombre || '').replace(/\s+/g, ' ').trim();
-    const ape = (apellido || '').replace(/\s+/g, ' ').trim();
+    const nomTokens = (nombre || '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    const apeTokens = (apellido || '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
 
-    if (!nom && !ape) return 'Jugador';
-    if (!ape) return nom;
-    if (!nom) return ape;
-
-    const primerApellido = ape.split(' ')[0]!;
-    // Anti-duplicado (datos legacy): si el nombre ya contiene el apellido al
-    // final, no lo agregamos otra vez.
-    const nomLower = nom.toLowerCase();
-    const apeLower = ape.toLowerCase();
-    const primerApeLower = primerApellido.toLowerCase();
-    if (nomLower === apeLower || nomLower.endsWith(' ' + apeLower) || nomLower.endsWith(' ' + primerApeLower)) {
-        return nom;
+    let apellidoFinal: string | null = null;
+    if (apeTokens.length > 0) {
+        apellidoFinal = apeTokens[0]!;
+        // Datos viejos repiten el apellido dentro del nombre
+        // (nombre="Juan Camilo Ocampo Muñoz", apellido="Ocampo Muñoz"):
+        // se quitan del nombre para no contarlos como nombres de pila.
+        const enApellido = new Set(apeTokens.map(t => t.toLowerCase()));
+        while (nomTokens.length > 1 && enApellido.has(nomTokens[nomTokens.length - 1]!.toLowerCase())) {
+            nomTokens.pop();
+        }
+    } else if (nomTokens.length >= 2) {
+        apellidoFinal = nomTokens.pop()!;
     }
-    return `${nom} ${primerApellido}`;
+
+    if (nomTokens.length === 0) return apellidoFinal || 'Jugador';
+
+    const primero = nomTokens[0]!;
+    const segundo = nomTokens[1];
+    const inicial = segundo ? ` ${segundo[0]!.toUpperCase()}.` : '';
+    return `${primero}${inicial}${apellidoFinal ? ` ${apellidoFinal}` : ''}`;
 }
 
 /**
