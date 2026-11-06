@@ -685,6 +685,14 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
             </div>
 
             {/* COPA DAVIS: vista propia que reemplaza los tabs */}
+            {/* Fuera de las pestañas a propósito: en liga la de Programación
+                está deshabilitada, y ahí el control quedaba inalcanzable. */}
+            <GestoresTorneoControl
+                torneoId={params.id}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                gestores={(gestoresTorneo || []) as any}
+            />
+
             {torneo.formato === 'copa_davis' ? (
                 <div className="mt-8">
                     {!rivalClubData ? (
@@ -898,18 +906,11 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                             horario. Todos contra Todos lo coordinan las parejas entre ellas.
                         </p>
                     )}
-                    <div className="mb-4 space-y-3">
-                        <GestoresTorneoControl
+                    <div className="mb-4 flex justify-end">
+                        <EditarCanchasControl
                             torneoId={params.id}
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            gestores={(gestoresTorneo || []) as any}
+                            canchasActuales={torneo.reglas_puntuacion?.config_canchas || 1}
                         />
-                        <div className="flex justify-end">
-                            <EditarCanchasControl
-                                torneoId={params.id}
-                                canchasActuales={torneo.reglas_puntuacion?.config_canchas || 1}
-                            />
-                        </div>
                     </div>
                     <TournamentChronogram
                         torneoId={params.id}
