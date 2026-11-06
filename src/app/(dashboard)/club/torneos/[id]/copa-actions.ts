@@ -485,11 +485,17 @@ export async function inscribirParejaCopa({
         if (j1Id === j2Id) return { success: false, message: "Los dos jugadores deben ser distintos" };
 
         // 2. Buscar pareja existente o crearla
-        const { data: existing } = await admin
+        // La misma pareja puede estar guardada en los dos ordenes, (A,B) y
+        // (B,A): la restriccion unica es sensible al orden. Con maybeSingle
+        // eso devolvia error, el codigo seguia como si no existiera y al
+        // insertarla rompia la restriccion. Nos quedamos con la primera.
+        const { data: existingLista } = await admin
             .from('parejas')
             .select('id')
             .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
-            .maybeSingle();
+            .order('id')
+            .limit(1);
+        const existing = existingLista?.[0] ?? null;
 
         let parejaId = existing?.id;
         if (!parejaId) {
@@ -662,11 +668,17 @@ export async function editarInscripcionCopa({
         if (j1Id === j2Id) return { success: false, message: "Los dos jugadores deben ser distintos" };
 
         // Buscar pareja existente con esos jugadores o crearla (misma lógica que inscribir)
-        const { data: existing } = await admin
+        // La misma pareja puede estar guardada en los dos ordenes, (A,B) y
+        // (B,A): la restriccion unica es sensible al orden. Con maybeSingle
+        // eso devolvia error, el codigo seguia como si no existiera y al
+        // insertarla rompia la restriccion. Nos quedamos con la primera.
+        const { data: existingLista } = await admin
             .from('parejas')
             .select('id')
             .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
-            .maybeSingle();
+            .order('id')
+            .limit(1);
+        const existing = existingLista?.[0] ?? null;
 
         let parejaId = existing?.id;
         if (!parejaId) {

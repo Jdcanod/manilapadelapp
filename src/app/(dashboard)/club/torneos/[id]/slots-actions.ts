@@ -214,11 +214,17 @@ export async function asignarParejaASlot({
             if (j1Id === j2Id) return { success: false, error: "Los dos jugadores deben ser distintos" };
 
             // Buscar pareja existente (no placeholder) con esos dos jugadores
-            const { data: existing } = await admin
+            // La misma pareja puede estar guardada en los dos ordenes, (A,B) y
+            // (B,A): la restriccion unica es sensible al orden. Con maybeSingle
+            // eso devolvia error, el codigo seguia como si no existiera y al
+            // insertarla rompia la restriccion. Nos quedamos con la primera.
+            const { data: existingLista } = await admin
                 .from("parejas")
                 .select("id, nombre_pareja")
                 .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
-                .maybeSingle();
+                .order('id')
+                .limit(1);
+            const existing = existingLista?.[0] ?? null;
 
             if (existing?.id) {
                 parejaRealId = existing.id;

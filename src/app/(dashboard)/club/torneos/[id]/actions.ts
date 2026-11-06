@@ -438,11 +438,17 @@ export async function generarFaseGrupos(torneoId: string, categoria: string, num
             const j2Id = m.jugador2?.id;
             if (!j1Id || !j2Id) continue;
 
-            const { data: existingPareja } = await supabaseAdmin
+            // La misma pareja puede estar guardada en los dos ordenes, (A,B) y
+            // (B,A): la restriccion unica es sensible al orden. Con maybeSingle
+            // eso devolvia error, el codigo seguia como si no existiera y al
+            // insertarla rompia la restriccion. Nos quedamos con la primera.
+            const { data: existingParejaLista } = await supabaseAdmin
                 .from('parejas')
                 .select('id, nombre_pareja')
                 .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
-                .maybeSingle();
+                .order('id')
+                .limit(1);
+            const existingPareja = existingParejaLista?.[0] ?? null;
 
             let parejaActual = existingPareja;
             const nuevoNombre = `${formatName(m.jugador1?.nombre || 'J1')} / ${formatName(m.jugador2?.nombre || 'J2')}`;
@@ -893,11 +899,17 @@ export async function inscribirParejaManual(torneoId: string, jugador1Sel: strin
             throw new Error("IDs de jugadores inválidos");
         }
 
-        const { data: existingPareja } = await supabaseAdmin
+        // La misma pareja puede estar guardada en los dos ordenes, (A,B) y
+        // (B,A): la restriccion unica es sensible al orden. Con maybeSingle
+        // eso devolvia error, el codigo seguia como si no existiera y al
+        // insertarla rompia la restriccion. Nos quedamos con la primera.
+        const { data: existingParejaLista } = await supabaseAdmin
             .from('parejas')
             .select('id')
             .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
-            .maybeSingle();
+            .order('id')
+            .limit(1);
+        const existingPareja = existingParejaLista?.[0] ?? null;
 
         let parejaId = existingPareja?.id;
 
@@ -3203,11 +3215,17 @@ export async function editarParticipantesInscripcion(
         const nuevoNombre = `${formatPlayerName(p1)} / ${formatPlayerName(p2)}`;
 
         // Verificar si ya existe una pareja con estos integrantes
-        const { data: existingPareja } = await supabaseAdmin
+        // La misma pareja puede estar guardada en los dos ordenes, (A,B) y
+        // (B,A): la restriccion unica es sensible al orden. Con maybeSingle
+        // eso devolvia error, el codigo seguia como si no existiera y al
+        // insertarla rompia la restriccion. Nos quedamos con la primera.
+        const { data: existingParejaLista } = await supabaseAdmin
             .from('parejas')
             .select('id')
             .or(`and(jugador1_id.eq.${j1Id},jugador2_id.eq.${j2Id}),and(jugador1_id.eq.${j2Id},jugador2_id.eq.${j1Id})`)
-            .maybeSingle();
+            .order('id')
+            .limit(1);
+        const existingPareja = existingParejaLista?.[0] ?? null;
 
         let nuevaParejaId = existingPareja?.id;
 
