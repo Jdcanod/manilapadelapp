@@ -126,6 +126,7 @@ export function GestoresTorneoControl({ torneoId, gestores }: { torneoId: string
                                             </Button>
                                         </div>
                                         <Funciones
+                                            key={(g.permisos || []).join(',')}
                                             jugadorId={g.jugador_id}
                                             torneoId={torneoId}
                                             actuales={(g.permisos || []) as PermisoGestor[]}

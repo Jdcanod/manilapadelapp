@@ -224,7 +224,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
     // Quién más puede operar este torneo (cargar resultados y programar).
     const { data: gestoresTorneo } = await createPureAdminClient()
         .from('torneo_gestores')
-        .select('id, jugador_id, jugador:users!jugador_id(id, nombre, apellido, email)')
+        .select('id, jugador_id, permisos, jugador:users!jugador_id(id, nombre, apellido, email)')
         .eq('torneo_id', params.id)
         .order('creado_en');
 
