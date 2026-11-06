@@ -44,9 +44,36 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         .eq('auth_id', user.id)
         .single();
 
-    if (userData?.rol !== 'admin_club') {
+    if (!userData) redirect("/login");
+
+    // La página es del club, pero también entran los gestores que el club
+    // nombró para ESTE torneo: aquí viven las pantallas de inscribir parejas
+    // y sortear, que son funciones delegables. Lo que es solo del club se
+    // esconde más abajo, y el servidor lo rechaza igual.
+    const { data: torneoDuenoRef } = await createPureAdminClient()
+        .from('torneos').select('club_id').eq('id', params.id).maybeSingle();
+
+    const esClubDueno = userData.rol === 'admin_club'
+        && String(torneoDuenoRef?.club_id) === String(userData.id);
+
+    const { data: miGestion } = userData.id && !esClubDueno
+        ? await createPureAdminClient()
+            .from('torneo_gestores')
+            .select('permisos')
+            .eq('torneo_id', params.id)
+            .eq('jugador_id', userData.id)
+            .maybeSingle()
+        : { data: null };
+
+    const permisosGestor: string[] = (miGestion?.permisos || []) as string[];
+    const esGestorConPanel = permisosGestor.includes('parejas') || permisosGestor.includes('sorteos');
+
+    if (!esClubDueno && userData.rol !== 'superadmin' && !esGestorConPanel) {
         redirect("/jugador");
     }
+
+    /** Solo el dueño: lo irreversible y la delegación no se delegan. */
+    const soloClub = esClubDueno || userData.rol === 'superadmin';
 
     const { data: torneo, error: torneoError } = await supabase
         .from('torneos')
@@ -608,7 +635,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                                     {torneo.nombre}
                                 </h1>
                                 {/* El club corrige la errata donde la ve: en el propio titulo. */}
-                                <EditarNombreTorneoControl torneoId={torneo.id} nombre={torneo.nombre} />
+                                {soloClub && <EditarNombreTorneoControl torneoId={torneo.id} nombre={torneo.nombre} />}
                             </div>
                             <div className="flex items-center gap-2">
                                 <Badge variant="outline" className={statusColor}>
@@ -687,11 +714,13 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
             {/* COPA DAVIS: vista propia que reemplaza los tabs */}
             {/* Fuera de las pestañas a propósito: en liga la de Programación
                 está deshabilitada, y ahí el control quedaba inalcanzable. */}
-            <GestoresTorneoControl
-                torneoId={params.id}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                gestores={(gestoresTorneo || []) as any}
-            />
+            {soloClub && (
+                <GestoresTorneoControl
+                    torneoId={params.id}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    gestores={(gestoresTorneo || []) as any}
+                />
+            )}
 
             {torneo.formato === 'copa_davis' ? (
                 <div className="mt-8">

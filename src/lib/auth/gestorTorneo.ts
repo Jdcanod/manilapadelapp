@@ -1,4 +1,7 @@
 import { createClient, createPureAdminClient } from "@/utils/supabase/server";
+import { PERMISOS_GESTOR, esPermisoValido, type PermisoGestor } from "@/lib/auth/permisosGestor";
+
+export { PERMISOS_GESTOR, PERMISOS_POR_DEFECTO, esPermisoValido, type PermisoGestor } from "@/lib/auth/permisosGestor";
 
 /**
  * Permiso para OPERAR un torneo: cargar resultados y programar partidos.
@@ -12,7 +15,7 @@ import { createClient, createPureAdminClient } from "@/utils/supabase/server";
  * Devuelve también `esClub`, para que cada acción pueda exigir más cuando
  * haga falta.
  */
-export async function requireGestionDeTorneo(torneoId: string) {
+export async function requireGestionDeTorneo(torneoId: string, permiso?: PermisoGestor) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("No autenticado");
@@ -36,22 +39,34 @@ export async function requireGestionDeTorneo(torneoId: string) {
     const esClub = userData.rol === 'admin_club' && String(torneo.club_id) === String(userData.id);
     const esSuperadmin = userData.rol === 'superadmin';
 
+    let permisos: PermisoGestor[] = [];
     let esGestor = false;
     if (!esClub && !esSuperadmin) {
         const { data: gestor } = await admin
             .from('torneo_gestores')
-            .select('id')
+            .select('id, permisos')
             .eq('torneo_id', torneoId)
             .eq('jugador_id', userData.id)
             .maybeSingle();
         esGestor = !!gestor;
+        permisos = ((gestor?.permisos || []) as string[]).filter(esPermisoValido);
     }
 
     if (!esClub && !esSuperadmin && !esGestor) {
         throw new Error("No tienes permisos sobre este torneo");
     }
 
-    return { admin, userData, torneo, authUserId: user.id, esClub: esClub || esSuperadmin, esGestor };
+    // El club puede todo; al gestor se le exige la función concreta.
+    if (permiso && !esClub && !esSuperadmin && !permisos.includes(permiso)) {
+        throw new Error(`No tienes habilitada esta función: ${PERMISOS_GESTOR[permiso].nombre.toLowerCase()}`);
+    }
+
+    return {
+        admin, userData, torneo, authUserId: user.id,
+        esClub: esClub || esSuperadmin,
+        esGestor,
+        permisos: esClub || esSuperadmin ? (Object.keys(PERMISOS_GESTOR) as PermisoGestor[]) : permisos,
+    };
 }
 
 /**

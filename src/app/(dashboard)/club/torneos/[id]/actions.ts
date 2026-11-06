@@ -6,7 +6,7 @@ import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { calcularRequeridosPorPareja, calcularClasificados } from "@/lib/tournaments/clasificacion";
 import { esPartidoDeTorneo } from "@/lib/tournaments/esDeTorneo";
-import { requireGestionDeTorneo, juegaEsePartido } from "@/lib/auth/gestorTorneo";
+import { requireGestionDeTorneo, juegaEsePartido, PERMISOS_POR_DEFECTO, esPermisoValido, type PermisoGestor } from "@/lib/auth/gestorTorneo";
 import { getOrCreateInvitado } from "@/lib/invitados";
 import { requireClubOwnership } from "@/lib/auth/clubOwnership";
 import { formatPlayerName, isGuestEmail } from "@/lib/display-names";
@@ -356,9 +356,8 @@ export async function ejecutarCorte(torneoId: string, categoria: string) {
 }
 
 export async function generarFaseGrupos(torneoId: string, categoria: string, numGrupos?: number, clasificanPorGrupo?: number) {
-    // Verifica sesión + rol admin_club + que el torneo sea de ESE club, antes
-    // de tocar nada — antes solo se chequeaba que hubiera sesión.
-    const { admin: supabaseAdmin, authUserId: userId } = await requireClubOwnership(torneoId);
+    // Sesión + permiso de sorteos sobre ESTE torneo, antes de tocar nada.
+    const { admin: supabaseAdmin, authUserId: userId } = await requireGestionDeTorneo(torneoId, 'sorteos');
 
     try {
 
@@ -771,6 +770,9 @@ export async function actualizarRevanchaCategoria(torneoId: string, categoria: s
 
 export async function swapParejasDeGrupo(torneoId: string, categoria: string, parejaId1: string, parejaId2: string) {
     try {
+    // Antes esta acción no comprobaba nada: cualquier usuario con sesión podía
+    // ejecutarla sobre el torneo de cualquier club.
+    await requireGestionDeTorneo(torneoId, 'sorteos');
         const supabaseAdmin = createSupabaseClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -865,6 +867,9 @@ export async function swapParejasDeGrupo(torneoId: string, categoria: string, pa
 
 export async function inscribirParejaManual(torneoId: string, jugador1Sel: string, jugador2Sel: string, categoria: string, esMaster: boolean) {
     try {
+    // Antes esta acción no comprobaba nada: cualquier usuario con sesión podía
+    // ejecutarla sobre el torneo de cualquier club.
+    await requireGestionDeTorneo(torneoId, 'parejas');
         // Create admin client directly to be 100% sure about bypassing RLS and not relying on cookies
         const supabaseAdmin = createSupabaseClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1144,7 +1149,7 @@ export async function registrarWalkover(matchId: string, parejaGanadoraId: strin
             return { ok: false, mensaje: "Esa pareja no juega este partido." };
         }
 
-        const { admin, userData, esClub } = await requireGestionDeTorneo(partido.torneo_id);
+        const { admin, userData, esClub } = await requireGestionDeTorneo(partido.torneo_id, 'resultados');
         if (!esClub && await juegaEsePartido(admin, matchId, userData.id)) {
             return { ok: false, mensaje: "No puedes declarar un W en un partido que juegas. Pídeselo al club o a otro gestor." };
         }
@@ -1180,7 +1185,7 @@ export async function listarGestores(torneoId: string) {
         const { admin } = await requireGestionDeTorneo(torneoId);
         const { data } = await admin
             .from('torneo_gestores')
-            .select('id, jugador_id, creado_en, jugador:users!jugador_id(id, nombre, apellido, email)')
+            .select('id, jugador_id, creado_en, permisos, jugador:users!jugador_id(id, nombre, apellido, email)')
             .eq('torneo_id', torneoId)
             .order('creado_en');
         return { ok: true, gestores: data || [] };
@@ -1193,7 +1198,7 @@ export async function listarGestores(torneoId: string) {
  * Nombra a alguien gestor de ESTE torneo. Solo el club dueño puede hacerlo:
  * un gestor no puede nombrar a otros, o el permiso se repartiría solo.
  */
-export async function agregarGestor(torneoId: string, jugadorId: string): Promise<{ ok: boolean; mensaje: string }> {
+export async function agregarGestor(torneoId: string, jugadorId: string, permisos?: string[]): Promise<{ ok: boolean; mensaje: string }> {
     try {
         const { admin, userData } = await requireClubOwnership(torneoId);
 
@@ -1204,10 +1209,12 @@ export async function agregarGestor(torneoId: string, jugadorId: string): Promis
             return { ok: false, mensaje: "Un invitado no tiene cuenta con la cual entrar. Primero vincúlalo a un jugador real." };
         }
 
+        const pedidos = (permisos || []).filter(esPermisoValido);
         const { error } = await admin.from('torneo_gestores').insert({
             torneo_id: torneoId,
             jugador_id: jugadorId,
             creado_por: userData.id,
+            permisos: pedidos.length > 0 ? pedidos : PERMISOS_POR_DEFECTO,
         });
         if (error) {
             if (error.code === '23505') return { ok: false, mensaje: "Esa persona ya es gestora de este torneo." };
@@ -1217,6 +1224,38 @@ export async function agregarGestor(torneoId: string, jugadorId: string): Promis
         revalidatePath(`/club/torneos/${torneoId}`);
         revalidatePath(`/gestor/${torneoId}`);
         return { ok: true, mensaje: `${jugador.nombre} ya puede cargar resultados y programar partidos de este torneo.` };
+    } catch (err: unknown) {
+        return { ok: false, mensaje: err instanceof Error ? err.message : "Error desconocido" };
+    }
+}
+
+/**
+ * Cambia qué funciones tiene habilitadas un gestor. Solo el club: si un
+ * gestor pudiera ampliarse los permisos, el menú no serviría de nada.
+ */
+export async function actualizarPermisosGestor(
+    torneoId: string,
+    jugadorId: string,
+    permisos: string[],
+): Promise<{ ok: boolean; mensaje: string }> {
+    try {
+        const { admin } = await requireClubOwnership(torneoId);
+
+        const limpios = Array.from(new Set((permisos || []).filter(esPermisoValido))) as PermisoGestor[];
+        if (limpios.length === 0) {
+            return { ok: false, mensaje: "Deja al menos una función habilitada, o quítale el acceso al torneo." };
+        }
+
+        const { error } = await admin
+            .from('torneo_gestores')
+            .update({ permisos: limpios })
+            .eq('torneo_id', torneoId)
+            .eq('jugador_id', jugadorId);
+        if (error) return { ok: false, mensaje: error.message };
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        revalidatePath(`/gestor/${torneoId}`);
+        return { ok: true, mensaje: "Funciones actualizadas." };
     } catch (err: unknown) {
         return { ok: false, mensaje: err instanceof Error ? err.message : "Error desconocido" };
     }
@@ -1253,7 +1292,7 @@ export async function registrarResultadoPorClub(matchId: string, resultado: stri
 
         // Los gestores del torneo también cargan resultados — pero nunca los
         // de un partido que ellos mismos juegan.
-        const { admin: supabaseAdmin, userData, esClub } = await requireGestionDeTorneo(matchRef.torneo_id);
+        const { admin: supabaseAdmin, userData, esClub } = await requireGestionDeTorneo(matchRef.torneo_id, 'resultados');
         if (!esClub && await juegaEsePartido(supabaseAdmin, matchId, userData.id)) {
             return { success: false, error: "No puedes cargar el resultado de un partido que juegas. Pídeselo al club o a otro gestor." };
         }
@@ -1426,6 +1465,9 @@ export async function eliminarInscripcion(id: string, tipo: 'master' | 'regular'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function generarFaseEliminatoria(torneoId: string, categoria: string, numAdvancingPerGroup: number = 2) {
     try {
+    // Antes esta acción no comprobaba nada: cualquier usuario con sesión podía
+    // ejecutarla sobre el torneo de cualquier club.
+    await requireGestionDeTorneo(torneoId, 'sorteos');
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { success: false, message: "No autenticado." };
@@ -1891,6 +1933,9 @@ export async function contarPartidosDeDia(torneoId: string, fecha: string): Prom
  */
 export async function moverPartidosDeDia(torneoId: string, fechaOrigen: string, fechaDestino: string) {
     try {
+    // Antes esta acción no comprobaba nada: cualquier usuario con sesión podía
+    // ejecutarla sobre el torneo de cualquier club.
+    await requireGestionDeTorneo(torneoId, 'programacion');
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { success: false, error: "No autenticado" };
@@ -1943,6 +1988,9 @@ export async function moverPartidosDeDia(torneoId: string, fechaOrigen: string, 
 
 export async function actualizarOrdenGrupo(torneoId: string, grupoId: string, parejaIds: string[]) {
     try {
+    // Antes esta acción no comprobaba nada: cualquier usuario con sesión podía
+    // ejecutarla sobre el torneo de cualquier club.
+    await requireGestionDeTorneo(torneoId, 'sorteos');
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { success: false, error: "No autenticado" };
@@ -2305,6 +2353,9 @@ export async function generarFaseEliminatoriaTopN(
     porGrupo?: number,
 ) {
     try {
+    // Antes esta acción no comprobaba nada: cualquier usuario con sesión podía
+    // ejecutarla sobre el torneo de cualquier club.
+    await requireGestionDeTorneo(torneoId, 'sorteos');
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { success: false, message: "No autenticado." };
@@ -2675,6 +2726,9 @@ export async function generarFaseEliminatoriaTopN(
  */
 export async function generarGruposFinales(torneoId: string, categoria: string, numGrupos: number, totalClasificados?: number) {
     try {
+    // Antes esta acción no comprobaba nada: cualquier usuario con sesión podía
+    // ejecutarla sobre el torneo de cualquier club.
+    await requireGestionDeTorneo(torneoId, 'sorteos');
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { success: false, message: "No autenticado." };
@@ -2808,8 +2862,7 @@ export async function generarGruposFinales(torneoId: string, categoria: string, 
 
 export async function updateMatchSchedule(matchId: string, fecha: string, cancha: string, torneoId: string) {
     try {
-        // El club y los gestores del torneo pueden programar partidos.
-        const { admin: supabase } = await requireGestionDeTorneo(torneoId);
+        const { admin: supabase } = await requireGestionDeTorneo(torneoId, 'programacion');
         const { data: torneoCheck } = await supabase.from('torneos').select('club_id, reglas_puntuacion').eq('id', torneoId).single();
         if (!torneoCheck) return { success: false, message: "Torneo no encontrado." };
 
@@ -2904,8 +2957,7 @@ export async function updateMatchSchedule(matchId: string, fecha: string, cancha
 
 export async function unscheduleMatch(matchId: string, torneoId: string) {
     try {
-        // El club y los gestores del torneo pueden quitar un partido de la parrilla.
-        const { admin: supabase } = await requireGestionDeTorneo(torneoId);
+        const { admin: supabase } = await requireGestionDeTorneo(torneoId, 'programacion');
 
         // 1. Obtener la fecha de inicio del torneo para usarla como fallback (evitar error NOT NULL)
         const { data: torneo } = await supabase
@@ -2949,7 +3001,7 @@ export async function unscheduleMatch(matchId: string, torneoId: string) {
 
 export async function crearGrupoManual(torneoId: string, categoria: string) {
     try {
-        const { admin: supabaseAdmin } = await requireClubOwnership(torneoId);
+        const { admin: supabaseAdmin } = await requireGestionDeTorneo(torneoId, 'sorteos');
 
         // Get existing groups to determine next letter
         const { data: existingGroups } = await supabaseAdmin
@@ -2985,7 +3037,7 @@ export async function crearGrupoManual(torneoId: string, categoria: string) {
 
 export async function moverParejaAGrupo(torneoId: string, categoria: string, parejaId: string, nuevoGrupoId: string) {
     try {
-        const { admin: supabaseAdmin, authUserId } = await requireClubOwnership(torneoId);
+        const { admin: supabaseAdmin, authUserId } = await requireGestionDeTorneo(torneoId, 'sorteos');
 
         // 1. Check if the pair is currently in any group (by looking at matches)
         const { data: currentMatches } = await supabaseAdmin
@@ -3101,7 +3153,7 @@ export async function triggerSync(torneoId: string, categoria: string) {
 }
 
 export async function actualizarEstadoPago(id: string, tipo: 'master' | 'regular', nuevoEstado: string, torneoId: string) {
-    const { admin } = await requireClubOwnership(torneoId);
+    const { admin } = await requireGestionDeTorneo(torneoId, 'parejas');
     if (tipo === 'master') {
         const { error } = await admin.from('inscripciones_torneo').update({ estado: nuevoEstado }).eq('id', id);
         if (error) throw new Error(error.message);
@@ -3122,7 +3174,7 @@ export async function editarParticipantesInscripcion(
     torneoId: string
 ) {
     try {
-        const { admin: supabaseAdmin } = await requireClubOwnership(torneoId);
+        const { admin: supabaseAdmin } = await requireGestionDeTorneo(torneoId, 'parejas');
 
         let j1Id = jugador1Sel;
         let j2Id = jugador2Sel;
