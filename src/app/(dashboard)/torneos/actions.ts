@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { esPartidoDeTorneo } from "@/lib/tournaments/esDeTorneo";
+import { requireGestionDeTorneo } from "@/lib/auth/gestorTorneo";
 
 export async function inscribirParejaTorneo(formData: FormData) {
     try {
@@ -433,9 +434,30 @@ export async function reiniciarResultado(matchId: string) {
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
-        // Obtener el partido para revalidación
-        const { data: match } = await admin.from('partidos').select('torneo_id, club_id').eq('id', matchId).single();
+        const { data: match } = await admin.from('partidos').select('torneo_id, club_id, creador_id, tipo_partido, tipo_partido_oficial').eq('id', matchId).single();
         if (!match) return { success: false, message: "Partido no encontrado" };
+
+        // Antes bastaba con estar logueado: cualquiera podía borrar el
+        // resultado de cualquier partido, incluso de otro club. Borrar un
+        // resultado deshace puntos y ranking, así que lo hace quien manda
+        // sobre ese partido.
+        if (esPartidoDeTorneo(match) && match.torneo_id) {
+            try {
+                await requireGestionDeTorneo(match.torneo_id);
+            } catch {
+                return { success: false, message: "Solo el club o un gestor del torneo pueden reiniciar este resultado." };
+            }
+        } else {
+            const { data: yo } = await admin.from('users').select('id, rol').eq('auth_id', user.id).single();
+            const esDueno = yo && (
+                String(match.club_id) === String(yo.id) ||
+                String(match.creador_id) === String(user.id) ||
+                String(match.creador_id) === String(yo.id)
+            );
+            if (!esDueno && yo?.rol !== 'superadmin') {
+                return { success: false, message: "No tienes permiso para reiniciar este resultado." };
+            }
+        }
 
         const { error } = await admin
             .from('partidos')

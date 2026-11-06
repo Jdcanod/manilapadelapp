@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Trophy, TrendingUp, Calendar, MapPin, Activity, Star, History as HistoryIcon } from "lucide-react";
+import { Trophy, TrendingUp, Calendar, MapPin, Activity, Star, History as HistoryIcon, ChevronRight } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -323,8 +323,47 @@ export default async function JugadorDashboard() {
             ? `Categoría ${lastTournamentCategory}`
             : (userData?.categoria || userData?.nivel || 'Jugador');
 
+    // Torneos que esta persona gestiona por encargo del club. Sin esto no
+    // tendría cómo llegar: no es admin del club, así que el panel del torneo
+    // le queda cerrado.
+    const { data: gestionaTorneos } = userData?.id
+        ? await createPureAdminClient()
+            .from('torneo_gestores')
+            .select('torneo_id, torneo:torneos!torneo_id(id, nombre, estado, fecha_inicio)')
+            .eq('jugador_id', userData.id)
+        : { data: [] };
+
     return (
         <div className="space-y-6">
+            {(gestionaTorneos || []).length > 0 && (
+                <div className="bg-ochre/10 border border-ochre/30 rounded-3xl p-5">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-ochre-dark mb-3">
+                        Torneos que gestionas
+                    </p>
+                    <ul className="space-y-2">
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        {(gestionaTorneos || []).map((g: any) => (
+                            <li key={g.torneo_id}>
+                                <Link
+                                    href={`/gestor/${g.torneo_id}`}
+                                    className="flex items-center justify-between gap-3 bg-paper border border-olive/20 rounded-2xl px-4 py-3 hover:bg-paper-dark/40 transition-colors"
+                                >
+                                    <span className="min-w-0">
+                                        <span className="block text-sm font-bold text-ink truncate">
+                                            {g.torneo?.nombre || 'Torneo'}
+                                        </span>
+                                        <span className="block text-[11px] text-olive/60">
+                                            Cargar resultados y programar partidos
+                                        </span>
+                                    </span>
+                                    <ChevronRight className="w-4 h-4 text-olive/50 shrink-0" />
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
             {/* Header Profile Summary */}
             <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8 bg-paper-soft/50 p-6 md:p-10 rounded-[2.5rem] border border-olive/20 backdrop-blur-md">
                 <Avatar className="w-28 h-28 md:w-32 md:h-32 border-4 border-olive/20 shadow-2xl">

@@ -21,6 +21,7 @@ import { TorneoMuroManager } from "@/components/TorneoMuroManager";
 import { listarMuroPosts } from "@/app/(dashboard)/club/torneos/[id]/muro-actions";
 import { CrearVueltaCopaDialog } from "@/components/CrearVueltaCopaDialog";
 import { EditarCanchasControl } from "@/components/EditarCanchasControl";
+import { GestoresTorneoControl } from "@/components/GestoresTorneoControl";
 import { EditarNombreTorneoControl } from "@/components/EditarNombreTorneoControl";
 import { PersistentTabs } from "@/components/PersistentTabs";
 import { formatPairName, formatFormatoLabel } from "@/lib/display-names";
@@ -192,6 +193,13 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .map((tp: any) => tp.pareja_id as string)
     );
+
+    // Quién más puede operar este torneo (cargar resultados y programar).
+    const { data: gestoresTorneo } = await createPureAdminClient()
+        .from('torneo_gestores')
+        .select('id, jugador_id, jugador:users!jugador_id(id, nombre, apellido, email)')
+        .eq('torneo_id', params.id)
+        .order('creado_en');
 
     const parejasRetiradasSet = new Set<string>(
         (torneo.torneo_parejas || [])
@@ -890,11 +898,18 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                             horario. Todos contra Todos lo coordinan las parejas entre ellas.
                         </p>
                     )}
-                    <div className="mb-4 flex justify-end">
-                        <EditarCanchasControl
+                    <div className="mb-4 space-y-3">
+                        <GestoresTorneoControl
                             torneoId={params.id}
-                            canchasActuales={torneo.reglas_puntuacion?.config_canchas || 1}
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            gestores={(gestoresTorneo || []) as any}
                         />
+                        <div className="flex justify-end">
+                            <EditarCanchasControl
+                                torneoId={params.id}
+                                canchasActuales={torneo.reglas_puntuacion?.config_canchas || 1}
+                            />
+                        </div>
                     </div>
                     <TournamentChronogram
                         torneoId={params.id}

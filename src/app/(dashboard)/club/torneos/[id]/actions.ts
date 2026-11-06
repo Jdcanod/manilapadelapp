@@ -6,6 +6,7 @@ import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { calcularRequeridosPorPareja, calcularClasificados } from "@/lib/tournaments/clasificacion";
 import { esPartidoDeTorneo } from "@/lib/tournaments/esDeTorneo";
+import { requireGestionDeTorneo, juegaEsePartido } from "@/lib/auth/gestorTorneo";
 import { getOrCreateInvitado } from "@/lib/invitados";
 import { requireClubOwnership } from "@/lib/auth/clubOwnership";
 import { formatPlayerName, isGuestEmail } from "@/lib/display-names";
@@ -1143,7 +1144,10 @@ export async function registrarWalkover(matchId: string, parejaGanadoraId: strin
             return { ok: false, mensaje: "Esa pareja no juega este partido." };
         }
 
-        const { admin, userData } = await requireClubOwnership(partido.torneo_id);
+        const { admin, userData, esClub } = await requireGestionDeTorneo(partido.torneo_id);
+        if (!esClub && await juegaEsePartido(admin, matchId, userData.id)) {
+            return { ok: false, mensaje: "No puedes declarar un W en un partido que juegas. Pídeselo al club o a otro gestor." };
+        }
 
         const { error } = await admin
             .from('partidos')
@@ -1170,6 +1174,73 @@ export async function registrarWalkover(matchId: string, parejaGanadoraId: strin
     }
 }
 
+/** Gestores de un torneo, con nombre y correo para mostrarlos. */
+export async function listarGestores(torneoId: string) {
+    try {
+        const { admin } = await requireGestionDeTorneo(torneoId);
+        const { data } = await admin
+            .from('torneo_gestores')
+            .select('id, jugador_id, creado_en, jugador:users!jugador_id(id, nombre, apellido, email)')
+            .eq('torneo_id', torneoId)
+            .order('creado_en');
+        return { ok: true, gestores: data || [] };
+    } catch (err: unknown) {
+        return { ok: false, gestores: [], mensaje: err instanceof Error ? err.message : "Error desconocido" };
+    }
+}
+
+/**
+ * Nombra a alguien gestor de ESTE torneo. Solo el club dueño puede hacerlo:
+ * un gestor no puede nombrar a otros, o el permiso se repartiría solo.
+ */
+export async function agregarGestor(torneoId: string, jugadorId: string): Promise<{ ok: boolean; mensaje: string }> {
+    try {
+        const { admin, userData } = await requireClubOwnership(torneoId);
+
+        const { data: jugador } = await admin
+            .from('users').select('id, nombre, rol, email').eq('id', jugadorId).maybeSingle();
+        if (!jugador) return { ok: false, mensaje: "No encontré a esa persona." };
+        if (isGuestEmail(jugador.email)) {
+            return { ok: false, mensaje: "Un invitado no tiene cuenta con la cual entrar. Primero vincúlalo a un jugador real." };
+        }
+
+        const { error } = await admin.from('torneo_gestores').insert({
+            torneo_id: torneoId,
+            jugador_id: jugadorId,
+            creado_por: userData.id,
+        });
+        if (error) {
+            if (error.code === '23505') return { ok: false, mensaje: "Esa persona ya es gestora de este torneo." };
+            return { ok: false, mensaje: error.message };
+        }
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        revalidatePath(`/gestor/${torneoId}`);
+        return { ok: true, mensaje: `${jugador.nombre} ya puede cargar resultados y programar partidos de este torneo.` };
+    } catch (err: unknown) {
+        return { ok: false, mensaje: err instanceof Error ? err.message : "Error desconocido" };
+    }
+}
+
+/** Le quita el permiso. Lo ya cargado por esa persona no se toca. */
+export async function quitarGestor(torneoId: string, jugadorId: string): Promise<{ ok: boolean; mensaje: string }> {
+    try {
+        const { admin } = await requireClubOwnership(torneoId);
+        const { error } = await admin
+            .from('torneo_gestores')
+            .delete()
+            .eq('torneo_id', torneoId)
+            .eq('jugador_id', jugadorId);
+        if (error) return { ok: false, mensaje: error.message };
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        revalidatePath(`/gestor/${torneoId}`);
+        return { ok: true, mensaje: "Permiso retirado. Lo que ya cargó se mantiene." };
+    } catch (err: unknown) {
+        return { ok: false, mensaje: err instanceof Error ? err.message : "Error desconocido" };
+    }
+}
+
 export async function registrarResultadoPorClub(matchId: string, resultado: string) {
     try {
         // El match no trae el torneoId como parámetro, así que primero lo
@@ -1180,7 +1251,12 @@ export async function registrarResultadoPorClub(matchId: string, resultado: stri
             .from('partidos').select('torneo_id').eq('id', matchId).single();
         if (!matchRef) throw new Error("Partido no encontrado");
 
-        const { admin: supabaseAdmin, userData } = await requireClubOwnership(matchRef.torneo_id);
+        // Los gestores del torneo también cargan resultados — pero nunca los
+        // de un partido que ellos mismos juegan.
+        const { admin: supabaseAdmin, userData, esClub } = await requireGestionDeTorneo(matchRef.torneo_id);
+        if (!esClub && await juegaEsePartido(supabaseAdmin, matchId, userData.id)) {
+            return { success: false, error: "No puedes cargar el resultado de un partido que juegas. Pídeselo al club o a otro gestor." };
+        }
         const finalUserId = userData.id;
 
         const { error } = await supabaseAdmin
@@ -2732,8 +2808,8 @@ export async function generarGruposFinales(torneoId: string, categoria: string, 
 
 export async function updateMatchSchedule(matchId: string, fecha: string, cancha: string, torneoId: string) {
     try {
-        // SEGURIDAD: Solo el admin del club propietario puede programar partidos
-        const { admin: supabase } = await requireClubOwnership(torneoId);
+        // El club y los gestores del torneo pueden programar partidos.
+        const { admin: supabase } = await requireGestionDeTorneo(torneoId);
         const { data: torneoCheck } = await supabase.from('torneos').select('club_id, reglas_puntuacion').eq('id', torneoId).single();
         if (!torneoCheck) return { success: false, message: "Torneo no encontrado." };
 
@@ -2828,8 +2904,8 @@ export async function updateMatchSchedule(matchId: string, fecha: string, cancha
 
 export async function unscheduleMatch(matchId: string, torneoId: string) {
     try {
-        // SEGURIDAD: Verificar que el usuario autenticado es admin del club propietario del torneo
-        const { admin: supabase } = await requireClubOwnership(torneoId);
+        // El club y los gestores del torneo pueden quitar un partido de la parrilla.
+        const { admin: supabase } = await requireGestionDeTorneo(torneoId);
 
         // 1. Obtener la fecha de inicio del torneo para usarla como fallback (evitar error NOT NULL)
         const { data: torneo } = await supabase
