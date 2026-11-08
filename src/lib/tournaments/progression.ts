@@ -1,8 +1,13 @@
-import { createAdminClient } from "@/utils/supabase/server";
+import { createPureAdminClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { calculateStandings } from "./standings";
 import { rutaDeAvance } from "./cuadroConDescansos";
 
+// Todo este módulo escribe datos calculados (quién clasificó, quién avanza)
+// y lo llaman acciones que ya verificaron permisos. Usa el cliente sin sesión:
+// con createAdminClient viajaba la sesión del usuario, y si las reglas de la
+// tabla no le dejaban tocar esos partidos, la escritura no fallaba: cambiaba
+// cero filas y nadie se enteraba.
 /**
  * Verifica si las semifinales han terminado y genera la final automáticamente.
  */
@@ -10,16 +15,17 @@ import { rutaDeAvance } from "./cuadroConDescansos";
  * Procesa el avance de fase en las eliminatorias (Octavos -> Cuartos -> Semis -> Final).
  */
 export async function procesarAvanceCuadros(torneoId: string, categoria: string, clubId: string | null, userId: string) {
-    const supabaseAdmin = createAdminClient();
+    const supabaseAdmin = createPureAdminClient();
 
     // 1. Obtener todos los partidos de eliminatoria de esta categoría, ordenados para tener consistencia en los índices
-    const { data: allMatches } = await supabaseAdmin
+    const { data: allMatches } = (await supabaseAdmin
         .from('partidos')
         .select('*')
         .eq('torneo_id', torneoId)
         .eq('nivel', categoria)
         .is('torneo_grupo_id', null)
-        .order('id', { ascending: true }); // Usamos ID para orden consistente
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .order('id', { ascending: true })) as { data: any[] | null }; // Usamos ID para orden consistente
 
     if (!allMatches || allMatches.length === 0) return;
 
@@ -173,8 +179,14 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
 /**
  * Sincroniza los clasificados de los grupos con los placeholders en los cuadros de eliminatoria.
  */
-export async function sincronizarClasificados(torneoId: string, categoria: string, clubId: string | null, userId: string) {
-    const supabaseAdmin = createAdminClient();
+export async function sincronizarClasificados(
+    torneoId: string,
+    categoria: string,
+    clubId: string | null,
+    userId: string,
+): Promise<{ cuposLlenados: number; gruposTerminados: string[]; gruposPendientes: string[] }> {
+    const resumen = { cuposLlenados: 0, gruposTerminados: [] as string[], gruposPendientes: [] as string[] };
+    const supabaseAdmin = createPureAdminClient();
 
     // 0. Determinar opciones de scoring según el formato del torneo y resolver tipo de desempate
     const { data: torneo } = await supabaseAdmin.from('torneos').select('formato, reglas_puntuacion').eq('id', torneoId).single();
@@ -190,17 +202,22 @@ export async function sincronizarClasificados(torneoId: string, categoria: strin
         .eq('torneo_id', torneoId)
         .eq('categoria', categoria);
 
-    if (!grupos) return;
+    if (!grupos) return resumen;
 
     // 2. Para cada grupo, ver si está terminado y obtener standings
     for (const grupo of grupos) {
-        const { data: matches } = await supabaseAdmin
+        // Sin los nombres de pareja: esta consulta los pedía con una relación
+        // que en la base no existe, fallaba, y el error no se miraba. Cada
+        // grupo parecía vacío —"sin terminar"— y no se llenaba nunca nada.
+        const { data: matches, error: errorGrupo } = await supabaseAdmin
             .from('partidos')
-            .select('*, pareja1:parejas!pareja1_id(nombre_pareja), pareja2:parejas!pareja2_id(nombre_pareja)')
+            .select('*')
             .eq('torneo_grupo_id', grupo.id);
+        if (errorGrupo) throw new Error(`No se pudieron leer los partidos del ${grupo.nombre_grupo}: ${errorGrupo.message}`);
 
-        const isFinished = (matches || []).length > 0 && (matches || []).every(m => m.estado === 'jugado' && m.estado_resultado === 'confirmado');
-        if (!isFinished) continue;
+        const isFinished = (matches || []).length > 0 && (matches || []).every((m: { estado: string; estado_resultado: string | null }) => m.estado === 'jugado' && m.estado_resultado === 'confirmado');
+        if (!isFinished) { resumen.gruposPendientes.push(grupo.nombre_grupo); continue; }
+        resumen.gruposTerminados.push(grupo.nombre_grupo);
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const matchesConTipo = (matches || []).map((m: any) => ({ ...m, tipoDesempate: tipoDesempateCat }));
@@ -211,12 +228,13 @@ export async function sincronizarClasificados(torneoId: string, categoria: strin
         if (!first && !second) continue;
 
         // 3. Buscar partidos de eliminatoria que tengan placeholders para este grupo
-        const { data: eliminatorias } = await supabaseAdmin
+        const { data: eliminatorias, error: errorCuadro } = await supabaseAdmin
             .from('partidos')
             .select('id, lugar, pareja1_id, pareja2_id')
             .eq('torneo_id', torneoId)
             .eq('nivel', categoria)
             .is('torneo_grupo_id', null);
+        if (errorCuadro) throw new Error(`No se pudo leer el cuadro: ${errorCuadro.message}`);
 
         if (!eliminatorias) continue;
 
@@ -238,11 +256,14 @@ export async function sincronizarClasificados(torneoId: string, categoria: strin
             }
 
             if (Object.keys(updates).length > 0) {
-                await supabaseAdmin.from('partidos').update(updates).eq('id', match.id);
+                const { error: errorUpdate } = await supabaseAdmin.from('partidos').update(updates).eq('id', match.id);
+                if (errorUpdate) throw new Error(`No se pudo poner a los clasificados del ${grupo.nombre_grupo} en el cuadro: ${errorUpdate.message}`);
+                resumen.cuposLlenados += Object.keys(updates).length;
             }
         }
     }
 
     // Al finalizar, disparar procesarAvanceCuadros por si se completaron partidos de Bye o placeholders
     await procesarAvanceCuadros(torneoId, categoria, clubId, userId);
+    return resumen;
 }

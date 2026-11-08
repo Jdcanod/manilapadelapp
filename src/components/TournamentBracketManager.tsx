@@ -475,7 +475,7 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate, 
                                 setLoading(true);
                                 const res = await triggerSync(torneoId, selectedCat);
                                 if (res.success) {
-                                    toast({ title: "¡Sincronizado!", description: "Resultados de grupos actualizados en el cuadro." });
+                                    toast({ title: "Sincronización", description: res.message });
                                 } else {
                                     toast({ title: "Error", description: res.message || "Error al sincronizar", variant: "destructive" });
                                 }

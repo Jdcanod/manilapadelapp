@@ -3228,19 +3228,27 @@ export async function moverParejaAGrupo(torneoId: string, categoria: string, par
 
 export async function triggerSync(torneoId: string, categoria: string) {
     try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("No autenticado");
-
-        const { data: torneo } = await supabase.from('torneos').select('club_id').eq('id', torneoId).single();
-        const clubId = torneo?.club_id || null;
+        // Antes bastaba con tener sesión: cualquiera podía dispararlo sobre
+        // cualquier torneo. Ahora, el club o un gestor de este torneo.
+        const { torneo, authUserId } = await requireGestionDeTorneo(torneoId);
+        const clubId = torneo.club_id || null;
 
         const { sincronizarClasificados, procesarAvanceCuadros } = await import("@/lib/tournaments/progression");
-        await sincronizarClasificados(torneoId, categoria, clubId, user.id);
-        await procesarAvanceCuadros(torneoId, categoria, clubId, user.id);
+        const r = await sincronizarClasificados(torneoId, categoria, clubId, authUserId);
+        await procesarAvanceCuadros(torneoId, categoria, clubId, authUserId);
 
         revalidatePath(`/club/torneos/${torneoId}`);
-        return { success: true };
+
+        // El aviso dice lo que pasó de verdad, no solo que no hubo error.
+        const pendientes = r.gruposPendientes.length > 0
+            ? ` Sin terminar: ${r.gruposPendientes.join(', ')}.`
+            : '';
+        const message = r.cuposLlenados > 0
+            ? `Se ${r.cuposLlenados === 1 ? 'llenó 1 cupo' : `llenaron ${r.cuposLlenados} cupos`} del cuadro.${pendientes}`
+            : r.gruposTerminados.length === 0
+                ? `Ningún grupo de ${categoria} ha terminado todavía.`
+                : `El cuadro ya estaba al día.${pendientes}`;
+        return { success: true, message };
     } catch (err: unknown) {
         return { success: false, message: (err as Error).message };
     }
