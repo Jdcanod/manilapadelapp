@@ -6,6 +6,7 @@ import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { calcularRequeridosPorPareja, calcularClasificados } from "@/lib/tournaments/clasificacion";
 import { esPartidoDeTorneo } from "@/lib/tournaments/esDeTorneo";
+import { planearCuadroConDescansos, textoRuta } from "@/lib/tournaments/cuadroConDescansos";
 import { requireGestionDeTorneo, juegaEsePartido, PERMISOS_POR_DEFECTO, esPermisoValido, type PermisoGestor } from "@/lib/auth/gestorTorneo";
 import { getOrCreateInvitado } from "@/lib/invitados";
 import { requireClubOwnership } from "@/lib/auth/clubOwnership";
@@ -1154,7 +1155,7 @@ export async function registrarWalkover(matchId: string, parejaGanadoraId: strin
     try {
         const lookupAdmin = createPureAdminClient();
         const { data: partido } = await lookupAdmin
-            .from('partidos').select('torneo_id, pareja1_id, pareja2_id').eq('id', matchId).single();
+            .from('partidos').select('torneo_id, pareja1_id, pareja2_id, torneo_grupo_id, nivel, club_id').eq('id', matchId).single();
         if (!partido) return { ok: false, mensaje: "Partido no encontrado" };
 
         if (parejaGanadoraId !== partido.pareja1_id && parejaGanadoraId !== partido.pareja2_id) {
@@ -1182,6 +1183,15 @@ export async function registrarWalkover(matchId: string, parejaGanadoraId: strin
 
         const { fecharPartidoSinProgramar } = await import("@/lib/tournaments/fechaResultado");
         await fecharPartidoSinProgramar(admin, matchId);
+
+        // Un W también mueve el cuadro: en eliminatoria el ganador avanza, y
+        // en grupos puede ser el partido que cierra el grupo.
+        const { procesarAvanceCuadros, sincronizarClasificados } = await import("@/lib/tournaments/progression");
+        if (partido.torneo_grupo_id) {
+            await sincronizarClasificados(partido.torneo_id, partido.nivel, partido.club_id, userData.id);
+        } else {
+            await procesarAvanceCuadros(partido.torneo_id, partido.nivel, partido.club_id, userData.id);
+        }
 
         revalidatePath(`/club/torneos/${partido.torneo_id}`);
         revalidatePath(`/torneos/${partido.torneo_id}`);
@@ -1344,6 +1354,12 @@ export async function registrarResultadoPorClub(matchId: string, resultado: stri
         if (currentMatch && !currentMatch.torneo_grupo_id) {
             const { procesarAvanceCuadros } = await import("@/lib/tournaments/progression");
             await procesarAvanceCuadros(currentMatch.torneo_id, currentMatch.nivel, currentMatch.club_id, finalUserId);
+        } else if (currentMatch) {
+            // Partido de grupo: si con este el grupo cerró, sus clasificados
+            // entran al cuadro. Antes solo pasaba cuando confirmaba un jugador;
+            // cargado por el club o un gestor, el cuadro se quedaba vacío.
+            const { sincronizarClasificados } = await import("@/lib/tournaments/progression");
+            await sincronizarClasificados(currentMatch.torneo_id, currentMatch.nivel, currentMatch.club_id, finalUserId);
         }
         
         revalidatePath(`/club/torneos/${currentMatch?.torneo_id || ''}`);
@@ -2461,6 +2477,72 @@ export async function generarFaseEliminatoriaTopN(
                     isFinished,
                     first: groupStandings[0] || null,
                     second: groupStandings[1] || null
+                };
+            }
+
+            // Con 3, 5, 6 o 7 grupos los clasificados no llenan un cuadro exacto:
+            // unas parejas descansan (por sorteo) y otras juegan una ronda previa.
+            // Antes se resolvía dándole "Bye" a todos los grupos y marcando como
+            // jugados partidos que nadie jugó.
+            const plan = porGrupo === 2 ? planearCuadroConDescansos(grupos.map(g => g.nombre_grupo)) : null;
+            if (plan) {
+                const grupoPorNombre = new Map(grupos.map(g => [g.nombre_grupo, g.id]));
+                // Si el grupo ya terminó, el cupo sale con la pareja puesta.
+                const parejaDe = (cupo: string): string | null => {
+                    const m = cupo.match(/^(1ro|2do) (.+)$/);
+                    if (!m) return null;
+                    const r = groupResults[grupoPorNombre.get(m[2]!) || ''];
+                    if (!r?.isFinished) return null;
+                    return (m[1] === '1ro' ? r.first?.parejaId : r.second?.parejaId) || null;
+                };
+                const base = {
+                    torneo_id: torneoId,
+                    creador_id: userId,
+                    club_id: clubId,
+                    estado: 'programado',
+                    tipo_partido: 'torneo',
+                    nivel: categoria,
+                    fecha: fechaTorneo,
+                    cupos_totales: 4,
+                    cupos_disponibles: 0,
+                };
+                const partidosPlan: Record<string, unknown>[] = [];
+
+                plan.rondaPrevia.forEach((m, i) => partidosPlan.push({
+                    ...base,
+                    pareja1_id: parejaDe(m.cupo1),
+                    pareja2_id: parejaDe(m.cupo2),
+                    lugar: `[${i}] ${plan.nombreRondaPrevia} - ${categoria} || PH: ${m.cupo1} vs ${m.cupo2} || ${textoRuta(m.destino!)}`,
+                }));
+                plan.rondaPrincipal.forEach((m, i) => partidosPlan.push({
+                    ...base,
+                    pareja1_id: parejaDe(m.cupo1),
+                    pareja2_id: parejaDe(m.cupo2),
+                    lugar: `[${i}] ${plan.nombreRondaPrincipal} - ${categoria} || PH: ${m.cupo1} vs ${m.cupo2}`,
+                }));
+
+                // De ahí en adelante, el cuadro normal: cada ronda la mitad.
+                const nombrePorPartidos: Record<number, string> = { 1: "Final", 2: "Semifinal", 4: "Cuartos de Final", 8: "Octavos de Final" };
+                for (let n = plan.rondaPrincipal.length / 2; n >= 1; n /= 2) {
+                    for (let j = 0; j < n; j++) {
+                        partidosPlan.push({ ...base, pareja1_id: null, pareja2_id: null, lugar: `[${j}] ${nombrePorPartidos[n]} - ${categoria}` });
+                    }
+                    if (n === 1) {
+                        partidosPlan.push({ ...base, pareja1_id: null, pareja2_id: null, lugar: `[0] Tercer Puesto - ${categoria}` });
+                    }
+                }
+
+                const { error: insertPlanError } = await supabaseAdmin.from('partidos').insert(partidosPlan);
+                if (insertPlanError) throw insertPlanError;
+
+                const { sincronizarClasificados } = await import("@/lib/tournaments/progression");
+                await sincronizarClasificados(torneoId, categoria, clubId, userId);
+
+                revalidatePath(`/club/torneos/${torneoId}`);
+                const juegan = plan.rondaPrevia.length * 2;
+                return {
+                    success: true,
+                    message: `Cuadro sorteado: ${juegan} parejas juegan ${plan.nombreRondaPrevia} y ${grupos.length * 2 - juegan} pasan directo a ${plan.nombreRondaPrincipal}.`,
                 };
             }
 
@@ -3582,8 +3664,12 @@ export async function swapMatchPlaceholders(
         const newVal2_1 = slot2 === 1 ? oldVal1 : ph2_1;
         const newVal2_2 = slot2 === 2 ? oldVal1 : ph2_2;
 
-        const newLugar1 = `${baseLugar1} || PH: ${newVal1_1} vs ${newVal1_2}`;
-        const newLugar2 = `${baseLugar2} || PH: ${newVal2_1} vs ${newVal2_2}`;
+        // Lo que viene después del segundo tramo (la ruta de avance de una
+        // ronda previa) se conserva: sin él, el ganador caería en otro cruce.
+        const resto1 = parts1.slice(2).map((t: string) => ` || ${t.trim()}`).join('');
+        const resto2 = parts2.slice(2).map((t: string) => ` || ${t.trim()}`).join('');
+        const newLugar1 = `${baseLugar1} || PH: ${newVal1_1} vs ${newVal1_2}${resto1}`;
+        const newLugar2 = `${baseLugar2} || PH: ${newVal2_1} vs ${newVal2_2}${resto2}`;
 
         // Intercambiar IDs de pareja correspondientes
         const oldId1 = slot1 === 1 ? match1.pareja1_id : match1.pareja2_id;

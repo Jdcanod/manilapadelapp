@@ -205,10 +205,18 @@ export function SortearEliminatoriasDialog({ torneoId, categoria, yaTieneBracket
                                     <span className="text-ochre font-black">{porGrupo}</span>{' '}
                                     × {grupos} grupo{grupos !== 1 ? 's' : ''} ={' '}
                                     <span className="text-ochre font-black">{totalRelampago}</span> parejas al bracket
-                                    {byes > 0 && (
+                                    {byes > 0 && porGrupo !== 2 && (
                                         <> · cuadro de {targetTeams} con {byes} bye{byes > 1 ? 's' : ''}</>
                                     )}
                                 </p>
+                                {byes > 0 && porGrupo === 2 && (
+                                    <p className="text-[11px] text-ink mt-1.5 leading-relaxed">
+                                        Por sorteo, <span className="text-ochre font-black">{totalRelampago - 2 * (totalRelampago - targetTeams / 2)}</span> pasan
+                                        directo a {targetTeams / 2 === 8 ? 'cuartos' : targetTeams / 2 === 4 ? 'semifinales' : 'la segunda ronda'} y{' '}
+                                        <span className="text-ochre font-black">{2 * (totalRelampago - targetTeams / 2)}</span> juegan una ronda previa.
+                                        Cada cruce sorteado es un 1ro contra un 2do de otro grupo.
+                                    </p>
+                                )}
                                 <p className="text-[10px] text-olive/50 mt-1">
                                     Los <span className="text-ochre font-bold">{porGrupo}</span> mejores de cada grupo clasifican (no se exige mínimo de partidos jugados).
                                 </p>

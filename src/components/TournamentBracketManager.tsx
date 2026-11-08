@@ -15,6 +15,7 @@ import { AdminEditBracketModal } from "@/components/AdminEditBracketModal";
 import { SortearEliminatoriasDialog } from "@/components/SortearEliminatoriasDialog";
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 import { ParejaLink } from "@/components/panel/ParejaLink";
+import { alinearRondaPrevia, type CeldaPrevia } from "@/lib/tournaments/cuadroConDescansos";
 
 interface MatchItem {
     id: string;
@@ -207,6 +208,15 @@ function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers, setsC
     );
 }
 
+function CeldaDirecta({ texto }: { texto: string }) {
+    return (
+        <div className="rounded-2xl border-2 border-dashed border-olive/25 bg-paper/40 px-4 py-5 text-center">
+            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-olive/50">Pasa directo</p>
+            <p className="text-sm font-bold text-ink/80 mt-1 truncate">{texto}</p>
+        </div>
+    );
+}
+
 function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPlayers, setsCantidad }: { categoria: string, matches: MatchItem[], tipoDesempate?: string, allPairs?: { id?: string; nombre_pareja: string | null }[], parejaPlayers?: ParejaPlayersMap, setsCantidad?: number }) {
     if (matches.length === 0) {
         return (
@@ -228,6 +238,19 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPla
     });
     const tercerMatches = matches.filter(p => getRoundTitle(p.lugar).includes('tercer'));
 
+    // Ronda previa de un cuadro con descansos: cada partido junto al cruce
+    // que alimenta, y "pasa directo" donde una pareja descansa.
+    const nombreCupo = (m: MatchItem, cupo: 1 | 2): string => {
+        const p = cupo === 1 ? m.pareja1 : m.pareja2;
+        const id = cupo === 1 ? (m.pareja1?.id || m.pareja1_id) : (m.pareja2?.id || m.pareja2_id);
+        if (p?.nombre_pareja && p.nombre_pareja !== 'TBD') return resolvePairName(id, p.nombre_pareja, parejaPlayers);
+        const ph = m.lugar?.split('||')[1]?.split('vs')[cupo - 1]?.replace(/^\s*PH:\s*/i, '').trim();
+        return ph || 'Por definir';
+    };
+    const aCeldas = (lista: MatchItem[]): CeldaPrevia<MatchItem>[] => lista.map(partido => ({ tipo: "partido" as const, partido }));
+    const octavosCeldas = alinearRondaPrevia(octavosMatches, cuartosMatches, nombreCupo) ?? aCeldas(octavosMatches);
+    const cuartosCeldas = (octavosMatches.length === 0 ? alinearRondaPrevia(cuartosMatches, semisMatches, nombreCupo) : null) ?? aCeldas(cuartosMatches);
+
     const partidoFinal = finalMatches[0];
     let campeon = null;
     let subcampeon = null;
@@ -246,16 +269,20 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPla
         }
     }
 
-    const renderPairs = (matchesList: MatchItem[], isLastRound: boolean) => {
+    const renderPairs = (matchesList: CeldaPrevia<MatchItem>[], isLastRound: boolean) => {
         const pairs = [];
         for (let i = 0; i < matchesList.length; i += 2) {
             pairs.push(matchesList.slice(i, i + 2));
         }
         return pairs.map((pair, idx) => (
             <div key={idx} className="relative flex flex-col justify-center gap-12">
-                {pair.map(match => (
-                    <div key={match.id} className="relative z-10">
-                        <BracketMatchCard match={match} tipoDesempate={tipoDesempate} allPairs={allPairs} parejaPlayers={parejaPlayers} setsCantidad={setsCantidad} />
+                {pair.map(celda => celda.tipo === "directo" ? (
+                    <div key={celda.clave} className="relative z-10">
+                        <CeldaDirecta texto={celda.texto} />
+                    </div>
+                ) : (
+                    <div key={celda.partido.id} className="relative z-10">
+                        <BracketMatchCard match={celda.partido} tipoDesempate={tipoDesempate} allPairs={allPairs} parejaPlayers={parejaPlayers} setsCantidad={setsCantidad} />
                     </div>
                 ))}
                 
@@ -275,13 +302,17 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPla
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="relative z-10 flex flex-nowrap items-stretch justify-start md:justify-center gap-16 overflow-x-auto pb-12 px-4 scrollbar-hide min-h-[600px] pt-8">
+            {/* El scroll va afuera y el centrado adentro (w-max + mx-auto): con
+                justify-center en el mismo contenedor que hace scroll, lo que
+                desborda por la izquierda queda fuera de alcance. */}
+            <div className="relative z-10 overflow-x-auto pb-12 pt-8">
+            <div className="flex flex-nowrap items-stretch gap-16 px-4 w-max mx-auto min-h-[600px]">
                 {/* Octavos */}
                 {octavosMatches.length > 0 && (
                     <div className="flex flex-col min-w-[280px]">
                         <h4 className="text-center text-xs font-black text-olive/70 uppercase tracking-[0.4em] mb-8 shrink-0">Octavos</h4>
                         <div className="flex flex-col justify-around flex-1 gap-12">
-                            {renderPairs(octavosMatches, false)}
+                            {renderPairs(octavosCeldas, false)}
                         </div>
                     </div>
                 )}
@@ -291,7 +322,7 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPla
                     <div className="flex flex-col min-w-[280px]">
                         <h4 className="text-center text-xs font-black text-olive/70 uppercase tracking-[0.4em] mb-8 shrink-0">Cuartos</h4>
                         <div className="flex flex-col justify-around flex-1 gap-12">
-                            {renderPairs(cuartosMatches, false)}
+                            {renderPairs(cuartosCeldas, false)}
                         </div>
                     </div>
                 )}
@@ -301,7 +332,7 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPla
                     <div className="flex flex-col min-w-[280px]">
                         <h4 className="text-center text-xs font-black text-olive/70 uppercase tracking-[0.4em] mb-8 shrink-0">Semifinales</h4>
                         <div className="flex flex-col justify-around flex-1 gap-12">
-                            {renderPairs(semisMatches, false)}
+                            {renderPairs(aCeldas(semisMatches), false)}
                         </div>
                     </div>
                 )}
@@ -350,6 +381,7 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPla
                         </div>
                     )}
                 </div>
+            </div>
             </div>
         </div>
     );

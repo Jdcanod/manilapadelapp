@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { calculateStandings } from "./standings";
+import { rutaDeAvance } from "./cuadroConDescansos";
 
 /**
  * Verifica si las semifinales han terminado y genera la final automáticamente.
@@ -43,8 +44,14 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
         !getRoundTitle(m.lugar).includes('octavos')
     ));
 
-    const getWinner = (m: { estado: string; estado_resultado?: string | null; resultado?: string | null; pareja1_id?: string | null; pareja2_id?: string | null }) => {
-        if (m.estado !== 'jugado' || m.estado_resultado !== 'confirmado' || !m.resultado) return null;
+    type PartidoCuadro = { estado: string; estado_resultado?: string | null; resultado?: string | null; pareja1_id?: string | null; pareja2_id?: string | null; walkover_ganador_id?: string | null };
+
+    const getWinner = (m: PartidoCuadro) => {
+        if (m.estado !== 'jugado' || m.estado_resultado !== 'confirmado') return null;
+        // Un W guarda "W.O." como resultado: no hay sets que leer, el ganador
+        // está anotado aparte. Sin esto, quien ganaba por W no avanzaba.
+        if (m.walkover_ganador_id) return m.walkover_ganador_id;
+        if (!m.resultado) return null;
         const setsArr = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
         let p1Wins = 0, p2Wins = 0;
         setsArr.forEach((s: number[]) => {
@@ -54,8 +61,12 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
         return p1Wins > p2Wins ? m.pareja1_id : m.pareja2_id;
     };
 
-    const getLoser = (m: { estado: string; estado_resultado?: string | null; resultado?: string | null; pareja1_id?: string | null; pareja2_id?: string | null }) => {
-        if (m.estado !== 'jugado' || m.estado_resultado !== 'confirmado' || !m.resultado) return null;
+    const getLoser = (m: PartidoCuadro) => {
+        if (m.estado !== 'jugado' || m.estado_resultado !== 'confirmado') return null;
+        if (m.walkover_ganador_id) {
+            return m.walkover_ganador_id === m.pareja1_id ? (m.pareja2_id ?? null) : (m.pareja1_id ?? null);
+        }
+        if (!m.resultado) return null;
         const setsArr = m.resultado.split(',').map((s: string) => s.trim().split('-').map(Number));
         let p1Wins = 0, p2Wins = 0;
         setsArr.forEach((s: number[]) => {
@@ -72,7 +83,7 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
      * @param nextRoundName Nombre para crear la fase siguiente
      * @param expectedMatches Cantidad de partidos en la fase siguiente
      */
-    async function avanzarRonda(currentRound: { id: string; estado: string; estado_resultado?: string | null; resultado?: string | null; pareja1_id?: string | null; pareja2_id?: string | null; fecha?: string | null; lugar?: string | null }[], nextRound: { id: string; pareja1_id?: string | null; pareja2_id?: string | null }[], nextRoundName: string, expectedMatches: number) {
+    async function avanzarRonda(currentRound: (PartidoCuadro & { id: string; fecha?: string | null; lugar?: string | null })[], nextRound: { id: string; pareja1_id?: string | null; pareja2_id?: string | null }[], nextRoundName: string, expectedMatches: number) {
         if (currentRound.length === 0) return;
         
         const isTwoVsTwo = (currentRound.length === 2 && nextRound.length === 2);
@@ -81,8 +92,11 @@ export async function procesarAvanceCuadros(torneoId: string, categoria: string,
             const winnerId = getWinner(currentRound[i]);
             if (!winnerId) continue;
 
-            const targetMatchIndex = isTwoVsTwo ? i : Math.floor(i / 2);
-            const isPareja2 = isTwoVsTwo ? true : (i % 2 === 1);
+            // Una ronda previa (cuadro con descansos) trae su destino anotado:
+            // sus partidos no caen en orden sobre la ronda siguiente.
+            const ruta = rutaDeAvance(currentRound[i].lugar);
+            const targetMatchIndex = ruta ? ruta.partido : (isTwoVsTwo ? i : Math.floor(i / 2));
+            const isPareja2 = ruta ? ruta.cupo === 2 : (isTwoVsTwo ? true : (i % 2 === 1));
 
             if (nextRound[targetMatchIndex]) {
                 // El partido ya existe, actualizar solo si el slot está vacío o es diferente
