@@ -100,11 +100,26 @@ export async function actualizarClasificacionLiga(
  * `liga_corte_config` (el valor viejo, sin categoría) se sigue leyendo como
  * respaldo para los torneos que ya lo tenían configurado.
  */
+/** Un corte ya ejecutado, guardado tal como se aplicó. */
+interface CorteAnterior {
+    fecha: string;
+    porcentaje: number;
+    ejecutadoEn?: string;
+    eliminadas?: number;
+}
+
+/**
+ * El corte vigente de una categoría, más los que ya se ejecutaron antes.
+ * Una liga puede tener varios cortes: el primero en noviembre al 29%, otro
+ * después al 40%... Cada uno queda registrado y no se puede reescribir.
+ */
 interface CorteCategoria {
     fecha: string;
     porcentaje: number;
     ejecutado?: boolean;
     ejecutadoEn?: string;
+    eliminadas?: number;
+    anteriores?: CorteAnterior[];
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -134,14 +149,24 @@ export async function actualizarCorteConfig(torneoId: string, categoria: string,
         if (!categoria) return { success: false, message: "Falta la categoría" };
 
         const actual = corteDeCategoria(torneo.reglas_puntuacion, categoria);
+        // Un corte ejecutado es un registro de lo que pasó: cambiarle la fecha
+        // o el % lo dejaría diciendo algo que no se aplicó. Para cortar otra
+        // vez se agrega un corte nuevo.
+        if (actual?.ejecutado) {
+            return { success: false, message: "Este corte ya se ejecutó. Para cortar otra vez, agrega un corte nuevo." };
+        }
+        const anteriores = actual?.anteriores || [];
         const porCategoria = { ...(torneo.reglas_puntuacion?.liga_corte_config_por_categoria || {}) };
         if (fecha) {
             porCategoria[categoria] = {
                 fecha,
                 porcentaje: Math.max(0, Math.min(100, Math.floor(porcentaje) || 0)),
-                ejecutado: !!actual?.ejecutado,
-                ...(actual?.ejecutadoEn ? { ejecutadoEn: actual.ejecutadoEn } : {}),
+                ejecutado: false,
+                ...(anteriores.length ? { anteriores } : {}),
             };
+        } else if (anteriores.length) {
+            // Sin fecha no hay corte pendiente, pero el historial se conserva.
+            porCategoria[categoria] = { fecha: '', porcentaje: actual?.porcentaje ?? 0, ejecutado: false, anteriores };
         } else {
             delete porCategoria[categoria];
         }
@@ -161,6 +186,69 @@ export async function actualizarCorteConfig(torneoId: string, categoria: string,
 }
 
 /**
+ * Abre un corte nuevo en una categoría cuyo corte vigente ya se ejecutó. El
+ * ejecutado pasa al historial tal cual quedó, y el nuevo arranca sin fecha:
+ * el club le pone fecha y % y lo ejecuta cuando quiera.
+ *
+ * Solo el club dueño del torneo: el corte saca parejas de la liga y no se
+ * delega a los gestores.
+ */
+export async function agregarNuevoCorte(torneoId: string, categoria: string) {
+    try {
+        const { admin } = await requireClubOwnership(torneoId);
+        const { data: torneo } = await admin.from('torneos').select('formato, reglas_puntuacion').eq('id', torneoId).single();
+        if (!torneo) return { success: false, message: "Torneo no encontrado" };
+        if (torneo.formato !== 'liguilla') return { success: false, message: "Solo aplica a torneos tipo liguilla" };
+
+        const actual = corteDeCategoria(torneo.reglas_puntuacion, categoria);
+        if (!actual?.ejecutado) {
+            return { success: false, message: "El corte actual todavía no se ha ejecutado: puedes cambiarle la fecha y el % directamente." };
+        }
+
+        // Los cortes ejecutados antes de guardar este dato no saben cuántas
+        // parejas sacaron. Si es el primero de la categoría se puede saber con
+        // certeza: todas las eliminadas hasta el momento en que se ejecutó.
+        let eliminadas = actual.eliminadas;
+        if (eliminadas === undefined && !(actual.anteriores?.length) && actual.ejecutadoEn) {
+            const hasta = new Date(new Date(actual.ejecutadoEn).getTime() + 60_000).toISOString();
+            const { count } = await admin
+                .from('torneo_parejas')
+                .select('id', { count: 'exact', head: true })
+                .eq('torneo_id', torneoId)
+                .eq('categoria', categoria)
+                .eq('eliminada', true)
+                .lte('eliminada_en', hasta);
+            if (typeof count === 'number') eliminadas = count;
+        }
+
+        const anteriores: CorteAnterior[] = [
+            ...(actual.anteriores || []),
+            {
+                fecha: actual.fecha,
+                porcentaje: actual.porcentaje,
+                ...(actual.ejecutadoEn ? { ejecutadoEn: actual.ejecutadoEn } : {}),
+                ...(eliminadas !== undefined ? { eliminadas } : {}),
+            },
+        ];
+
+        const nuevasReglas = {
+            ...(torneo.reglas_puntuacion || {}),
+            liga_corte_config_por_categoria: {
+                ...(torneo.reglas_puntuacion?.liga_corte_config_por_categoria || {}),
+                [categoria]: { fecha: '', porcentaje: actual.porcentaje, ejecutado: false, anteriores },
+            },
+        };
+        const { error } = await admin.from('torneos').update({ reglas_puntuacion: nuevasReglas }).eq('id', torneoId);
+        if (error) return { success: false, message: error.message };
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        return { success: true };
+    } catch (err: unknown) {
+        return { success: false, message: (err as Error).message || "Error desconocido" };
+    }
+}
+
+/**
  * Calcula, para cada pareja inscrita en cada categoría del torneo, su % de
  * partidos jugados (peso de revancha ya aplicado) sobre lo que le
  * correspondía según el tamaño de su grupo y si la categoría es ida y
@@ -168,6 +256,17 @@ export async function actualizarCorteConfig(torneoId: string, categoria: string,
  */
 async function calcularPorcentajesTorneo(admin: ReturnType<typeof createPureAdminClient>, torneoId: string) {
     const { data: grupos } = await admin.from('torneo_grupos').select('id, categoria').eq('torneo_id', torneoId);
+    // Quién está fuera, por categoría: una pareja puede salir de 5ta y seguir en 6ta.
+    const { data: fueraRows } = await admin
+        .from('torneo_parejas')
+        .select('pareja_id, categoria')
+        .eq('torneo_id', torneoId)
+        .or('eliminada.eq.true,retirada.eq.true');
+    const fueraPorCategoria = new Map<string, Set<string>>();
+    for (const f of (fueraRows || []) as { pareja_id: string; categoria: string }[]) {
+        if (!fueraPorCategoria.has(f.categoria)) fueraPorCategoria.set(f.categoria, new Set());
+        fueraPorCategoria.get(f.categoria)!.add(f.pareja_id);
+    }
     const { data: partidos } = await admin
         .from('partidos')
         .select('torneo_grupo_id, pareja1_id, pareja2_id, estado, estado_resultado, resultado, es_revancha, nivel, walkover_ganador_id')
@@ -203,7 +302,7 @@ async function calcularPorcentajesTorneo(admin: ReturnType<typeof createPureAdmi
             { pointsForLoss: 1 }
         );
 
-        const requeridos = calcularRequeridosPorPareja(matchesGrupo);
+        const requeridos = calcularRequeridosPorPareja(matchesGrupo, fueraPorCategoria.get(grupo.categoria));
 
         standings.forEach(s => {
             const req = requeridos.get(s.parejaId) || 0;
@@ -221,11 +320,33 @@ async function calcularPorcentajesTorneo(admin: ReturnType<typeof createPureAdmi
 }
 
 /**
+ * La regla del corte, una sola para la vista previa y la ejecución. Antes la
+ * vista previa redondeaba el % antes de comparar (28.6 se veía como 29 y, con
+ * corte de 29, "cumplía") mientras la ejecución comparaba sin redondear y la
+ * eliminaba. Y una pareja sin % calculado salía en la vista previa como 0%
+ * pero la ejecución no la tocaba.
+ */
+function quedaBajoElCorte(porcentaje: number | undefined, corte: number): boolean {
+    return porcentaje !== undefined && porcentaje < corte;
+}
+
+/**
+ * Cómo se muestra el %: truncado, no redondeado. Así el número que se ve
+ * nunca contradice la regla (28.6% se ve 28%, y 28 < 29 sale en el corte).
+ */
+function porcentajeVisible(porcentaje: number): number {
+    return Math.floor(porcentaje);
+}
+
+/**
  * Vista previa del corte: quiénes quedarían marcados como eliminados si se
  * ejecutara ahora mismo, sin aplicar nada todavía.
  */
 export async function previsualizarCorte(torneoId: string, categoria: string) {
     try {
+        // Antes no comprobaba nada: cualquiera con el id del torneo veía los
+        // % de todas las parejas.
+        await requireClubOwnership(torneoId);
         const admin = createPureAdminClient();
         const { data: torneo } = await admin.from('torneos').select('reglas_puntuacion').eq('id', torneoId).single();
         const corte = corteDeCategoria(torneo?.reglas_puntuacion, categoria);
@@ -250,14 +371,15 @@ export async function previsualizarCorte(torneoId: string, categoria: string) {
                     parejaId: i.pareja_id as string,
                     categoria: i.categoria as string,
                     nombre: (i.pareja?.nombre_pareja || 'Pareja') as string,
-                    porcentaje: p ? Math.round(p.porcentaje) : 0,
+                    porcentajeReal: p?.porcentaje,
+                    porcentaje: p ? porcentajeVisible(p.porcentaje) : 0,
                     pj: p?.pj ?? 0,
                     requeridos: p?.requeridos ?? 0,
                     excusa: !!i.excusa,
                     excusaMotivo: (i.excusa_motivo || null) as string | null,
                 };
             })
-            .filter((c: { porcentaje: number }) => c.porcentaje < corte.porcentaje);
+            .filter((c: { porcentajeReal: number | undefined }) => quedaBajoElCorte(c.porcentajeReal, corte.porcentaje));
 
         // Las que tienen excusa se muestran aparte: están bajo el corte pero
         // no se van a eliminar, y el club debe verlas para no llevarse una
@@ -294,7 +416,12 @@ export async function ejecutarCorte(torneoId: string, categoria: string) {
             return { success: false, message: "Solo el dueño del torneo puede ejecutar el corte" };
         }
         const corte = corteDeCategoria(torneo.reglas_puntuacion, categoria);
-        if (!corte) return { success: false, message: `No hay un corte configurado para ${categoria}` };
+        if (!corte || !corte.fecha) return { success: false, message: `No hay un corte configurado para ${categoria}` };
+        // Antes se podía ejecutar el mismo corte dos veces, y el segundo pisaba
+        // la fecha y el registro del primero.
+        if (corte.ejecutado) {
+            return { success: false, message: "Este corte ya se ejecutó. Para cortar otra vez, agrega un corte nuevo." };
+        }
 
         // Las parejas con excusa no entran al corte: siguen en el torneo y
         // conservan sus partidos pendientes, así que todavía pueden llegar al
@@ -314,8 +441,7 @@ export async function ejecutarCorte(torneoId: string, categoria: string) {
         // inscrita en más de una categoría del mismo torneo, y el corte solo
         // debe afectar la(s) categoría(s) donde realmente falla el %.
         const inscripcionesAEliminar = (inscripciones || []).filter((i: { pareja_id: string; categoria: string }) => {
-            const pct = porcentajePorPareja.get(`${i.pareja_id}:${i.categoria}`);
-            return pct !== undefined && pct < corte.porcentaje;
+            return quedaBajoElCorte(porcentajePorPareja.get(`${i.pareja_id}:${i.categoria}`), corte.porcentaje);
         }) as { id: string; pareja_id: string; categoria: string }[];
 
         if (inscripcionesAEliminar.length > 0) {
@@ -342,7 +468,7 @@ export async function ejecutarCorte(torneoId: string, categoria: string) {
                 ...(torneo.reglas_puntuacion || {}),
                 liga_corte_config_por_categoria: {
                     ...(torneo.reglas_puntuacion?.liga_corte_config_por_categoria || {}),
-                    [categoria]: { ...corte, ejecutado: true, ejecutadoEn: new Date().toISOString() },
+                    [categoria]: { ...corte, ejecutado: true, ejecutadoEn: new Date().toISOString(), eliminadas: idsAEliminar.length },
                 },
             },
         }).eq('id', torneoId);
@@ -2655,13 +2781,14 @@ export async function generarFaseEliminatoriaTopN(
             }
             const allStandings = standingsResult.standings as Array<{ parejaId: string; nombre: string; pj: number; pg: number; sg: number; sp: number; gg: number; gp: number; pts: number }>;
 
-            // Parejas eliminadas por el corte: nunca clasifican.
+            // Parejas eliminadas por el corte o retiradas: nunca clasifican.
+            // (Antes solo se miraban las eliminadas: una retirada podía clasificar.)
             const { data: inscripcionesElim } = await supabaseAdmin
                 .from('torneo_parejas')
                 .select('pareja_id, eliminada')
                 .eq('torneo_id', torneoId)
                 .eq('categoria', categoria)
-                .eq('eliminada', true);
+                .or('eliminada.eq.true,retirada.eq.true');
             const eliminadas = new Set((inscripcionesElim || []).map(i => i.pareja_id as string));
 
             // Partidos requeridos por pareja (según tamaño de su grupo y si la
@@ -2670,7 +2797,7 @@ export async function generarFaseEliminatoriaTopN(
             const { data: matchesCat } = await supabaseAdmin
                 .from('partidos').select('torneo_grupo_id, pareja1_id, pareja2_id, es_revancha')
                 .eq('torneo_id', torneoId).eq('nivel', categoria).not('torneo_grupo_id', 'is', null);
-            const requeridosPorPareja = calcularRequeridosPorPareja(matchesCat || []);
+            const requeridosPorPareja = calcularRequeridosPorPareja(matchesCat || [], eliminadas);
 
             // Modo/mínimos persistidos (configurados desde el control en vivo);
             // `totalClasificados` sigue viniendo del dialog para poder ajustarlo
@@ -2847,18 +2974,19 @@ export async function generarGruposFinales(torneoId: string, categoria: string, 
         }
         const allStandings = standingsResult.standings as Array<{ parejaId: string; nombre: string; pj: number; pts: number }>;
 
+        // Eliminadas por el corte o retiradas: ninguna clasifica.
         const { data: inscripcionesElim } = await supabaseAdmin
             .from('torneo_parejas')
             .select('pareja_id, eliminada')
             .eq('torneo_id', torneoId)
             .eq('categoria', categoria)
-            .eq('eliminada', true);
+            .or('eliminada.eq.true,retirada.eq.true');
         const eliminadas = new Set((inscripcionesElim || []).map(i => i.pareja_id as string));
 
         const { data: matchesIniciales } = await supabaseAdmin
             .from('partidos').select('torneo_grupo_id, pareja1_id, pareja2_id, es_revancha')
             .eq('torneo_id', torneoId).eq('nivel', categoria).not('torneo_grupo_id', 'is', null);
-        const requeridosPorPareja = calcularRequeridosPorPareja(matchesIniciales || []);
+        const requeridosPorPareja = calcularRequeridosPorPareja(matchesIniciales || [], eliminadas);
 
         // El dueño del torneo puede confirmar/ajustar aquí mismo cuántas
         // parejas clasifican — si no manda un valor, se usa el ya

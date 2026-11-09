@@ -231,7 +231,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
         }));
         const globalStandings = calculateStandings(matchesShape, { pointsForLoss: 1 });
 
-        const requeridos = calcularRequeridosPorPareja(matchesCat.filter(p => p.torneo_grupo_id));
+        const requeridos = calcularRequeridosPorPareja(matchesCat.filter(p => p.torneo_grupo_id), parejasEliminadas);
 
         const config: ClasifConfig = {
             total: ligaConfigCat.total,
@@ -491,7 +491,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                         <td className="px-2 py-4 text-center text-purple-700 font-bold">{team.revanchas || '—'}</td>
                                                     )}
                                                     {esLiguilla && (() => {
-                                                        const pctJugados = Math.round(porcentajePorParejaCat.get(team.parejaId) || 0);
+                                                        const pctJugados = Math.floor(porcentajePorParejaCat.get(team.parejaId) || 0);
                                                         return (
                                                             <td className="px-2 py-4">
                                                                 <div className="flex items-center gap-1.5 w-16 mx-auto">

@@ -3,9 +3,9 @@
 import { useState, useTransition } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Scissors, AlertTriangle, Check } from "lucide-react";
+import { Loader2, Scissors, AlertTriangle, Check, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { actualizarCorteConfig, previsualizarCorte, ejecutarCorte } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { actualizarCorteConfig, previsualizarCorte, ejecutarCorte, agregarNuevoCorte } from "@/app/(dashboard)/club/torneos/[id]/actions";
 
 interface Candidato {
     parejaId: string;
@@ -18,15 +18,42 @@ interface Candidato {
     excusaMotivo?: string | null;
 }
 
+/** Un corte ya aplicado, tal como quedó. */
+export interface CorteAnterior {
+    fecha: string;
+    porcentaje: number;
+    ejecutadoEn?: string;
+    eliminadas?: number;
+}
+
+/** El corte vigente de la categoría y los que ya se ejecutaron antes. */
+export interface CorteConfigCategoria {
+    fecha: string;
+    porcentaje: number;
+    ejecutado?: boolean;
+    ejecutadoEn?: string;
+    eliminadas?: number;
+    anteriores?: CorteAnterior[];
+}
+
 interface Props {
     torneoId: string;
     /** El corte es propio de cada categoría: cada una avanza a su ritmo. */
     categoria: string;
-    corteActual: { fecha: string; porcentaje: number; ejecutado: boolean } | null;
+    corteActual: CorteConfigCategoria | null;
 }
 
-/** Control único para todo el torneo: configura fecha + % mínimo del corte
- *  de participación, y permite previsualizar/ejecutarlo manualmente. */
+/** "2026-11-01" → "1 nov 2026", sin que la zona horaria lo corra un día. */
+function fechaCorta(iso: string): string {
+    if (!iso) return "sin fecha";
+    return new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/**
+ * Cortes de participación de una categoría. Una liga puede cortar varias
+ * veces: cada corte ejecutado queda en el historial y no se edita; para
+ * cortar otra vez se agrega uno nuevo, con su fecha y su %.
+ */
 export function CorteParticipacionControl({ torneoId, categoria, corteActual }: Props) {
     const router = useRouter();
     const [fecha, setFecha] = useState(corteActual?.fecha || "");
@@ -37,8 +64,28 @@ export function CorteParticipacionControl({ torneoId, categoria, corteActual }: 
     /** Están bajo el corte pero tienen excusa: no se van a eliminar. */
     const [conExcusa, setConExcusa] = useState<Candidato[]>([]);
     const [previewOpen, setPreviewOpen] = useState(false);
+    /** El % contra el que el servidor comparó de verdad en la última revisión. */
+    const [porcentajeEvaluado, setPorcentajeEvaluado] = useState<number | null>(null);
+
+    /** Cambiar un valor invalida la revisión anterior: era de otro corte. */
+    const descartarRevision = () => { setPreview(null); setConExcusa([]); setPreviewOpen(false); setPorcentajeEvaluado(null); };
 
     const huboCambio = fecha !== (corteActual?.fecha || "") || porcentaje !== (corteActual?.porcentaje ?? 50);
+
+    // Historial: los anteriores y, si ya se ejecutó, el vigente.
+    const ejecutados: CorteAnterior[] = [
+        ...(corteActual?.anteriores || []),
+        ...(corteActual?.ejecutado ? [corteActual] : []),
+    ];
+    const numeroDelCorte = (corteActual?.anteriores?.length || 0) + 1;
+
+    const nuevoCorte = () => {
+        startTransition(async () => {
+            const r = await agregarNuevoCorte(torneoId, categoria);
+            if (!r.success) { alert(r.message); return; }
+            router.refresh();
+        });
+    };
 
     const guardarConfig = () => {
         setOk(false);
@@ -50,13 +97,24 @@ export function CorteParticipacionControl({ torneoId, categoria, corteActual }: 
         });
     };
 
+    // La revisión la hace el servidor con lo GUARDADO. Antes, si se escribía
+    // otro % y se revisaba sin guardar, comparaba contra el valor viejo y el
+    // mensaje mostraba el nuevo: "nadie está por debajo del 40%" cuando en
+    // realidad había comparado contra 29%.
     const verPreview = () => {
         setPreviewOpen(true);
         startTransition(async () => {
+            if (huboCambio) {
+                const g = await actualizarCorteConfig(torneoId, categoria, fecha || null, porcentaje);
+                if (!g.success) { alert(g.message); setPreviewOpen(false); return; }
+                setOk(true);
+                router.refresh();
+            }
             const r = await previsualizarCorte(torneoId, categoria);
             if (!r.success) { alert(r.message); setPreviewOpen(false); return; }
             setPreview(r.candidatos || []);
             setConExcusa(r.conExcusa || []);
+            setPorcentajeEvaluado(r.porcentajeCorte ?? null);
         });
     };
 
@@ -78,20 +136,49 @@ export function CorteParticipacionControl({ torneoId, categoria, corteActual }: 
         <div className="bg-paper-soft border border-olive/20 rounded-xl p-4 space-y-3">
             <div className="flex items-center gap-2">
                 <Scissors className="w-4 h-4 text-red-600" />
-                <span className="text-sm font-bold text-ink">Corte de Participación · {categoria}</span>
-                {corteActual?.ejecutado && (
-                    <span className="text-[9px] font-black uppercase text-emerald-700 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-2 py-0.5">
-                        Ya ejecutado
-                    </span>
-                )}
+                <span className="text-sm font-bold text-ink">Cortes de participación · {categoria}</span>
             </div>
+
+            {ejecutados.length > 0 && (
+                <ul className="space-y-1">
+                    {ejecutados.map((c, i) => (
+                        <li key={`${c.fecha}-${i}`} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-olive/80 bg-paper border border-olive/15 rounded-lg px-3 py-1.5">
+                            <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                            <span className="font-bold text-ink">Corte {i + 1}</span>
+                            <span>· {fechaCorta(c.fecha)} · mínimo {c.porcentaje}%</span>
+                            {c.eliminadas !== undefined && (
+                                <span>· sacó {c.eliminadas} pareja{c.eliminadas === 1 ? '' : 's'}</span>
+                            )}
+                            {c.ejecutadoEn && (
+                                <span className="text-olive/50">· ejecutado el {new Date(c.ejecutadoEn).toLocaleDateString("es-CO", { day: "numeric", month: "short" })}</span>
+                            )}
+                        </li>
+                    ))}
+                </ul>
+            )}
+
+            {corteActual?.ejecutado ? (
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                    <Button size="sm" onClick={nuevoCorte} disabled={pending}
+                        className="bg-olive hover:bg-olive-dark text-paper font-bold h-8 px-3">
+                        {pending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Plus className="w-3.5 h-3.5 mr-1.5" />Agregar nuevo corte</>}
+                    </Button>
+                    <span className="text-[10px] text-olive/55">
+                        Los cortes ejecutados quedan registrados y no se editan. El nuevo lleva su propia fecha y su propio %.
+                    </span>
+                </div>
+            ) : (
+            <>
+            {ejecutados.length > 0 && (
+                <p className="text-[10px] font-black uppercase tracking-widest text-olive/60">Corte {numeroDelCorte}</p>
+            )}
             <div className="flex flex-wrap items-center gap-4">
                 <div className="flex items-center gap-2">
                     <span className="text-[10px] text-olive/60 uppercase tracking-wide">Fecha</span>
                     <Input
                         type="date"
                         value={fecha}
-                        onChange={e => { setFecha(e.target.value); setOk(false); }}
+                        onChange={e => { setFecha(e.target.value); setOk(false); descartarRevision(); }}
                         className="h-8 bg-paper border-olive/20 text-ink text-sm"
                     />
                 </div>
@@ -100,7 +187,7 @@ export function CorteParticipacionControl({ torneoId, categoria, corteActual }: 
                     <Input
                         type="number" min={0} max={100}
                         value={porcentaje}
-                        onChange={e => { setPorcentaje(Math.max(0, Math.min(100, parseInt(e.target.value) || 0))); setOk(false); }}
+                        onChange={e => { setPorcentaje(Math.max(0, Math.min(100, parseInt(e.target.value) || 0))); setOk(false); descartarRevision(); }}
                         className="w-16 h-8 bg-paper border-olive/20 text-ink text-center text-sm"
                     />
                     <span className="text-[10px] text-olive/60">%</span>
@@ -119,7 +206,7 @@ export function CorteParticipacionControl({ torneoId, categoria, corteActual }: 
                     <Button size="sm" variant="outline" onClick={verPreview} disabled={pending}
                         className="bg-paper border-red-600/30 text-red-700 hover:bg-red-600/10 font-bold h-8">
                         {pending && previewOpen && !preview ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />}
-                        Revisar y ejecutar el corte
+                        {huboCambio ? 'Guardar y revisar el corte' : 'Revisar y ejecutar el corte'}
                     </Button>
 
                     {previewOpen && preview && (
@@ -147,7 +234,7 @@ export function CorteParticipacionControl({ torneoId, categoria, corteActual }: 
 
                             {preview.length === 0 ? (
                                 <p className="text-[11px] text-olive/60 italic">
-                                    Ninguna pareja sin excusa está por debajo del {porcentaje}% ahora mismo,
+                                    Ninguna pareja sin excusa está por debajo del {porcentajeEvaluado ?? porcentaje}% ahora mismo,
                                     así que no hay nada que cortar.
                                 </p>
                             ) : (
@@ -184,6 +271,8 @@ export function CorteParticipacionControl({ torneoId, categoria, corteActual }: 
                         </div>
                     )}
                 </div>
+            )}
+            </>
             )}
         </div>
     );

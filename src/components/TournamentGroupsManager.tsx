@@ -16,7 +16,7 @@ import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 import { GrupoMatchesList } from "@/components/GrupoMatchesList";
 import { AsignarParejaSlotDialog } from "@/components/AsignarParejaSlotDialog";
 import { EditarClasificacionLigaControl } from "@/components/EditarClasificacionLigaControl";
-import { CorteParticipacionControl } from "@/components/CorteParticipacionControl";
+import { CorteParticipacionControl, type CorteConfigCategoria } from "@/components/CorteParticipacionControl";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { calcularClasificados, calcularRequeridosPorPareja, type ClasifConfig } from "@/lib/tournaments/clasificacion";
 import { esParejaPlaceholder as esTBD } from "@/lib/tbd";
@@ -82,7 +82,7 @@ interface Props {
     parejasRetiradas?: Set<string>;
     /** Config del corte, única para todo el torneo (no por categoría). */
     /** Corte por categoría: cada una tiene su fecha y su mínimo. */
-    corteConfig?: Record<string, { fecha: string; porcentaje: number; ejecutado: boolean }>;
+    corteConfig?: Record<string, CorteConfigCategoria>;
 }
 
 interface Standing {
@@ -322,7 +322,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
         // Cuántos partidos le correspondían a cada pareja: los que tiene en la
         // tabla. Si alguien se retiró, sus pendientes ya no están y el
         // denominador de sus rivales baja solo.
-        const requeridos = calcularRequeridosPorPareja(matchesCat.filter(p => p.torneo_grupo_id));
+        const requeridos = calcularRequeridosPorPareja(matchesCat.filter(p => p.torneo_grupo_id), parejasEliminadas);
 
         const config: ClasifConfig = {
             total: ligaConfigCat.total,
@@ -607,7 +607,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                         "Guardar" ya activo — así es fácil escribir sin
                                         querer el valor de una categoría en otra. */}
                                     <CorteParticipacionControl
-                                        key={selectedCat}
+                                        key={`${selectedCat}-${corteConfig[selectedCat]?.anteriores?.length ?? 0}`}
                                         torneoId={torneoId}
                                         categoria={selectedCat}
                                         corteActual={corteConfig[selectedCat] ?? null}
@@ -1107,7 +1107,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                             <td className="px-2 py-3 text-center text-purple-700 font-bold">{team.revanchas || '—'}</td>
                                                         )}
                                                         {esLiguilla && (() => {
-                                                            const pctJugados = Math.round(porcentajePorParejaCat.get(team.parejaId) || 0);
+                                                            const pctJugados = Math.floor(porcentajePorParejaCat.get(team.parejaId) || 0);
                                                             return (
                                                                 <td className="px-2 py-3">
                                                                     <div className="flex items-center gap-1.5 w-16 mx-auto">

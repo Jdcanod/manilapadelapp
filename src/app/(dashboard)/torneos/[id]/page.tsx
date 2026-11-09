@@ -210,12 +210,13 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
         .eq('torneo_id', params.id);
     const grupos = (gruposAll || []).filter(g => g.fase !== 'finales');
 
-    // Parejas marcadas como eliminadas por el corte de participación (liguilla).
+    // Parejas fuera de la liga: eliminadas por el corte o retiradas. Igual que
+    // en el panel del club; antes aquí faltaban las retiradas.
     const { data: inscripcionesElim } = await adminSupabase
         .from('torneo_parejas')
         .select('pareja_id, eliminada')
         .eq('torneo_id', params.id)
-        .eq('eliminada', true);
+        .or('eliminada.eq.true,retirada.eq.true');
     const parejasEliminadasSet = new Set((inscripcionesElim || []).map(i => i.pareja_id as string));
 
     // Muro del torneo (reglas / fechas importantes / anuncios) — solo lectura

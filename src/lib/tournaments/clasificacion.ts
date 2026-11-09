@@ -120,16 +120,30 @@ export interface PartidoRequerido {
  *
  * Las revanchas no cuentan: son un partido extra, no uno exigido.
  */
-export function calcularRequeridosPorPareja(partidos: PartidoRequerido[]): Map<string, number> {
+/**
+ * Cuántos partidos se le exigen a cada pareja: uno por cada rival que SIGUE
+ * en la liga. Los partidos contra parejas eliminadas o retiradas no entran al
+ * requisito, ni los jugados ni los cancelados; lo jugado contra ellas sí
+ * sigue sumando en el PJ.
+ *
+ * Así el requisito es el mismo para todas las parejas de la categoría, y a
+ * igual PJ corresponde igual %. Antes, quien alcanzó a jugar contra una
+ * pareja que después salió cargaba ese partido arriba y abajo: dos parejas
+ * con 7.5 PJ salían con 39% y 42%.
+ */
+export function calcularRequeridosPorPareja(
+    partidos: PartidoRequerido[],
+    fuera: Set<string> = new Set(),
+): Map<string, number> {
     const requeridos = new Map<string, number>();
-    const sumar = (id: string | null | undefined) => {
-        if (!id) return;
+    const sumar = (id: string | null | undefined, rival: string | null | undefined) => {
+        if (!id || !rival || fuera.has(rival)) return;
         requeridos.set(id, (requeridos.get(id) || 0) + 1);
     };
     for (const p of partidos) {
         if (p.es_revancha) continue;
-        sumar(p.pareja1_id);
-        sumar(p.pareja2_id);
+        sumar(p.pareja1_id, p.pareja2_id);
+        sumar(p.pareja2_id, p.pareja1_id);
     }
     return requeridos;
 }
