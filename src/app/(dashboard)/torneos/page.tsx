@@ -1,11 +1,13 @@
 import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { Trophy, CalendarDays, MapPin, History, ChevronDown, UserCog } from "lucide-react";
+import { Trophy, CalendarDays, MapPin, UserCog } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { InscribirParejaDialog } from "./InscribirParejaDialog";
 import Link from "next/link";
 import { EstadoVacio } from "@/components/EstadoVacio";
+import { TorneosPorVigencia } from "@/components/TorneosPorVigencia";
+import { separarPorVigencia } from "@/lib/tournaments/vigencia";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -64,75 +66,64 @@ export default async function TorneosPage() {
         });
     }
 
-    // Activos/próximos/recién terminados (últimos 7 días) van en la lista
-    // principal; el resto de torneos terminados va en "Torneos pasados" más
-    // abajo, para que un jugador siga pudiendo entrar a ver el detalle de un
-    // torneo que jugó hace tiempo.
-    const CORTE_MS = 7 * 24 * 60 * 60 * 1000;
+    // Activos (próximos y en curso) y pasados, en dos pestañas. Un torneo pasa
+    // a "Pasados" al día siguiente de su fecha de fin; antes esperaba 7 días.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const torneosFiltrados = (torneos || []).filter((t: any) => new Date(t.fecha_fin).getTime() + CORTE_MS > new Date().getTime());
-    const torneosPasados = (torneos || [])
+    const { activos: torneosActivos, pasados } = separarPorVigencia((torneos || []) as any[]);
+    // Lo más reciente primero: es lo que uno viene a buscar.
+    const torneosPasados = [...pasados].sort(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((t: any) => new Date(t.fecha_fin).getTime() + CORTE_MS <= new Date().getTime())
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .sort((a: any, b: any) => new Date(b.fecha_fin).getTime() - new Date(a.fecha_fin).getTime());
+        (a: any, b: any) => new Date(b.fecha_fin).getTime() - new Date(a.fecha_fin).getTime()
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tarjetas = (lista: any[]) => (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            {lista.map(torneo => (
+                <TorneoCard
+                    key={torneo.id}
+                    torneo={torneo}
+                    countParejas={(conteoParejasPorTorneo.get(torneo.id) || 0) + (conteoInscripcionesPorTorneo.get(torneo.id) || 0)}
+                    gestiono={gestiono.has(torneo.id)}
+                />
+            ))}
+        </div>
+    );
+    const sinTorneos = (texto: string) => (
+        <p className="text-sm text-olive/60 italic text-center py-12 border border-dashed border-olive/20 rounded-2xl">{texto}</p>
+    );
 
     return (
-        <div className="space-y-10">
-            <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-ink mb-1 flex items-center gap-2">
-                            <Trophy className="w-8 h-8 text-ochre-dark" />
-                            Torneos
-                        </h1>
-                        <p className="text-olive">Inscribe a tu pareja y compite por ascender en el Ranking.</p>
-                    </div>
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-ink mb-1 flex items-center gap-2">
+                        <Trophy className="w-8 h-8 text-ochre-dark" />
+                        Torneos
+                    </h1>
+                    <p className="text-olive">Inscribe a tu pareja y compite por ascender en el Ranking.</p>
                 </div>
-
-                {!torneosFiltrados || torneosFiltrados.length === 0 ? (
-                    <EstadoVacio
-                        icono={Trophy}
-                        titulo="Ningún club ha publicado torneos todavía"
-                        explicacion="Los torneos los organizan los clubes. Sigue al tuyo y te enteras apenas abra inscripciones."
-                        accion={{ texto: "Ver clubes", href: "/clubes" }}
-                        secundaria={{ texto: "Buscar un partido", href: "/partidos" }}
-                    />
-                ) : (
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                        {torneosFiltrados.map((torneo: any) => (
-                            <TorneoCard
-                                key={torneo.id}
-                                torneo={torneo}
-                                countParejas={(conteoParejasPorTorneo.get(torneo.id) || 0) + (conteoInscripcionesPorTorneo.get(torneo.id) || 0)}
-                                gestiono={gestiono.has(torneo.id)}
-                            />
-                        ))}
-                    </div>
-                )}
             </div>
 
-            {torneosPasados.length > 0 && (
-                <details className="group">
-                    <summary className="flex items-center gap-2 cursor-pointer select-none text-lg font-bold text-ink mb-4 list-none">
-                        <History className="w-5 h-5 text-olive/60" />
-                        Torneos pasados
-                        <Badge variant="outline" className="border-olive/20 text-olive/60 font-normal">{torneosPasados.length}</Badge>
-                        <ChevronDown className="w-4 h-4 text-olive/50 ml-auto group-open:rotate-180 transition-transform" />
-                    </summary>
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-2">
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                        {torneosPasados.map((torneo: any) => (
-                            <TorneoCard
-                                key={torneo.id}
-                                torneo={torneo}
-                                countParejas={(conteoParejasPorTorneo.get(torneo.id) || 0) + (conteoInscripcionesPorTorneo.get(torneo.id) || 0)}
-                                gestiono={gestiono.has(torneo.id)}
-                            />
-                        ))}
-                    </div>
-                </details>
+            {(torneos || []).length === 0 ? (
+                <EstadoVacio
+                    icono={Trophy}
+                    titulo="Ningún club ha publicado torneos todavía"
+                    explicacion="Los torneos los organizan los clubes. Sigue al tuyo y te enteras apenas abra inscripciones."
+                    accion={{ texto: "Ver clubes", href: "/clubes" }}
+                    secundaria={{ texto: "Buscar un partido", href: "/partidos" }}
+                />
+            ) : (
+                <TorneosPorVigencia
+                    cantidadActivos={torneosActivos.length}
+                    cantidadPasados={torneosPasados.length}
+                    activos={torneosActivos.length > 0
+                        ? tarjetas(torneosActivos)
+                        : sinTorneos("No hay torneos abiertos ni en curso en este momento.")}
+                    pasados={torneosPasados.length > 0
+                        ? tarjetas(torneosPasados)
+                        : sinTorneos("Todavía no ha terminado ningún torneo.")}
+                />
             )}
         </div>
     );

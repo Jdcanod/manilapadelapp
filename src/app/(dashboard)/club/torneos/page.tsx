@@ -8,6 +8,8 @@ import Link from "next/link";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { DeleteTournamentButton } from "@/components/DeleteTournamentButton";
 import { formatFormatoLabel } from "@/lib/display-names";
+import { TorneosPorVigencia } from "@/components/TorneosPorVigencia";
+import { esTorneoPasado, separarPorVigencia } from "@/lib/tournaments/vigencia";
 
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +44,13 @@ export default async function ClubTorneosPage() {
         .is('borrado_en', null)
         .order('fecha_inicio', { ascending: false });
 
-    console.log("torneos:", torneos, "error:", error);
+    if (error) console.error("Lista de torneos del club:", error.message);
+
+    // Activos (próximos y en curso) y pasados, en dos pestañas. Un torneo pasa
+    // a "Pasados" al día siguiente de su fecha de fin, en hora de Colombia.
+    const { activos: torneosActivos, pasados } = separarPorVigencia(torneos || []);
+    // Pasados: lo más reciente primero.
+    const torneosPasados = [...pasados].sort((a, b) => new Date(b.fecha_fin).getTime() - new Date(a.fecha_fin).getTime());
 
     return (
         <div className="space-y-6">
@@ -78,9 +86,12 @@ export default async function ClubTorneosPage() {
                     accion={{ texto: "Crear mi primer torneo", href: "/club/torneos/nuevo" }}
                 />
             ) : (
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                    {torneos.map((torneo) => {
-                        const isPast = new Date(torneo.fecha_fin) < new Date();
+                (() => {
+                    const tarjeta = (torneo: NonNullable<typeof torneos>[number]) => {
+                        // La misma regla que separa las pestañas: sin esto, un
+                        // torneo que termina hoy en la noche ya se marcaba
+                        // "Finalizado" desde la mañana.
+                        const isPast = esTorneoPasado(torneo.fecha_fin);
                         const isUpcoming = new Date(torneo.fecha_inicio) > new Date();
 
                         let statusColor = "bg-olive/20 text-olive border-olive/30";
@@ -138,8 +149,26 @@ export default async function ClubTorneosPage() {
                                 </CardContent>
                             </Card>
                         );
-                    })}
-                </div>
+                    };
+                    const tarjetas = (lista: NonNullable<typeof torneos>) => (
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">{lista.map(tarjeta)}</div>
+                    );
+                    const sinTorneos = (texto: string) => (
+                        <p className="text-sm text-olive/60 italic text-center py-12 border border-dashed border-olive/20 rounded-2xl">{texto}</p>
+                    );
+                    return (
+                        <TorneosPorVigencia
+                            cantidadActivos={torneosActivos.length}
+                            cantidadPasados={torneosPasados.length}
+                            activos={torneosActivos.length > 0
+                                ? tarjetas(torneosActivos)
+                                : sinTorneos("No tienes torneos próximos ni en curso. Crea uno con \"Nuevo Torneo\".")}
+                            pasados={torneosPasados.length > 0
+                                ? tarjetas(torneosPasados)
+                                : sinTorneos("Todavía no ha terminado ninguno de tus torneos.")}
+                        />
+                    );
+                })()
             )}
         </div>
     );
