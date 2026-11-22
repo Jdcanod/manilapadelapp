@@ -331,11 +331,11 @@ function quedaBajoElCorte(porcentaje: number | undefined, corte: number): boolea
 }
 
 /**
- * Cómo se muestra el %: truncado, no redondeado. Así el número que se ve
- * nunca contradice la regla (28.6% se ve 28%, y 28 < 29 sale en el corte).
+ * Cómo se muestra el %: con un decimal y truncado, igual que en las tablas
+ * (textoPorcentaje). Nunca sube: 28.96% se ve 28.9 y sale en un corte de 29.
  */
 function porcentajeVisible(porcentaje: number): number {
-    return Math.floor(porcentaje);
+    return Math.floor(porcentaje * 10) / 10;
 }
 
 /**

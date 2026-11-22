@@ -1,5 +1,6 @@
 "use client";
 
+import { textoPorcentaje } from "@/lib/tournaments/clasificacion";
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -118,7 +119,7 @@ export function TablaPosicionesMovil({ filas, esLiguilla, esMia, clasifica, elim
                                 {esLiguilla && f.pctJugados !== undefined && (
                                     <Dato
                                         etiqueta="Jugados"
-                                        valor={`${Math.round(f.pctJugados)}%`}
+                                        valor={textoPorcentaje(f.pctJugados)}
                                         alerta={f.pctJugados < 40}
                                     />
                                 )}

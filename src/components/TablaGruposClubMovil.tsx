@@ -1,5 +1,6 @@
 "use client";
 
+import { textoPorcentaje } from "@/lib/tournaments/clasificacion";
 import { useState } from "react";
 import { ChevronDown, ArrowUp, ArrowDown, FolderInput } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -140,7 +141,7 @@ export function TablaGruposClubMovil({
                                     <Dato etiqueta="% games" valor={`${pct(f.gg, f.gp)}%`} />
                                     {esLiguilla && <Dato etiqueta="Revanchas" valor={f.revanchas ? String(f.revanchas) : '—'} />}
                                     {esLiguilla && f.pctJugados !== undefined && (
-                                        <Dato etiqueta="Jugados" valor={`${Math.floor(f.pctJugados)}%`} alerta={f.pctJugados < 40} />
+                                        <Dato etiqueta="Jugados" valor={textoPorcentaje(f.pctJugados)} alerta={f.pctJugados < 40} />
                                     )}
                                 </dl>
 

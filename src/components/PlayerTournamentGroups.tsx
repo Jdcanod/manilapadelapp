@@ -11,7 +11,7 @@ import { ParejaLink } from "@/components/panel/ParejaLink";
 import { TablaPosicionesMovil } from "@/components/TablaPosicionesMovil";
 import { GrupoMatchesList } from "@/components/GrupoMatchesList";
 import { calculateStandings } from "@/lib/tournaments/standings";
-import { calcularClasificados, calcularRequeridosPorPareja, type ClasifConfig } from "@/lib/tournaments/clasificacion";
+import { calcularClasificados, calcularRequeridosPorPareja, textoPorcentaje, textoPartidos, type ClasifConfig } from "@/lib/tournaments/clasificacion";
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 
 
@@ -214,8 +214,8 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
     // club al sortear la fase final (puntos primero, % de partidos jugados
     // para rellenar cupos sobrantes, eliminadas por el corte nunca clasifican).
     const ligaConfigCat = ligaClasificacionConfig[selectedCat] || { total: 8, modo: 'absoluto' as const, minPartidos: 0, minPorcentaje: 0 };
-    const { clasificandoGlobalSet, porcentajePorParejaCat } = (() => {
-        if (!esLiguilla) return { clasificandoGlobalSet: new Set<string>(), porcentajePorParejaCat: new Map<string, number>() };
+    const { clasificandoGlobalSet, porcentajePorParejaCat, pjPorPareja, requeridosPorPareja } = (() => {
+        if (!esLiguilla) return { clasificandoGlobalSet: new Set<string>(), porcentajePorParejaCat: new Map<string, number>(), pjPorPareja: new Map<string, number>(), requeridosPorPareja: new Map<string, number>() };
         const grupoIdsCat = new Set(filteredGrupos.map(g => g.id));
         const matchesCat = partidos.filter(p => p.torneo_grupo_id && grupoIdsCat.has(p.torneo_grupo_id));
         const matchesShape = matchesCat.map(p => ({
@@ -240,7 +240,12 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
             minPorcentaje: ligaConfigCat.minPorcentaje || 0,
         };
         const { clasifican, porcentajePorPareja } = calcularClasificados(globalStandings, requeridos, config, parejasEliminadas);
-        return { clasificandoGlobalSet: clasifican, porcentajePorParejaCat: porcentajePorPareja };
+        return {
+            clasificandoGlobalSet: clasifican,
+            porcentajePorParejaCat: porcentajePorPareja,
+            pjPorPareja: new Map(globalStandings.map(s => [s.parejaId, s.pj])),
+            requeridosPorPareja: requeridos,
+        };
     })();
 
     // Resumen de avance: SOLO los partidos de la pareja de quien mira.
@@ -258,14 +263,32 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                 (p.pareja2_id && playerPairIds.includes(p.pareja2_id))
             )
         );
-        const jugados = matchesCat.filter(p => p.estado === 'jugado' && p.resultado).length;
-        const total = matchesCat.length;
         const pendientes = matchesCat.filter(p => !(p.estado === 'jugado' && p.resultado));
         const sinProgramar = pendientes.filter(p => !p.fecha || !p.lugar || p.lugar.toLowerCase().includes('pendiente'));
         const programados = pendientes.filter(p => p.fecha && p.lugar && !p.lugar.toLowerCase().includes('pendiente'));
+
+        // En liga, los mismos números que la fila de la pareja en la tabla:
+        // PJ con la revancha a medio partido, sobre lo que se le exige (un
+        // partido por rival que sigue en la liga). Antes contaba filas: cada
+        // revancha valía 1 y el total incluía revanchas y partidos contra
+        // parejas que ya salieron — "12 / 22, 55%" frente a 10.5 PJ y 62% en
+        // la tabla, para la misma pareja.
+        const miPareja = esLiguilla ? playerPairIds.find(id => requeridosPorPareja.has(id)) : undefined;
+        if (miPareja) {
+            const jugados = pjPorPareja.get(miPareja) || 0;
+            const total = requeridosPorPareja.get(miPareja) || 0;
+            return {
+                jugados, total,
+                pct: porcentajePorParejaCat.get(miPareja) ?? (total > 0 ? (jugados / total) * 100 : 0),
+                pendientes, sinProgramar, programados,
+            };
+        }
+
+        const jugados = matchesCat.filter(p => p.estado === 'jugado' && p.resultado).length;
+        const total = matchesCat.length;
         return {
             jugados, total,
-            pct: total > 0 ? Math.round((jugados / total) * 100) : 0,
+            pct: total > 0 ? (jugados / total) * 100 : 0,
             pendientes, sinProgramar, programados,
         };
     })();
@@ -305,16 +328,16 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                 <div className="bg-paper-soft/50 border border-olive/15 rounded-2xl p-4 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
-                            <span className="text-2xl font-black text-ink">{resumenPartidosCat.jugados}</span>
+                            <span className="text-2xl font-black text-ink">{textoPartidos(resumenPartidosCat.jugados)}</span>
                             <span className="text-sm text-olive/70">
-                                / {resumenPartidosCat.total} partidos jugados (tu pareja)
+                                / {resumenPartidosCat.total} partidos {esLiguilla ? 'exigidos' : 'jugados'} (tu pareja)
                             </span>
                             <Badge variant="outline" className={cn(
                                 "font-black border-olive/20",
                                 resumenPartidosCat.pct >= 80 ? "text-emerald-700 bg-emerald-700/10" :
                                 resumenPartidosCat.pct >= 40 ? "text-ochre-dark bg-ochre/10" : "text-red-700 bg-red-500/10"
                             )}>
-                                {resumenPartidosCat.pct}% de avance
+                                {textoPorcentaje(resumenPartidosCat.pct)} {esLiguilla ? 'jugado' : 'de avance'}
                             </Badge>
                         </div>
                         {resumenPartidosCat.pendientes.length > 0 && (
@@ -491,7 +514,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                         <td className="px-2 py-4 text-center text-purple-700 font-bold">{team.revanchas || '—'}</td>
                                                     )}
                                                     {esLiguilla && (() => {
-                                                        const pctJugados = Math.floor(porcentajePorParejaCat.get(team.parejaId) || 0);
+                                                        const pctJugados = porcentajePorParejaCat.get(team.parejaId) || 0;
                                                         return (
                                                             <td className="px-2 py-4">
                                                                 <div className="flex items-center gap-1.5 w-16 mx-auto">
@@ -504,7 +527,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                             style={{ width: `${Math.min(100, pctJugados)}%` }}
                                                                         />
                                                                     </div>
-                                                                    <span className="text-[10px] font-bold text-olive/70 w-7 text-right">{pctJugados}%</span>
+                                                                    <span className="text-[10px] font-bold text-olive/70 w-9 text-right">{textoPorcentaje(pctJugados)}</span>
                                                                 </div>
                                                             </td>
                                                         );

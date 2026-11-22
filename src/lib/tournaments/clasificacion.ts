@@ -147,3 +147,19 @@ export function calcularRequeridosPorPareja(
     }
     return requeridos;
 }
+
+/**
+ * Cómo se muestra el % de partidos jugados, en todas partes: sin redondear,
+ * con un decimal (61.76 → "61.7%", 50 → "50%"). Se trunca, nunca se sube:
+ * así el número que se ve no contradice el corte ni la clasificación
+ * (con un mínimo de 62%, quien tiene 61.76 se ve 61.7 y no "62").
+ */
+export function textoPorcentaje(valor: number): string {
+    const truncado = Math.floor(valor * 10) / 10;
+    return `${Number.isInteger(truncado) ? truncado : truncado.toFixed(1)}%`;
+}
+
+/** Partidos jugados como se muestran: 10.5 queda 10.5, 10 queda 10. */
+export function textoPartidos(valor: number): string {
+    return Number.isInteger(valor) ? String(valor) : valor.toFixed(1);
+}

@@ -18,7 +18,7 @@ import { AsignarParejaSlotDialog } from "@/components/AsignarParejaSlotDialog";
 import { EditarClasificacionLigaControl } from "@/components/EditarClasificacionLigaControl";
 import { CorteParticipacionControl, type CorteConfigCategoria } from "@/components/CorteParticipacionControl";
 import { calculateStandings } from "@/lib/tournaments/standings";
-import { calcularClasificados, calcularRequeridosPorPareja, type ClasifConfig } from "@/lib/tournaments/clasificacion";
+import { calcularClasificados, calcularRequeridosPorPareja, textoPorcentaje, type ClasifConfig } from "@/lib/tournaments/clasificacion";
 import { esParejaPlaceholder as esTBD } from "@/lib/tbd";
 import { TablaGruposClubMovil } from "@/components/TablaGruposClubMovil";
 
@@ -1107,7 +1107,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                             <td className="px-2 py-3 text-center text-purple-700 font-bold">{team.revanchas || '—'}</td>
                                                         )}
                                                         {esLiguilla && (() => {
-                                                            const pctJugados = Math.floor(porcentajePorParejaCat.get(team.parejaId) || 0);
+                                                            const pctJugados = porcentajePorParejaCat.get(team.parejaId) || 0;
                                                             return (
                                                                 <td className="px-2 py-3">
                                                                     <div className="flex items-center gap-1.5 w-16 mx-auto">
@@ -1120,7 +1120,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                                 style={{ width: `${Math.min(100, pctJugados)}%` }}
                                                                             />
                                                                         </div>
-                                                                        <span className="text-[10px] font-bold text-olive/70 w-7 text-right">{pctJugados}%</span>
+                                                                        <span className="text-[10px] font-bold text-olive/70 w-9 text-right">{textoPorcentaje(pctJugados)}</span>
                                                                     </div>
                                                                 </td>
                                                             );
