@@ -2,26 +2,21 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
-import { fecharPartidoSinProgramar } from "@/lib/tournaments/fechaResultado";
 import { esPartidoDeTorneo } from "@/lib/tournaments/esDeTorneo";
 
-export async function registrarResultadoTorneo(matchId: string, resultado: string, userId: string) {
-    const supabase = createClient();
-    
-    const { error } = await supabase
-        .from('partidos')
-        .update({
-            resultado: resultado,
-            resultado_registrado_por: userId,
-            resultado_registrado_at: new Date().toISOString(),
-            estado_resultado: 'pendiente'
-        })
-        .eq('id', matchId);
-
-    if (error) throw new Error(error.message);
-
-    await fecharPartidoSinProgramar(supabase, matchId);
-
+/**
+ * Carga de resultado desde Inicio. Va por la misma acción que el resto de la
+ * app: solo una pareja del partido puede cargarlo, queda pendiente, y no
+ * cuenta en ninguna tabla hasta que el club lo confirma.
+ *
+ * Antes escribía directo con el id que mandaba el navegador (`userId`), sin
+ * comprobar que quien cargaba jugara el partido.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function registrarResultadoTorneo(matchId: string, resultado: string, _userId?: string) {
+    const { registrarResultadoPorJugador } = await import("./actions");
+    const r = await registrarResultadoPorJugador(matchId, resultado);
+    if (!r.success) throw new Error(r.message || "No se pudo registrar el resultado.");
     revalidatePath("/jugador");
     return { success: true };
 }

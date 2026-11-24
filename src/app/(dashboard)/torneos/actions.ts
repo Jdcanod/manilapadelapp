@@ -261,10 +261,10 @@ export async function registrarResultadoPorJugador(matchId: string, resultado: s
         const isParticipant = (match.pareja1_id && myPairIds.includes(match.pareja1_id)) || 
                               (match.pareja2_id && myPairIds.includes(match.pareja2_id));
 
+        // Antes este chequeo solo dejaba un log y seguía: cualquier usuario con
+        // sesión podía cargar el resultado de cualquier partido.
         if (!isParticipant) {
-            console.error("DEBUG - Participant check failed. UserPairs:", myPairIds, "MatchPairs:", [match.pareja1_id, match.pareja2_id]);
-            // Por ahora, si es un error de detección de pareja pero el ID interno existe, permitimos continuar para desbloquear al usuario
-            // pero logueamos el error.
+            return { success: false, message: "Solo una de las parejas que juegan este partido puede cargar su resultado." };
         }
 
         // Si ya está confirmado, no se puede cambiar por jugador
@@ -387,8 +387,23 @@ export async function confirmarResultado(matchId: string) {
             isTournamentAdmin = torneo?.club_id === internalUserId || torneo?.club_id === user.id;
         }
 
-        if (!isClubAdmin && !isRival && !isTournamentAdmin) {
-            return { success: false, message: "No tienes permiso para confirmar este resultado." };
+        // Un gestor con la función "Cargar resultados" confirma en nombre del
+        // club — nunca un partido que juega él.
+        let isGestor = false;
+        if (!isClubAdmin && !isRival && !isTournamentAdmin && match.torneo_id) {
+            const { data: gestion } = await admin
+                .from('torneo_gestores')
+                .select('permisos')
+                .eq('torneo_id', match.torneo_id)
+                .eq('jugador_id', internalUserId)
+                .maybeSingle();
+            const juegaElPartido = (match.pareja1_id && myPairIds.includes(match.pareja1_id))
+                || (match.pareja2_id && myPairIds.includes(match.pareja2_id));
+            isGestor = !!gestion && ((gestion.permisos as string[] | null) || []).includes('resultados') && !juegaElPartido;
+        }
+
+        if (!isClubAdmin && !isRival && !isTournamentAdmin && !isGestor) {
+            return { success: false, message: "Solo el club (o un gestor del torneo) puede confirmar este resultado." };
         }
         
         const { error } = await admin

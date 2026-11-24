@@ -56,7 +56,7 @@ export function calculateStandings(matches: {
         // puntos ni partido jugado, así que su % de participación baja.
         // Se exige que el partido esté realmente resuelto: si al reiniciar el
         // score quedó un W huérfano, no debe seguir sumando puntos.
-        if (m.walkover_ganador_id && (m.estado === 'jugado' || m.estado_resultado === 'confirmado')) {
+        if (m.walkover_ganador_id && m.estado_resultado === 'confirmado') {
             const ganador = map.get(m.walkover_ganador_id);
             if (ganador) {
                 const peso = m.es_revancha ? 0.5 : 1;
@@ -67,7 +67,11 @@ export function calculateStandings(matches: {
             return;
         }
 
-        if ((m.estado === 'jugado' || m.estado_resultado === 'confirmado') && m.resultado) {
+        // Solo cuenta lo que el club (o un gestor) confirmó. El resultado que
+        // carga un jugador queda con estado 'jugado' pero 'pendiente': antes
+        // ese "o" lo hacía contar en la tabla, el % y la clasificación apenas
+        // se cargaba, sin que el club lo hubiera visto.
+        if (m.estado_resultado === 'confirmado' && m.resultado) {
             const s1 = map.get(m.pareja1_id)!;
             const s2 = map.get(m.pareja2_id)!;
             const esRevancha = !!m.es_revancha;

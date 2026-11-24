@@ -341,9 +341,12 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
     const resumenPartidosCat = (() => {
         const grupoIdsCat = new Set(gruposCategoria.map(g => g.id));
         const matchesCat = partidos.filter(p => p.torneo_grupo_id && grupoIdsCat.has(p.torneo_grupo_id));
-        const jugados = matchesCat.filter(p => p.estado === 'jugado' && p.resultado).length;
+        // Jugado = confirmado. Un resultado cargado por un jugador sigue en
+        // pendientes hasta que el club lo confirma.
+        const confirmado = (p: { estado_resultado?: string | null; resultado?: string | null }) => p.estado_resultado === 'confirmado' && !!p.resultado;
+        const jugados = matchesCat.filter(confirmado).length;
         const total = matchesCat.length;
-        const pendientes = matchesCat.filter(p => !(p.estado === 'jugado' && p.resultado));
+        const pendientes = matchesCat.filter(p => !confirmado(p));
         const sinProgramar = pendientes.filter(p => !p.fecha || !p.lugar || p.lugar.toLowerCase().includes('pendiente'));
         const programados = pendientes.filter(p => p.fecha && p.lugar && !p.lugar.toLowerCase().includes('pendiente'));
 

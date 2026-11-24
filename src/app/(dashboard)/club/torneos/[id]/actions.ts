@@ -1680,7 +1680,7 @@ export async function generarFaseEliminatoria(torneoId: string, categoria: strin
             }
             
             const totalMatches = matches?.length || 0;
-            const playedMatches = matches?.filter(m => (m.estado === 'jugado' || m.estado_resultado === 'confirmado') && m.resultado).length || 0;
+            const playedMatches = matches?.filter(m => m.estado_resultado === 'confirmado' && m.resultado).length || 0;
             
             // Enriquecer cada match con su tipoDesempate (= el de la categoría)
             // para que calculateStandings decida correctamente si los games del
@@ -2595,7 +2595,9 @@ export async function generarFaseEliminatoriaTopN(
                 }));
 
                 const totalMatches = matchesShape.length;
-                const playedMatches = matchesShape.filter(m => (m.estado === 'jugado' || m.estado_resultado === 'confirmado') && m.resultado).length;
+                // Un resultado sin confirmar no cierra el grupo: si no, el
+                // cuadro se llenaba con un clasificado que el club no aprobó.
+                const playedMatches = matchesShape.filter(m => m.estado_resultado === 'confirmado' && m.resultado).length;
                 const isFinished = totalMatches > 0 && playedMatches >= totalMatches;
 
                 const groupStandings = calculateStandings(matchesShape, standingsOptsEli) as { parejaId: string; nombre: string; pts: number; sg: number; sp: number; gg: number; gp: number; pj: number; pg: number }[];

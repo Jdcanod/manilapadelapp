@@ -263,7 +263,8 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                 (p.pareja2_id && playerPairIds.includes(p.pareja2_id))
             )
         );
-        const pendientes = matchesCat.filter(p => !(p.estado === 'jugado' && p.resultado));
+        const confirmado = (p: { estado_resultado?: string | null; resultado?: string | null }) => p.estado_resultado === 'confirmado' && !!p.resultado;
+        const pendientes = matchesCat.filter(p => !confirmado(p));
         const sinProgramar = pendientes.filter(p => !p.fecha || !p.lugar || p.lugar.toLowerCase().includes('pendiente'));
         const programados = pendientes.filter(p => p.fecha && p.lugar && !p.lugar.toLowerCase().includes('pendiente'));
 
@@ -284,7 +285,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
             };
         }
 
-        const jugados = matchesCat.filter(p => p.estado === 'jugado' && p.resultado).length;
+        const jugados = matchesCat.filter(confirmado).length;
         const total = matchesCat.length;
         return {
             jugados, total,
