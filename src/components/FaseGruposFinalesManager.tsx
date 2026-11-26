@@ -4,10 +4,11 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Trophy, RefreshCw, Loader2 } from "lucide-react";
-import { generarGruposFinales } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { Users, Trophy, RefreshCw, Loader2, Eye } from "lucide-react";
+import { generarGruposFinales, previsualizarGruposFinales } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { cn } from "@/lib/utils";
+import { repartirGruposFinales } from "@/lib/tournaments/logic";
 
 interface Grupo {
     id: string;
@@ -52,6 +53,12 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
+    // Vista previa con nombres. Lleva la clave (categoría, clasifican, grupos)
+    // con la que se pidió: si el club cambia un número, deja de mostrarse en
+    // vez de quedar enseñando una distribución que ya no es la que se va a
+    // generar.
+    const [vistaPrevia, setVistaPrevia] = useState<{ clave: string; grupos: { puesto: number; nombre: string; pts: number; pj: number }[][] } | null>(null);
+    const [cargandoVista, startVista] = useTransition();
 
     if (categorias.length === 0) {
         return (
@@ -66,6 +73,18 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
     const sugeridoClasifican = ligaClasificacionConfig[selectedCat]?.total ?? 4;
     const numGrupos = numGruposPorCat[selectedCat] ?? 2;
     const totalClasifican = clasificanOverride[selectedCat] ?? sugeridoClasifican;
+
+    const claveVista = `${selectedCat}|${totalClasifican}|${numGrupos}`;
+    const gruposVista = vistaPrevia?.clave === claveVista ? vistaPrevia.grupos : null;
+
+    const verComoQuedan = () => {
+        setError(null);
+        startVista(async () => {
+            const res = await previsualizarGruposFinales(torneoId, selectedCat, numGrupos, totalClasifican);
+            if (res.success) setVistaPrevia({ clave: claveVista, grupos: res.grupos });
+            else setError(res.message || "No se pudo armar la vista previa");
+        });
+    };
 
     const handleGenerar = () => {
         const msg = gruposCat.length > 0
@@ -159,6 +178,50 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                             : <>Generar Grupos Finales</>}
                 </Button>
             </div>
+
+            {/* Cómo van a quedar, antes de generar. El número es el puesto en la
+                clasificación de Todos contra Todos; con "Ver cómo quedan" se ven
+                las parejas, calculadas igual que al generar. */}
+            {totalClasifican >= 2 && numGrupos >= 1 && (
+                <div className="space-y-3 -mt-1">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-olive/80 px-1">
+                        <span className="font-bold text-olive/60 uppercase tracking-wide text-[10px]">Así quedan:</span>
+                        {repartirGruposFinales(Array.from({ length: totalClasifican }, (_, i) => i + 1), numGrupos).map((g, i) => (
+                            <span key={i} className="tabular-nums">
+                                <span className="font-bold text-ink">Grupo {String.fromCharCode(65 + i)}</span> {g.join(' - ')}
+                            </span>
+                        ))}
+                        <Button type="button" variant="outline" size="sm" onClick={verComoQuedan} disabled={cargandoVista}
+                            className="h-7 px-2.5 text-[11px] font-bold border-olive/25 text-olive bg-paper hover:bg-olive/10">
+                            {cargandoVista ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Eye className="w-3.5 h-3.5 mr-1" />Ver cómo quedan</>}
+                        </Button>
+                    </div>
+
+                    {gruposVista && (
+                        <div className="space-y-2">
+                            <p className="text-[11px] text-olive/70 px-1">
+                                Vista previa con la clasificación de hoy. Todavía no se ha creado nada: si se juegan más
+                                partidos antes de generar, los puestos pueden cambiar.
+                            </p>
+                            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                                {gruposVista.map((g, i) => (
+                                    <div key={i} className="bg-paper-soft border border-olive/20 rounded-xl p-3 space-y-1.5">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-ochre-dark">Grupo Final {String.fromCharCode(65 + i)}</p>
+                                        <ul className="space-y-1">
+                                            {g.map(p => (
+                                                <li key={p.puesto} className="flex items-baseline gap-2 text-xs">
+                                                    <span className="w-6 shrink-0 text-right font-black text-olive tabular-nums">{p.puesto}</span>
+                                                    <span className="text-ink font-semibold leading-snug">{p.nombre}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {error && (
                 <div className="bg-red-500/10 border border-red-500/40 rounded-lg p-3 text-xs text-red-300">

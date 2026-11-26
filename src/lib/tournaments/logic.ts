@@ -80,3 +80,31 @@ export function generateMatchesForGroup(groupId: string, participantIds: string[
     }
     return matches;
 }
+
+/**
+ * Reparte los clasificados de una liga en los grupos finales, sin azar.
+ *
+ * `ordenados` viene en orden de clasificación (el primero es el 1). La
+ * primera vuelta va en orden (1 al Grupo A, 2 al B...) y todas las vueltas
+ * siguientes al revés: el mejor de esa vuelta al último grupo y el peor al
+ * Grupo A. Así quien terminó primero recibe a los rivales más débiles de
+ * cada vuelta.
+ *
+ * Es la distribución que pidió el club:
+ *   2 grupos, 8 parejas:  A 1-4-6-8      B 2-3-5-7
+ *   4 grupos, 12 parejas: A 1-8-12  B 2-7-11  C 3-6-10  D 4-5-9
+ *   2 grupos, 6 parejas:  A 1-4-6        B 2-3-5
+ *
+ * Si la última vuelta queda incompleta, sigue la misma dirección: sus
+ * parejas van a los últimos grupos.
+ */
+export function repartirGruposFinales<T>(ordenados: T[], numGrupos: number): T[][] {
+    const n = Math.max(1, Math.min(numGrupos, ordenados.length || 1));
+    const grupos: T[][] = Array.from({ length: n }, () => []);
+    ordenados.forEach((p, i) => {
+        const vuelta = Math.floor(i / n);
+        const posicion = i % n;
+        grupos[vuelta === 0 ? posicion : n - 1 - posicion].push(p);
+    });
+    return grupos;
+}

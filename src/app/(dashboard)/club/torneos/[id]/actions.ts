@@ -1,7 +1,7 @@
 "use server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
-import { Participant, distributeParticipantsIntoGroups, generateMatchesForGroup } from "@/lib/tournaments/logic";
+import { Participant, distributeParticipantsIntoGroups, generateMatchesForGroup, repartirGruposFinales } from "@/lib/tournaments/logic";
 import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { calcularRequeridosPorPareja, calcularClasificados } from "@/lib/tournaments/clasificacion";
@@ -10,7 +10,7 @@ import { planearCuadroConDescansos, textoRuta } from "@/lib/tournaments/cuadroCo
 import { requireGestionDeTorneo, juegaEsePartido, PERMISOS_POR_DEFECTO, esPermisoValido, type PermisoGestor } from "@/lib/auth/gestorTorneo";
 import { getOrCreateInvitado } from "@/lib/invitados";
 import { requireClubOwnership } from "@/lib/auth/clubOwnership";
-import { formatPlayerName, isGuestEmail } from "@/lib/display-names";
+import { formatPlayerName, formatPairName, isGuestEmail } from "@/lib/display-names";
 import { revalidatePath } from "next/cache";
 import { format } from "date-fns";
 
@@ -2937,6 +2937,105 @@ export async function generarFaseEliminatoriaTopN(
 }
 
 /**
+ * Las parejas que pasan a los Grupos Finales de una liga, en orden de
+ * clasificación (la primera es la 1). Lo usan la generación y la vista
+ * previa: si cada una calculara por su lado, el club podría ver una cosa y
+ * generar otra.
+ */
+async function clasificadosParaFinales(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    supabaseAdmin: any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    torneo: any,
+    torneoId: string,
+    categoria: string,
+    totalClasificados?: number,
+): Promise<{ ok: true; clasificados: Array<{ parejaId: string; nombre: string; pj: number; pts: number }> } | { ok: false; message: string }> {
+        // 1) Calcular clasificados de la fase Todos contra Todos — mismo
+        // algoritmo que la tabla en vivo y el modo GLOBAL de generar cuadro.
+        const standingsResult = await obtenerStandingsGlobales(torneoId, categoria);
+        if (!standingsResult.success) {
+            return { ok: false, message: standingsResult.message || "No se pudieron calcular los standings" };
+        }
+        const allStandings = standingsResult.standings as Array<{ parejaId: string; nombre: string; pj: number; pts: number }>;
+
+        // Eliminadas por el corte o retiradas: ninguna clasifica.
+        const { data: inscripcionesElim } = await supabaseAdmin
+            .from('torneo_parejas')
+            .select('pareja_id, eliminada')
+            .eq('torneo_id', torneoId)
+            .eq('categoria', categoria)
+            .or('eliminada.eq.true,retirada.eq.true');
+        const eliminadas = new Set<string>((inscripcionesElim || []).map((i: { pareja_id: string }) => i.pareja_id));
+
+        const { data: matchesIniciales } = await supabaseAdmin
+            .from('partidos').select('torneo_grupo_id, pareja1_id, pareja2_id, es_revancha')
+            .eq('torneo_id', torneoId).eq('nivel', categoria).not('torneo_grupo_id', 'is', null);
+        const requeridosPorPareja = calcularRequeridosPorPareja(matchesIniciales || [], eliminadas);
+
+        // El dueño del torneo puede confirmar/ajustar aquí mismo cuántas
+        // parejas clasifican — si no manda un valor, se usa el ya
+        // configurado en "Todos contra Todos" como sugerencia por defecto.
+        const configPersistida = torneo?.reglas_puntuacion?.liga_clasificacion_config?.[categoria];
+        const totalFinal = totalClasificados && totalClasificados >= 2 ? totalClasificados : configPersistida?.total;
+        if (!totalFinal || totalFinal < 2) {
+            return { ok: false, message: "Define cuántas parejas clasifican (mínimo 2)." };
+        }
+        const clasifConfig = {
+            total: totalFinal,
+            modo: (configPersistida?.modo === 'porcentaje' ? 'porcentaje' : 'absoluto') as 'absoluto' | 'porcentaje',
+            minPartidos: configPersistida?.modo === 'porcentaje' ? 0 : (configPersistida?.minPartidos || 0),
+            minPorcentaje: configPersistida?.minPorcentaje || 0,
+        };
+
+        const { ordenClasificacion } = calcularClasificados(allStandings, requeridosPorPareja, clasifConfig, eliminadas);
+        const standingsPorId = new Map(allStandings.map(s => [s.parejaId, s]));
+        const clasificados = ordenClasificacion.map(id => standingsPorId.get(id)!).filter(Boolean);
+        if (clasificados.length < 2) {
+            return { ok: false, message: `Solo ${clasificados.length} pareja(s) clasifican todavía — espera a que se jueguen más partidos.` };
+        }
+        return { ok: true, clasificados };
+
+}
+
+/**
+ * Cómo quedarían los Grupos Finales con estos números, sin crear nada: las
+ * parejas con su nombre y su puesto. Usa exactamente el mismo cálculo y la
+ * misma distribución que generarGruposFinales.
+ */
+export async function previsualizarGruposFinales(torneoId: string, categoria: string, numGrupos: number, totalClasificados?: number) {
+    try {
+        const { admin } = await requireGestionDeTorneo(torneoId, 'sorteos');
+        const { data: torneo } = await admin
+            .from('torneos').select('club_id, fecha_inicio, reglas_puntuacion, formato').eq('id', torneoId).single();
+        if (!torneo) return { success: false as const, message: "Torneo no encontrado" };
+        if (torneo.formato !== 'liguilla') return { success: false as const, message: "Solo aplica a torneos tipo liguilla" };
+
+        const r = await clasificadosParaFinales(admin, torneo, torneoId, categoria, totalClasificados);
+        if (!r.ok) return { success: false as const, message: r.message };
+
+        // Nombres como en el resto de la app ("Juan D. Cano / Willy Cardenas").
+        const ids = r.clasificados.map(c => c.parejaId);
+        const { data: parejas } = await admin.from('parejas').select('id, jugador1_id, jugador2_id').in('id', ids);
+        const jugadorIds = Array.from(new Set((parejas || []).flatMap((p: { jugador1_id: string | null; jugador2_id: string | null }) => [p.jugador1_id, p.jugador2_id]).filter(Boolean))) as string[];
+        const { data: jugadores } = jugadorIds.length
+            ? await admin.from('users').select('id, nombre, apellido, email').in('id', jugadorIds)
+            : { data: [] };
+        const jugador = new Map((jugadores || []).map((j: { id: string }) => [j.id, j]));
+        const nombrePorPareja = new Map<string, string>((parejas || []).map((p: { id: string; jugador1_id: string | null; jugador2_id: string | null }) => [
+            p.id,
+            formatPairName(p.jugador1_id ? jugador.get(p.jugador1_id) as never : null, p.jugador2_id ? jugador.get(p.jugador2_id) as never : null),
+        ]));
+
+        const conPuesto = r.clasificados.map((c, i) => ({ puesto: i + 1, nombre: String(nombrePorPareja.get(c.parejaId) || c.nombre), pts: c.pts, pj: c.pj }));
+        const grupos = repartirGruposFinales(conPuesto, Math.max(1, numGrupos));
+        return { success: true as const, grupos };
+    } catch (err: unknown) {
+        return { success: false as const, message: err instanceof Error ? err.message : "Error desconocido" };
+    }
+}
+
+/**
  * Genera la fase de "Grupos Finales" de una categoría de Liga: toma las
  * parejas ya clasificadas de la fase Todos contra Todos (mismo cálculo que
  * usa la tabla en vivo y "Generar Cuadro"), las reparte en grupos nuevos
@@ -2968,49 +3067,11 @@ export async function generarGruposFinales(torneoId: string, categoria: string, 
         if (torneo.formato !== 'liguilla') return { success: false, message: "Solo aplica a torneos tipo liguilla" };
         if (!numGrupos || numGrupos < 1) return { success: false, message: "Define al menos 1 grupo" };
 
-        // 1) Calcular clasificados de la fase Todos contra Todos — mismo
-        // algoritmo que la tabla en vivo y el modo GLOBAL de generar cuadro.
-        const standingsResult = await obtenerStandingsGlobales(torneoId, categoria);
-        if (!standingsResult.success) {
-            return { success: false, message: standingsResult.message || "No se pudieron calcular los standings" };
-        }
-        const allStandings = standingsResult.standings as Array<{ parejaId: string; nombre: string; pj: number; pts: number }>;
-
-        // Eliminadas por el corte o retiradas: ninguna clasifica.
-        const { data: inscripcionesElim } = await supabaseAdmin
-            .from('torneo_parejas')
-            .select('pareja_id, eliminada')
-            .eq('torneo_id', torneoId)
-            .eq('categoria', categoria)
-            .or('eliminada.eq.true,retirada.eq.true');
-        const eliminadas = new Set((inscripcionesElim || []).map(i => i.pareja_id as string));
-
-        const { data: matchesIniciales } = await supabaseAdmin
-            .from('partidos').select('torneo_grupo_id, pareja1_id, pareja2_id, es_revancha')
-            .eq('torneo_id', torneoId).eq('nivel', categoria).not('torneo_grupo_id', 'is', null);
-        const requeridosPorPareja = calcularRequeridosPorPareja(matchesIniciales || [], eliminadas);
-
-        // El dueño del torneo puede confirmar/ajustar aquí mismo cuántas
-        // parejas clasifican — si no manda un valor, se usa el ya
-        // configurado en "Todos contra Todos" como sugerencia por defecto.
-        const configPersistida = torneo?.reglas_puntuacion?.liga_clasificacion_config?.[categoria];
-        const totalFinal = totalClasificados && totalClasificados >= 2 ? totalClasificados : configPersistida?.total;
-        if (!totalFinal || totalFinal < 2) {
-            return { success: false, message: "Define cuántas parejas clasifican (mínimo 2)." };
-        }
-        const clasifConfig = {
-            total: totalFinal,
-            modo: (configPersistida?.modo === 'porcentaje' ? 'porcentaje' : 'absoluto') as 'absoluto' | 'porcentaje',
-            minPartidos: configPersistida?.modo === 'porcentaje' ? 0 : (configPersistida?.minPartidos || 0),
-            minPorcentaje: configPersistida?.minPorcentaje || 0,
-        };
-
-        const { ordenClasificacion } = calcularClasificados(allStandings, requeridosPorPareja, clasifConfig, eliminadas);
-        const standingsPorId = new Map(allStandings.map(s => [s.parejaId, s]));
-        const clasificados = ordenClasificacion.map(id => standingsPorId.get(id)!).filter(Boolean);
-        if (clasificados.length < 2) {
-            return { success: false, message: `Solo ${clasificados.length} pareja(s) clasifican todavía — espera a que se jueguen más partidos.` };
-        }
+        // 1) Clasificados de Todos contra Todos, en orden: el mismo cálculo
+        // que usa la vista previa, para que lo generado sea lo que se vio.
+        const r = await clasificadosParaFinales(supabaseAdmin, torneo, torneoId, categoria, totalClasificados);
+        if (!r.ok) return { success: false, message: r.message };
+        const clasificados = r.clasificados;
 
         // 2) Borrar grupos finales previos de esta categoría (y sus partidos).
         const { data: gruposFinalesPrevios } = await supabaseAdmin
@@ -3040,12 +3101,14 @@ export async function generarGruposFinales(torneoId: string, categoria: string, 
             return { success: false, message: "Error creando grupos finales: " + (gErr?.message || "desconocido") };
         }
 
-        // 4) Repartir clasificados por bombos (mejor puntaje primero, un grupo
-        // cada uno) y generar el round-robin de cada grupo.
+        // 4) Repartir en el orden de clasificación, sin azar: la primera vuelta
+        // en orden y las siguientes al revés (ver repartirGruposFinales).
+        // Antes se sorteaba dentro de cada bombo, ordenando por puntos en vez
+        // de por la clasificación.
         const participants: Participant[] = clasificados.map(c => ({
             id: c.parejaId, nombre: c.nombre, ranking: c.pts, pareja_id: c.parejaId,
         }));
-        const buckets = distributeParticipantsIntoGroups(participants, nGrupos);
+        const buckets = repartirGruposFinales(participants, nGrupos);
 
         const partidosACrear: Record<string, unknown>[] = [];
         buckets.forEach((grupo, i) => {
