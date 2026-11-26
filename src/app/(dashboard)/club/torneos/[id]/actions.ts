@@ -7,6 +7,7 @@ import { calculateStandings } from "@/lib/tournaments/standings";
 import { calcularRequeridosPorPareja, calcularClasificados } from "@/lib/tournaments/clasificacion";
 import { esPartidoDeTorneo } from "@/lib/tournaments/esDeTorneo";
 import { planearCuadroConDescansos, textoRuta } from "@/lib/tournaments/cuadroConDescansos";
+import { generatePlaceholdersForBracket } from "@/lib/tournaments/crucesPorGrupo";
 import { requireGestionDeTorneo, juegaEsePartido, PERMISOS_POR_DEFECTO, esPermisoValido, type PermisoGestor } from "@/lib/auth/gestorTorneo";
 import { getOrCreateInvitado } from "@/lib/invitados";
 import { requireClubOwnership } from "@/lib/auth/clubOwnership";
@@ -2436,11 +2437,6 @@ export async function obtenerStandingsGlobales(torneoId: string, categoria: stri
  *     `totalClasificados` mejores parejas globales que tengan al menos
  *     `minMatches` partidos jugados.
  */
-interface BracketPlaceholderSeed {
-    placeholder: string;
-    grupoId: string;
-    seed: number;
-}
 
 interface GroupResult {
     isFinished: boolean;
@@ -2448,56 +2444,6 @@ interface GroupResult {
     second: { parejaId: string; nombre: string; pts: number; sg: number; sp: number; gg: number; gp: number; pj: number; pg: number } | null;
 }
 
-function generatePlaceholdersForBracket(grupos: { id: string; nombre_grupo: string }[], porGrupo: number) {
-    const totalClasificados = grupos.length * porGrupo;
-    let targetTeams = 2;
-    while (targetTeams < totalClasificados) targetTeams *= 2;
-    const numByes = targetTeams - totalClasificados;
-
-    const pot1: BracketPlaceholderSeed[] = grupos.map(g => ({
-        placeholder: `1ro ${g.nombre_grupo}`,
-        grupoId: g.id,
-        seed: 1
-    }));
-    const pot2: BracketPlaceholderSeed[] = grupos.map(g => ({
-        placeholder: `2do ${g.nombre_grupo}`,
-        grupoId: g.id,
-        seed: 2
-    }));
-
-    const seededGroupIds = new Set<string>();
-    // Si hay byes, los mejores seeds de pot1 reciben byes. Para relámpago asumimos orden por grupo
-    for (let i = 0; i < numByes; i++) {
-        if (pot1[i]) seededGroupIds.add(pot1[i].grupoId);
-    }
-
-    const matchesData: { seed: BracketPlaceholderSeed; opponent: BracketPlaceholderSeed }[] = [];
-    if (grupos.length === 2 && porGrupo === 2) {
-        // A1 vs B2, B1 vs A2
-        matchesData.push({ seed: pot1[0], opponent: pot2[1] });
-        matchesData.push({ seed: pot1[1], opponent: pot2[0] });
-    } else if (grupos.length === 4 && porGrupo === 2) {
-        matchesData.push({ seed: pot1[0], opponent: pot2[1] }); // 1A vs 2B
-        matchesData.push({ seed: pot1[2], opponent: pot2[3] }); // 1C vs 2D
-        matchesData.push({ seed: pot1[3], opponent: pot2[2] }); // 1D vs 2C
-        matchesData.push({ seed: pot1[1], opponent: pot2[0] }); // 1B vs 2A
-    } else {
-        // Cruzado por defecto
-        for (let i = 0; i < grupos.length; i++) {
-            const seed = pot1[i];
-            const opponentIdx = grupos.length - 1 - i;
-            const opponent = pot2[opponentIdx];
-            matchesData.push({ seed, opponent });
-        }
-    }
-
-    return {
-        targetTeams,
-        numByes,
-        matchesData,
-        seededGroupIds
-    };
-}
 
 export async function generarFaseEliminatoriaTopN(
     torneoId: string,
@@ -2533,6 +2479,9 @@ export async function generarFaseEliminatoriaTopN(
         const { data: torneo } = await supabaseAdmin.from('torneos').select('club_id, fecha_inicio, reglas_puntuacion, formato').eq('id', torneoId).single();
         const clubId = torneo?.club_id;
         const fechaTorneo = torneo?.fecha_inicio;
+        // Se pregunta al armar los Grupos Finales. Si nunca se preguntó
+        // (relámpagos, torneos anteriores), se juega como siempre.
+        const conTercerPuesto = torneo?.reglas_puntuacion?.tercer_puesto_por_categoria?.[categoria] !== false;
         // Resolver tipo de desempate de la categoría (para games del 3er set)
         const tipoDesempateGlobalEli = torneo?.reglas_puntuacion?.tipo_desempate;
         const tipoDesempatePorCatEli = torneo?.reglas_puntuacion?.tipo_desempate_por_categoria || {};
@@ -2655,7 +2604,7 @@ export async function generarFaseEliminatoriaTopN(
                     for (let j = 0; j < n; j++) {
                         partidosPlan.push({ ...base, pareja1_id: null, pareja2_id: null, lugar: `[${j}] ${nombrePorPartidos[n]} - ${categoria}` });
                     }
-                    if (n === 1) {
+                    if (n === 1 && conTercerPuesto) {
                         partidosPlan.push({ ...base, pareja1_id: null, pareja2_id: null, lugar: `[0] Tercer Puesto - ${categoria}` });
                     }
                 }
@@ -2684,15 +2633,21 @@ export async function generarFaseEliminatoriaTopN(
 
             // Primera ronda - partidos basados en placeholders
             for (let i = 0; i < matchesData.length; i++) {
-                const { seed, opponent } = matchesData[i];
+                const { seed, opponent, invertir } = matchesData[i];
                 const hasBye = seededGroupIds.has(seed.grupoId);
-                const placeholderText = `PH: ${seed.placeholder} vs ${opponent.placeholder}`;
 
                 const groupSeedResult = groupResults[seed.grupoId];
                 const groupOpponentResult = groupResults[opponent.grupoId];
 
-                const p1Real = (groupSeedResult?.isFinished && groupSeedResult.first) ? groupSeedResult.first.parejaId : null;
-                const p2Real = hasBye ? null : ((groupOpponentResult?.isFinished && groupOpponentResult.second) ? groupOpponentResult.second.parejaId : null);
+                const primero = (groupSeedResult?.isFinished && groupSeedResult.first) ? groupSeedResult.first.parejaId : null;
+                const segundo = hasBye ? null : ((groupOpponentResult?.isFinished && groupOpponentResult.second) ? groupOpponentResult.second.parejaId : null);
+                // Cada cupo se llena por su texto ("1ro Grupo A"), así que
+                // invertir el orden no cambia quién juega con quién.
+                const placeholderText = invertir
+                    ? `PH: ${opponent.placeholder} vs ${seed.placeholder}`
+                    : `PH: ${seed.placeholder} vs ${opponent.placeholder}`;
+                const p1Real = invertir ? segundo : primero;
+                const p2Real = invertir ? primero : segundo;
 
                 allMatchesToCreate.push({
                     torneo_id: torneoId,
@@ -2739,7 +2694,7 @@ export async function generarFaseEliminatoriaTopN(
                     });
                 }
 
-                if (currentRondaName === "Final") {
+                if (currentRondaName === "Final" && conTercerPuesto) {
                     allMatchesToCreate.push({
                         torneo_id: torneoId,
                         creador_id: userId,
@@ -2900,7 +2855,7 @@ export async function generarFaseEliminatoriaTopN(
                     });
                 }
 
-                if (currentRondaName === "Final") {
+                if (currentRondaName === "Final" && conTercerPuesto) {
                     allMatchesToCreate.push({
                         torneo_id: torneoId,
                         creador_id: userId,
@@ -3156,7 +3111,7 @@ export async function previsualizarGruposFinales(torneoId: string, categoria: st
  * Si ya existían grupos finales para la categoría, se borran junto con sus
  * partidos antes de regenerar (no se pueden mezclar dos generaciones).
  */
-export async function generarGruposFinales(torneoId: string, categoria: string, numGrupos: number, totalClasificados?: number) {
+export async function generarGruposFinales(torneoId: string, categoria: string, numGrupos: number, totalClasificados?: number, tercerPuesto?: boolean) {
     try {
     // Antes esta acción no comprobaba nada: cualquier usuario con sesión podía
     // ejecutarla sobre el torneo de cualquier club.
@@ -3192,6 +3147,16 @@ export async function generarGruposFinales(torneoId: string, categoria: string, 
                 success: false,
                 message: `Falta confirmar si juegan las finales ${sinConfirmar.length === 1 ? '1 pareja' : `${sinConfirmar.length} parejas`}. Márcalas en "¿Quiénes juegan las finales?".`,
             };
+        }
+        if (typeof tercerPuesto !== 'boolean') {
+            return { success: false, message: "Falta responder si se juega partido por el 3er puesto." };
+        }
+        // Lo lee el cuadro al generarse (generarFaseEliminatoriaTopN).
+        {
+            const reglas = { ...(torneo.reglas_puntuacion || {}) };
+            reglas.tercer_puesto_por_categoria = { ...(reglas.tercer_puesto_por_categoria || {}), [categoria]: tercerPuesto };
+            const { error: errReglas } = await supabaseAdmin.from('torneos').update({ reglas_puntuacion: reglas }).eq('id', torneoId);
+            if (errReglas) return { success: false, message: "No se pudo guardar lo del 3er puesto: " + errReglas.message };
         }
 
         // 2) Borrar grupos finales previos de esta categoría (y sus partidos).

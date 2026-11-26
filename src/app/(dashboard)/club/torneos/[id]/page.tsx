@@ -907,6 +907,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                             gruposFinales={gruposFinalesExistentes || []}
                             partidos={partidosReales || []}
                             ligaClasificacionConfig={torneo.reglas_puntuacion?.liga_clasificacion_config || {}}
+                            tercerPuestoPorCategoria={torneo.reglas_puntuacion?.tercer_puesto_por_categoria || {}}
                         />
                     </TabsContent>
                 )}

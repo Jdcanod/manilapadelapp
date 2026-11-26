@@ -37,9 +37,11 @@ interface Props {
     gruposFinales: Grupo[];
     partidos: MatchRow[];
     ligaClasificacionConfig?: Record<string, { total: number }>;
+    /** Lo que se respondió antes sobre el partido por el 3er puesto. */
+    tercerPuestoPorCategoria?: Record<string, boolean>;
 }
 
-export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, partidos, ligaClasificacionConfig = {} }: Props) {
+export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, partidos, ligaClasificacionConfig = {}, tercerPuestoPorCategoria = {} }: Props) {
     const [selectedCat, setSelectedCat] = useState<string>(categorias[0] || "");
     // Por categoría: cada una arma sus grupos finales por separado, y antes
     // este número era uno solo para todas — cambiarlo en 6ta se lo cambiaba
@@ -66,6 +68,10 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
     const [cargandoCandidatos, startCandidatos] = useTransition();
     const [marcando, setMarcando] = useState<string | null>(null);
     const [version, setVersion] = useState(0);
+    // ¿Se juega el 3er puesto? Por categoría y sin valor por defecto: hay que
+    // responderlo antes de generar (en la Liga 2 sí en 5ta y 6ta, no en 4ta
+    // ni 7ma). Si ya se respondió antes, arranca con esa respuesta.
+    const [tercerPuesto, setTercerPuesto] = useState<Record<string, boolean>>(tercerPuestoPorCategoria);
 
     if (categorias.length === 0) {
         return (
@@ -88,7 +94,8 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
 
     const claveVista = `${selectedCat}|${totalClasifican}|${numGrupos}|${version}`;
     const gruposVista = vistaPrevia?.clave === claveVista ? vistaPrevia.grupos : null;
-    const puedeGenerar = todasConfirmadas && !!gruposVista;
+    const tercerPuestoCat: boolean | undefined = tercerPuesto[selectedCat];
+    const puedeGenerar = todasConfirmadas && !!gruposVista && typeof tercerPuestoCat === 'boolean';
 
     const cargarCandidatos = () => {
         setError(null);
@@ -129,7 +136,7 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
         if (!confirm(msg)) return;
         setError(null);
         startTransition(async () => {
-            const res = await generarGruposFinales(torneoId, selectedCat, numGrupos, totalClasifican);
+            const res = await generarGruposFinales(torneoId, selectedCat, numGrupos, totalClasifican, tercerPuestoCat);
             if (res.success) {
                 if (res.message) alert(res.message);
                 router.refresh();
@@ -335,14 +342,44 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                 </div>
             )}
 
-            {/* Paso 3: generar, solo con todo confirmado y la distribución vista. */}
+            {/* Paso 3: el 3er puesto se decide aquí; lo usa el cuadro al generarse. */}
+            <div className="flex flex-wrap items-center gap-2 bg-paper-soft border border-olive/20 rounded-xl px-4 py-3">
+                <span className="text-sm font-bold text-ink mr-1">3. ¿Se juega partido por el 3er puesto en {selectedCat}?</span>
+                {([true, false] as const).map(v => (
+                    <button
+                        key={String(v)}
+                        type="button"
+                        onClick={() => setTercerPuesto(prev => ({ ...prev, [selectedCat]: v }))}
+                        aria-pressed={tercerPuestoCat === v}
+                        className={cn(
+                            "px-3 py-1 rounded-lg text-xs font-bold border transition-colors",
+                            tercerPuestoCat === v
+                                ? "bg-olive text-paper border-olive"
+                                : "bg-paper text-olive border-olive/25 hover:bg-olive/10"
+                        )}
+                    >
+                        {v ? 'Sí' : 'No'}
+                    </button>
+                ))}
+                <span className="text-[11px] text-olive/60">
+                    {tercerPuestoCat === undefined
+                        ? 'Elige una opción para poder generar.'
+                        : tercerPuestoCat
+                            ? 'Los perdedores de semifinales juegan por el 3er puesto.'
+                            : 'Solo se juega la final.'}
+                </span>
+            </div>
+
+            {/* Paso 4: generar, solo con todo confirmado, la distribución vista
+                y lo del 3er puesto respondido. */}
             <div className="flex flex-wrap items-center gap-3">
                 <Button
                     onClick={handleGenerar}
                     disabled={isPending || !puedeGenerar}
                     title={!todasConfirmadas
                         ? "Primero confirma quiénes juegan las finales (paso 1)"
-                        : !gruposVista ? "Revisa cómo quedan los grupos (paso 2)" : undefined}
+                        : !gruposVista ? "Revisa cómo quedan los grupos (paso 2)"
+                            : typeof tercerPuestoCat !== 'boolean' ? "Responde lo del 3er puesto (paso 3)" : undefined}
                     size="sm"
                     className="bg-olive hover:bg-olive text-paper font-bold"
                 >
@@ -354,10 +391,12 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                 </Button>
                 <span className="text-[11px] text-olive/70">
                     {!todasConfirmadas
-                        ? "3. Para generar, primero confirma quiénes juegan (paso 1)."
+                        ? "4. Para generar, primero confirma quiénes juegan (paso 1)."
                         : !gruposVista
-                            ? "3. Revisa cómo quedan los grupos con \"Ver cómo quedan\" (paso 2)."
-                            : "3. Todo listo: genera los grupos finales."}
+                            ? "4. Revisa cómo quedan los grupos con \"Ver cómo quedan\" (paso 2)."
+                            : typeof tercerPuestoCat !== 'boolean'
+                                ? "4. Responde lo del 3er puesto (paso 3)."
+                                : "4. Todo listo: genera los grupos finales."}
                 </span>
             </div>
 
