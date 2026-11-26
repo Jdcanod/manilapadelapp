@@ -178,6 +178,25 @@ function nombresCompatibles(a: NombreCrudo, b: NombreCrudo): boolean {
     return x.apellidos.some(s => y.apellidos.some(t => parecidas(s, t)));
 }
 
+/**
+ * ¿El nombre del invitado está completo dentro del de la cuenta real? El club
+ * carga al invitado con nombre y un apellido, y al registrarse la persona
+ * agrega lo que falta: "Juan Camilo Gallego" → "Juan Camilo Gallego Cortes",
+ * "Diego Acosta" → "Diego Alejandro Acosta Ortiz". Exigir el nombre idéntico
+ * los dejaba fuera de toda sugerencia.
+ *
+ * Es más estricto de lo que parece: mismo nombre de pila, al menos un
+ * apellido, y TODAS las palabras del invitado presentes. "Juan Camilo
+ * Gallego" no entra en "Juan Camilo Giraldo". Medido en Padel del Río:
+ * agrega exactamente esos casos (3) y ningún falso parecido.
+ */
+function nombreContenido(nombreInvitado: string, nombreReal: string): boolean {
+    const ti = tokens(normalizar(nombreInvitado));
+    const tr = tokens(normalizar(nombreReal));
+    if (ti.length < 2 || tr.length === 0 || ti[0] !== tr[0]) return false;
+    return ti.every(t => tr.includes(t));
+}
+
 const ORDEN: Record<Confianza, number> = { exacta: 0, fuerte: 1, debil: 2 };
 
 /**
@@ -374,7 +393,9 @@ export async function sugerenciasDeVinculacion(
             // ("Santiago") coincidía si no con todos sus homónimos, que es
             // justo el ruido que obligaba a marcar "No es" 25 veces.
             const socio = companeroEnComun(inv.id, id);
-            if (socio ? !nombresCompatibles(crudoInv, real.crudo) : confianza !== 'exacta') return;
+            if (socio
+                ? !nombresCompatibles(crudoInv, real.crudo)
+                : confianza !== 'exacta' && !nombreContenido(nombreInvitado, real.nombre)) return;
             const candidato: CandidatoVinculacion = {
                 id,
                 nombre: real.nombre || 'Jugador',
@@ -552,9 +573,11 @@ export async function jugadoresNuevosDelClub(
             invitadosDelClub.forEach((inv, invitadoId) => {
                 if (descartados.has(`${invitadoId}|${j.id}`)) return;
                 // Acá no existe la señal del compañero (son jugadores que aún no
-                // han jugado), así que se exige nombre completo idéntico.
+                // han jugado), así que se exige el nombre completo idéntico, o
+                // el del invitado contenido entero en el de la cuenta.
                 const confianza = clasificar(inv.nombre, nombreCompleto);
-                if (confianza !== 'exacta') return;
+                if (!confianza) return;
+                if (confianza !== 'exacta' && !nombreContenido(inv.nombre, nombreCompleto)) return;
                 posibles.push({ id: invitadoId, nombre: inv.nombre, confianza, fecha: inv.fecha, contexto: inv.contexto, companeroComun: null });
             });
 
