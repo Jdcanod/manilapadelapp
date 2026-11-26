@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
-import { Inter, Bebas_Neue } from "next/font/google";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
-const inter = Inter({
-    subsets: ["latin"],
-    variable: "--font-sans",
-});
-
-const bebas = Bebas_Neue({
-    subsets: ["latin"],
-    weight: "400",
-    variable: "--font-display",
-});
+/**
+ * Las fuentes (Inter para el texto, Bebas Neue para los títulos) se cargan
+ * desde Google Fonts en el navegador, y se llaman por su nombre real.
+ *
+ * Antes iban con next/font/google, que las descarga durante el build y nombra
+ * las clases con una huella de lo descargado. En Vercel, la parte del
+ * servidor y la de estilos quedaron con huellas distintas (la página pedía
+ * __variable_d8ebd1 y el CSS definía __variable_f367f3): la variable de la
+ * fuente quedaba sin definir y todo el sitio caía en Times. Por nombre no
+ * hay huella que se pueda desajustar.
+ */
+const FUENTES = "https://fonts.googleapis.com/css2?family=Inter:wght@400..900&family=Bebas+Neue&display=swap";
 
 export const metadata: Metadata = {
     title: "Pádel Manía | Tu Club · Tu Juego · Tu Ranking",
@@ -50,7 +51,13 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="es" className={`${inter.variable} ${bebas.variable}`}>
+        <html lang="es">
+            <head>
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+                <link rel="stylesheet" href={FUENTES} />
+            </head>
             <body className="min-h-screen bg-paper text-ink antialiased font-sans">
                 {children}
                 <Toaster />

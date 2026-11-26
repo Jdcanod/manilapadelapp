@@ -10,8 +10,10 @@ const config: Config = {
 	theme: {
 		extend: {
 			fontFamily: {
-				display: ['var(--font-display)', 'Bebas Neue', 'system-ui', 'sans-serif'],
-				sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+				// Por nombre: si una variable CSS no existe, la regla entera se
+				// anula y el navegador cae en Times (ver src/app/layout.tsx).
+				display: ['"Bebas Neue"', 'Impact', 'system-ui', 'sans-serif'],
+				sans: ['Inter', 'system-ui', '-apple-system', '"Segoe UI"', 'Roboto', 'sans-serif'],
 			},
 			colors: {
 				/* === Pádel Manía vintage palette === */
