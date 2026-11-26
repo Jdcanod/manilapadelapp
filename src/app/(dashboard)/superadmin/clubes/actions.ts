@@ -3,6 +3,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { createClient as createServerClient, createPureAdminClient } from "@/utils/supabase/server";
+import { MARCA_CONTRASENA_TEMPORAL } from "@/lib/auth/contrasenaTemporal";
 
 /** Confirma que quien llama es superadmin. Lanza si no. Devuelve el admin
  *  client (service-role) listo para usar. */
@@ -98,7 +99,13 @@ export async function resetPasswordClub(clubId: string) {
         for (let i = 0; i < 6; i++) sufijo += alfabeto[rnd[i] % alfabeto.length];
         const tempPassword = `padel-${sufijo}`;
 
-        const { error } = await admin.auth.admin.updateUserById(club.auth_id, { password: tempPassword });
+        // La temporal la conoce el superadmin: al entrar con ella, el club
+        // tiene que elegir una propia antes de usar la app (ver middleware).
+        const { data: cuenta } = await admin.auth.admin.getUserById(club.auth_id);
+        const { error } = await admin.auth.admin.updateUserById(club.auth_id, {
+            password: tempPassword,
+            app_metadata: { ...(cuenta?.user?.app_metadata || {}), [MARCA_CONTRASENA_TEMPORAL]: true },
+        });
         if (error) return { success: false as const, message: "Error actualizando contraseña: " + error.message };
 
         return { success: true as const, tempPassword, clubNombre: club.nombre as string };

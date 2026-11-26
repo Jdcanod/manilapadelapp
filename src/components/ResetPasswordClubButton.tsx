@@ -92,7 +92,8 @@ export function ResetPasswordClubButton({ clubId, clubNombre }: Props) {
                                 </Button>
                             </div>
                             <div className="text-[11px] text-olive/70 bg-olive/5 border border-olive/20 rounded-lg p-2.5">
-                                Cópiala ahora — no se volverá a mostrar.
+                                Cópiala ahora — no se volverá a mostrar. Al entrar con ella, la app le pedirá
+                                al club elegir una contraseña propia antes de seguir.
                             </div>
                         </>
                     )}

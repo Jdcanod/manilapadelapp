@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { MARCA_CONTRASENA_TEMPORAL, RUTA_CAMBIAR_CONTRASENA } from '@/lib/auth/contrasenaTemporal'
 
 /** Construye una redirect response que conserva las cookies que Supabase
  *  haya escrito durante getUser() — sin esto se pierden los tokens
@@ -78,6 +79,20 @@ export async function updateSession(request: NextRequest) {
     if (user) {
         const url = request.nextUrl.clone()
         const pathname = url.pathname
+
+        // Contraseña temporal (la restableció el superadmin): hasta elegir una
+        // nueva, solo se puede estar en esa pantalla. getUser() trae la
+        // cuenta fresca del servidor, así que la marca se ve apenas cambia.
+        if (
+            user.app_metadata?.[MARCA_CONTRASENA_TEMPORAL] &&
+            pathname !== RUTA_CAMBIAR_CONTRASENA &&
+            !pathname.startsWith('/auth') &&
+            !pathname.startsWith('/api')
+        ) {
+            url.pathname = RUTA_CAMBIAR_CONTRASENA
+            url.search = ''
+            return redirectPreservingCookies(url, supabaseResponse)
+        }
 
         let userRol = 'jugador'
         try {

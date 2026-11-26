@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, Save, Megaphone, Settings2, User, Image as ImageIcon, Loader2 } from "lucide-react";
+import { LogOut, Save, Megaphone, Settings2, User, Image as ImageIcon, Loader2, KeyRound } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cerrarSesionAction } from "../../jugador/perfil/actions";
+import { CambiarContrasenaForm } from "@/components/CambiarContrasenaForm";
 import { saveClubSettings, postClubNews, updateClubProfile, uploadClubLogo } from "./actions";
 import { PrimeTimeConfig } from "@/components/PrimeTimeConfig";
 
@@ -137,6 +138,10 @@ export function ConfigClubForm({ initialData }: { initialData: ConfigData }) {
                     <TabsTrigger value="anuncios" className="data-[state=active]:bg-paper-dark">
                         <Megaphone className="w-4 h-4 mr-2" />
                         Publicar Anuncios
+                    </TabsTrigger>
+                    <TabsTrigger value="contrasena" className="data-[state=active]:bg-paper-dark">
+                        <KeyRound className="w-4 h-4 mr-2" />
+                        Contraseña
                     </TabsTrigger>
                 </TabsList>
 
@@ -317,6 +322,21 @@ export function ConfigClubForm({ initialData }: { initialData: ConfigData }) {
                             </CardFooter>
                         </Card>
                     </form>
+                </TabsContent>
+
+                <TabsContent value="contrasena">
+                    <Card className="bg-paper-soft border-olive/20 shadow-xl max-w-xl">
+                        <CardHeader>
+                            <CardTitle className="text-ink">Contraseña de acceso del club</CardTitle>
+                            <CardDescription className="text-olive">
+                                Cámbiala cuando cambie quien administra el club, o si crees que alguien más la conoce.
+                                Se pide la actual para que nadie pueda cambiarla desde una sesión que quedó abierta.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <CambiarContrasenaForm />
+                        </CardContent>
+                    </Card>
                 </TabsContent>
 
             </Tabs>
