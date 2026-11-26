@@ -33,6 +33,10 @@ export function CambiarContrasenaForm({ temporal = false }: { temporal?: boolean
             const r = await cambiarMiContrasena({ actual: temporal ? undefined : actual, nueva });
             if (!r.ok) { setError(r.mensaje); return; }
             setActual(""); setNueva(""); setRepetida("");
+            if (r.reingresar) {
+                router.replace("/login");
+                return;
+            }
             if (temporal) {
                 // El inicio decide a dónde va cada rol.
                 router.replace("/");
@@ -79,7 +83,7 @@ export function CambiarContrasenaForm({ temporal = false }: { temporal?: boolean
             {error && <p className="text-sm text-red-700 font-semibold" role="alert">{error}</p>}
             {listo && (
                 <p className="text-sm text-emerald-700 font-semibold flex items-center gap-1.5" role="status">
-                    <Check className="w-4 h-4" /> Contraseña cambiada. La próxima vez entra con la nueva.
+                    <Check className="w-4 h-4" /> Contraseña cambiada. Se cerraron las sesiones abiertas en otros dispositivos.
                 </p>
             )}
 

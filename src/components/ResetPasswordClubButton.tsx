@@ -21,6 +21,7 @@ export function ResetPasswordClubButton({ clubId, clubNombre }: Props) {
     const [pending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
     const [tempPassword, setTempPassword] = useState<string | null>(null);
+    const [sesionesCerradas, setSesionesCerradas] = useState(true);
     const [copied, setCopied] = useState(false);
 
     const handleReset = () => {
@@ -32,6 +33,7 @@ export function ResetPasswordClubButton({ clubId, clubNombre }: Props) {
                 return;
             }
             setTempPassword(r.tempPassword);
+            setSesionesCerradas(r.sesionesCerradas !== false);
         });
     };
 
@@ -94,6 +96,13 @@ export function ResetPasswordClubButton({ clubId, clubNombre }: Props) {
                             <div className="text-[11px] text-olive/70 bg-olive/5 border border-olive/20 rounded-lg p-2.5">
                                 Cópiala ahora — no se volverá a mostrar. Al entrar con ella, la app le pedirá
                                 al club elegir una contraseña propia antes de seguir.
+                            </div>
+                            <div className={sesionesCerradas
+                                ? "text-[11px] text-emerald-800 bg-emerald-500/5 border border-emerald-600/20 rounded-lg p-2.5"
+                                : "text-[11px] text-red-700 bg-red-500/5 border border-red-500/25 rounded-lg p-2.5"}>
+                                {sesionesCerradas
+                                    ? "Se cerraron todas las sesiones abiertas del club: quien estuviera adentro sale en el siguiente clic."
+                                    : "La contraseña cambió, pero no se pudieron cerrar las sesiones abiertas. Quien estuviera adentro puede seguir hasta que se le venza la sesión."}
                             </div>
                         </>
                     )}

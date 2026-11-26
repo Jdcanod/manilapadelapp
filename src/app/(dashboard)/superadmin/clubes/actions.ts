@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { createClient as createServerClient, createPureAdminClient } from "@/utils/supabase/server";
 import { MARCA_CONTRASENA_TEMPORAL } from "@/lib/auth/contrasenaTemporal";
+import { cerrarTodasLasSesiones } from "@/lib/auth/sesiones";
 
 /** Confirma que quien llama es superadmin. Lanza si no. Devuelve el admin
  *  client (service-role) listo para usar. */
@@ -108,7 +109,17 @@ export async function resetPasswordClub(clubId: string) {
         });
         if (error) return { success: false as const, message: "Error actualizando contraseña: " + error.message };
 
-        return { success: true as const, tempPassword, clubNombre: club.nombre as string };
+        // Quien estuviera adentro con la clave vieja sale en el siguiente clic.
+        const email = cuenta?.user?.email;
+        const errorSesiones = email ? await cerrarTodasLasSesiones(email) : "la cuenta no tiene correo";
+        if (errorSesiones) console.error("resetPasswordClub: no se cerraron las sesiones:", errorSesiones);
+
+        return {
+            success: true as const,
+            tempPassword,
+            clubNombre: club.nombre as string,
+            sesionesCerradas: !errorSesiones,
+        };
     } catch (err: unknown) {
         const e = err as Error;
         return { success: false as const, message: e.message || "Error desconocido" };
