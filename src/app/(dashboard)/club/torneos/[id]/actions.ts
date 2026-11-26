@@ -2942,6 +2942,21 @@ export async function generarFaseEliminatoriaTopN(
  * previa: si cada una calculara por su lado, el club podría ver una cosa y
  * generar otra.
  */
+/** Quién confirmó que juega las finales y quién no puede, por categoría. */
+interface ConfirmacionFinales {
+    confirmadas: string[];
+    ausentes: string[];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function confirmacionFinalesDe(reglas: any, categoria: string): ConfirmacionFinales {
+    const c = reglas?.liga_finales_confirmacion?.[categoria] || {};
+    return {
+        confirmadas: Array.isArray(c.confirmadas) ? c.confirmadas : [],
+        ausentes: Array.isArray(c.ausentes) ? c.ausentes : [],
+    };
+}
+
 async function clasificadosParaFinales(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     supabaseAdmin: any,
@@ -2950,7 +2965,9 @@ async function clasificadosParaFinales(
     torneoId: string,
     categoria: string,
     totalClasificados?: number,
-): Promise<{ ok: true; clasificados: Array<{ parejaId: string; nombre: string; pj: number; pts: number }> } | { ok: false; message: string }> {
+    /** Puestos extra después de los clasificados: los suplentes. */
+    suplentes = 0,
+): Promise<{ ok: true; total: number; clasificados: Array<{ parejaId: string; nombre: string; pj: number; pts: number }> } | { ok: false; message: string }> {
         // 1) Calcular clasificados de la fase Todos contra Todos — mismo
         // algoritmo que la tabla en vivo y el modo GLOBAL de generar cuadro.
         const standingsResult = await obtenerStandingsGlobales(torneoId, categoria);
@@ -2971,6 +2988,8 @@ async function clasificadosParaFinales(
         const { data: matchesIniciales } = await supabaseAdmin
             .from('partidos').select('torneo_grupo_id, pareja1_id, pareja2_id, es_revancha')
             .eq('torneo_id', torneoId).eq('nivel', categoria).not('torneo_grupo_id', 'is', null);
+        // El requisito de partidos es el de la liga: quien no juega las
+        // finales sigue siendo un rival que estuvo en la tabla.
         const requeridosPorPareja = calcularRequeridosPorPareja(matchesIniciales || [], eliminadas);
 
         // El dueño del torneo puede confirmar/ajustar aquí mismo cuántas
@@ -2982,20 +3001,123 @@ async function clasificadosParaFinales(
             return { ok: false, message: "Define cuántas parejas clasifican (mínimo 2)." };
         }
         const clasifConfig = {
-            total: totalFinal,
+            total: totalFinal + Math.max(0, suplentes),
             modo: (configPersistida?.modo === 'porcentaje' ? 'porcentaje' : 'absoluto') as 'absoluto' | 'porcentaje',
             minPartidos: configPersistida?.modo === 'porcentaje' ? 0 : (configPersistida?.minPartidos || 0),
             minPorcentaje: configPersistida?.minPorcentaje || 0,
         };
 
-        const { ordenClasificacion } = calcularClasificados(allStandings, requeridosPorPareja, clasifConfig, eliminadas);
+        // Las que avisaron que no pueden jugar las finales no ocupan cupo: la
+        // siguiente de la tabla sube sola. Pedir más puestos (suplentes) no
+        // cambia el orden de los primeros: solo agrega al final.
+        const { ausentes } = confirmacionFinalesDe(torneo?.reglas_puntuacion, categoria);
+        const fueraDeFinales = new Set<string>([...Array.from(eliminadas), ...ausentes]);
+
+        const { ordenClasificacion } = calcularClasificados(allStandings, requeridosPorPareja, clasifConfig, fueraDeFinales);
         const standingsPorId = new Map(allStandings.map(s => [s.parejaId, s]));
         const clasificados = ordenClasificacion.map(id => standingsPorId.get(id)!).filter(Boolean);
-        if (clasificados.length < 2) {
+        if (Math.min(clasificados.length, totalFinal) < 2) {
             return { ok: false, message: `Solo ${clasificados.length} pareja(s) clasifican todavía — espera a que se jueguen más partidos.` };
         }
-        return { ok: true, clasificados };
+        return { ok: true, total: totalFinal, clasificados };
 
+}
+
+/** Nombres como en el resto de la app ("Juan D. Cano / Willy Cardenas"). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function nombresDeParejas(admin: any, ids: string[]): Promise<Map<string, string>> {
+    if (ids.length === 0) return new Map();
+    const { data: parejas } = await admin.from('parejas').select('id, jugador1_id, jugador2_id').in('id', ids);
+    const jugadorIds = Array.from(new Set((parejas || []).flatMap((p: { jugador1_id: string | null; jugador2_id: string | null }) => [p.jugador1_id, p.jugador2_id]).filter(Boolean))) as string[];
+    const { data: jugadores } = jugadorIds.length
+        ? await admin.from('users').select('id, nombre, apellido, email').in('id', jugadorIds)
+        : { data: [] };
+    const jugador = new Map((jugadores || []).map((j: { id: string }) => [j.id, j]));
+    return new Map<string, string>((parejas || []).map((p: { id: string; jugador1_id: string | null; jugador2_id: string | null }) => [
+        p.id,
+        formatPairName(p.jugador1_id ? jugador.get(p.jugador1_id) as never : null, p.jugador2_id ? jugador.get(p.jugador2_id) as never : null),
+    ]));
+}
+
+const SUPLENTES_A_MOSTRAR = 4;
+
+/**
+ * Paso previo a los Grupos Finales: quiénes clasifican hoy, si ya
+ * confirmaron que juegan, los suplentes que entrarían si alguna no puede, y
+ * las que ya avisaron que no juegan.
+ */
+export async function candidatosFinales(torneoId: string, categoria: string, totalClasificados?: number) {
+    try {
+        const { admin } = await requireGestionDeTorneo(torneoId, 'sorteos');
+        const { data: torneo } = await admin
+            .from('torneos').select('club_id, fecha_inicio, reglas_puntuacion, formato').eq('id', torneoId).single();
+        if (!torneo) return { success: false as const, message: "Torneo no encontrado" };
+        if (torneo.formato !== 'liguilla') return { success: false as const, message: "Solo aplica a torneos tipo liguilla" };
+
+        const r = await clasificadosParaFinales(admin, torneo, torneoId, categoria, totalClasificados, SUPLENTES_A_MOSTRAR);
+        if (!r.ok) return { success: false as const, message: r.message };
+
+        const { confirmadas, ausentes } = confirmacionFinalesDe(torneo.reglas_puntuacion, categoria);
+        const nombres = await nombresDeParejas(admin, [...r.clasificados.map(c => c.parejaId), ...ausentes]);
+        const confirmadasSet = new Set(confirmadas);
+
+        const fila = (c: { parejaId: string; nombre: string; pts: number; pj: number }, i: number) => ({
+            parejaId: c.parejaId,
+            puesto: i + 1,
+            nombre: String(nombres.get(c.parejaId) || c.nombre),
+            pts: c.pts,
+            confirmada: confirmadasSet.has(c.parejaId),
+        });
+        const todas = r.clasificados.map(fila);
+        return {
+            success: true as const,
+            titulares: todas.slice(0, r.total),
+            suplentes: todas.slice(r.total),
+            ausentes: ausentes.map(id => ({ parejaId: id, nombre: String(nombres.get(id) || 'Pareja') })),
+        };
+    } catch (err: unknown) {
+        return { success: false as const, message: err instanceof Error ? err.message : "Error desconocido" };
+    }
+}
+
+/**
+ * Marca si una pareja juega las finales. "no_juega" la saca de las finales
+ * (la siguiente de la tabla toma su cupo) sin tocar la liga: no queda
+ * eliminada ni retirada, y su tabla y su % siguen igual.
+ */
+export async function marcarParejaFinales(
+    torneoId: string,
+    categoria: string,
+    parejaId: string,
+    estado: 'juega' | 'no_juega' | 'pendiente',
+): Promise<{ ok: boolean; mensaje: string }> {
+    try {
+        const { admin } = await requireGestionDeTorneo(torneoId, 'sorteos');
+        const { data: torneo } = await admin.from('torneos').select('reglas_puntuacion, formato').eq('id', torneoId).single();
+        if (!torneo) return { ok: false, mensaje: "Torneo no encontrado" };
+        if (torneo.formato !== 'liguilla') return { ok: false, mensaje: "Solo aplica a torneos tipo liguilla" };
+
+        const actual = confirmacionFinalesDe(torneo.reglas_puntuacion, categoria);
+        const confirmadas = new Set(actual.confirmadas);
+        const ausentes = new Set(actual.ausentes);
+        confirmadas.delete(parejaId);
+        ausentes.delete(parejaId);
+        if (estado === 'juega') confirmadas.add(parejaId);
+        if (estado === 'no_juega') ausentes.add(parejaId);
+
+        const reglas = { ...(torneo.reglas_puntuacion || {}) };
+        reglas.liga_finales_confirmacion = {
+            ...(reglas.liga_finales_confirmacion || {}),
+            [categoria]: { confirmadas: Array.from(confirmadas), ausentes: Array.from(ausentes) },
+        };
+        const { error } = await admin.from('torneos').update({ reglas_puntuacion: reglas }).eq('id', torneoId);
+        if (error) return { ok: false, mensaje: error.message };
+
+        revalidatePath(`/club/torneos/${torneoId}`);
+        return { ok: true, mensaje: "Guardado." };
+    } catch (err: unknown) {
+        return { ok: false, mensaje: err instanceof Error ? err.message : "Error desconocido" };
+    }
 }
 
 /**
@@ -3014,20 +3136,8 @@ export async function previsualizarGruposFinales(torneoId: string, categoria: st
         const r = await clasificadosParaFinales(admin, torneo, torneoId, categoria, totalClasificados);
         if (!r.ok) return { success: false as const, message: r.message };
 
-        // Nombres como en el resto de la app ("Juan D. Cano / Willy Cardenas").
-        const ids = r.clasificados.map(c => c.parejaId);
-        const { data: parejas } = await admin.from('parejas').select('id, jugador1_id, jugador2_id').in('id', ids);
-        const jugadorIds = Array.from(new Set((parejas || []).flatMap((p: { jugador1_id: string | null; jugador2_id: string | null }) => [p.jugador1_id, p.jugador2_id]).filter(Boolean))) as string[];
-        const { data: jugadores } = jugadorIds.length
-            ? await admin.from('users').select('id, nombre, apellido, email').in('id', jugadorIds)
-            : { data: [] };
-        const jugador = new Map((jugadores || []).map((j: { id: string }) => [j.id, j]));
-        const nombrePorPareja = new Map<string, string>((parejas || []).map((p: { id: string; jugador1_id: string | null; jugador2_id: string | null }) => [
-            p.id,
-            formatPairName(p.jugador1_id ? jugador.get(p.jugador1_id) as never : null, p.jugador2_id ? jugador.get(p.jugador2_id) as never : null),
-        ]));
-
-        const conPuesto = r.clasificados.map((c, i) => ({ puesto: i + 1, nombre: String(nombrePorPareja.get(c.parejaId) || c.nombre), pts: c.pts, pj: c.pj }));
+        const nombres = await nombresDeParejas(admin, r.clasificados.map(c => c.parejaId));
+        const conPuesto = r.clasificados.map((c, i) => ({ puesto: i + 1, nombre: String(nombres.get(c.parejaId) || c.nombre), pts: c.pts, pj: c.pj }));
         const grupos = repartirGruposFinales(conPuesto, Math.max(1, numGrupos));
         return { success: true as const, grupos };
     } catch (err: unknown) {
@@ -3072,6 +3182,17 @@ export async function generarGruposFinales(torneoId: string, categoria: string, 
         const r = await clasificadosParaFinales(supabaseAdmin, torneo, torneoId, categoria, totalClasificados);
         if (!r.ok) return { success: false, message: r.message };
         const clasificados = r.clasificados;
+
+        // Solo con todas las clasificadas confirmadas: si una no va a poder,
+        // hay que saberlo antes, para que entre la siguiente de la tabla.
+        const { confirmadas } = confirmacionFinalesDe(torneo.reglas_puntuacion, categoria);
+        const sinConfirmar = clasificados.filter(c => !confirmadas.includes(c.parejaId));
+        if (sinConfirmar.length > 0) {
+            return {
+                success: false,
+                message: `Falta confirmar si juegan las finales ${sinConfirmar.length === 1 ? '1 pareja' : `${sinConfirmar.length} parejas`}. Márcalas en "¿Quiénes juegan las finales?".`,
+            };
+        }
 
         // 2) Borrar grupos finales previos de esta categoría (y sus partidos).
         const { data: gruposFinalesPrevios } = await supabaseAdmin

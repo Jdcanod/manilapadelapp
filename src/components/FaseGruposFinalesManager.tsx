@@ -4,8 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Trophy, RefreshCw, Loader2, Eye } from "lucide-react";
-import { generarGruposFinales, previsualizarGruposFinales } from "@/app/(dashboard)/club/torneos/[id]/actions";
+import { Users, Trophy, RefreshCw, Loader2, Eye, Check, X, Undo2, UserCheck } from "lucide-react";
+import { generarGruposFinales, previsualizarGruposFinales, candidatosFinales, marcarParejaFinales } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { cn } from "@/lib/utils";
 import { repartirGruposFinales } from "@/lib/tournaments/logic";
@@ -59,6 +59,13 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
     // generar.
     const [vistaPrevia, setVistaPrevia] = useState<{ clave: string; grupos: { puesto: number; nombre: string; pts: number; pj: number }[][] } | null>(null);
     const [cargandoVista, startVista] = useTransition();
+    // Paso 1: quiénes juegan las finales. Cada cambio sube `version`, que
+    // invalida la vista previa (si alguien no juega, los grupos cambian).
+    type Candidata = { parejaId: string; puesto: number; nombre: string; pts: number; confirmada: boolean };
+    const [candidatos, setCandidatos] = useState<{ clave: string; titulares: Candidata[]; suplentes: Candidata[]; ausentes: { parejaId: string; nombre: string }[] } | null>(null);
+    const [cargandoCandidatos, startCandidatos] = useTransition();
+    const [marcando, setMarcando] = useState<string | null>(null);
+    const [version, setVersion] = useState(0);
 
     if (categorias.length === 0) {
         return (
@@ -74,8 +81,37 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
     const numGrupos = numGruposPorCat[selectedCat] ?? 2;
     const totalClasifican = clasificanOverride[selectedCat] ?? sugeridoClasifican;
 
-    const claveVista = `${selectedCat}|${totalClasifican}|${numGrupos}`;
+    const claveCandidatos = `${selectedCat}|${totalClasifican}`;
+    const lista = candidatos?.clave === claveCandidatos ? candidatos : null;
+    const todasConfirmadas = !!lista && lista.titulares.length > 0 && lista.titulares.every(t => t.confirmada);
+    const faltanPorConfirmar = lista ? lista.titulares.filter(t => !t.confirmada).length : null;
+
+    const claveVista = `${selectedCat}|${totalClasifican}|${numGrupos}|${version}`;
     const gruposVista = vistaPrevia?.clave === claveVista ? vistaPrevia.grupos : null;
+    const puedeGenerar = todasConfirmadas && !!gruposVista;
+
+    const cargarCandidatos = () => {
+        setError(null);
+        startCandidatos(async () => {
+            const res = await candidatosFinales(torneoId, selectedCat, totalClasifican);
+            if (res.success) setCandidatos({ clave: claveCandidatos, titulares: res.titulares, suplentes: res.suplentes, ausentes: res.ausentes });
+            else setError(res.message || "No se pudo cargar la lista");
+        });
+    };
+
+    const marcar = (parejaId: string, estado: 'juega' | 'no_juega' | 'pendiente') => {
+        setError(null);
+        setMarcando(parejaId);
+        startCandidatos(async () => {
+            const r = await marcarParejaFinales(torneoId, selectedCat, parejaId, estado);
+            if (!r.ok) { setError(r.mensaje); setMarcando(null); return; }
+            // Si una no juega entra otra: se vuelve a pedir la lista completa.
+            const res = await candidatosFinales(torneoId, selectedCat, totalClasifican);
+            if (res.success) setCandidatos({ clave: claveCandidatos, titulares: res.titulares, suplentes: res.suplentes, ausentes: res.ausentes });
+            setVersion(v => v + 1);
+            setMarcando(null);
+        });
+    };
 
     const verComoQuedan = () => {
         setError(null);
@@ -165,19 +201,95 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                         className="w-16 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"
                     />
                 </div>
-                <Button
-                    onClick={handleGenerar}
-                    disabled={isPending}
-                    size="sm"
-                    className="bg-olive hover:bg-olive text-paper font-bold"
-                >
-                    {isPending
-                        ? <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Generando...</>
-                        : gruposCat.length > 0
-                            ? <><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Regenerar Grupos Finales</>
-                            : <>Generar Grupos Finales</>}
-                </Button>
             </div>
+
+            {/* Paso 1: quiénes juegan. Si una no puede, la siguiente de la
+                tabla toma su cupo. No la saca de la liga: su tabla y su %
+                siguen igual. */}
+            {totalClasifican >= 2 && (
+                <div className="bg-paper-soft border border-olive/20 rounded-xl p-4 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <p className="text-sm font-bold text-ink flex items-center gap-2">
+                                <UserCheck className="w-4 h-4 text-olive" /> 1. ¿Quiénes juegan las finales?
+                            </p>
+                            <p className="text-[11px] text-olive/70 mt-0.5">
+                                Confirma cada pareja. Si alguna no puede, entra la siguiente de la tabla.
+                            </p>
+                        </div>
+                        <Button type="button" variant="outline" size="sm" onClick={cargarCandidatos} disabled={cargandoCandidatos}
+                            className="h-8 text-xs font-bold border-olive/25 text-olive bg-paper hover:bg-olive/10">
+                            {cargandoCandidatos && !marcando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : lista ? 'Actualizar lista' : 'Ver clasificadas'}
+                        </Button>
+                    </div>
+
+                    {lista && (
+                        <>
+                            <ul className="divide-y divide-olive/10 border border-olive/15 rounded-lg bg-paper">
+                                {lista.titulares.map(t => (
+                                    <li key={t.parejaId} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2">
+                                        <span className="w-6 text-right text-xs font-black text-olive tabular-nums">{t.puesto}</span>
+                                        <span className="flex-1 min-w-[180px] text-xs font-semibold text-ink">{t.nombre}</span>
+                                        <span className="text-[10px] text-olive/60 tabular-nums">{t.pts} pts</span>
+                                        {t.confirmada ? (
+                                            <span className="flex items-center gap-1.5">
+                                                <span className="text-[10px] font-black uppercase tracking-wide text-emerald-700 bg-emerald-500/10 border border-emerald-600/25 rounded-full px-2 py-0.5 flex items-center gap-1">
+                                                    <Check className="w-3 h-3" /> Juega
+                                                </span>
+                                                <button type="button" onClick={() => marcar(t.parejaId, 'pendiente')} disabled={cargandoCandidatos}
+                                                    className="text-[10px] text-olive/60 hover:text-ink underline disabled:opacity-50">cambiar</button>
+                                            </span>
+                                        ) : (
+                                            <span className="flex items-center gap-1.5">
+                                                <Button type="button" size="sm" onClick={() => marcar(t.parejaId, 'juega')} disabled={cargandoCandidatos}
+                                                    className="h-7 px-2.5 text-[11px] font-bold bg-olive hover:bg-olive-dark text-paper">
+                                                    {marcando === t.parejaId ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3 mr-1" />Juega</>}
+                                                </Button>
+                                                <Button type="button" size="sm" variant="outline"
+                                                    onClick={() => { if (confirm(`¿${t.nombre} no puede jugar las finales?\n\nSale de las finales y entra la siguiente de la tabla. En la liga no cambia nada.`)) marcar(t.parejaId, 'no_juega'); }}
+                                                    disabled={cargandoCandidatos}
+                                                    className="h-7 px-2.5 text-[11px] font-bold border-red-600/30 text-red-700 bg-paper hover:bg-red-500/10">
+                                                    <X className="w-3 h-3 mr-1" />No puede
+                                                </Button>
+                                            </span>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+
+                            <p className={cn("text-[11px] font-semibold", todasConfirmadas ? "text-emerald-700" : "text-olive/70")}>
+                                {todasConfirmadas
+                                    ? `Las ${lista.titulares.length} parejas confirmaron.`
+                                    : `Faltan ${faltanPorConfirmar} de ${lista.titulares.length} por confirmar.`}
+                            </p>
+
+                            {lista.suplentes.length > 0 && (
+                                <div className="text-[11px] text-olive/70">
+                                    <span className="font-bold uppercase tracking-wide text-[10px] text-olive/60">Siguen en la tabla (entran si alguna no puede):</span>{' '}
+                                    {lista.suplentes.map((s, i) => (
+                                        <span key={s.parejaId} className="tabular-nums">{i > 0 && ' · '}{s.puesto}. {s.nombre}</span>
+                                    ))}
+                                </div>
+                            )}
+
+                            {lista.ausentes.length > 0 && (
+                                <div className="text-[11px] text-olive/70 space-y-1">
+                                    <p className="font-bold uppercase tracking-wide text-[10px] text-red-700/80">No juegan las finales</p>
+                                    {lista.ausentes.map(a => (
+                                        <p key={a.parejaId} className="flex items-center gap-2">
+                                            <span className="line-through">{a.nombre}</span>
+                                            <button type="button" onClick={() => marcar(a.parejaId, 'pendiente')} disabled={cargandoCandidatos}
+                                                className="flex items-center gap-1 text-olive hover:text-ink underline disabled:opacity-50">
+                                                <Undo2 className="w-3 h-3" /> deshacer
+                                            </button>
+                                        </p>
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            )}
 
             {/* Cómo van a quedar, antes de generar. El número es el puesto en la
                 clasificación de Todos contra Todos; con "Ver cómo quedan" se ven
@@ -185,7 +297,7 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
             {totalClasifican >= 2 && numGrupos >= 1 && (
                 <div className="space-y-3 -mt-1">
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-olive/80 px-1">
-                        <span className="font-bold text-olive/60 uppercase tracking-wide text-[10px]">Así quedan:</span>
+                        <span className="font-bold text-olive/60 uppercase tracking-wide text-[10px]">2. Así quedan:</span>
                         {repartirGruposFinales(Array.from({ length: totalClasifican }, (_, i) => i + 1), numGrupos).map((g, i) => (
                             <span key={i} className="tabular-nums">
                                 <span className="font-bold text-ink">Grupo {String.fromCharCode(65 + i)}</span> {g.join(' - ')}
@@ -222,6 +334,32 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                     )}
                 </div>
             )}
+
+            {/* Paso 3: generar, solo con todo confirmado y la distribución vista. */}
+            <div className="flex flex-wrap items-center gap-3">
+                <Button
+                    onClick={handleGenerar}
+                    disabled={isPending || !puedeGenerar}
+                    title={!todasConfirmadas
+                        ? "Primero confirma quiénes juegan las finales (paso 1)"
+                        : !gruposVista ? "Revisa cómo quedan los grupos (paso 2)" : undefined}
+                    size="sm"
+                    className="bg-olive hover:bg-olive text-paper font-bold"
+                >
+                    {isPending
+                        ? <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Generando...</>
+                        : gruposCat.length > 0
+                            ? <><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Regenerar Grupos Finales</>
+                            : <>Generar Grupos Finales</>}
+                </Button>
+                <span className="text-[11px] text-olive/70">
+                    {!todasConfirmadas
+                        ? "3. Para generar, primero confirma quiénes juegan (paso 1)."
+                        : !gruposVista
+                            ? "3. Revisa cómo quedan los grupos con \"Ver cómo quedan\" (paso 2)."
+                            : "3. Todo listo: genera los grupos finales."}
+                </span>
+            </div>
 
             {error && (
                 <div className="bg-red-500/10 border border-red-500/40 rounded-lg p-3 text-xs text-red-300">
