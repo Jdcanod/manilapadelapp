@@ -28,10 +28,13 @@ interface Props {
     participantes: any[];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     grupos: any[];
+    /** Todos los partidos de los grupos, programados o no (ver el reporte). */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    partidosDeGrupos?: any[];
     currentClubId: string;
 }
 
-export function TournamentExportButton({ torneo, clubInfo, partidos, participantes, grupos, currentClubId }: Props) {
+export function TournamentExportButton({ torneo, clubInfo, partidos, participantes, grupos, currentClubId, partidosDeGrupos }: Props) {
     const [isExporting, setIsExporting] = useState(false);
     const reportRef = useRef<HTMLDivElement>(null);
 
@@ -179,6 +182,7 @@ export function TournamentExportButton({ torneo, clubInfo, partidos, participant
                     partidos={partidos}
                     participantes={participantes}
                     grupos={grupos}
+                    partidosDeGrupos={partidosDeGrupos}
                     currentClubId={currentClubId}
                 />
             </div>

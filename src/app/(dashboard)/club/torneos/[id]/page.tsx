@@ -712,6 +712,9 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                                 ? allParticipants.filter(pp => parejasEnFinales.has(String(pp.pareja_id)))
                                 : allParticipants}
                             grupos={reporteSoloFinales ? gruposFinalesExistentes : (gruposExistentes || [])}
+                            partidosDeGrupos={(rawPartidos || [])
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                .filter((p: any) => p.torneo_grupo_id && (!reporteSoloFinales || idsGruposFinales.has(String(p.torneo_grupo_id))))}
                         />
                     </div>
 

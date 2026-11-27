@@ -24,9 +24,14 @@ interface Props {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     grupos: any[];
     currentClubId: string;
+    /** Todos los partidos de los grupos, programados o no. `partidos` trae
+     *  solo los programados (es la parrilla): con ellos un grupo que aún no
+     *  tiene cancha y hora salía "Sin parejas asignadas". */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    partidosDeGrupos?: any[];
 }
 
-export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(({ torneo, clubInfo, partidos, participantes, grupos, currentClubId }, ref) => {
+export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(({ torneo, clubInfo, partidos, participantes, grupos, currentClubId, partidosDeGrupos }, ref) => {
     const isCopaDavis = !!torneo.club_rival_id;
 
     // Helper para encontrar el club correcto de la pareja, ya que puede estar
@@ -248,8 +253,9 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                     </thead>
                                                     <tbody>
                                                         {(() => {
-                                                            const matches = partidos.filter(p => String(p.torneo_grupo_id) === String(grupo.id));
+                                                            const matches = (partidosDeGrupos ?? partidos).filter(p => String(p.torneo_grupo_id) === String(grupo.id));
                                                             const map = new Map();
+                                                            const nombreDe = new Map(participantes.map(p => [String(p.pareja_id), p.nombre]));
                                                             participantes
                                                                 .filter(p => String(p.grupo_id) === String(grupo.id))
                                                                 .forEach(p => {
@@ -261,7 +267,28 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                                         pj: existing?.pj || 0, pg: existing?.pg || 0, sg: existing?.sg || 0, sp: existing?.sp || 0, gg: existing?.gg || 0, gp: existing?.gp || 0, pts: existing?.pts || 0
                                                                     });
                                                                 });
+                                                            // Las parejas del grupo salen también de sus partidos. El
+                                                            // grupo anotado en cada inscripción es el de la primera
+                                                            // fase: en un Grupo Final de liga no aparecía nadie.
                                                             matches.forEach(m => {
+                                                                [m.pareja1_id, m.pareja2_id].forEach((id: string | null) => {
+                                                                    if (!id || map.has(String(id))) return;
+                                                                    map.set(String(id), {
+                                                                        nombre: nombreDe.get(String(id)) || 'Pareja',
+                                                                        representando_club_id: getParejaClubId(id),
+                                                                        pj: 0, pg: 0, sg: 0, sp: 0, gg: 0, gp: 0, pts: 0,
+                                                                    });
+                                                                });
+                                                            });
+                                                            // Igual que la tabla del club: en liga se suma 1 punto por
+                                                            // perder, y un W da el partido y los puntos al ganador.
+                                                            const puntoPorPerder = torneo.formato === 'liguilla' ? 1 : 0;
+                                                            matches.forEach(m => {
+                                                                if (m.walkover_ganador_id && m.estado_resultado === 'confirmado') {
+                                                                    const g = map.get(String(m.walkover_ganador_id));
+                                                                    if (g) { g.pj += 1; g.pg += 1; g.pts += 3; }
+                                                                    return;
+                                                                }
                                                                 if (!m.pareja1_id || !m.pareja2_id || m.estado !== 'jugado' || !m.resultado || m.estado_resultado !== 'confirmado') return;
                                                                 const s1 = map.get(String(m.pareja1_id));
                                                                 const s2 = map.get(String(m.pareja2_id));
@@ -280,8 +307,8 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                                         else if (set[1] > set[0]) { setsP2++; s2.sg++; s1.sp++; }
                                                                     }
                                                                 });
-                                                                if (setsP1 > setsP2) { s1.pg += 1; s1.pts += 3; }
-                                                                else if (setsP2 > setsP1) { s2.pg += 1; s2.pts += 3; }
+                                                                if (setsP1 > setsP2) { s1.pg += 1; s1.pts += 3; s2.pts += puntoPorPerder; }
+                                                                else if (setsP2 > setsP1) { s2.pg += 1; s2.pts += 3; s1.pts += puntoPorPerder; }
                                                             });
                                                             const sorted = Array.from(map.values()).sort((a, b) => b.pts - a.pts || (b.sg - b.sp) - (a.sg - a.sp));
                                                             if (sorted.length === 0) {
