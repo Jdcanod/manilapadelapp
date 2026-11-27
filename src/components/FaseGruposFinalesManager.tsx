@@ -9,6 +9,7 @@ import { generarGruposFinales, previsualizarGruposFinales, candidatosFinales, ma
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { cn } from "@/lib/utils";
 import { repartirGruposFinales } from "@/lib/tournaments/logic";
+import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 
 interface Grupo {
     id: string;
@@ -39,9 +40,13 @@ interface Props {
     ligaClasificacionConfig?: Record<string, { total: number }>;
     /** Lo que se respondió antes sobre el partido por el 3er puesto. */
     tercerPuestoPorCategoria?: Record<string, boolean>;
+    /** Nombre y apellido de cada jugador, para mostrar las parejas igual que
+     *  en Todos contra Todos (el nombre guardado en la pareja a veces trae
+     *  solo nombres de pila). */
+    parejaPlayers?: ParejaPlayersMap;
 }
 
-export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, partidos, ligaClasificacionConfig = {}, tercerPuestoPorCategoria = {} }: Props) {
+export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, partidos, ligaClasificacionConfig = {}, tercerPuestoPorCategoria = {}, parejaPlayers = {} }: Props) {
     const [selectedCat, setSelectedCat] = useState<string>(categorias[0] || "");
     // Por categoría: cada una arma sus grupos finales por separado, y antes
     // este número era uno solo para todas — cambiarlo en 6ta se lo cambiaba
@@ -425,8 +430,11 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                                 pareja1: p.pareja1 ? { nombre_pareja: p.pareja1.nombre_pareja ?? null } : null,
                                 pareja2: p.pareja2 ? { nombre_pareja: p.pareja2.nombre_pareja ?? null } : null,
                                 es_revancha: p.es_revancha,
+                                // Sin esto, ganar por W no le sumaba nada al ganador.
+                                walkover_ganador_id: p.walkover_ganador_id ?? null,
                             }));
-                        const standings = calculateStandings(matches, { pointsForLoss: 1 });
+                        const standings = calculateStandings(matches, { pointsForLoss: 1 })
+                            .map(s => ({ ...s, nombre: resolvePairName(s.parejaId, s.nombre, parejaPlayers) }));
                         return (
                             <div key={g.id} className="bg-paper-soft border border-olive/20 rounded-xl overflow-hidden">
                                 <div className="px-4 py-2.5 border-b border-olive/20 bg-paper/40">

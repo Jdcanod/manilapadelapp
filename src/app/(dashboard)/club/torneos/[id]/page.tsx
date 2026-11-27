@@ -130,6 +130,11 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         .eq('torneo_id', params.id);
     const gruposExistentes = (gruposExistentesAll || []).filter(g => g.fase !== 'finales');
     const gruposFinalesExistentes = (gruposExistentesAll || []).filter(g => g.fase === 'finales');
+    // Liga con Grupos Finales: el reporte es solo de las finales, como el de
+    // un relámpago (grupos finales + cuadro), sin los cientos de partidos de
+    // Todos contra Todos.
+    const reporteSoloFinales = torneo.formato === 'liguilla' && gruposFinalesExistentes.length > 0;
+    const idsGruposFinales = new Set(gruposFinalesExistentes.map(g => String(g.id)));
 
     const adminSupabase = createAdminClient();
     const pureAdmin = createPureAdminClient();
@@ -612,6 +617,17 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         statusText = "Próximo";
     }
 
+    // Parejas que juegan las finales (las de los grupos finales).
+    const parejasEnFinales = new Set<string>(
+        (rawPartidos || [])
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .filter((p: any) => p.torneo_grupo_id && idsGruposFinales.has(String(p.torneo_grupo_id)))
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .flatMap((p: any) => [p.pareja1_id, p.pareja2_id])
+            .filter(Boolean)
+            .map(String)
+    );
+
     return (
         <div className="space-y-6">
             {creationWarning && (
@@ -657,13 +673,16 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                     {/* Botón de Exportar con datos enriquecidos */}
                     <div className="flex items-center gap-2">
                         <TournamentExportButton 
-                            torneo={torneo}
+                            torneo={reporteSoloFinales ? { ...torneo, nombre: `${torneo.nombre} · Finales` } : torneo}
                             clubInfo={clubInfo}
                             currentClubId={userData.id}
                             partidos={(rawPartidos || [])
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 .filter((p: any) => {
                                     if (!p.fecha) return false;
+                                    // Solo finales: partidos de los grupos finales y del
+                                    // cuadro (estos no tienen grupo).
+                                    if (reporteSoloFinales && p.torneo_grupo_id && !idsGruposFinales.has(String(p.torneo_grupo_id))) return false;
                                     const lugar = (p.lugar || '').toLowerCase();
                                     // Un partido está programado si su lugar tiene "Cancha N"
                                     // (los placeholders Copa Davis conservan el sufijo
@@ -689,8 +708,10 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                                         pareja2: parejaDataMap.get(p.pareja2_id || "")
                                     };
                                 })}
-                            participantes={allParticipants}
-                            grupos={gruposExistentes || []}
+                            participantes={reporteSoloFinales
+                                ? allParticipants.filter(pp => parejasEnFinales.has(String(pp.pareja_id)))
+                                : allParticipants}
+                            grupos={reporteSoloFinales ? gruposFinalesExistentes : (gruposExistentes || [])}
                         />
                     </div>
 
@@ -908,6 +929,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                             partidos={partidosReales || []}
                             ligaClasificacionConfig={torneo.reglas_puntuacion?.liga_clasificacion_config || {}}
                             tercerPuestoPorCategoria={torneo.reglas_puntuacion?.tercer_puesto_por_categoria || {}}
+                            parejaPlayers={parejaPlayersMap}
                         />
                     </TabsContent>
                 )}

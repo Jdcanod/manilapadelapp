@@ -76,10 +76,28 @@ interface Props {
      *  "Nombre Apellido / Nombre Apellido" en vez de depender del
      *  `nombre_pareja` guardado (a veces incompleto). */
     parejaPlayers?: ParejaPlayersMap;
+    /** Grupos Finales de una liga: se puntúa como la liga (1 punto por
+     *  perder, igual que la tabla del club), pero sin lo que es solo de la
+     *  fase regular (% de partidos, revanchas, clasificación general). */
+    faseFinales?: boolean;
+    /** En Grupos Finales: cuántos de cada grupo pasan al cuadro. */
+    pasanPorGrupo?: number;
 }
 
-export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId, tipoDesempate = "tercer_set", formato = "relampago", setsCantidad = 3, ordenGrupos = {}, ligaClasificacionConfig = {}, parejasEliminadas = new Set(), parejaPlayers = {} }: Props) {
-    const esLiguilla = formato === 'liguilla';
+export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId, tipoDesempate = "tercer_set", formato = "relampago", setsCantidad = 3, ordenGrupos = {}, ligaClasificacionConfig = {}, parejasEliminadas = new Set(), parejaPlayers = {}, faseFinales = false, pasanPorGrupo = 2 }: Props) {
+    // Lo propio de la fase regular de la liga (clasificación general, % de
+    // partidos, revanchas). En Grupos Finales no aplica.
+    const esLiguilla = formato === 'liguilla' && !faseFinales;
+    // El puntaje sí es el de la liga en las dos fases.
+
+    // En Grupos Finales se marcan los que hoy pasan al cuadro: los primeros
+    // de cada grupo, una vez que el grupo empezó a jugarse (antes, el orden
+    // es solo el de la lista y marcarlo confundiría).
+    const pasanAlCuadro = (tabla: { parejaId: string; pj: number }[], parejaId: string) => {
+        if (!faseFinales || !tabla.some(t => t.pj > 0)) return false;
+        const i = tabla.findIndex(t => t.parejaId === parejaId);
+        return i >= 0 && i < pasanPorGrupo;
+    };
 
     const uniqueCategorias = Array.from(new Set(grupos.map(g => g.categoria))).sort();
     const [selectedCat, setSelectedCat] = useState<string>("");
@@ -159,7 +177,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
 
                 // Liguilla: ganador 3pts, perdedor 1pt. Otros formatos: ganador 3pts, perdedor 0.
                 // Revancha: vale la mitad de esos puntos.
-                const pointsForLoss = esLiguilla ? 1 : 0;
+                const pointsForLoss = formato === 'liguilla' ? 1 : 0;
                 const ptsGanador = esRevancha ? 1.5 : 3;
                 const ptsPerdedor = esRevancha ? pointsForLoss / 2 : pointsForLoss;
                 if (setsP1InMatch > setsP2InMatch) {
@@ -422,7 +440,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                             <div className="p-6 bg-paper-soft/50 border-b border-olive/15 flex justify-between items-center">
                                 <h4 className="text-xl font-black text-ink italic uppercase tracking-tighter">{grupo.nombre_grupo}</h4>
                                 <Badge variant="outline" className="text-ochre-dark border-ochre/20 uppercase text-[10px] font-black">
-                                    {esLiguilla ? "Todos contra Todos" : "Fase de Grupos"}
+                                    {faseFinales ? "Grupo Final" : esLiguilla ? "Todos contra Todos" : "Fase de Grupos"}
                                 </Badge>
                             </div>
 
@@ -440,7 +458,9 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                     }))}
                                     esLiguilla={esLiguilla}
                                     esMia={id => playerPairIds.includes(id)}
-                                    clasifica={id => esLiguilla && clasificandoGlobalSet.has(id)}
+                                    clasifica={id => esLiguilla
+                                        ? clasificandoGlobalSet.has(id)
+                                        : pasanAlCuadro(standings, id)}
                                     eliminada={id => parejasEliminadas.has(id)}
                                 />
                             </div>
@@ -466,7 +486,9 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                     <tbody>
                                         {standings.map((team, idx) => {
                                             const isMyTeam = playerPairIds.includes(team.parejaId);
-                                            const clasifica = esLiguilla && clasificandoGlobalSet.has(team.parejaId);
+                                            const clasifica = esLiguilla
+                                                ? clasificandoGlobalSet.has(team.parejaId)
+                                                : pasanAlCuadro(standings, team.parejaId);
                                             return (
                                                 <tr key={team.parejaId} className={cn(
                                                     "border-b border-olive/15 transition-colors",
@@ -639,7 +661,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                                 pareja2Nombre={nombre2}
                                                                                 initialResult={match.resultado}
                                                                                 tipoDesempate={tipoDesempate}
-                                                                                disabled={!esLiguilla && (!match.fecha || !match.lugar || match.lugar.toLowerCase().includes('pendiente'))}
+                                                                                disabled={formato !== 'liguilla' && (!match.fecha || !match.lugar || match.lugar.toLowerCase().includes('pendiente'))}
                                                                                 disabledReason="El club aún no ha asignado hora o cancha"
                                                                                 setsCantidad={setsCantidad}
                                                                             />
