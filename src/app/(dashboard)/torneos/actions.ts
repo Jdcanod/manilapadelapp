@@ -468,7 +468,8 @@ export async function reiniciarResultado(matchId: string) {
         // sobre ese partido.
         if (esPartidoDeTorneo(match) && match.torneo_id) {
             try {
-                await requireGestionDeTorneo(match.torneo_id);
+                // Reiniciar es cargar resultados: no basta con ser gestor.
+                await requireGestionDeTorneo(match.torneo_id, 'resultados');
             } catch {
                 return { success: false, message: "Solo el club o un gestor del torneo pueden reiniciar este resultado." };
             }

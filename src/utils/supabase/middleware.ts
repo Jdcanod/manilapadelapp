@@ -144,7 +144,13 @@ export async function updateSession(request: NextRequest) {
         }
         // Jugador no puede entrar a club ni admin
         else if (userRol === 'jugador') {
-            if (isClubRoute || isAdminRoute) {
+            // Excepción: el panel de UN torneo (/club/torneos/<id>). Ahí entran
+            // los gestores que el club nombró, que son jugadores; la página
+            // verifica que lo sean de ese torneo y si no, los devuelve a
+            // Inicio. Sin esto ningún gestor podía abrirlo, ni ejecutar sus
+            // acciones (que se envían a esa misma ruta).
+            const panelDeTorneo = /^\/club\/torneos\/[0-9a-f-]{36}\/?$/i.test(pathname)
+            if ((isClubRoute && !panelDeTorneo) || isAdminRoute) {
                 url.pathname = '/jugador'
                 return redirectPreservingCookies(url, supabaseResponse)
             }

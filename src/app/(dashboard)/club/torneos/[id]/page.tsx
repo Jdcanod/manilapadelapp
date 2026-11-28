@@ -51,10 +51,13 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
     // y sortear, que son funciones delegables. Lo que es solo del club se
     // esconde más abajo, y el servidor lo rechaza igual.
     const { data: torneoDuenoRef } = await createPureAdminClient()
-        .from('torneos').select('club_id').eq('id', params.id).maybeSingle();
+        .from('torneos').select('club_id, club_rival_id').eq('id', params.id).maybeSingle();
 
     const esClubDueno = userData.rol === 'admin_club'
         && String(torneoDuenoRef?.club_id) === String(userData.id);
+    // El club rival de una Copa Davis también administra su lado del torneo.
+    const esClubRival = userData.rol === 'admin_club' && !!torneoDuenoRef?.club_rival_id
+        && String(torneoDuenoRef.club_rival_id) === String(userData.id);
 
     const { data: miGestion } = userData.id && !esClubDueno
         ? await createPureAdminClient()
@@ -66,16 +69,26 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         : { data: null };
 
     const permisosGestor: string[] = (miGestion?.permisos || []) as string[];
-    const esGestorConPanel = permisosGestor.includes('parejas') || permisosGestor.includes('sorteos');
+    // Cualquier gestor del torneo entra: el que solo carga resultados
+    // también necesita el cronograma y Resultados. Cada pestaña muestra solo
+    // lo que sus funciones permiten, y el servidor lo exige igual.
+    const esGestorConPanel = permisosGestor.length > 0;
 
-    if (!esClubDueno && userData.rol !== 'superadmin' && !esGestorConPanel) {
+    if (!esClubDueno && !esClubRival && userData.rol !== 'superadmin' && !esGestorConPanel) {
         redirect("/jugador");
     }
 
     /** Solo el dueño: lo irreversible y la delegación no se delegan. */
     const soloClub = esClubDueno || userData.rol === 'superadmin';
+    const puede = (permiso: string) => soloClub || permisosGestor.includes(permiso);
 
-    const { data: torneo, error: torneoError } = await supabase
+    // Ya se verificó arriba quién entra (club dueño, superadmin o gestor de
+    // este torneo). Las lecturas van con el cliente de administración: con la
+    // sesión de un gestor (que es un jugador), las reglas de la base
+    // escondían las parejas inscritas, las inscripciones y los grupos.
+    const lectura = createPureAdminClient();
+
+    const { data: torneo, error: torneoError } = await lectura
         .from('torneos')
         .select(`
             *,
@@ -85,9 +98,10 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
             torneo_fases(*)
         `)
         .eq('id', params.id)
-        // Permitir acceso al admin del club host O al admin del club rival (Copa Davis)
-        .or(`club_id.eq.${userData.id},club_rival_id.eq.${userData.id}`)
         .single();
+    // Quién puede verlo ya se decidió arriba (dueño, rival de Copa Davis,
+    // superadmin o gestor). Antes la consulta exigía ser dueño o rival, así
+    // que a un gestor le salía "Torneo no encontrado o sin permisos".
 
     if (torneoError || !torneo) {
         console.error("DEBUG - Torneo Error:", torneoError);
@@ -112,7 +126,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
     const clubInfo = userData.id === torneo.club_rival_id ? (torneo as any).club_rival : (torneo as any).club;
 
     // Cargar inscripciones Master por separado
-    const { data: inscripcionesMaster } = await supabase
+    const { data: inscripcionesMaster } = await lectura
         .from('inscripciones_torneo')
         .select(`
             *,
@@ -124,10 +138,11 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
     // Cargar grupos existentes — separados por fase: 'inicial' (Todos contra
     // Todos / Relámpago normal) y 'finales' (Grupos Finales de Liga, armados
     // con las parejas ya clasificadas de Todos contra Todos).
-    const { data: gruposExistentesAll } = await supabase
+    type GrupoTorneo = { id: string; nombre_grupo: string; categoria: string; fase: string | null; torneo_id: string };
+    const { data: gruposExistentesAll } = (await lectura
         .from('torneo_grupos')
         .select('*')
-        .eq('torneo_id', params.id);
+        .eq('torneo_id', params.id)) as { data: GrupoTorneo[] | null };
     const gruposExistentes = (gruposExistentesAll || []).filter(g => g.fase !== 'finales');
     const gruposFinalesExistentes = (gruposExistentesAll || []).filter(g => g.fase === 'finales');
     // Liga con Grupos Finales: el reporte es solo de las finales, como el de
@@ -866,12 +881,14 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         <TabsTrigger value="grupos_finales" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Grupos Finales</TabsTrigger>
                     )}
                     <TabsTrigger value="eliminatorias" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Cuadros Finales</TabsTrigger>
+                    {puede('resultados') && (
                     <TabsTrigger value="resultados" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">
                         Resultados
                         {pendientesCount > 0 && (
                             <Badge variant="secondary" className="ml-2 bg-ochre/15 text-ochre-soft border border-ochre/30">{pendientesCount}</Badge>
                         )}
                     </TabsTrigger>
+                    )}
                     <TabsTrigger value="muro" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Muro</TabsTrigger>
                     <TabsTrigger
                         value="cronograma"
@@ -946,10 +963,13 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                             parejaPlayers={parejaPlayersMap}
                             tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                             setsCantidad={torneo.reglas_puntuacion?.sets}
+                            puedeSortear={puede('sorteos')}
+                            puedeCargarResultados={puede('resultados')}
                         />
                     </TabsContent>
                 )}
 
+                {puede('resultados') && (
                 <TabsContent value="resultados" className="mt-6">
                     <TournamentResultsManager
                         torneoId={params.id}
@@ -961,6 +981,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         setsCantidad={torneo.reglas_puntuacion?.sets}
                     />
                 </TabsContent>
+                )}
 
                 <TabsContent value="muro" className="mt-6">
                     <TorneoMuroManager torneoId={params.id} posts={muroPosts} />
@@ -975,10 +996,12 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         </p>
                     )}
                     <div className="mb-4 flex justify-end">
+                        {puede('programacion') && (
                         <EditarCanchasControl
                             torneoId={params.id}
                             canchasActuales={torneo.reglas_puntuacion?.config_canchas || 1}
                         />
+                        )}
                     </div>
                     <TournamentChronogram
                         torneoId={params.id}
@@ -992,6 +1015,8 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         setsCantidad={torneo.reglas_puntuacion?.sets}
                         formato={torneo.formato}
                         gruposFinalesIds={gruposFinalesExistentes.map(g => String(g.id))}
+                        puedeProgramar={puede('programacion')}
+                        puedeCargarResultados={puede('resultados')}
                     />
                 </TabsContent>
 

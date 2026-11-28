@@ -76,6 +76,11 @@ interface ChronogramProps {
     /** Ids de los Grupos Finales de una liga: sus partidos se rotulan
      *  "Grupos Finales" y no "Todos contra Todos". */
     gruposFinalesIds?: string[];
+    /** Para gestores: qué puede hacer cada uno. Programar = mover partidos en
+     *  la grilla; resultados = cargarlos y confirmarlos. Por defecto, todo
+     *  (el club dueño). */
+    puedeProgramar?: boolean;
+    puedeCargarResultados?: boolean;
     /** Cuando el torneo es Copa Davis pasamos este contexto para que las cards
      *  de partido (bolsa y grilla) permitan abrir el dialog "Gestionar Partido". */
     copaDavisContext?: {
@@ -86,7 +91,9 @@ interface ChronogramProps {
     };
 }
 
-export function TournamentChronogram({ torneoId, matches: initialMatches, config, isAdmin = true, currentUserId, tipoDesempate, parejaPlayers, setsCantidad, copaDavisContext, formato, gruposFinalesIds = [] }: ChronogramProps) {
+export function TournamentChronogram({ torneoId, matches: initialMatches, config, isAdmin = true, currentUserId, tipoDesempate, parejaPlayers, setsCantidad, copaDavisContext, formato, gruposFinalesIds = [], puedeProgramar = true, puedeCargarResultados = true }: ChronogramProps) {
+    const programa = isAdmin && puedeProgramar;
+    const cargaResultados = isAdmin && puedeCargarResultados;
     const { toast } = useToast();
     const router = useRouter();
     const [matches, setMatches] = useState(initialMatches);
@@ -228,7 +235,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
     };
 
     const onDragStart = (e: React.DragEvent, matchId: string) => {
-        if (!isAdmin || isUpdating) return;
+        if (!programa || isUpdating) return;
         setDraggedMatchId(matchId);
         e.dataTransfer.setData("matchId", matchId);
         e.dataTransfer.effectAllowed = "move";
@@ -238,7 +245,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
     const [hoverSlot, setHoverSlot] = useState<{ time: string; cancha: number } | null>(null);
 
     const onDragOver = (e: React.DragEvent, time?: string, cancha?: number) => {
-        if (!isAdmin || isUpdating) return;
+        if (!programa || isUpdating) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
         if (time != null && cancha != null) {
@@ -258,7 +265,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
     };
 
     const onDrop = (e: React.DragEvent, time: string, cancha: number) => {
-        if (!isAdmin || isUpdating) return;
+        if (!programa || isUpdating) return;
         e.preventDefault();
         setHoverSlot(null);
         const matchId = e.dataTransfer.getData("matchId");
@@ -270,7 +277,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
     return (
         <div className="flex flex-col xl:flex-row gap-6 animate-in fade-in duration-700">
             {/* BOLSA DE PENDIENTES */}
-            {isAdmin && (
+            {programa && (
                 <div className="w-full xl:w-80 shrink-0 xl:sticky xl:top-6 self-start">
                     <Card className="bg-paper-soft border-olive/20 h-full overflow-hidden flex flex-col shadow-2xl">
                         <div className="p-4 border-b border-olive/20 bg-paper/50 space-y-3">
@@ -312,12 +319,12 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                 pendingMatchesFiltrados.map(match => (
                                     <div 
                                         key={match.id} 
-                                        draggable={isAdmin && !isUpdating}
+                                        draggable={programa && !isUpdating}
                                         onDragStart={(e) => onDragStart(e, match.id)}
                                         onClick={() => !isUpdating && setSelectedMatchId(selectedMatchId === match.id ? null : match.id)}
                                         className={`
                                             relative overflow-hidden p-4 rounded-2xl border-2 transition-all group
-                                            ${isAdmin && !isUpdating ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed opacity-50'}
+                                            ${programa && !isUpdating ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed opacity-50'}
                                             ${selectedMatchId === match.id 
                                                 ? 'bg-ochre/20 border-ochre shadow-[0_0_20px_rgba(245,158,11,0.2)]' 
                                                 : 'bg-paper border-olive/20 hover:border-olive/30 hover:bg-paper-soft'}
@@ -385,7 +392,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                         <div>
                             <h2 className="text-xl font-black text-ink uppercase tracking-tight leading-none mb-1">Parrilla de Torneo</h2>
                             <p className="text-[10px] text-olive/70 uppercase font-bold tracking-widest">
-                                {isAdmin ? 'Arrastra o haz clic para programar' : 'Horarios de Juego'}
+                                {programa ? 'Arrastra o haz clic para programar' : 'Horarios de Juego'}
                             </p>
                         </div>
                     </div>
@@ -403,7 +410,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                         <Button variant="outline" size="icon" className="bg-paper border-olive/20 rounded-xl" onClick={() => setSelectedDate(addDays(selectedDate, 1))}>
                             <ChevronRight className="w-4 h-4" />
                         </Button>
-                        {isAdmin && (
+                        {programa && (
                             <Button
                                 variant="outline"
                                 onClick={async () => {
@@ -556,20 +563,20 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                         ? 'bg-ochre/20 ring-2 ring-amber-500 ring-inset shadow-[inset_0_0_30px_rgba(245,158,11,0.25)]'
                                                         : isHoverDrop && !slotLibre
                                                             ? 'bg-red-500/15 ring-2 ring-red-500/60 ring-inset'
-                                                            : slotLibre && selectedMatchId && isAdmin
+                                                            : slotLibre && selectedMatchId && programa
                                                                 ? 'bg-ochre/5 hover:bg-ochre/10 cursor-pointer'
                                                                 : 'hover:bg-paper-soft/20'}
                                                 `}
                                                 onClick={() => {
-                                                    if (slotLibre && selectedMatchId && isAdmin) handleAssign(selectedMatchId, time, canchaNum);
+                                                    if (slotLibre && selectedMatchId && programa) handleAssign(selectedMatchId, time, canchaNum);
                                                 }}
                                             >
                                                 {matchToShow ? (
                                                     <div
-                                                        draggable={isAdmin && !isUpdating}
+                                                        draggable={programa && !isUpdating}
                                                         onDragStart={(e) => onDragStart(e, matchToShow.id)}
                                                         onClick={(e) => {
-                                                            if (isAdmin && !isUpdating) {
+                                                            if (programa && !isUpdating) {
                                                                 e.stopPropagation();
                                                                 setSelectedMatchId(isSelected ? null : matchToShow.id);
                                                             }
@@ -581,7 +588,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                             ${isMine ? 'border-ochre' : ''}
                                                             ${matchToShow.estado_resultado === 'confirmado' ? 'opacity-60 saturate-[0.6] border-emerald-700/40' : ''}
                                                             ${isBeingDragged ? 'opacity-40 grayscale' : ''}
-                                                            ${isAdmin && !isUpdating ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed'}
+                                                            ${programa && !isUpdating ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed'}
                                                         `}
                                                     >
                                                         {isMine && (
@@ -604,10 +611,10 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                                     iconOnly
                                                                 />
                                                             )}
-                                                            {isAdmin && matchToShow.estado === 'jugado' && matchToShow.estado_resultado === 'pendiente' && (
+                                                            {cargaResultados && matchToShow.estado === 'jugado' && matchToShow.estado_resultado === 'pendiente' && (
                                                                 <AdminConfirmResultButton matchId={matchToShow.id} compact />
                                                             )}
-                                                            {isAdmin && matchToShow.estado_resultado !== 'confirmado' && (
+                                                            {cargaResultados && matchToShow.estado_resultado !== 'confirmado' && (
                                                                 <AdminTournamentResultModal
                                                                     matchId={matchToShow.id}
                                                                     pareja1Nombre={getBracketDisplayName(matchToShow, false, parejaPlayers)}
@@ -618,6 +625,9 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                                     setsCantidad={setsCantidad}
                                                                 />
                                                             )}
+                                                            {/* Quitar de la grilla: antes aparecía para cualquiera,
+                                                                también en la vista del jugador. */}
+                                                            {programa && (
                                                             <button
                                                                 disabled={isUpdating}
                                                                 onClick={(e) => { e.stopPropagation(); handleUnschedule(matchToShow.id); }}
@@ -625,6 +635,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
                                                             >
                                                                 <Trash2 className="w-3 h-3" />
                                                             </button>
+                                                            )}
                                                         </div>
                                                         <div className="space-y-1">
                                                             <div className="flex items-center justify-between gap-1.5">

@@ -107,9 +107,9 @@ export default async function GestorTorneoPage({ params }: { params: { id: strin
                 </div>
             </div>
 
-            {/* Inscribir parejas y sortear se hacen en el panel del torneo,
-                que con esos permisos el gestor también puede abrir. */}
-            {(permisos.includes('parejas') || permisos.includes('sorteos')) && (
+            {/* El panel completo del torneo (cronograma, resultados, grupos y
+                cuadros), con lo que sus funciones permiten. */}
+            {permisos.length > 0 && (
                 <Link
                     href={`/club/torneos/${params.id}`}
                     className="flex items-center justify-between gap-3 bg-paper-soft border border-olive/20 rounded-2xl px-4 py-3 hover:bg-paper-dark/40 transition-colors"
@@ -117,7 +117,7 @@ export default async function GestorTorneoPage({ params }: { params: { id: strin
                     <span className="text-sm font-bold text-ink">
                         Abrir el panel del torneo
                         <span className="block text-[11px] font-normal text-olive/70">
-                            {[permisos.includes('parejas') && 'inscribir parejas', permisos.includes('sorteos') && 'sortear grupos y fases'].filter(Boolean).join(' y ')}
+                            Cronograma, resultados, grupos y cuadros — con las funciones que te dio el club
                         </span>
                     </span>
                     <ChevronLeft className="w-4 h-4 text-olive/50 rotate-180" />

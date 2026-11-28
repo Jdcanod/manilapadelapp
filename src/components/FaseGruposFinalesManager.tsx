@@ -50,9 +50,13 @@ interface Props {
     /** Para cargar resultados con el formato del torneo. */
     tipoDesempate?: string;
     setsCantidad?: number;
+    /** Para gestores: armar los grupos es "Sortear grupos y fases"; cargar y
+     *  confirmar resultados es "Cargar resultados". Por defecto, todo. */
+    puedeSortear?: boolean;
+    puedeCargarResultados?: boolean;
 }
 
-export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, partidos, ligaClasificacionConfig = {}, tercerPuestoPorCategoria = {}, parejaPlayers = {}, tipoDesempate, setsCantidad = 3 }: Props) {
+export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, partidos, ligaClasificacionConfig = {}, tercerPuestoPorCategoria = {}, parejaPlayers = {}, tipoDesempate, setsCantidad = 3, puedeSortear = true, puedeCargarResultados = true }: Props) {
     const [selectedCat, setSelectedCat] = useState<string>(categorias[0] || "");
     // Por categoría: cada una arma sus grupos finales por separado, y antes
     // este número era uno solo para todas — cambiarlo en 6ta se lo cambiaba
@@ -188,6 +192,8 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                 )}
             </p>
 
+            {/* Armar los grupos: solo con permiso de sortear. */}
+            {puedeSortear && (<>
             <div className="flex items-center gap-3 flex-wrap bg-paper/40 border border-olive/20 rounded-xl p-4">
                 <div className="flex items-center gap-2">
                     <span className="text-[10px] text-olive/70 uppercase tracking-wide font-bold">¿Cuántas clasifican?</span>
@@ -411,6 +417,8 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                 </span>
             </div>
 
+            </>)}
+
             {error && (
                 <div className="bg-red-500/10 border border-red-500/40 rounded-lg p-3 text-xs text-red-300">
                     {error}
@@ -520,8 +528,8 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                                                 ) : (
                                                     <span className="text-[11px] text-olive/50 italic">Sin resultado</span>
                                                 )}
-                                                {porConfirmar && <AdminConfirmResultButton matchId={m.id} compact />}
-                                                {!confirmado && m.pareja1_id && m.pareja2_id && (
+                                                {puedeCargarResultados && porConfirmar && <AdminConfirmResultButton matchId={m.id} compact />}
+                                                {puedeCargarResultados && !confirmado && m.pareja1_id && m.pareja2_id && (
                                                     <AdminTournamentResultModal
                                                         matchId={m.id}
                                                         pareja1Nombre={n1}
