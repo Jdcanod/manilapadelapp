@@ -135,6 +135,12 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
     // Todos contra Todos.
     const reporteSoloFinales = torneo.formato === 'liguilla' && gruposFinalesExistentes.length > 0;
     const idsGruposFinales = new Set(gruposFinalesExistentes.map(g => String(g.id)));
+    // Con las finales sorteadas, Todos contra Todos queda cerrado: sus
+    // partidos salen de Resultados (y de su contador). Mientras la liga está
+    // en la fase regular, siguen ahí.
+    const idsGruposRegulares = new Set((gruposExistentes || []).map(g => String(g.id)));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const deFaseCerrada = (p: any) => reporteSoloFinales && !!p.torneo_grupo_id && idsGruposRegulares.has(String(p.torneo_grupo_id));
 
     const adminSupabase = createAdminClient();
     const pureAdmin = createPureAdminClient();
@@ -328,7 +334,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
     // Conteo de partidos por confirmar (para badge en el tab)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pendientesCount = (rawPartidos || []).filter((p: any) =>
-        p.pareja1_id && p.pareja2_id && p.resultado && p.estado_resultado !== 'confirmado'
+        p.pareja1_id && p.pareja2_id && p.resultado && p.estado_resultado !== 'confirmado' && !deFaseCerrada(p)
     ).length;
 
     const muroPosts = await listarMuroPosts(params.id);
@@ -938,6 +944,8 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                             ligaClasificacionConfig={torneo.reglas_puntuacion?.liga_clasificacion_config || {}}
                             tercerPuestoPorCategoria={torneo.reglas_puntuacion?.tercer_puesto_por_categoria || {}}
                             parejaPlayers={parejaPlayersMap}
+                            tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
+                            setsCantidad={torneo.reglas_puntuacion?.sets}
                         />
                     </TabsContent>
                 )}
@@ -945,7 +953,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                 <TabsContent value="resultados" className="mt-6">
                     <TournamentResultsManager
                         torneoId={params.id}
-                        partidos={partidosReales}
+                        partidos={partidosReales.filter(p => !deFaseCerrada(p))}
                         categorias={categoriasAMostrar}
                         tipoDesempate={torneo.reglas_puntuacion?.tipo_desempate}
                         userMap={reporterMap}

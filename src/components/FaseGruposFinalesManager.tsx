@@ -10,6 +10,9 @@ import { calculateStandings } from "@/lib/tournaments/standings";
 import { cn } from "@/lib/utils";
 import { repartirGruposFinales } from "@/lib/tournaments/logic";
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
+import { textoPorcentaje } from "@/lib/tournaments/clasificacion";
+import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
+import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton";
 
 interface Grupo {
     id: string;
@@ -44,9 +47,12 @@ interface Props {
      *  en Todos contra Todos (el nombre guardado en la pareja a veces trae
      *  solo nombres de pila). */
     parejaPlayers?: ParejaPlayersMap;
+    /** Para cargar resultados con el formato del torneo. */
+    tipoDesempate?: string;
+    setsCantidad?: number;
 }
 
-export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, partidos, ligaClasificacionConfig = {}, tercerPuestoPorCategoria = {}, parejaPlayers = {} }: Props) {
+export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, partidos, ligaClasificacionConfig = {}, tercerPuestoPorCategoria = {}, parejaPlayers = {}, tipoDesempate, setsCantidad = 3 }: Props) {
     const [selectedCat, setSelectedCat] = useState<string>(categorias[0] || "");
     // Por categoría: cada una arma sus grupos finales por separado, y antes
     // este número era uno solo para todas — cambiarlo en 6ta se lo cambiaba
@@ -174,7 +180,7 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
             <p className="text-[11px] text-olive/60 leading-snug">
                 Las mejores parejas de Todos contra Todos se reparten aquí en grupos nuevos para
                 jugar un mini round-robin, y de esos grupos sale el Cuadro de Cuadros Finales. Los
-                resultados se confirman como cualquier otro partido, desde la pestaña Resultados.
+                resultados se cargan y se confirman aquí mismo, debajo de la tabla de cada grupo.
                 {gruposCat.length === 0 && (
                     <> Esta fase es <span className="font-bold text-ink">opcional</span> — si prefieres, ve directo a
                     la pestaña <span className="font-bold text-ink">Cuadros Finales</span> y arma el cuadro
@@ -417,51 +423,121 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                     <p className="text-sm text-olive/70">No se han generado Grupos Finales para {selectedCat} aún.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
                     {gruposCat.map(g => {
-                        const matches = partidos
-                            .filter(p => p.torneo_grupo_id === g.id)
-                            .map(p => ({
-                                pareja1_id: p.pareja1_id ?? null,
-                                pareja2_id: p.pareja2_id ?? null,
-                                estado: p.estado ?? '',
-                                resultado: p.resultado ?? null,
-                                estado_resultado: p.estado_resultado ?? null,
-                                pareja1: p.pareja1 ? { nombre_pareja: p.pareja1.nombre_pareja ?? null } : null,
-                                pareja2: p.pareja2 ? { nombre_pareja: p.pareja2.nombre_pareja ?? null } : null,
-                                es_revancha: p.es_revancha,
-                                // Sin esto, ganar por W no le sumaba nada al ganador.
-                                walkover_ganador_id: p.walkover_ganador_id ?? null,
-                            }));
+                        const delGrupo = partidos.filter(p => p.torneo_grupo_id === g.id);
+                        const matches = delGrupo.map(p => ({
+                            pareja1_id: p.pareja1_id ?? null,
+                            pareja2_id: p.pareja2_id ?? null,
+                            estado: p.estado ?? '',
+                            resultado: p.resultado ?? null,
+                            estado_resultado: p.estado_resultado ?? null,
+                            pareja1: p.pareja1 ? { nombre_pareja: p.pareja1.nombre_pareja ?? null } : null,
+                            pareja2: p.pareja2 ? { nombre_pareja: p.pareja2.nombre_pareja ?? null } : null,
+                            es_revancha: p.es_revancha,
+                            // Sin esto, ganar por W no le sumaba nada al ganador.
+                            walkover_ganador_id: p.walkover_ganador_id ?? null,
+                            // Para no contar como games un super tie-break.
+                            tipoDesempate,
+                        }));
                         const standings = calculateStandings(matches, { pointsForLoss: 1 })
                             .map(s => ({ ...s, nombre: resolvePairName(s.parejaId, s.nombre, parejaPlayers) }));
+                        // Pasan al cuadro los 2 primeros; se marcan cuando el grupo ya empezó.
+                        const empezo = standings.some(s => s.pj > 0);
+                        const nombreDe = (id: string | null | undefined, guardado: string | null | undefined) =>
+                            id ? resolvePairName(id, guardado, parejaPlayers) : 'Por definir';
+                        const pct = (a: number, b: number) => (a + b > 0 ? textoPorcentaje((a * 100) / (a + b)) : '—');
                         return (
                             <div key={g.id} className="bg-paper-soft border border-olive/20 rounded-xl overflow-hidden">
-                                <div className="px-4 py-2.5 border-b border-olive/20 bg-paper/40">
+                                <div className="px-4 py-2.5 border-b border-olive/20 bg-paper/40 flex items-center justify-between gap-2">
                                     <h4 className="text-sm font-black text-ink uppercase tracking-wide">{g.nombre_grupo}</h4>
+                                    <span className="text-[10px] text-olive/60">Pasan al cuadro los 2 primeros</span>
                                 </div>
-                                <table className="w-full text-xs">
-                                    <thead>
-                                        <tr className="text-[9px] text-olive/50 uppercase tracking-widest border-b border-olive/10">
-                                            <th className="px-2 py-2 text-center w-6">#</th>
-                                            <th className="px-3 py-2 text-left">Pareja</th>
-                                            <th className="px-2 py-2 text-center cursor-help" title="Partidos Jugados">PJ</th>
-                                            <th className="px-2 py-2 text-center cursor-help" title="Partidos Ganados">PG</th>
-                                            <th className="px-2 py-2 text-center cursor-help" title="Puntos acumulados según el sistema de puntuación del torneo">Pts</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-olive/10">
-                                        {standings.map((s, i) => (
-                                            <tr key={s.parejaId} className={i === 0 ? "bg-ochre/5" : ""}>
-                                                <td className="px-2 py-2 text-center font-black text-olive/70">{i + 1}</td>
-                                                <td className="px-3 py-2 font-semibold text-ink whitespace-nowrap" title={s.nombre}>{s.nombre}</td>
-                                                <td className="px-2 py-2 text-center text-olive">{s.pj}</td>
-                                                <td className="px-2 py-2 text-center text-olive">{s.pg}</td>
-                                                <td className="px-2 py-2 text-center font-black text-olive">{s.pts}</td>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-xs tabular-nums">
+                                        <thead>
+                                            <tr className="text-[9px] text-olive/60 uppercase tracking-widest border-b border-olive/10">
+                                                <th className="px-2 py-2 text-center w-6">#</th>
+                                                <th className="px-3 py-2 text-left">Pareja</th>
+                                                <th className="px-2 py-2 text-center" title="Partidos jugados">PJ</th>
+                                                <th className="px-2 py-2 text-center" title="Partidos ganados">PG</th>
+                                                <th className="px-2 py-2 text-center" title="Sets ganados - perdidos">Sets</th>
+                                                <th className="px-2 py-2 text-center" title="% de sets ganados">%S</th>
+                                                <th className="px-2 py-2 text-center" title="Games ganados - perdidos">Games</th>
+                                                <th className="px-2 py-2 text-center" title="% de games ganados">%G</th>
+                                                <th className="px-2 py-2 text-center" title="Puntos: 3 por ganar, 1 por perder">Pts</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody className="divide-y divide-olive/10">
+                                            {standings.map((s, i) => {
+                                                const pasa = empezo && i < 2;
+                                                return (
+                                                    <tr key={s.parejaId} className={pasa ? "bg-olive/5" : ""}>
+                                                        <td className={cn("px-2 py-2 text-center font-black", pasa ? "text-emerald-700" : "text-olive/70")}>{i + 1}</td>
+                                                        <td className="px-3 py-2 font-semibold text-ink whitespace-nowrap" title={s.nombre}>
+                                                            {pasa && <span className="mr-1 text-emerald-600">★</span>}{s.nombre}
+                                                        </td>
+                                                        <td className="px-2 py-2 text-center text-olive">{s.pj}</td>
+                                                        <td className="px-2 py-2 text-center text-olive">{s.pg}</td>
+                                                        <td className="px-2 py-2 text-center text-olive/80">{s.sg}-{s.sp}</td>
+                                                        <td className="px-2 py-2 text-center text-olive/80">{pct(s.sg, s.sp)}</td>
+                                                        <td className="px-2 py-2 text-center text-olive/80">{s.gg}-{s.gp}</td>
+                                                        <td className="px-2 py-2 text-center text-olive/80">{pct(s.gg, s.gp)}</td>
+                                                        <td className="px-2 py-2 text-center font-black text-olive">{s.pts}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Los partidos del grupo, con la carga de resultados aquí
+                                    mismo (también el W) y la confirmación de lo que cargó
+                                    un jugador. */}
+                                <ul className="border-t border-olive/15 divide-y divide-olive/10">
+                                    {delGrupo.map(m => {
+                                        const n1 = nombreDe(m.pareja1_id, m.pareja1?.nombre_pareja);
+                                        const n2 = nombreDe(m.pareja2_id, m.pareja2?.nombre_pareja);
+                                        const confirmado = m.estado_resultado === 'confirmado';
+                                        const porConfirmar = !!m.resultado && !confirmado;
+                                        const resultado = m.walkover_ganador_id
+                                            ? `Ganó por W ${m.walkover_ganador_id === m.pareja1_id ? n1 : n2}`
+                                            : m.resultado;
+                                        return (
+                                            <li key={m.id} className="px-3 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                                                <span className="flex-1 min-w-[200px] text-xs text-ink">
+                                                    <span className="font-semibold">{n1}</span>
+                                                    <span className="text-olive/50 mx-1.5">vs</span>
+                                                    <span className="font-semibold">{n2}</span>
+                                                </span>
+                                                {resultado ? (
+                                                    <span className={cn(
+                                                        "text-[11px] font-black rounded-md px-2 py-0.5 border",
+                                                        confirmado ? "text-emerald-800 bg-emerald-500/10 border-emerald-600/25" : "text-ochre-dark bg-ochre/10 border-ochre/30"
+                                                    )}>
+                                                        {resultado}{porConfirmar ? ' · por confirmar' : ''}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[11px] text-olive/50 italic">Sin resultado</span>
+                                                )}
+                                                {porConfirmar && <AdminConfirmResultButton matchId={m.id} compact />}
+                                                {!confirmado && m.pareja1_id && m.pareja2_id && (
+                                                    <AdminTournamentResultModal
+                                                        matchId={m.id}
+                                                        pareja1Nombre={n1}
+                                                        pareja2Nombre={n2}
+                                                        pareja1Id={m.pareja1_id}
+                                                        pareja2Id={m.pareja2_id}
+                                                        initialResult={m.resultado}
+                                                        tipoDesempate={tipoDesempate}
+                                                        setsCantidad={setsCantidad}
+                                                        compact
+                                                    />
+                                                )}
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
                             </div>
                         );
                     })}
