@@ -13,6 +13,7 @@ import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 import { textoPorcentaje } from "@/lib/tournaments/clasificacion";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { AdminConfirmResultButton } from "@/components/AdminConfirmResultButton";
+import { DesplegablePartidos } from "@/components/DesplegablePartidos";
 
 interface Grupo {
     id: string;
@@ -453,10 +454,13 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                             // Para no contar como games un super tie-break.
                             tipoDesempate,
                         }));
-                        const standings = calculateStandings(matches, { pointsForLoss: 1 })
+                        // Fase final: 3 puntos por ganar y NADA por perder. El punto
+                        // por perder es solo de Todos contra Todos (premia jugar).
+                        const standings = calculateStandings(matches, { pointsForLoss: 0 })
                             .map(s => ({ ...s, nombre: resolvePairName(s.parejaId, s.nombre, parejaPlayers) }));
                         // Pasan al cuadro los 2 primeros; se marcan cuando el grupo ya empezó.
                         const empezo = standings.some(s => s.pj > 0);
+                        const porJugar = delGrupo.filter(p => !(p.estado_resultado === 'confirmado' && p.resultado)).length;
                         const nombreDe = (id: string | null | undefined, guardado: string | null | undefined) =>
                             id ? resolvePairName(id, guardado, parejaPlayers) : 'Por definir';
                         const pct = (a: number, b: number) => (a + b > 0 ? textoPorcentaje((a * 100) / (a + b)) : '—');
@@ -478,7 +482,7 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                                                 <th className="px-2 py-2 text-center" title="% de sets ganados">%S</th>
                                                 <th className="px-2 py-2 text-center" title="Games ganados - perdidos">Games</th>
                                                 <th className="px-2 py-2 text-center" title="% de games ganados">%G</th>
-                                                <th className="px-2 py-2 text-center" title="Puntos: 3 por ganar, 1 por perder">Pts</th>
+                                                <th className="px-2 py-2 text-center" title="Puntos: 3 por ganar, 0 por perder">Pts</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-olive/10">
@@ -504,10 +508,12 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                                     </table>
                                 </div>
 
-                                {/* Los partidos del grupo, con la carga de resultados aquí
-                                    mismo (también el W) y la confirmación de lo que cargó
-                                    un jugador. */}
-                                <ul className="border-t border-olive/15 divide-y divide-olive/10">
+                                {/* Los partidos del grupo, plegados: la carga de resultados
+                                    (también el W) y la confirmación de lo que cargó un
+                                    jugador están ahí, al desplegar. */}
+                                <div className="border-t border-olive/15 p-3">
+                                <DesplegablePartidos resumen={`${delGrupo.length} partido${delGrupo.length === 1 ? '' : 's'}${porJugar > 0 ? ` · ${porJugar} por jugar` : ''}`}>
+                                <ul className="border border-olive/15 rounded-xl divide-y divide-olive/10 bg-paper">
                                     {delGrupo.map(m => {
                                         const n1 = nombreDe(m.pareja1_id, m.pareja1?.nombre_pareja);
                                         const n2 = nombreDe(m.pareja2_id, m.pareja2?.nombre_pareja);
@@ -551,6 +557,8 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                                         );
                                     })}
                                 </ul>
+                                </DesplegablePartidos>
+                                </div>
                             </div>
                         );
                     })}

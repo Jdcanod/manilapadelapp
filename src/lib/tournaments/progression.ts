@@ -190,7 +190,7 @@ export async function sincronizarClasificados(
 
     // 0. Determinar opciones de scoring según el formato del torneo y resolver tipo de desempate
     const { data: torneo } = await supabaseAdmin.from('torneos').select('formato, reglas_puntuacion').eq('id', torneoId).single();
-    const standingsOpts = torneo?.formato === 'liguilla' ? { pointsForLoss: 1 } : {};
+    const esLiga = torneo?.formato === 'liguilla';
     const tipoDesempateGlobal = torneo?.reglas_puntuacion?.tipo_desempate;
     const tipoDesempatePorCat = torneo?.reglas_puntuacion?.tipo_desempate_por_categoria || {};
     const tipoDesempateCat = tipoDesempatePorCat[categoria] || tipoDesempateGlobal || null;
@@ -198,7 +198,7 @@ export async function sincronizarClasificados(
     // 1. Obtener todos los grupos de la categoría
     const { data: grupos } = await supabaseAdmin
         .from('torneo_grupos')
-        .select('id, nombre_grupo')
+        .select('id, nombre_grupo, fase')
         .eq('torneo_id', torneoId)
         .eq('categoria', categoria);
 
@@ -221,6 +221,9 @@ export async function sincronizarClasificados(
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const matchesConTipo = (matches || []).map((m: any) => ({ ...m, tipoDesempate: tipoDesempateCat }));
+        // El punto por perder es solo de Todos contra Todos: en un Grupo Final
+        // no suma, y de esa tabla sale quién pasa al cuadro.
+        const standingsOpts = esLiga && grupo.fase !== 'finales' ? { pointsForLoss: 1 } : {};
         const standings = calculateStandings(matchesConTipo, standingsOpts);
         const first = standings[0];
         const second = standings[1];

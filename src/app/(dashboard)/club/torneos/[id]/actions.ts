@@ -2235,7 +2235,9 @@ export async function obtenerStandingsPorGrupo(torneoId: string, categoria: stri
         );
 
         const { data: torneo } = await supabaseAdmin.from('torneos').select('formato, reglas_puntuacion').eq('id', torneoId).single();
-        const standingsOpts = torneo?.formato === 'liguilla' ? { pointsForLoss: 1 } : {};
+        // Sin punto por perder: en Liga "por grupo" son los Grupos Finales, y
+        // ese punto es solo de Todos contra Todos (en relámpago nunca existió).
+        const standingsOpts = {};
         const tipoDesempateGlobal = torneo?.reglas_puntuacion?.tipo_desempate;
         const tipoDesempatePorCat = torneo?.reglas_puntuacion?.tipo_desempate_por_categoria || {};
         const tipoDesempateCat = tipoDesempatePorCat[categoria] || tipoDesempateGlobal || null;
@@ -2486,7 +2488,10 @@ export async function generarFaseEliminatoriaTopN(
         const tipoDesempateGlobalEli = torneo?.reglas_puntuacion?.tipo_desempate;
         const tipoDesempatePorCatEli = torneo?.reglas_puntuacion?.tipo_desempate_por_categoria || {};
         const tipoDesempateCatEli = tipoDesempatePorCatEli[categoria] || tipoDesempateGlobalEli || null;
-        const standingsOptsEli = torneo?.formato === 'liguilla' ? { pointsForLoss: 1 } : {};
+        // Sin punto por perder: estas tablas son las de los grupos de los que
+        // sale el cuadro (en Liga, los Grupos Finales). Con ese punto, el 1ro y
+        // el 2do de un grupo final podían salir distintos.
+        const standingsOptsEli = {};
 
         // ===== Modo PER-GROUP (Relámpago típico): tomar top N de CADA grupo =====
         let topN: Array<{ parejaId: string; nombre: string; pts: number; sg: number; sp: number; gg: number; gp: number; pj: number; pg: number }> = [];
@@ -3692,6 +3697,13 @@ export async function crearRevancha(matchId: string) {
         if (!original) return { success: false, message: "Partido no encontrado" };
         if (!esPartidoDeTorneo(original)) return { success: false, message: "Solo aplica a partidos de torneo" };
         if (original.es_revancha) return { success: false, message: "No se puede crear una revancha de otra revancha" };
+        // Las revanchas son de Todos contra Todos: ni en Grupos Finales ni en
+        // el cuadro.
+        if (!original.torneo_grupo_id) return { success: false, message: "En la fase final no se juegan revanchas." };
+        {
+            const { data: grupoOriginal } = await admin.from('torneo_grupos').select('fase').eq('id', original.torneo_grupo_id).maybeSingle();
+            if (grupoOriginal?.fase === 'finales') return { success: false, message: "En la fase final no se juegan revanchas." };
+        }
         if (original.estado !== 'jugado' || original.estado_resultado !== 'confirmado') {
             return { success: false, message: "El partido original debe estar jugado y confirmado" };
         }

@@ -1,11 +1,9 @@
 "use client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Swords, Users, Trophy, CalendarClock, CalendarX2, ChevronRight } from "lucide-react";
+import { Users, Trophy, CalendarClock, CalendarX2, ChevronRight } from "lucide-react";
 import { PlayerTournamentResultModal } from "@/components/PlayerTournamentResultModal";
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { ParejaLink } from "@/components/panel/ParejaLink";
 import { TablaPosicionesMovil } from "@/components/TablaPosicionesMovil";
@@ -13,6 +11,7 @@ import { GrupoMatchesList } from "@/components/GrupoMatchesList";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { calcularClasificados, calcularRequeridosPorPareja, textoPorcentaje, textoPartidos, type ClasifConfig } from "@/lib/tournaments/clasificacion";
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
+import { DesplegablePartidos } from "@/components/DesplegablePartidos";
 
 
 interface Standing {
@@ -76,9 +75,8 @@ interface Props {
      *  "Nombre Apellido / Nombre Apellido" en vez de depender del
      *  `nombre_pareja` guardado (a veces incompleto). */
     parejaPlayers?: ParejaPlayersMap;
-    /** Grupos Finales de una liga: se puntúa como la liga (1 punto por
-     *  perder, igual que la tabla del club), pero sin lo que es solo de la
-     *  fase regular (% de partidos, revanchas, clasificación general). */
+    /** Grupos Finales de una liga: sin nada de la fase regular — ni el punto
+     *  por perder, ni revanchas, ni % de partidos, ni clasificación general. */
     faseFinales?: boolean;
     /** En Grupos Finales: cuántos de cada grupo pasan al cuadro. */
     pasanPorGrupo?: number;
@@ -181,7 +179,9 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
 
                 // Liguilla: ganador 3pts, perdedor 1pt. Otros formatos: ganador 3pts, perdedor 0.
                 // Revancha: vale la mitad de esos puntos.
-                const pointsForLoss = formato === 'liguilla' ? 1 : 0;
+                // El punto por perder es solo de Todos contra Todos: en los Grupos
+                // Finales (esLiguilla es falso ahí) perder no suma.
+                const pointsForLoss = esLiguilla ? 1 : 0;
                 const ptsGanador = esRevancha ? 1.5 : 3;
                 const ptsPerdedor = esRevancha ? pointsForLoss / 2 : pointsForLoss;
                 if (setsP1InMatch > setsP2InMatch) {
@@ -230,6 +230,13 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
     }
 
     const filteredGrupos = grupos.filter(g => g.categoria === selectedCat);
+
+    // "3 partidos · 2 por jugar", junto al botón que despliega los partidos.
+    const resumenDeGrupo = (grupoId: string) => {
+        const delGrupo = partidos.filter(p => p.torneo_grupo_id === grupoId);
+        const porJugar = delGrupo.filter(p => !(p.estado_resultado === 'confirmado' && p.resultado)).length;
+        return `${delGrupo.length} partido${delGrupo.length === 1 ? '' : 's'}${porJugar > 0 && !faseCerrada ? ` · ${porJugar} por jugar` : ''}`;
+    };
 
     // Liguilla: set de parejas que clasifican HOY, sobre la tabla global de
     // la categoría (todos los grupos combinados) — misma regla que usa el
@@ -573,18 +580,9 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                             </div>
 
                             <div className="p-4 border-t border-olive/15 flex justify-center bg-paper">
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline" className="w-full sm:w-auto border-olive/20 bg-paper-soft hover:bg-paper-dark text-ink font-black text-[10px] uppercase tracking-widest gap-2 rounded-xl transition-all shadow-sm">
-                                            <Swords className="w-3.5 h-3.5 text-ochre-dark" /> Ver Partidos del Grupo
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="sm:max-w-md bg-paper border-olive/15 text-ink max-h-[85vh] overflow-y-auto rounded-3xl p-6">
-                                        <DialogHeader className="mb-4 pb-4 border-b border-olive/15">
-                                            <DialogTitle className="text-xl font-black italic uppercase tracking-widest text-ochre-dark flex items-center gap-3">
-                                                <Swords className="w-5 h-5" /> Partidos - {grupo.nombre_grupo}
-                                            </DialogTitle>
-                                        </DialogHeader>
+                                {/* Desplegable, para cualquier grupo: no hace falta jugar en
+                                    él para ver sus partidos. */}
+                                <DesplegablePartidos resumen={resumenDeGrupo(grupo.id)}>
                                         <GrupoMatchesList
                                             matches={partidos}
                                             grupoId={grupo.id}
@@ -748,8 +746,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                     );
                                             }}
                                         />
-                                    </DialogContent>
-                                </Dialog>
+                                </DesplegablePartidos>
                             </div>
                         </CardContent>
 

@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
 import { confirmarResultado, reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
 import { Check, Plus, RotateCcw, Settings, ChevronDown, ArrowDown, ArrowUp, Repeat, CalendarClock, CalendarX2, ChevronRight } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 import { GrupoMatchesList } from "@/components/GrupoMatchesList";
 import { AsignarParejaSlotDialog } from "@/components/AsignarParejaSlotDialog";
@@ -22,6 +22,7 @@ import { calculateStandings } from "@/lib/tournaments/standings";
 import { calcularClasificados, calcularRequeridosPorPareja, textoPorcentaje, type ClasifConfig } from "@/lib/tournaments/clasificacion";
 import { esParejaPlaceholder as esTBD } from "@/lib/tbd";
 import { TablaGruposClubMovil } from "@/components/TablaGruposClubMovil";
+import { DesplegablePartidos } from "@/components/DesplegablePartidos";
 
 interface Props {
     torneoId: string;
@@ -393,6 +394,13 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
         const signature = [p.jugador1_id, p.jugador2_id].sort().join(':');
         return !parejasEnGruposSignatures.has(signature);
     });
+
+    // "3 partidos · 2 por jugar", junto al botón que despliega los partidos.
+    const resumenDeGrupo = (grupoId: string) => {
+        const delGrupo = partidos.filter(p => p.torneo_grupo_id === grupoId);
+        const porJugar = delGrupo.filter(p => !(p.estado_resultado === 'confirmado' && p.resultado)).length;
+        return `${delGrupo.length} partido${delGrupo.length === 1 ? '' : 's'}${porJugar > 0 && !faseCerrada ? ` · ${porJugar} por jugar` : ''}`;
+    };
 
     const getStandings = (grupoId: string) => {
         const matches = partidos.filter(p => p.torneo_grupo_id === grupoId);
@@ -1156,18 +1164,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                         </table>
                                     </div>
                                     <div className="p-4 border-t border-olive/20 bg-paper-soft/50 flex justify-center">
-                                        <Dialog>
-                                            <DialogTrigger asChild>
-                                                <Button variant="outline" className="w-full border-olive/20 bg-paper hover:bg-paper-dark text-ink font-black text-[10px] uppercase tracking-widest gap-2 rounded-xl transition-all shadow-sm h-10">
-                                                    <Swords className="w-3.5 h-3.5 text-olive" /> Ver Partidos del Grupo
-                                                </Button>
-                                            </DialogTrigger>
-                                            <DialogContent className="sm:max-w-md bg-paper border-olive/15 text-ink max-h-[85vh] overflow-y-auto rounded-3xl p-6">
-                                                <DialogHeader className="mb-4 pb-4 border-b border-olive/15">
-                                                    <DialogTitle className="text-xl font-black italic uppercase tracking-widest text-olive flex items-center gap-3">
-                                                        <Swords className="w-5 h-5" /> Partidos - {grupo.nombre_grupo}
-                                                    </DialogTitle>
-                                                </DialogHeader>
+                                        <DesplegablePartidos resumen={resumenDeGrupo(grupo.id)}>
                                                 <GrupoMatchesList
                                                     matches={partidos}
                                                     grupoId={grupo.id}
@@ -1330,8 +1327,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                             </div>
                                                     )}
                                                 />
-                                            </DialogContent>
-                                        </Dialog>
+                                        </DesplegablePartidos>
                                     </div>
                                 </CardContent>
                             </Card>

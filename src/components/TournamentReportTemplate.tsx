@@ -282,7 +282,8 @@ export const TournamentReportTemplate = React.forwardRef<HTMLDivElement, Props>(
                                                             });
                                                             // Igual que la tabla del club: en liga se suma 1 punto por
                                                             // perder, y un W da el partido y los puntos al ganador.
-                                                            const puntoPorPerder = torneo.formato === 'liguilla' ? 1 : 0;
+                                                            // Solo en Todos contra Todos; en Grupos Finales perder no suma.
+                                                            const puntoPorPerder = torneo.formato === 'liguilla' && (grupo as { fase?: string | null }).fase !== 'finales' ? 1 : 0;
                                                             matches.forEach(m => {
                                                                 if (m.walkover_ganador_id && m.estado_resultado === 'confirmado') {
                                                                     const g = map.get(String(m.walkover_ganador_id));

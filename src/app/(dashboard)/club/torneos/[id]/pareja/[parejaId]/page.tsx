@@ -34,6 +34,7 @@ interface MatchRow {
     fecha: string | null;
     es_revancha: boolean | null;
     revancha_de_partido_id: string | null;
+    torneo_grupo_id: string | null;
 }
 
 export default async function ParejaHistorialPage({ params }: { params: { id: string; parejaId: string } }) {
@@ -77,13 +78,18 @@ export default async function ParejaHistorialPage({ params }: { params: { id: st
     // ─── Todos los partidos de esta pareja en torneos del club ─────────────────
     const { data: matches } = await adminSupabase
         .from('partidos')
-        .select('id, torneo_id, lugar, pareja1_id, pareja2_id, estado, estado_resultado, resultado, nivel, fecha, es_revancha, revancha_de_partido_id')
+        .select('id, torneo_id, lugar, pareja1_id, pareja2_id, estado, estado_resultado, resultado, nivel, fecha, es_revancha, revancha_de_partido_id, torneo_grupo_id')
         .in('torneo_id', torneoIds.length > 0 ? torneoIds : ['none'])
         .or(`pareja1_id.eq.${params.parejaId},pareja2_id.eq.${params.parejaId}`)
         .not('resultado', 'is', null)
         .order('fecha', { ascending: false });
 
     const allMatches = (matches || []) as MatchRow[];
+
+    // Grupos Finales de este torneo: ahí no se ofrecen revanchas.
+    const { data: gruposFinalesRows } = await adminSupabase
+        .from('torneo_grupos').select('id').eq('torneo_id', params.id).eq('fase', 'finales');
+    const gruposFinalesIds = new Set((gruposFinalesRows || []).map(g => String(g.id)));
 
     // Nombres de rivales (parejas contrarias)
     const rivalIds = new Set<string>();
@@ -117,6 +123,8 @@ export default async function ParejaHistorialPage({ params }: { params: { id: st
             puedeRevancha: esDuenoDelTorneo && esLiguilla
                 && m.torneo_id === params.id
                 && !m.es_revancha
+                // Solo en Todos contra Todos: ni grupos finales ni cuadro.
+                && !!m.torneo_grupo_id && !gruposFinalesIds.has(String(m.torneo_grupo_id))
                 && m.estado === 'jugado' && m.estado_resultado === 'confirmado'
                 && !partidosConRevancha.has(m.id)
                 && !!(m.nivel && revanchaConfigPorCategoria[m.nivel]),
