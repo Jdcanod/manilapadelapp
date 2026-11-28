@@ -524,18 +524,14 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         const p1 = parejaDataMap.get(p.pareja1_id);
         const p2 = parejaDataMap.get(p.pareja2_id);
         
-        // Formatear nombres correctamente usando los jugadores individuales
-        let nombreP1 = p1?.nombre_pareja;
-        if (!nombreP1 && p.pareja1_id) {
-            const players = parejaPlayersMap[p.pareja1_id];
-            if (players) nombreP1 = formatPairName(players[0], players[1]);
-        }
-        
-        let nombreP2 = p2?.nombre_pareja;
-        if (!nombreP2 && p.pareja2_id) {
-            const players = parejaPlayersMap[p.pareja2_id];
-            if (players) nombreP2 = formatPairName(players[0], players[1]);
-        }
+        // Nombre y apellido de cada jugador, siempre. Antes se usaba primero el
+        // nombre guardado en la pareja ("J. David / W. Cardenas") y solo si
+        // faltaba se armaba el completo: en resultados, cuadros y cronograma
+        // salían parejas sin apellido.
+        const p1Jugadores = p.pareja1_id ? parejaPlayersMap[p.pareja1_id] : undefined;
+        const p2Jugadores = p.pareja2_id ? parejaPlayersMap[p.pareja2_id] : undefined;
+        const nombreP1 = p1Jugadores ? formatPairName(p1Jugadores[0], p1Jugadores[1]) : p1?.nombre_pareja;
+        const nombreP2 = p2Jugadores ? formatPairName(p2Jugadores[0], p2Jugadores[1]) : p2?.nombre_pareja;
         
         const tieneResultado = !!p.resultado;
         const oculta1 = debeOcultar(p.pareja1_id, p.fecha, tieneResultado);
@@ -616,6 +612,14 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         statusColor = "bg-blue-500/20 text-blue-400 border-blue-500/30";
         statusText = "Próximo";
     }
+
+    // La pareja como la usa el reporte, con el nombre armado de sus jugadores.
+    const nombreConJugadores = (parejaId: string | null | undefined) => {
+        if (!parejaId) return undefined;
+        const base = parejaDataMap.get(parejaId);
+        const jug = parejaPlayersMap[parejaId];
+        return jug ? { ...(base || {}), nombre_pareja: formatPairName(jug[0], jug[1]) } : base;
+    };
 
     // Parejas que juegan las finales (las de los grupos finales).
     const parejasEnFinales = new Set<string>(
@@ -704,8 +708,9 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                                         ...p,
                                         fecha_ajustada: adjustedDate.toISOString(),
                                         hora: format(adjustedDate, "HH:mm"),
-                                        pareja1: parejaDataMap.get(p.pareja1_id || ""),
-                                        pareja2: parejaDataMap.get(p.pareja2_id || "")
+                                        // Nombre completo también en la parrilla del reporte.
+                                        pareja1: nombreConJugadores(p.pareja1_id),
+                                        pareja2: nombreConJugadores(p.pareja2_id)
                                     };
                                 })}
                             participantes={reporteSoloFinales
@@ -978,6 +983,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         parejaPlayers={parejaPlayersMap}
                         setsCantidad={torneo.reglas_puntuacion?.sets}
                         formato={torneo.formato}
+                        gruposFinalesIds={gruposFinalesExistentes.map(g => String(g.id))}
                     />
                 </TabsContent>
 

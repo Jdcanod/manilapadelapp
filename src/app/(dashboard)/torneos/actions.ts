@@ -267,6 +267,16 @@ export async function registrarResultadoPorJugador(matchId: string, resultado: s
             return { success: false, message: "Solo una de las parejas que juegan este partido puede cargar su resultado." };
         }
 
+        // Todos contra Todos de una liga que ya sorteó la fase final: lo que
+        // no se jugó ya no se juega, y no debe mover la tabla.
+        if (match.torneo_grupo_id && match.torneo_id) {
+            const { gruposRegularesCerrados } = await import("@/lib/tournaments/faseRegular");
+            const cerrados = await gruposRegularesCerrados(admin, [match.torneo_id]);
+            if (cerrados.has(match.torneo_grupo_id)) {
+                return { success: false, message: "La fase Todos contra Todos ya terminó: este partido ya no se juega." };
+            }
+        }
+
         // Si ya está confirmado, no se puede cambiar por jugador
         if (match.estado_resultado === 'confirmado') {
             return { success: false, message: "Resultado ya verificado por el club anteriormente." };

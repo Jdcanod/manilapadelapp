@@ -576,7 +576,7 @@ export async function actualizarCanchasTorneo(torneoId: string, canchas: number)
 
         const admin = createPureAdminClient();
         const { data: me } = await admin.from('users').select('id, rol').eq('auth_id', user.id).single();
-        if (!me || me.rol !== 'admin_club') return { success: false, message: "Sin permisos" };
+        if (!me) return { success: false, message: "Sin permisos" };
 
         const { data: torneo } = await admin
             .from('torneos')
@@ -585,9 +585,15 @@ export async function actualizarCanchasTorneo(torneoId: string, canchas: number)
             .single();
         if (!torneo) return { success: false, message: "Torneo no encontrado" };
 
-        const esDueno = String(torneo.club_id) === String(me.id);
-        const esRivalCopa = torneo.formato === 'copa_davis' && String(torneo.club_rival_id) === String(me.id);
-        if (!esDueno && !esRivalCopa) return { success: false, message: "No eres parte de este torneo" };
+        const esDueno = me.rol === 'admin_club' && String(torneo.club_id) === String(me.id);
+        const esRivalCopa = me.rol === 'admin_club' && torneo.formato === 'copa_davis' && String(torneo.club_rival_id) === String(me.id);
+        if (!esDueno && !esRivalCopa) {
+            // Las canchas son parte de programar la parrilla: un gestor con ese
+            // permiso también puede (antes, solo el club).
+            const { requireGestionDeTorneo } = await import("@/lib/auth/gestorTorneo");
+            try { await requireGestionDeTorneo(torneoId, 'programacion'); }
+            catch { return { success: false, message: "No eres parte de este torneo" }; }
+        }
 
         const n = Math.max(1, Math.min(20, Math.floor(canchas)));
         const { error } = await admin

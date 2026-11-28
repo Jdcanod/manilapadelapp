@@ -3892,14 +3892,18 @@ export async function darDeBajaPareja(id: string, tipo: 'master' | 'regular', pa
 
 export async function updateMatchTeams(matchId: string, pareja1Id: string | null, pareja2Id: string | null, torneoId: string) {
     try {
-        const { admin: supabaseAdmin } = await requireClubOwnership(torneoId);
+        // Armar el cuadro es parte de "Sortear grupos y fases": un gestor con
+        // ese permiso también puede (antes, solo el club dueño).
+        const { admin: supabaseAdmin } = await requireGestionDeTorneo(torneoId, 'sorteos');
 
         const { error } = await supabaseAdmin.from('partidos')
             .update({ 
                 pareja1_id: pareja1Id || null, 
                 pareja2_id: pareja2Id || null 
             })
-            .eq('id', matchId);
+            .eq('id', matchId)
+            // Con permiso sobre un torneo no se toca un partido de otro.
+            .eq('torneo_id', torneoId);
 
         if (error) throw error;
 
@@ -3919,11 +3923,12 @@ export async function swapMatchPlaceholders(
     slot2: 1 | 2
 ) {
     try {
-        const { admin: supabaseAdmin } = await requireClubOwnership(torneoId);
+        // Parte de "Sortear grupos y fases" (antes, solo el club dueño).
+        const { admin: supabaseAdmin } = await requireGestionDeTorneo(torneoId, 'sorteos');
 
         // Obtener ambos partidos
-        const { data: match1 } = await supabaseAdmin.from('partidos').select('lugar, pareja1_id, pareja2_id').eq('id', matchId1).single();
-        const { data: match2 } = await supabaseAdmin.from('partidos').select('lugar, pareja1_id, pareja2_id').eq('id', matchId2).single();
+        const { data: match1 } = await supabaseAdmin.from('partidos').select('lugar, pareja1_id, pareja2_id').eq('id', matchId1).eq('torneo_id', torneoId).single();
+        const { data: match2 } = await supabaseAdmin.from('partidos').select('lugar, pareja1_id, pareja2_id').eq('id', matchId2).eq('torneo_id', torneoId).single();
 
         if (!match1 || !match2) return { success: false, message: "Partidos no encontrados." };
 

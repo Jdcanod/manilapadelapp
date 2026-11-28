@@ -73,6 +73,9 @@ interface ChronogramProps {
     tipoDesempate?: string;
     /** 'liguilla' muestra "Todos contra Todos" en vez de "Fase de Grupos". */
     formato?: string;
+    /** Ids de los Grupos Finales de una liga: sus partidos se rotulan
+     *  "Grupos Finales" y no "Todos contra Todos". */
+    gruposFinalesIds?: string[];
     /** Cuando el torneo es Copa Davis pasamos este contexto para que las cards
      *  de partido (bolsa y grilla) permitan abrir el dialog "Gestionar Partido". */
     copaDavisContext?: {
@@ -83,7 +86,7 @@ interface ChronogramProps {
     };
 }
 
-export function TournamentChronogram({ torneoId, matches: initialMatches, config, isAdmin = true, currentUserId, tipoDesempate, parejaPlayers, setsCantidad, copaDavisContext, formato }: ChronogramProps) {
+export function TournamentChronogram({ torneoId, matches: initialMatches, config, isAdmin = true, currentUserId, tipoDesempate, parejaPlayers, setsCantidad, copaDavisContext, formato, gruposFinalesIds = [] }: ChronogramProps) {
     const { toast } = useToast();
     const router = useRouter();
     const [matches, setMatches] = useState(initialMatches);
@@ -129,6 +132,7 @@ export function TournamentChronogram({ torneoId, matches: initialMatches, config
     const getFaseLabel = (match: Match): { label: string; color: string } => {
         const lugar = match.lugar || '';
         const l = lugar.toLowerCase();
+        if (match.torneo_grupo_id && gruposFinalesIds.includes(String(match.torneo_grupo_id))) return { label: 'Grupos Finales', color: 'bg-emerald-500/15 text-emerald-700 border-emerald-600/30' };
         if (match.torneo_grupo_id) return { label: formato === 'liguilla' ? 'Todos contra Todos' : 'Fase de Grupos', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
         if (l.includes('final') && !l.includes('semi') && !l.includes('cuartos') && !l.includes('octavos')) return { label: 'Gran Final', color: 'bg-ochre/20 text-ochre border-ochre/30' };
         if (l.includes('semifinal')) return { label: 'Semifinal', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };

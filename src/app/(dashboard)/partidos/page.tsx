@@ -11,7 +11,7 @@ import { BotonCancelarPartido } from "@/components/BotonCancelarPartido";
 import { DetallePartidoDialog } from "@/components/DetallePartidoDialog";
 import { redirect } from "next/navigation";
 import { autocancelarPartidosIncompletos } from "@/utils/cancelarPartidos";
-import { formatFormatoLabel } from "@/lib/display-names";
+import { formatFormatoLabel, formatPairName } from "@/lib/display-names";
 import { ESTADOS_VIGENTES, describirNivel, puedeUnirsePorCategoria } from "@/lib/amistosos";
 import { obtenerCategoriaJugador } from "@/lib/ranking/categoriaJugador";
 import { CompartirPartidoButton } from "@/components/CompartirPartidoButton";
@@ -198,7 +198,18 @@ export default async function PartidosPage({ searchParams }: { searchParams?: { 
             }
             return false;
         });
-        
+
+        // Pendientes de Todos contra Todos de una liga que ya pasó a la fase
+        // final: ya no se juegan, no deben salir como "por jugar". Los
+        // jugados siguen en el historial.
+        {
+            const { gruposRegularesCerrados } = await import("@/lib/tournaments/faseRegular");
+            const cerrados = await gruposRegularesCerrados(adminSupabase, myTournamentMatches.map(m => m.torneo_id));
+            if (cerrados.size > 0) {
+                myTournamentMatches = myTournamentMatches.filter(m => !(m.torneo_grupo_id && cerrados.has(m.torneo_grupo_id) && !m.resultado));
+            }
+        }
+
         // Cargar nombres de parejas
         const pairIdsToFetch = new Set<string>();
         myTournamentMatches.forEach(m => {
@@ -206,15 +217,28 @@ export default async function PartidosPage({ searchParams }: { searchParams?: { 
             if (m.pareja2_id) pairIdsToFetch.add(m.pareja2_id);
         });
         
+        // Nombre y apellido de cada jugador, como en las tablas del torneo (el
+        // nombre guardado en la pareja a veces trae solo nombres de pila).
         const parejaNamesMap = new Map<string, string>();
         if (pairIdsToFetch.size > 0) {
             const { data: namesData } = await adminSupabase
                 .from('parejas')
-                .select('id, nombre_pareja')
+                .select('id, nombre_pareja, jugador1_id, jugador2_id')
                 .in('id', Array.from(pairIdsToFetch));
-            
+            const jugadorIds = Array.from(new Set((namesData || [])
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .flatMap((n: any) => [n.jugador1_id, n.jugador2_id]).filter(Boolean))) as string[];
+            const { data: jugadores } = jugadorIds.length
+                ? await adminSupabase.from('users').select('id, nombre, apellido, email').in('id', jugadorIds)
+                : { data: [] };
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            namesData?.forEach((n: any) => parejaNamesMap.set(n.id, n.nombre_pareja || "Pareja sin nombre"));
+            const jugador = new Map<string, { nombre: string | null; apellido: string | null; email: string | null }>((jugadores || []).map((j: any) => [j.id, j]));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            namesData?.forEach((n: any) => {
+                const j1 = n.jugador1_id ? jugador.get(n.jugador1_id) : null;
+                const j2 = n.jugador2_id ? jugador.get(n.jugador2_id) : null;
+                parejaNamesMap.set(n.id, (j1 || j2) ? formatPairName(j1, j2) : (n.nombre_pareja || "Pareja sin nombre"));
+            });
         }
         
         // Cargar torneos

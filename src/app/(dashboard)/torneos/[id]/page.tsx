@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlayerTournamentGroups } from "@/components/PlayerTournamentGroups";
 
 import { cn } from "@/lib/utils";
-import type { ParejaPlayersMap } from "@/lib/display-names";
+import { formatPairName, type ParejaPlayersMap } from "@/lib/display-names";
 import { TournamentChronogram } from "@/components/TournamentChronogram";
 import { PlayerBracketManager } from "@/components/PlayerBracketManager";
 import { PanelTorneo } from "@/components/panel/PanelTorneo";
@@ -139,8 +139,12 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
         const p1 = parejaDataMap.get(p.pareja1_id);
         const p2 = parejaDataMap.get(p.pareja2_id);
 
-        let name1 = p1?.nombre_pareja || "TBD";
-        let name2 = p2?.nombre_pareja || "TBD";
+        // Nombre y apellido de cada jugador (como en las tablas), no el
+        // nombre guardado en la pareja, que a veces trae solo nombres de pila.
+        const j1 = p.pareja1_id ? parejaPlayersMap[p.pareja1_id] : undefined;
+        const j2 = p.pareja2_id ? parejaPlayersMap[p.pareja2_id] : undefined;
+        let name1 = j1 ? formatPairName(j1[0], j1[1]) : (p1?.nombre_pareja || "TBD");
+        let name2 = j2 ? formatPairName(j2[0], j2[1]) : (p2?.nombre_pareja || "TBD");
 
         if (torneo.formato === 'copa_davis' && !partidoRevelado(p)) {
             if (!isLocalClubPlayer && !isRivalClubPlayer) {
@@ -211,6 +215,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
     // propia pestaña (grupos finales y cuadro), y se abre ahí.
     const gruposFinales = (gruposAll || []).filter(g => g.fase === 'finales');
     const hayFinales = torneo.formato === 'liguilla' && gruposFinales.length > 0;
+    const idsGruposFinales = new Set(gruposFinales.map(g => String(g.id)));
 
     // Parejas fuera de la liga: eliminadas por el corte o retiradas. Igual que
     // en el panel del club; antes aquí faltaban las retiradas.
@@ -462,6 +467,7 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                                 ordenGrupos={torneo.reglas_puntuacion?.orden_grupos || {}}
                                 ligaClasificacionConfig={torneo.reglas_puntuacion?.liga_clasificacion_config || {}}
                                 parejasEliminadas={parejasEliminadasSet}
+                                faseCerrada={hayFinales}
                             />
                     </TabsContent>
                     <TabsContent value="cuadros" className="mt-8">
@@ -479,7 +485,14 @@ export default async function TorneoPlayerDetailsPage({ params }: { params: { id
                     <TabsContent value="cronograma" className="mt-6">
                         <TournamentChronogram
                             torneoId={torneo.id}
-                            matches={partidosReales}
+                            // Con la fase final sorteada, Todos contra Todos sale del
+                            // cronograma: solo grupos finales y cuadro.
+                            matches={hayFinales
+                                ? partidosReales.filter(p => !p.torneo_grupo_id || idsGruposFinales.has(String(p.torneo_grupo_id)))
+                                : partidosReales}
+                            formato={torneo.formato}
+                            gruposFinalesIds={Array.from(idsGruposFinales)}
+                            parejaPlayers={parejaPlayersMap}
                             config={{
                                 duracion: torneo.reglas_puntuacion?.config_duracion || 60,
                                 canchas: torneo.reglas_puntuacion?.config_canchas || 1

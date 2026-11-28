@@ -82,9 +82,13 @@ interface Props {
     faseFinales?: boolean;
     /** En Grupos Finales: cuántos de cada grupo pasan al cuadro. */
     pasanPorGrupo?: number;
+    /** Todos contra Todos ya cerrado (se sortearon las finales): lo que no se
+     *  jugó ya no se juega, así que no se ofrece cargarlo ni se lista como
+     *  pendiente. */
+    faseCerrada?: boolean;
 }
 
-export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId, tipoDesempate = "tercer_set", formato = "relampago", setsCantidad = 3, ordenGrupos = {}, ligaClasificacionConfig = {}, parejasEliminadas = new Set(), parejaPlayers = {}, faseFinales = false, pasanPorGrupo = 2 }: Props) {
+export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, currentUserId, tipoDesempate = "tercer_set", formato = "relampago", setsCantidad = 3, ordenGrupos = {}, ligaClasificacionConfig = {}, parejasEliminadas = new Set(), parejaPlayers = {}, faseFinales = false, pasanPorGrupo = 2, faseCerrada = false }: Props) {
     // Lo propio de la fase regular de la liga (clasificación general, % de
     // partidos, revanchas). En Grupos Finales no aplica.
     const esLiguilla = formato === 'liguilla' && !faseFinales;
@@ -314,6 +318,12 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
 
     return (
         <div className="space-y-6">
+            {faseCerrada && (
+                <p className="text-[11px] text-olive/70 bg-paper-soft/40 border border-olive/15 rounded-xl px-4 py-2.5">
+                    La fase Todos contra Todos terminó: esta es la tabla final. Los partidos que no se
+                    jugaron ya no se juegan. Las finales están en su pestaña.
+                </p>
+            )}
             {uniqueCategorias.length > 1 && (
                 <div className="flex flex-wrap gap-2 mb-6">
                     {uniqueCategorias.map(cat => (
@@ -359,7 +369,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                 {textoPorcentaje(resumenPartidosCat.pct)} {esLiguilla ? 'jugado' : 'de avance'}
                             </Badge>
                         </div>
-                        {resumenPartidosCat.pendientes.length > 0 && (
+                        {!faseCerrada && resumenPartidosCat.pendientes.length > 0 && (
                             <button
                                 type="button"
                                 onClick={() => setPendientesOpen(o => !o)}
@@ -654,7 +664,7 @@ export function PlayerTournamentGroups({ grupos, partidos, playerPairIds, curren
                                                                             <Trophy className="w-3 h-3" />
                                                                             <span className="text-[9px] font-black uppercase tracking-tighter">Tu Partido</span>
                                                                         </div>
-                                                                        {match.estado !== 'jugado' && (
+                                                                        {match.estado !== 'jugado' && !faseCerrada && (
                                                                             <PlayerTournamentResultModal
                                                                                 matchId={match.id}
                                                                                 pareja1Nombre={nombre1}

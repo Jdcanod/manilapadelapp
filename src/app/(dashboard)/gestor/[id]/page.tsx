@@ -40,17 +40,23 @@ export default async function GestorTorneoPage({ params }: { params: { id: strin
 
     const { data: gestor } = await admin
         .from('torneo_gestores')
-        .select('id')
+        .select('id, permisos')
         .eq('torneo_id', params.id)
         .eq('jugador_id', userData.id)
         .maybeSingle();
     if (!gestor) redirect("/jugador");
+    const permisos: string[] = (gestor.permisos as string[] | null) || ['resultados', 'programacion'];
 
-    const { data: partidos } = await admin
+    const { data: partidosTodos } = await admin
         .from('partidos')
         .select('id, fecha, lugar, nivel, estado, estado_resultado, resultado, pareja1_id, pareja2_id, es_revancha, walkover_ganador_id, torneo_grupo_id')
         .eq('torneo_id', params.id)
         .order('fecha', { ascending: true });
+    // Liga con la fase final sorteada: el gestor trabaja sobre las finales;
+    // Todos contra Todos ya no se juega ni se programa.
+    const { gruposRegularesCerrados } = await import("@/lib/tournaments/faseRegular");
+    const cerrados = await gruposRegularesCerrados(admin, [params.id]);
+    const partidos = (partidosTodos || []).filter((p: { torneo_grupo_id: string | null }) => !(p.torneo_grupo_id && cerrados.has(p.torneo_grupo_id)));
 
     // Nombres de pareja ya resueltos: el gestor necesita reconocer a la gente,
     // no descifrar identificadores.
@@ -101,9 +107,28 @@ export default async function GestorTorneoPage({ params }: { params: { id: strin
                 </div>
             </div>
 
+            {/* Inscribir parejas y sortear se hacen en el panel del torneo,
+                que con esos permisos el gestor también puede abrir. */}
+            {(permisos.includes('parejas') || permisos.includes('sorteos')) && (
+                <Link
+                    href={`/club/torneos/${params.id}`}
+                    className="flex items-center justify-between gap-3 bg-paper-soft border border-olive/20 rounded-2xl px-4 py-3 hover:bg-paper-dark/40 transition-colors"
+                >
+                    <span className="text-sm font-bold text-ink">
+                        Abrir el panel del torneo
+                        <span className="block text-[11px] font-normal text-olive/70">
+                            {[permisos.includes('parejas') && 'inscribir parejas', permisos.includes('sorteos') && 'sortear grupos y fases'].filter(Boolean).join(' y ')}
+                        </span>
+                    </span>
+                    <ChevronLeft className="w-4 h-4 text-olive/50 rotate-180" />
+                </Link>
+            )}
+
             <PanelGestor
                 torneoId={params.id}
                 canchas={canchas}
+                puedeCargar={permisos.includes('resultados')}
+                puedeProgramar={permisos.includes('programacion')}
                 partidos={(partidos || []).map((p: Record<string, any>) => ({
                     id: p.id,
                     fecha: p.fecha,

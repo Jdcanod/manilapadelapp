@@ -5,6 +5,7 @@ import { getOrCreateInvitado } from "@/lib/invitados";
 import { TBD_PREFIX, esParejaPlaceholder, type JugadorLite, type ParejaCatalogoEntry } from "@/lib/tbd";
 import { coincideBusqueda, formatPlayerName, isGuestEmail } from "@/lib/display-names";
 import { revalidatePath } from "next/cache";
+import { requireGestionDeTorneo } from "@/lib/auth/gestorTorneo";
 
 /**
  * Crea N parejas placeholder ("TBD · cat #1", "#2", ...) para una categoría,
@@ -33,6 +34,10 @@ export async function crearGruposRelampagoConTBD({
     configPorCategoria: Record<string, CrearGruposCatCfg>;
 }): Promise<{ success: boolean; error?: string; placeholdersCreados?: number; gruposCreados?: number }> {
     try {
+        // Antes no comprobaba nada, ni siquiera la sesión: al ser una acción
+        // de servidor exportada, cualquiera podía llamarla sobre cualquier
+        // torneo. Al crear el torneo quien la llama es el club dueño.
+        await requireGestionDeTorneo(torneoId, 'sorteos');
         const admin = createPureAdminClient();
 
         let totalPlaceholders = 0;
@@ -179,6 +184,9 @@ export async function asignarParejaASlot({
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { success: false, error: "No autenticado" };
+        // Antes bastaba con tener sesión para cambiar los grupos de cualquier
+        // torneo. Ahora: el club o un gestor con "Inscribir parejas".
+        await requireGestionDeTorneo(torneoId, 'parejas');
 
         const admin = createPureAdminClient();
 
@@ -559,6 +567,7 @@ export async function quitarParejaDelSlot({
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { success: false, error: "No autenticado" };
+        await requireGestionDeTorneo(torneoId, 'parejas');
 
         const admin = createPureAdminClient();
 

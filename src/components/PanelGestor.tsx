@@ -47,10 +47,14 @@ function cuando(fecha: string | null): string | null {
  * Por defecto muestra lo que falta: al borde de la cancha uno viene a cargar
  * un partido, no a leer la historia del torneo.
  */
-export function PanelGestor({ torneoId, canchas, partidos }: {
+export function PanelGestor({ torneoId, canchas, partidos, puedeCargar = true, puedeProgramar = true }: {
     torneoId: string;
     canchas: number;
     partidos: PartidoGestor[];
+    /** Las funciones que el club le dio a este gestor: sin ellas no se
+     *  muestran los botones (el servidor igual las rechazaría). */
+    puedeCargar?: boolean;
+    puedeProgramar?: boolean;
 }) {
     const router = useRouter();
     const [busqueda, setBusqueda] = useState("");
@@ -135,7 +139,7 @@ export function PanelGestor({ torneoId, canchas, partidos }: {
             ) : (
                 <ul className="space-y-2.5">
                     {visibles.map(p => (
-                        <FilaPartido key={p.id} p={p} torneoId={torneoId} canchas={canchas} onCambio={() => router.refresh()} />
+                        <FilaPartido key={p.id} p={p} torneoId={torneoId} canchas={canchas} puedeCargar={puedeCargar} puedeProgramar={puedeProgramar} onCambio={() => router.refresh()} />
                     ))}
                 </ul>
             )}
@@ -143,10 +147,12 @@ export function PanelGestor({ torneoId, canchas, partidos }: {
     );
 }
 
-function FilaPartido({ p, torneoId, canchas, onCambio }: {
+function FilaPartido({ p, torneoId, canchas, puedeCargar, puedeProgramar, onCambio }: {
     p: PartidoGestor;
     torneoId: string;
     canchas: number;
+    puedeCargar: boolean;
+    puedeProgramar: boolean;
     onCambio: () => void;
 }) {
     const [programando, setProgramando] = useState(false);
@@ -194,6 +200,7 @@ function FilaPartido({ p, torneoId, canchas, onCambio }: {
                 </p>
             ) : (
                 <div className="flex flex-wrap items-center gap-2">
+                    {puedeCargar && (
                     <AdminTournamentResultModal
                         matchId={p.id}
                         pareja1Nombre={p.pareja1}
@@ -203,6 +210,8 @@ function FilaPartido({ p, torneoId, canchas, onCambio }: {
                         initialResult={p.resultado}
                         compact
                     />
+                    )}
+                    {puedeProgramar && (
                     <Button
                         variant="outline" size="sm"
                         onClick={() => setProgramando(v => !v)}
@@ -211,6 +220,7 @@ function FilaPartido({ p, torneoId, canchas, onCambio }: {
                         <CalendarClock className="w-3.5 h-3.5 mr-1.5" />
                         {programado ? 'Cambiar cancha u hora' : 'Programar'}
                     </Button>
+                    )}
                 </div>
             )}
 

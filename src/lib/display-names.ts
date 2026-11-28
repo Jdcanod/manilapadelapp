@@ -166,7 +166,14 @@ export function formatLegacyPairName(stored: string | null | undefined): string 
     // Soporta separadores comunes: " / ", " & ", " y ", " - "
     const parts = stored.split(/\s*\/\s*|\s*&\s*|\s+y\s+|\s+-\s+/i);
     if (parts.length < 2) return stored; // No se pudo separar, devolver tal cual
-    return parts.map(p => compactName(p)).join(' / ');
+    // La marca de invitado "(I)" se aparta antes de compactar y se devuelve al
+    // final. Si no, se tomaba por apellido: "Camilo Lopez (I)", un nombre ya
+    // bien armado, salía "Camilo L. (I)" en cada pantalla que lo re-formateaba.
+    return parts.map(p => {
+        const invitado = /\s*\(I\)\s*$/i.test(p);
+        const limpio = p.replace(/\s*\(I\)\s*$/i, '');
+        return `${compactName(limpio)}${invitado ? ' (I)' : ''}`;
+    }).join(' / ');
 }
 
 /** El valor interno del formato sigue siendo "liguilla" (DB, checks de código);

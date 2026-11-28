@@ -17,6 +17,7 @@ import { obtenerRankingGlobal } from "@/lib/ranking/obtenerRankingGlobal";
 import { resolveClubPublicId } from "@/lib/club/resolveClubPublicId";
 import { ESTADO_AMISTOSO, describirNivel } from "@/lib/amistosos";
 import { obtenerCategoriaJugador } from "@/lib/ranking/categoriaJugador";
+import { formatPairName } from "@/lib/display-names";
 
 /** Dado el resultado "6-3,4-6,10-7" (o con espacios/barras) devuelve qué pareja ganó: 1 o 2 */
 function getWinner(resultado: string | null | undefined): 1 | 2 | null {
@@ -91,14 +92,27 @@ export default async function JugadorDashboard() {
         if (p.pareja2_id) pairIdsToFetch.add(p.pareja2_id);
     });
 
+    // Nombre y apellido de cada jugador, como en las tablas del torneo.
     const parejaNamesMap = new Map<string, string>();
     if (pairIdsToFetch.size > 0) {
         const { data: namesData } = await adminSupabase
             .from('parejas')
-            .select('id, nombre_pareja')
+            .select('id, nombre_pareja, jugador1_id, jugador2_id')
             .in('id', Array.from(pairIdsToFetch));
+        const jugadorIds = Array.from(new Set((namesData || [])
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .flatMap((n: any) => [n.jugador1_id, n.jugador2_id]).filter(Boolean))) as string[];
+        const { data: jugadoresNombres } = jugadorIds.length
+            ? await adminSupabase.from('users').select('id, nombre, apellido, email').in('id', jugadorIds)
+            : { data: [] };
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        namesData?.forEach((n: any) => parejaNamesMap.set(n.id, n.nombre_pareja));
+        const jugadorPorId = new Map<string, { nombre: string | null; apellido: string | null; email: string | null }>((jugadoresNombres || []).map((j: any) => [j.id, j]));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        namesData?.forEach((n: any) => {
+            const j1 = n.jugador1_id ? jugadorPorId.get(n.jugador1_id) : null;
+            const j2 = n.jugador2_id ? jugadorPorId.get(n.jugador2_id) : null;
+            parejaNamesMap.set(n.id, (j1 || j2) ? formatPairName(j1, j2) : n.nombre_pareja);
+        });
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
