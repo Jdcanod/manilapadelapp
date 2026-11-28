@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Swords, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ParejaLink } from "@/components/panel/ParejaLink";
+import { usePermisosTorneo } from "@/components/PermisosTorneo";
 import { generarFaseGrupos, swapParejasDeGrupo, crearGrupoManual, moverParejaAGrupo, actualizarOrdenGrupo, crearRevancha, actualizarIdaVueltaCategoria, actualizarRevanchaCategoria } from "@/app/(dashboard)/club/torneos/[id]/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -114,6 +115,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
     // Opciones específicas de liguilla
     const [numGrupos, setNumGrupos] = useState(2);
     const [showSettings, setShowSettings] = useState(false);
+    const permisos = usePermisosTorneo();
     const [pendientesOpen, setPendientesOpen] = useState(false);
     const [filtroParejaPendientes, setFiltroParejaPendientes] = useState("");
 
@@ -608,7 +610,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                             )}
                         </div>
                         {/* Ajustes de liga — corte, ida y vuelta, revancha, clasificación. Colapsado por defecto. */}
-                        {esLiguilla && !faseCerrada && (
+                        {esLiguilla && !faseCerrada && permisos.sorteos && (
                             <details className="group mt-3 bg-paper border border-olive/20 rounded-xl">
                                 <summary className="cursor-pointer select-none flex items-center justify-between px-3 py-2 text-[10px] font-black text-olive uppercase tracking-widest">
                                     <span className="flex items-center gap-1.5">
@@ -687,7 +689,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                         El "Sortear Eliminatorias" vive solo en el tab Fases Finales para evitar
                         duplicar el botón. */}
                     <div className="flex flex-col gap-2 w-full md:w-auto shrink-0">
-                        {gruposCategoria.length === 0 && !faseCerrada && (
+                        {gruposCategoria.length === 0 && !faseCerrada && permisos.sorteos && (
                             <Button
                                 onClick={onGenerate}
                                 disabled={isPending}
@@ -701,7 +703,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                 </div>
 
                 {/* Toggle de configuración avanzada (solo cuando ya hay grupos) */}
-                {gruposCategoria.length > 0 && !faseCerrada && (
+                {gruposCategoria.length > 0 && !faseCerrada && permisos.sorteos && (
                     <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto items-stretch sm:items-center">
                         <Button
                             type="button"
@@ -1007,7 +1009,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                     return (
                                                     <tr
                                                         key={team.parejaId}
-                                                        draggable={!faseCerrada}
+                                                        draggable={!faseCerrada && permisos.sorteos}
                                                         onDragStart={(e) => e.dataTransfer.setData("text/plain", team.parejaId)}
                                                         onDragOver={(e) => e.preventDefault()}
                                                         onDrop={(e) => {
@@ -1030,8 +1032,8 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                         )}>
                                                             {(() => {
                                                                 // Solo se puede mover si la fila adyacente está empatada en pts/%sets/%games.
-                                                                const tiedUp = !faseCerrada && idx > 0 && areTiedStandings(standings[idx], standings[idx - 1]);
-                                                                const tiedDown = !faseCerrada && idx < standings.length - 1 && areTiedStandings(standings[idx], standings[idx + 1]);
+                                                                const tiedUp = !faseCerrada && permisos.sorteos && idx > 0 && areTiedStandings(standings[idx], standings[idx - 1]);
+                                                                const tiedDown = !faseCerrada && permisos.sorteos && idx < standings.length - 1 && areTiedStandings(standings[idx], standings[idx + 1]);
                                                                 return (
                                                                     <div className="flex items-center justify-center gap-0.5">
                                                                         <div className="flex flex-col -my-1">
@@ -1244,6 +1246,9 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                      </div>
                                                                  )}
 
+                                                                 {/* Con la fase cerrada ya no se cargan ni se corrigen
+                                                                     resultados: la tabla final decidió quién clasificó. */}
+                                                                 {!faseCerrada && (
                                                                  <div className="flex flex-col gap-2">
                                                                      <AdminTournamentResultModal
                                                                         matchId={match.id}
@@ -1257,7 +1262,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                         disabledReason="Debe programar el partido en el cronograma primero"
                                                                         setsCantidad={setsCantidad}
                                                                     />
-                                                                     {match.estado === 'jugado' && match.estado_resultado === 'pendiente' && (
+                                                                     {permisos.resultados && !permisos.esPartidoPropio(match.id) && match.estado === 'jugado' && match.estado_resultado === 'pendiente' && (
                                                                          <div className="flex flex-col gap-2 p-2 bg-olive/10 border border-olive/20 rounded-xl">
                                                                              <div className="text-center">
                                                                                  <span className="text-[10px] font-black text-olive uppercase">Validar Score: </span>
@@ -1282,7 +1287,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                              </Button>
                                                                          </div>
                                                                      )}
-                                                                     {match.estado === 'jugado' && (
+                                                                     {permisos.resultados && !permisos.esPartidoPropio(match.id) && match.estado === 'jugado' && (
                                                                          <Button
                                                                              size="sm"
                                                                              variant="ghost"
@@ -1300,7 +1305,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                              <RotateCcw className="w-2.5 h-2.5 mr-1" /> Reiniciar Score
                                                                          </Button>
                                                                      )}
-                                                                     {esLiguilla && revanchaActiva && !match.es_revancha && !partidosConRevancha.has(match.id) && (() => {
+                                                                     {permisos.sorteos && esLiguilla && revanchaActiva && !match.es_revancha && !partidosConRevancha.has(match.id) && (() => {
                                                                          const confirmado = match.estado === 'jugado' && match.estado_resultado === 'confirmado';
                                                                          return (
                                                                              <Button
@@ -1321,6 +1326,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                                          );
                                                                      })()}
                                                                  </div>
+                                                                 )}
                                                             </div>
                                                     )}
                                                 />

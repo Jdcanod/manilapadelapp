@@ -5,6 +5,7 @@ import { Check, Loader2 } from "lucide-react";
 import { confirmarResultado } from "@/app/(dashboard)/torneos/actions";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { usePermisosTorneo } from "@/components/PermisosTorneo";
 
 interface Props {
     matchId: string;
@@ -14,6 +15,9 @@ interface Props {
 export function AdminConfirmResultButton({ matchId, compact }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
+    const permisos = usePermisosTorneo();
+    // En un partido propio el aviso lo muestra el botón de resultado.
+    const oculto = !permisos.resultados || permisos.esPartidoPropio(matchId);
 
     const handleConfirm = async () => {
         if (!confirm("¿Deseas confirmar este resultado como oficial?")) return;
@@ -27,6 +31,8 @@ export function AdminConfirmResultButton({ matchId, compact }: Props) {
             }
         });
     };
+
+    if (oculto) return null;
 
     return (
         <button

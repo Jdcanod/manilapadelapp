@@ -3,7 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { esPartidoDeTorneo } from "@/lib/tournaments/esDeTorneo";
-import { requireGestionDeTorneo } from "@/lib/auth/gestorTorneo";
+import { requireGestionDeTorneo, juegaEsePartido } from "@/lib/auth/gestorTorneo";
 
 export async function inscribirParejaTorneo(formData: FormData) {
     try {
@@ -469,7 +469,11 @@ export async function reiniciarResultado(matchId: string) {
         if (esPartidoDeTorneo(match) && match.torneo_id) {
             try {
                 // Reiniciar es cargar resultados: no basta con ser gestor.
-                await requireGestionDeTorneo(match.torneo_id, 'resultados');
+                const gestion = await requireGestionDeTorneo(match.torneo_id, 'resultados');
+                // Ni el de un partido que juega: podría borrar una derrota.
+                if (!gestion.esClub && await juegaEsePartido(gestion.admin, matchId, gestion.userData.id)) {
+                    return { success: false, message: "No puedes reiniciar el resultado de un partido que juegas. Pídeselo al club o a otro gestor." };
+                }
             } catch {
                 return { success: false, message: "Solo el club o un gestor del torneo pueden reiniciar este resultado." };
             }

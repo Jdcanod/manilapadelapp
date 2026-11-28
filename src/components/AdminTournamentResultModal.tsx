@@ -8,6 +8,7 @@ import { registrarResultadoPorClub, registrarWalkover } from "@/app/(dashboard)/
 import { Trophy, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { usePermisosTorneo, AvisoPartidoPropio } from "@/components/PermisosTorneo";
 
 interface Props {
     matchId: string;
@@ -28,6 +29,7 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
+    const permisos = usePermisosTorneo();
 
     const getInitialSets = useCallback(() => {
         if (initialResult) {
@@ -178,6 +180,11 @@ export function AdminTournamentResultModal({ matchId, pareja1Nombre, pareja2Nomb
             }
         });
     };
+
+    // Gestores: sin la función "Cargar resultados" no hay botón, y en un
+    // partido que juegan se explica por qué no pueden cargarlo.
+    if (!permisos.resultados) return null;
+    if (permisos.esPartidoPropio(matchId)) return <AvisoPartidoPropio compacto={compact} />;
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>

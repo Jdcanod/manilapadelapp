@@ -15,6 +15,7 @@ import { AdminEditBracketModal } from "@/components/AdminEditBracketModal";
 import { SortearEliminatoriasDialog } from "@/components/SortearEliminatoriasDialog";
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
 import { ParejaLink } from "@/components/panel/ParejaLink";
+import { usePermisosTorneo } from "@/components/PermisosTorneo";
 import { alinearRondaPrevia, type CeldaPrevia } from "@/lib/tournaments/cuadroConDescansos";
 
 interface MatchItem {
@@ -39,6 +40,8 @@ function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers, setsC
     const params = useParams();
     const torneoId = Array.isArray(params.id) ? params.id[0] : params.id;
     const [isDraggingOver, setIsDraggingOver] = useState<number | null>(null);
+    const permisos = usePermisosTorneo();
+    const puedeActuar = permisos.resultados && !permisos.esPartidoPropio(match.id);
 
     const p1IsTBD = !match.pareja1?.nombre_pareja || match.pareja1?.nombre_pareja === 'TBD';
     const p2IsTBD = !match.pareja2?.nombre_pareja || match.pareja2?.nombre_pareja === 'TBD';
@@ -97,7 +100,7 @@ function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers, setsC
 
     return (
         <Card className="bg-paper border-olive/20 border-l-4 border-l-amber-500 shadow-2xl overflow-visible hover:border-olive/30 transition-all group w-full max-w-[280px] relative">
-            {allPairs && match.estado !== 'jugado' && (
+            {permisos.sorteos && allPairs && match.estado !== 'jugado' && (
                 <AdminEditBracketModal 
                     matchId={match.id}
                     currentPareja1Id={match.pareja1?.id}
@@ -116,7 +119,7 @@ function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers, setsC
                 </div>
                 <div className="p-4 space-y-4">
                     <div 
-                        draggable={match.estado !== 'jugado'}
+                        draggable={permisos.sorteos && match.estado !== 'jugado'}
                         onDragStart={(e) => handleDragStart(e, 1)}
                         onDragOver={(e) => handleDragOver(e, 1)}
                         onDragLeave={handleDragLeave}
@@ -138,7 +141,7 @@ function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers, setsC
                         </div>
                     </div>
                     <div 
-                        draggable={match.estado !== 'jugado'}
+                        draggable={permisos.sorteos && match.estado !== 'jugado'}
                         onDragStart={(e) => handleDragStart(e, 2)}
                         onDragOver={(e) => handleDragOver(e, 2)}
                         onDragLeave={handleDragLeave}
@@ -177,6 +180,7 @@ function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers, setsC
                             <div className="flex items-center justify-center gap-2 text-olive font-black text-[10px] uppercase bg-olive/5 p-2 rounded-lg border border-olive/10">
                                 <Check className="w-3 h-3" /> Resultado Verificado
                             </div>
+                            {puedeActuar && (
                             <button
                                 onClick={async () => {
                                     if (window.confirm("¿Estás seguro de reiniciar este resultado? Esto permitirá volver a ingresar el marcador.")) {
@@ -190,6 +194,7 @@ function BracketMatchCard({ match, tipoDesempate, allPairs, parejaPlayers, setsC
                             >
                                 Reiniciar Resultado
                             </button>
+                            )}
                         </div>
                     )}
 
@@ -390,6 +395,7 @@ function BracketSection({ categoria, matches, tipoDesempate, allPairs, parejaPla
 export function TournamentBracketManager({ categorias, partidos, tipoDesempate, parejaPlayers, setsCantidad, formato = 'relampago', clasificanPorGrupoDefault, ligaClasificacionConfig, allParticipants = [], gruposFinalesCategorias = [] }: { categorias: string[], partidos: MatchItem[], tipoDesempate?: string, parejaPlayers?: ParejaPlayersMap, setsCantidad?: number, formato?: string, clasificanPorGrupoDefault?: number, ligaClasificacionConfig?: Record<string, { total: number; minPartidos: number }>, allParticipants?: any[], /** Liguilla: categorías que ya tienen Grupos Finales generados. */ gruposFinalesCategorias?: string[] }) {
     const [selectedCat, setSelectedCat] = useState(categorias[0] || '');
     const [loading, setLoading] = useState(false);
+    const permisosTorneo = usePermisosTorneo();
     const params = useParams();
     const torneoId = Array.isArray(params.id) ? params.id[0] : params.id;
     const { toast } = useToast();
@@ -459,6 +465,7 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate, 
                         Categoría seleccionada: {selectedCat}
                     </Badge>
                     
+                    {permisosTorneo.sorteos && (
                     <SortearEliminatoriasDialog
                         torneoId={torneoId as string}
                         categoria={selectedCat}
@@ -468,6 +475,7 @@ export function TournamentBracketManager({ categorias, partidos, tipoDesempate, 
                         ligaClasificacionConfig={ligaClasificacionConfig}
                         tieneGruposFinales={gruposFinalesCategorias.includes(selectedCat)}
                     />
+                    )}
 
                     {eliminatoriasPartidos.filter(p => p.nivel === selectedCat).length > 0 && (
                         <button

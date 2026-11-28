@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic';
-import { createClient, createAdminClient, createPureAdminClient } from "@/utils/supabase/server";
+import { createClient, createPureAdminClient } from "@/utils/supabase/server";
 import { format, addHours } from "date-fns";
 import { redirect } from "next/navigation";
 import { ChevronLeft, ChevronDown, CalendarDays, Swords, Trophy, Settings } from "lucide-react";
@@ -16,6 +16,7 @@ import { AddTournamentPlayerModal } from "@/components/AddTournamentPlayerModal"
 import { TournamentChronogram } from "@/components/TournamentChronogram";
 import { TournamentExportButton } from "@/components/TournamentExportButton";
 import { TournamentResultsManager } from "@/components/TournamentResultsManager";
+import { PermisosTorneoProvider } from "@/components/PermisosTorneo";
 import { CopaDavisManager } from "@/components/CopaDavisManager";
 import { TorneoMuroManager } from "@/components/TorneoMuroManager";
 import { listarMuroPosts } from "@/app/(dashboard)/club/torneos/[id]/muro-actions";
@@ -157,7 +158,10 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const deFaseCerrada = (p: any) => reporteSoloFinales && !!p.torneo_grupo_id && idsGruposRegulares.has(String(p.torneo_grupo_id));
 
-    const adminSupabase = createAdminClient();
+    // Sin sesión: createAdminClient viaja con las cookies de quien navega y,
+    // con la de un gestor (un jugador), las reglas de la base le podían
+    // esconder parejas y jugadores. Quién entra ya se verificó arriba.
+    const adminSupabase = createPureAdminClient();
     const pureAdmin = createPureAdminClient();
 
     // 1. Obtener TODOS los partidos del torneo anticipadamente
@@ -657,7 +661,25 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
             .map(String)
     );
 
+    // Partidos que juega quien navega (solo aplica a gestores): no carga,
+    // confirma ni reinicia los suyos. El servidor lo exige igual.
+    const partidosPropios: string[] = soloClub ? [] : (rawPartidos || [])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .filter((p: any) => [p.pareja1_id, p.pareja2_id].some((id: string | null) => {
+            const pareja = id ? parejaDataMap.get(id) : undefined;
+            return !!pareja && (pareja.jugador1_id === userData.id || pareja.jugador2_id === userData.id);
+        }))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((p: any) => String(p.id));
+
     return (
+        <PermisosTorneoProvider
+            resultados={puede('resultados')}
+            programacion={puede('programacion')}
+            parejas={puede('parejas')}
+            sorteos={puede('sorteos')}
+            partidosPropios={partidosPropios}
+        >
         <div className="space-y-6">
             {creationWarning && (
                 <div className="bg-ochre/10 border border-ochre/30 rounded-xl p-4 text-ochre-soft text-sm">
@@ -875,9 +897,11 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                     )}
                 </div>
             ) : (
-            <PersistentTabs defaultValue={reporteSoloFinales ? "grupos_finales" : "participantes"} className="w-full mt-8">
+            <PersistentTabs defaultValue={reporteSoloFinales ? "grupos_finales" : puede('parejas') ? "participantes" : "grupos"} className="w-full mt-8">
                 <TabsList className="bg-paper-soft border border-olive/20 p-1 w-full flex overflow-x-auto justify-start sm:w-auto overflow-y-hidden">
+                    {puede('parejas') && (
                     <TabsTrigger value="participantes" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Parejas Inscritas <Badge variant="secondary" className="ml-2 bg-paper-dark text-olive border-none">{allParticipants.length}</Badge></TabsTrigger>
+                    )}
                     <TabsTrigger value="grupos" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">
                         {torneo.formato === 'liguilla' ? "Todos contra Todos" : "Fase de Grupos"}
                     </TabsTrigger>
@@ -1030,6 +1054,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                     />
                 </TabsContent>
 
+                {puede('parejas') && (
                 <TabsContent value="participantes" className="mt-6">
                     {/* ... (existing content) */}
                     <div className="flex justify-between items-center mb-4">
@@ -1047,6 +1072,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         hasStarted={hasStarted}
                     />
                 </TabsContent>
+                )}
 
                 <TabsContent value="eliminatorias" className="mt-6">
                     <div className="space-y-12">
@@ -1085,6 +1111,6 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
             {/* La hoja de pareja y jugador: vive en la URL, sobre cualquier vista. */}
             <PanelTorneo torneoId={params.id} />
         </div>
-
+        </PermisosTorneoProvider>
     );
 }

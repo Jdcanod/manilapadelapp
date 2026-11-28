@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Search, X, Check, RotateCcw, Loader2, AlertTriangle, Clock, Filter } from "lucide-react";
 import { AdminTournamentResultModal } from "@/components/AdminTournamentResultModal";
+import { usePermisosTorneo } from "@/components/PermisosTorneo";
 import { confirmarResultado, reiniciarResultado } from "@/app/(dashboard)/torneos/actions";
 import { cn } from "@/lib/utils";
 import { resolvePairName, type ParejaPlayersMap } from "@/lib/display-names";
@@ -58,7 +59,11 @@ function timeAgo(iso: string | null | undefined): string {
 export function TournamentResultsManager({ torneoId, partidos, categorias, tipoDesempate = "tercer_set", userMap = {}, parejaPlayers = {}, setsCantidad }: Props) {
     const [search, setSearch] = useState("");
     const [categoria, setCategoria] = useState<string>("todas");
-    const [status, setStatus] = useState<StatusFilter>("pendientes");
+    // Abre donde hay trabajo: lo que espera confirmación y, si no hay nada,
+    // lo que falta por cargar. Antes abría siempre en "Por confirmar": con
+    // 0 ahí y 42 sin resultado, la pestaña parecía vacía.
+    const [status, setStatus] = useState<StatusFilter>(() =>
+        partidos.some(p => p.pareja1_id && p.pareja2_id && p.resultado && p.estado_resultado !== 'confirmado') ? "pendientes" : "sin_resultado");
 
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();
@@ -238,6 +243,10 @@ function MatchRowCard({ torneoId, match, tipoDesempate, userMap, parejaPlayers, 
     const hasResult = !!match.resultado;
     const isConfirmed = match.estado_resultado === 'confirmado';
     const isPending = hasResult && !isConfirmed;
+    const permisos = usePermisosTorneo();
+    // Confirmar y reiniciar son parte de cargar resultados, y nunca sobre un
+    // partido que uno juega (el botón de resultado ya muestra el aviso).
+    const puedeActuar = permisos.resultados && !permisos.esPartidoPropio(match.id);
 
     const handleConfirm = () => {
         setError(null);
@@ -356,6 +365,7 @@ function MatchRowCard({ torneoId, match, tipoDesempate, userMap, parejaPlayers, 
                                 compact
                                 setsCantidad={setsCantidad}
                             />
+                            {puedeActuar && (<>
                             <Button
                                 onClick={handleReset}
                                 disabled={pendingReset}
@@ -378,6 +388,7 @@ function MatchRowCard({ torneoId, match, tipoDesempate, userMap, parejaPlayers, 
                             >
                                 {pendingConfirm ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3 mr-1" /> Confirmar</>}
                             </Button>
+                            </>)}
                         </>
                     )}
                     {isConfirmed && (
