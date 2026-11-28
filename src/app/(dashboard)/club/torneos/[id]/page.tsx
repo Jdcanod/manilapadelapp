@@ -352,7 +352,11 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
         p.pareja1_id && p.pareja2_id && p.resultado && p.estado_resultado !== 'confirmado' && !deFaseCerrada(p)
     ).length;
 
-    const muroPosts = await listarMuroPosts(params.id);
+    // El Muro lo administra solo el club dueño, y listarMuroPosts LANZA un
+    // error para cualquier otro: para un gestor (o el superadmin) tumbaba la
+    // página entera ("Error en la página del Torneo"). Se pide solo para el
+    // dueño, y si falla no se lleva la página con él.
+    const muroPosts = esClubDueno ? await listarMuroPosts(params.id).catch(() => []) : [];
 
     // Cargar nombres de quien reportó cada resultado pendiente
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -889,7 +893,9 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                         )}
                     </TabsTrigger>
                     )}
+                    {esClubDueno && (
                     <TabsTrigger value="muro" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Muro</TabsTrigger>
+                    )}
                     <TabsTrigger
                         value="cronograma"
                         disabled={torneo.formato === 'liguilla' && partidosParaCronogramaLiga.length === 0}
@@ -985,9 +991,11 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                 </TabsContent>
                 )}
 
+                {esClubDueno && (
                 <TabsContent value="muro" className="mt-6">
                     <TorneoMuroManager torneoId={params.id} posts={muroPosts} />
                 </TabsContent>
+                )}
 
                 <TabsContent value="cronograma" className="mt-6">
                     {torneo.formato === 'liguilla' && (
