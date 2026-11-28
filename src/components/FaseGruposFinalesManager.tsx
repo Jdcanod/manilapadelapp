@@ -54,9 +54,12 @@ interface Props {
      *  confirmar resultados es "Cargar resultados". Por defecto, todo. */
     puedeSortear?: boolean;
     puedeCargarResultados?: boolean;
+    /** Solo el club dueño: rehacer un sorteo ya hecho (por ejemplo, si una
+     *  pareja se baja). Queda plegado al final. */
+    puedeRehacer?: boolean;
 }
 
-export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, partidos, ligaClasificacionConfig = {}, tercerPuestoPorCategoria = {}, parejaPlayers = {}, tipoDesempate, setsCantidad = 3, puedeSortear = true, puedeCargarResultados = true }: Props) {
+export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, partidos, ligaClasificacionConfig = {}, tercerPuestoPorCategoria = {}, parejaPlayers = {}, tipoDesempate, setsCantidad = 3, puedeSortear = true, puedeCargarResultados = true, puedeRehacer = false }: Props) {
     const [selectedCat, setSelectedCat] = useState<string>(categorias[0] || "");
     // Por categoría: cada una arma sus grupos finales por separado, y antes
     // este número era uno solo para todas — cambiarlo en 6ta se lo cambiaba
@@ -181,6 +184,11 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                 ))}
             </div>
 
+
+            {/* Antes de sortear: la explicación y los pasos del sorteo.
+                Ya sorteados, se ocultan: la fase final se gestiona como los
+                grupos de un relámpago en curso. */}
+            {gruposCat.length === 0 && puedeSortear && (<>
             <p className="text-[11px] text-olive/60 leading-snug">
                 Las mejores parejas de Todos contra Todos se reparten aquí en grupos nuevos para
                 jugar un mini round-robin, y de esos grupos sale el Cuadro de Cuadros Finales. Los
@@ -191,9 +199,6 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                     directamente desde Todos contra Todos, sin pasar por aquí.</>
                 )}
             </p>
-
-            {/* Armar los grupos: solo con permiso de sortear. */}
-            {puedeSortear && (<>
             <div className="flex items-center gap-3 flex-wrap bg-paper/40 border border-olive/20 rounded-xl p-4">
                 <div className="flex items-center gap-2">
                     <span className="text-[10px] text-olive/70 uppercase tracking-wide font-bold">¿Cuántas clasifican?</span>
@@ -550,6 +555,243 @@ export function FaseGruposFinalesManager({ torneoId, categorias, gruposFinales, 
                         );
                     })}
                 </div>
+            )}
+
+            {gruposCat.length > 0 && puedeRehacer && (
+                <details className="group bg-paper-soft/40 border border-olive/15 rounded-xl">
+                    <summary className="cursor-pointer select-none px-4 py-2.5 text-[11px] font-bold text-olive/70 hover:text-ink">
+                        Rehacer el sorteo de {selectedCat}
+                    </summary>
+                    <div className="px-4 pb-4 space-y-4">
+                        <p className="text-[11px] text-red-700/80">
+                            Volver a sortear borra los grupos finales de esta categoría con sus partidos y resultados.
+                            Úsalo solo si hay que corregir algo, por ejemplo si una pareja no va a jugar.
+                        </p>
+            <div className="flex items-center gap-3 flex-wrap bg-paper/40 border border-olive/20 rounded-xl p-4">
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-olive/70 uppercase tracking-wide font-bold">¿Cuántas clasifican?</span>
+                    <Input
+                        type="number"
+                        min={2}
+                        max={64}
+                        value={Number.isNaN(totalClasifican) ? '' : totalClasifican}
+                        onChange={e => setClasificanOverride(prev => ({ ...prev, [selectedCat]: parseInt(e.target.value) }))}
+                        onBlur={() => setClasificanOverride(prev => ({
+                            ...prev,
+                            [selectedCat]: Math.max(2, Math.min(64, isNaN(prev[selectedCat]) ? sugeridoClasifican : prev[selectedCat])),
+                        }))}
+                        className="w-16 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"
+                    />
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-olive/70 uppercase tracking-wide font-bold">Nº de grupos</span>
+                    <Input
+                        type="number"
+                        min={1}
+                        max={16}
+                        value={Number.isNaN(numGrupos) ? '' : numGrupos}
+                        onChange={e => setNumGruposPorCat(prev => ({ ...prev, [selectedCat]: parseInt(e.target.value) }))}
+                        onBlur={() => setNumGruposPorCat(prev => ({
+                            ...prev,
+                            [selectedCat]: Math.max(1, Math.min(16, isNaN(prev[selectedCat]) ? 2 : prev[selectedCat])),
+                        }))}
+                        className="w-16 h-8 bg-paper-soft border-olive/20 text-ink text-center text-sm"
+                    />
+                </div>
+            </div>
+
+            {/* Paso 1: quiénes juegan. Si una no puede, la siguiente de la
+                tabla toma su cupo. No la saca de la liga: su tabla y su %
+                siguen igual. */}
+            {totalClasifican >= 2 && (
+                <div className="bg-paper-soft border border-olive/20 rounded-xl p-4 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <p className="text-sm font-bold text-ink flex items-center gap-2">
+                                <UserCheck className="w-4 h-4 text-olive" /> 1. ¿Quiénes juegan las finales?
+                            </p>
+                            <p className="text-[11px] text-olive/70 mt-0.5">
+                                Confirma cada pareja. Si alguna no puede, entra la siguiente de la tabla.
+                            </p>
+                        </div>
+                        <Button type="button" variant="outline" size="sm" onClick={cargarCandidatos} disabled={cargandoCandidatos}
+                            className="h-8 text-xs font-bold border-olive/25 text-olive bg-paper hover:bg-olive/10">
+                            {cargandoCandidatos && !marcando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : lista ? 'Actualizar lista' : 'Ver clasificadas'}
+                        </Button>
+                    </div>
+
+                    {lista && (
+                        <>
+                            <ul className="divide-y divide-olive/10 border border-olive/15 rounded-lg bg-paper">
+                                {lista.titulares.map(t => (
+                                    <li key={t.parejaId} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2">
+                                        <span className="w-6 text-right text-xs font-black text-olive tabular-nums">{t.puesto}</span>
+                                        <span className="flex-1 min-w-[180px] text-xs font-semibold text-ink">{t.nombre}</span>
+                                        <span className="text-[10px] text-olive/60 tabular-nums">{t.pts} pts</span>
+                                        {t.confirmada ? (
+                                            <span className="flex items-center gap-1.5">
+                                                <span className="text-[10px] font-black uppercase tracking-wide text-emerald-700 bg-emerald-500/10 border border-emerald-600/25 rounded-full px-2 py-0.5 flex items-center gap-1">
+                                                    <Check className="w-3 h-3" /> Juega
+                                                </span>
+                                                <button type="button" onClick={() => marcar(t.parejaId, 'pendiente')} disabled={cargandoCandidatos}
+                                                    className="text-[10px] text-olive/60 hover:text-ink underline disabled:opacity-50">cambiar</button>
+                                            </span>
+                                        ) : (
+                                            <span className="flex items-center gap-1.5">
+                                                <Button type="button" size="sm" onClick={() => marcar(t.parejaId, 'juega')} disabled={cargandoCandidatos}
+                                                    className="h-7 px-2.5 text-[11px] font-bold bg-olive hover:bg-olive-dark text-paper">
+                                                    {marcando === t.parejaId ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3 mr-1" />Juega</>}
+                                                </Button>
+                                                <Button type="button" size="sm" variant="outline"
+                                                    onClick={() => { if (confirm(`¿${t.nombre} no puede jugar las finales?\n\nSale de las finales y entra la siguiente de la tabla. En la liga no cambia nada.`)) marcar(t.parejaId, 'no_juega'); }}
+                                                    disabled={cargandoCandidatos}
+                                                    className="h-7 px-2.5 text-[11px] font-bold border-red-600/30 text-red-700 bg-paper hover:bg-red-500/10">
+                                                    <X className="w-3 h-3 mr-1" />No puede
+                                                </Button>
+                                            </span>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+
+                            <p className={cn("text-[11px] font-semibold", todasConfirmadas ? "text-emerald-700" : "text-olive/70")}>
+                                {todasConfirmadas
+                                    ? `Las ${lista.titulares.length} parejas confirmaron.`
+                                    : `Faltan ${faltanPorConfirmar} de ${lista.titulares.length} por confirmar.`}
+                            </p>
+
+                            {lista.suplentes.length > 0 && (
+                                <div className="text-[11px] text-olive/70">
+                                    <span className="font-bold uppercase tracking-wide text-[10px] text-olive/60">Siguen en la tabla (entran si alguna no puede):</span>{' '}
+                                    {lista.suplentes.map((s, i) => (
+                                        <span key={s.parejaId} className="tabular-nums">{i > 0 && ' · '}{s.puesto}. {s.nombre}</span>
+                                    ))}
+                                </div>
+                            )}
+
+                            {lista.ausentes.length > 0 && (
+                                <div className="text-[11px] text-olive/70 space-y-1">
+                                    <p className="font-bold uppercase tracking-wide text-[10px] text-red-700/80">No juegan las finales</p>
+                                    {lista.ausentes.map(a => (
+                                        <p key={a.parejaId} className="flex items-center gap-2">
+                                            <span className="line-through">{a.nombre}</span>
+                                            <button type="button" onClick={() => marcar(a.parejaId, 'pendiente')} disabled={cargandoCandidatos}
+                                                className="flex items-center gap-1 text-olive hover:text-ink underline disabled:opacity-50">
+                                                <Undo2 className="w-3 h-3" /> deshacer
+                                            </button>
+                                        </p>
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            )}
+
+            {/* Cómo van a quedar, antes de generar. El número es el puesto en la
+                clasificación de Todos contra Todos; con "Ver cómo quedan" se ven
+                las parejas, calculadas igual que al generar. */}
+            {totalClasifican >= 2 && numGrupos >= 1 && (
+                <div className="space-y-3 -mt-1">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-olive/80 px-1">
+                        <span className="font-bold text-olive/60 uppercase tracking-wide text-[10px]">2. Así quedan:</span>
+                        {repartirGruposFinales(Array.from({ length: totalClasifican }, (_, i) => i + 1), numGrupos).map((g, i) => (
+                            <span key={i} className="tabular-nums">
+                                <span className="font-bold text-ink">Grupo {String.fromCharCode(65 + i)}</span> {g.join(' - ')}
+                            </span>
+                        ))}
+                        <Button type="button" variant="outline" size="sm" onClick={verComoQuedan} disabled={cargandoVista}
+                            className="h-7 px-2.5 text-[11px] font-bold border-olive/25 text-olive bg-paper hover:bg-olive/10">
+                            {cargandoVista ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Eye className="w-3.5 h-3.5 mr-1" />Ver cómo quedan</>}
+                        </Button>
+                    </div>
+
+                    {gruposVista && (
+                        <div className="space-y-2">
+                            <p className="text-[11px] text-olive/70 px-1">
+                                Vista previa con la clasificación de hoy. Todavía no se ha creado nada: si se juegan más
+                                partidos antes de generar, los puestos pueden cambiar.
+                            </p>
+                            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                                {gruposVista.map((g, i) => (
+                                    <div key={i} className="bg-paper-soft border border-olive/20 rounded-xl p-3 space-y-1.5">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-ochre-dark">Grupo Final {String.fromCharCode(65 + i)}</p>
+                                        <ul className="space-y-1">
+                                            {g.map(p => (
+                                                <li key={p.puesto} className="flex items-baseline gap-2 text-xs">
+                                                    <span className="w-6 shrink-0 text-right font-black text-olive tabular-nums">{p.puesto}</span>
+                                                    <span className="text-ink font-semibold leading-snug">{p.nombre}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Paso 3: el 3er puesto se decide aquí; lo usa el cuadro al generarse. */}
+            <div className="flex flex-wrap items-center gap-2 bg-paper-soft border border-olive/20 rounded-xl px-4 py-3">
+                <span className="text-sm font-bold text-ink mr-1">3. ¿Se juega partido por el 3er puesto en {selectedCat}?</span>
+                {([true, false] as const).map(v => (
+                    <button
+                        key={String(v)}
+                        type="button"
+                        onClick={() => setTercerPuesto(prev => ({ ...prev, [selectedCat]: v }))}
+                        aria-pressed={tercerPuestoCat === v}
+                        className={cn(
+                            "px-3 py-1 rounded-lg text-xs font-bold border transition-colors",
+                            tercerPuestoCat === v
+                                ? "bg-olive text-paper border-olive"
+                                : "bg-paper text-olive border-olive/25 hover:bg-olive/10"
+                        )}
+                    >
+                        {v ? 'Sí' : 'No'}
+                    </button>
+                ))}
+                <span className="text-[11px] text-olive/60">
+                    {tercerPuestoCat === undefined
+                        ? 'Elige una opción para poder generar.'
+                        : tercerPuestoCat
+                            ? 'Los perdedores de semifinales juegan por el 3er puesto.'
+                            : 'Solo se juega la final.'}
+                </span>
+            </div>
+
+            {/* Paso 4: generar, solo con todo confirmado, la distribución vista
+                y lo del 3er puesto respondido. */}
+            <div className="flex flex-wrap items-center gap-3">
+                <Button
+                    onClick={handleGenerar}
+                    disabled={isPending || !puedeGenerar}
+                    title={!todasConfirmadas
+                        ? "Primero confirma quiénes juegan las finales (paso 1)"
+                        : !gruposVista ? "Revisa cómo quedan los grupos (paso 2)"
+                            : typeof tercerPuestoCat !== 'boolean' ? "Responde lo del 3er puesto (paso 3)" : undefined}
+                    size="sm"
+                    className="bg-olive hover:bg-olive text-paper font-bold"
+                >
+                    {isPending
+                        ? <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Generando...</>
+                        : gruposCat.length > 0
+                            ? <><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Regenerar Grupos Finales</>
+                            : <>Generar Grupos Finales</>}
+                </Button>
+                <span className="text-[11px] text-olive/70">
+                    {!todasConfirmadas
+                        ? "4. Para generar, primero confirma quiénes juegan (paso 1)."
+                        : !gruposVista
+                            ? "4. Revisa cómo quedan los grupos con \"Ver cómo quedan\" (paso 2)."
+                            : typeof tercerPuestoCat !== 'boolean'
+                                ? "4. Responde lo del 3er puesto (paso 3)."
+                                : "4. Todo listo: genera los grupos finales."}
+                </span>
+            </div>
+
+                    </div>
+                </details>
             )}
         </div>
     );

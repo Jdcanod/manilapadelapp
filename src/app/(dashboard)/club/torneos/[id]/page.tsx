@@ -871,7 +871,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                     )}
                 </div>
             ) : (
-            <PersistentTabs defaultValue="participantes" className="w-full mt-8">
+            <PersistentTabs defaultValue={reporteSoloFinales ? "grupos_finales" : "participantes"} className="w-full mt-8">
                 <TabsList className="bg-paper-soft border border-olive/20 p-1 w-full flex overflow-x-auto justify-start sm:w-auto overflow-y-hidden">
                     <TabsTrigger value="participantes" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">Parejas Inscritas <Badge variant="secondary" className="ml-2 bg-paper-dark text-olive border-none">{allParticipants.length}</Badge></TabsTrigger>
                     <TabsTrigger value="grupos" className="text-xs sm:text-sm px-2 sm:px-4 data-[state=active]:bg-paper-dark">
@@ -920,6 +920,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                     )}
                     <TournamentGroupsManager
                         torneoId={params.id}
+                        faseCerrada={reporteSoloFinales}
                         categorias={categoriasConInscritos.length > 0 ? categoriasConInscritos : categoriasHabilitadas}
                         gruposExistentes={gruposExistentes || []}
                         partidos={partidosReales || []}
@@ -965,6 +966,7 @@ export default async function TorneoDetailsPage({ params, searchParams }: { para
                             setsCantidad={torneo.reglas_puntuacion?.sets}
                             puedeSortear={puede('sorteos')}
                             puedeCargarResultados={puede('resultados')}
+                            puedeRehacer={soloClub}
                         />
                     </TabsContent>
                 )}

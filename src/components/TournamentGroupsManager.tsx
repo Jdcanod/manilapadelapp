@@ -83,6 +83,9 @@ interface Props {
     /** Config del corte, única para todo el torneo (no por categoría). */
     /** Corte por categoría: cada una tiene su fecha y su mínimo. */
     corteConfig?: Record<string, CorteConfigCategoria>;
+    /** Liga con las finales sorteadas: Todos contra Todos queda como tabla
+     *  final. Sin sorteo, ajustes, pendientes ni cambios de orden. */
+    faseCerrada?: boolean;
 }
 
 interface Standing {
@@ -99,7 +102,7 @@ interface Standing {
     revanchas: number; // Revanchas jugadas y confirmadas
 }
 
-export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", tipoDesempatePorCategoria = {}, allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican, setsCantidad, ordenGrupos = {}, idaVueltaConfig = {}, revanchaConfig = {}, ligaClasificacionConfig = {}, parejasEliminadas = new Set(), parejasRetiradas = new Set(), corteConfig = {} }: Props) {
+export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes, partidos, tipoDesempate = "tercer_set", tipoDesempatePorCategoria = {}, allParticipants = [], formato = "relampago", parejaPlayers = {}, configClasifican, setsCantidad, ordenGrupos = {}, idaVueltaConfig = {}, revanchaConfig = {}, ligaClasificacionConfig = {}, parejasEliminadas = new Set(), parejasRetiradas = new Set(), corteConfig = {}, faseCerrada = false }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const [selectedCat, setSelectedCat] = useState(categorias[0] || "General");
@@ -170,6 +173,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
     };
 
     const handleSwap = (parejaId1: string, parejaId2: string) => {
+        if (faseCerrada) return;
         if (!confirm('¿Estás seguro de intercambiar estas dos parejas? Esto modificará los partidos asignados.')) return;
         
         startTransition(async () => {
@@ -187,6 +191,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
 
     const handleDropOnGroup = (grupoId: string, e: React.DragEvent) => {
         e.preventDefault();
+        if (faseCerrada) return;
         const draggedParejaId = e.dataTransfer.getData("text/plain");
         if (!draggedParejaId) return;
 
@@ -214,6 +219,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
      * los otros grupos como botones.
      */
     const handleMoverAGrupo = (parejaId: string, grupoId: string, nombreGrupo: string) => {
+        if (faseCerrada) return;
         if (!confirm(`¿Mover esta pareja a ${nombreGrupo}? Se eliminarán sus partidos no jugados del grupo actual.`)) return;
 
         startTransition(async () => {
@@ -519,6 +525,8 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
     // Solo permitido si la pareja adyacente está empatada en pts/%sets/%games,
     // porque cuando hay diferencia de puntos el sort natural siempre gana.
     const handleMoverEnGrupo = (grupoId: string, parejaId: string, dir: 'up' | 'down') => {
+        // El orden de la tabla final decidió quién clasificó: ya no se toca.
+        if (faseCerrada) return;
         const standings = getStandings(grupoId);
         const idx = standings.findIndex(s => s.parejaId === parejaId);
         if (idx === -1) return;
@@ -540,6 +548,12 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
 
     return (
         <div className="space-y-6">
+            {faseCerrada && (
+                <p className="text-[11px] text-olive/70 bg-paper-soft/60 border border-olive/15 rounded-xl px-4 py-2.5">
+                    Todos contra Todos terminó: esta es la tabla final con la que se clasificó a las
+                    finales. Las finales se juegan y se gestionan en <span className="font-bold text-ink">Grupos Finales</span>.
+                </p>
+            )}
             <div className="flex flex-col gap-4 bg-paper-soft p-4 border border-olive/20 rounded-xl">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start gap-4">
@@ -594,7 +608,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                             )}
                         </div>
                         {/* Ajustes de liga — corte, ida y vuelta, revancha, clasificación. Colapsado por defecto. */}
-                        {esLiguilla && (
+                        {esLiguilla && !faseCerrada && (
                             <details className="group mt-3 bg-paper border border-olive/20 rounded-xl">
                                 <summary className="cursor-pointer select-none flex items-center justify-between px-3 py-2 text-[10px] font-black text-olive uppercase tracking-widest">
                                     <span className="flex items-center gap-1.5">
@@ -673,7 +687,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                         El "Sortear Eliminatorias" vive solo en el tab Fases Finales para evitar
                         duplicar el botón. */}
                     <div className="flex flex-col gap-2 w-full md:w-auto shrink-0">
-                        {gruposCategoria.length === 0 && (
+                        {gruposCategoria.length === 0 && !faseCerrada && (
                             <Button
                                 onClick={onGenerate}
                                 disabled={isPending}
@@ -687,7 +701,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                 </div>
 
                 {/* Toggle de configuración avanzada (solo cuando ya hay grupos) */}
-                {gruposCategoria.length > 0 && (
+                {gruposCategoria.length > 0 && !faseCerrada && (
                     <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto items-stretch sm:items-center">
                         <Button
                             type="button"
@@ -707,7 +721,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                 )}
 
                 {/* Panel de configuración avanzada (oculto por defecto para evitar clicks accidentales) */}
-                {gruposCategoria.length > 0 && showSettings && (
+                {gruposCategoria.length > 0 && showSettings && !faseCerrada && (
                     <div className="border-t border-olive/20 pt-4 space-y-4 animate-in fade-in slide-in-from-top-1 duration-150">
                         {/* Acciones destructivas / secundarias */}
                         <div>
@@ -762,7 +776,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
             </div>
 
             {/* ─── Resumen de avance de la categoría ──────────────────────────── */}
-            {gruposCategoria.length > 0 && resumenPartidosCat.total > 0 && (
+            {gruposCategoria.length > 0 && resumenPartidosCat.total > 0 && !faseCerrada && (
                 <div className="bg-paper-soft border border-olive/20 rounded-2xl p-4 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
@@ -993,7 +1007,7 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                     return (
                                                     <tr
                                                         key={team.parejaId}
-                                                        draggable
+                                                        draggable={!faseCerrada}
                                                         onDragStart={(e) => e.dataTransfer.setData("text/plain", team.parejaId)}
                                                         onDragOver={(e) => e.preventDefault()}
                                                         onDrop={(e) => {
@@ -1016,8 +1030,8 @@ export function TournamentGroupsManager({ torneoId, categorias, gruposExistentes
                                                         )}>
                                                             {(() => {
                                                                 // Solo se puede mover si la fila adyacente está empatada en pts/%sets/%games.
-                                                                const tiedUp = idx > 0 && areTiedStandings(standings[idx], standings[idx - 1]);
-                                                                const tiedDown = idx < standings.length - 1 && areTiedStandings(standings[idx], standings[idx + 1]);
+                                                                const tiedUp = !faseCerrada && idx > 0 && areTiedStandings(standings[idx], standings[idx - 1]);
+                                                                const tiedDown = !faseCerrada && idx < standings.length - 1 && areTiedStandings(standings[idx], standings[idx + 1]);
                                                                 return (
                                                                     <div className="flex items-center justify-center gap-0.5">
                                                                         <div className="flex flex-col -my-1">
